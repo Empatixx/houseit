@@ -1,7 +1,10 @@
-import type { HouseDocument } from '@houseit/core/document'
+import type { HouseDocument, Opening } from '@houseit/core/document'
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
-import type { Room } from '@houseit/geometry/rooms'
-import { freeSpans, spanAround, widestSpan } from '@houseit/geometry/spans'
+import type { Point } from '@houseit/geometry/outlines'
+import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
+import { footprintOf, standingAt } from '@houseit/geometry/standing'
+import { type Box, boxOf, clashes } from './boxes'
 import { CommandError } from './command-error'
 
 export type Side = 'north' | 'south' | 'east' | 'west'
@@ -40,7 +43,204 @@ export function placeOpening(
   side: Side,
   width: number,
   what: string,
+  swings = false,
 ): Placement {
+  // A side can be more than one wall, and the roomiest is only the best guess at
+  // which of them to use. Cut a hall out of a living room and its far side is two
+  // partitions of the very same length, one with the staircase along the whole of
+  // it — so every one of them is tried before the answer is no.
+  const walls = wallsFacing(doc, level, room, side, what).sort(
+    (one, other) => spanOf(other) - spanOf(one),
+  )
+  const widest = spanOf(walls[0]!)
+  if (width > widest) {
+    throw new CommandError(
+      `${what}: ${width} mm does not fit the ${widest} mm wall on the ${side} side of ${room.name}`,
+    )
+  }
+
+  let roomToStand = false
+  for (const chosen of walls) {
+    const span = spanOf(chosen)
+    if (width > span) continue
+
+    const taken = [
+      ...Object.values(doc.openings)
+        .filter((opening) => opening.wall === chosen.wall.id)
+        .map((opening) => spanAround(opening.t * span, opening.width)),
+      // Only a door. A window has nothing to keep clear of — a sofa under a
+      // window is where a sofa goes, and the same is true of a bed and a worktop.
+      ...(swings ? standingOn(doc, level, chosen, span) : []),
+    ]
+    const gaps = freeSpans(span, taken)
+      .filter((free) => free.to - free.from >= width)
+      .sort((one, other) => other.to - other.from - (one.to - one.from))
+    if (gaps.length === 0) continue
+    roomToStand = true
+
+    const swing = sideOfWall(chosen.a, chosen.b, room.centre)
+    // The middle of a stretch first, because that is where an opening looks like
+    // it was meant to go; hard against either end only when the middle is taken.
+    const tries = gaps.flatMap((free) => [
+      (free.from + free.to) / 2,
+      free.from + width / 2,
+      free.to - width / 2,
+    ])
+    const at = swings
+      ? tries.find((spot) => swingIsClear(doc, level, chosen, span, spot, width, swing))
+      : tries[0]
+
+    if (at !== undefined) return { wall: chosen.wall.id, t: at / span, swing }
+  }
+
+  throw new CommandError(
+    roomToStand
+      ? `${what}: a ${width} mm door in the ${side} wall of ${room.name} has nowhere to open — ` +
+          `everywhere it would fit, something is standing in front of it`
+      : `${what}: ${width} mm does not fit beside the openings already in the ${side} wall of ${room.name}`,
+  )
+}
+
+/**
+ * The floor a door needs to itself: the square its leaf sweeps as it opens.
+ *
+ * A quarter circle, boxed. The box is the more generous of the two and that is
+ * the point — a door that opens to within a hand's breadth of the washbasin is a
+ * door somebody squeezes past, and a drawing should not offer it.
+ */
+function sweptBy(a: Point, b: Point, span: number, at: number, width: number, swing: -1 | 1): Box {
+  const unit = { x: (b.x - a.x) / (span || 1), y: (b.y - a.y) / (span || 1) }
+  // A quarter turn across the wall, the way the room lies.
+  const into = { x: -unit.y * swing, y: unit.x * swing }
+  const hinge = { x: a.x + unit.x * (at - width / 2), y: a.y + unit.y * (at - width / 2) }
+
+  return boxOf(
+    [0, 1].flatMap((along) =>
+      [0, 1].map((out) => ({
+        x: hinge.x + unit.x * width * along + into.x * width * out,
+        y: hinge.y + unit.y * width * along + into.y * width * out,
+      })),
+    ),
+  )
+}
+
+/** Where a door already in the plan opens, or nothing if it is a window. */
+export function swingOf(doc: HouseDocument, opening: Opening): Box | undefined {
+  if (opening.kind !== 'door') return undefined
+  const wall = doc.walls[opening.wall]
+  const a = wall && doc.nodes[wall.a]
+  const b = wall && doc.nodes[wall.b]
+  if (!a || !b) return undefined
+
+  const span = Math.hypot(b.x - a.x, b.y - a.y)
+  return sweptBy(a, b, span, opening.t * span, opening.width, opening.swing)
+}
+
+/**
+ * Whether a door put there could actually be opened.
+ *
+ * Keeping a door clear of the wall it is in was never the whole job: a door
+ * sweeps a quarter of a circle out into the room, and what is standing in that
+ * quarter matters as much as what is beside it. Two doors in one corner bang into
+ * each other, and a door across the basin does not open at all — and the plan
+ * draws both without a murmur, because nothing in the drawing knows.
+ */
+function swingIsClear(
+  doc: HouseDocument,
+  level: string,
+  chosen: Facing,
+  span: number,
+  at: number,
+  width: number,
+  swing: -1 | 1,
+): boolean {
+  const box = sweptBy(chosen.a, chosen.b, span, at, width, swing)
+
+  const doors = Object.values(doc.openings)
+    .filter((opening) => doc.walls[opening.wall]?.level === level)
+    .map((opening) => swingOf(doc, opening))
+    .filter((other): other is Box => other !== undefined)
+  if (doors.some((other) => clashes(box, other))) return false
+
+  const rooms = new Map(
+    roomsOf(doc, level)
+      .filter((room) => room.id)
+      .map((room) => [room.id!, room] as const),
+  )
+  return !Object.values(doc.objects)
+    .filter((object) => object.level === level)
+    .some((object) => {
+      const room = rooms.get(object.room)
+      const spot = room && standingAt(doc, level, room, object)
+      if (!spot) return false
+      return clashes(box, boxOf(footprintOf(spot, object)))
+    })
+}
+
+/**
+ * What is already standing along that wall, as stretches of it that are spoken for.
+ *
+ * The other half of the bargain `place-object` keeps: furniture is kept clear of
+ * the doors, so doors are kept clear of the furniture. Without it a door can be
+ * hung behind the staircase — the plan draws both, quite happily, and neither the
+ * drawing nor a test says a word about the door nobody can walk through.
+ *
+ * Everything at that wall counts, not merely what is in the room the door was
+ * asked for. A door has two faces and only one of them is in that room; the
+ * lavatory standing against the far face is in the way exactly as much, which is
+ * how the first go at this put a door through the toilet in the bathroom next
+ * door. So nothing is filtered by room or by side — what settles it is standing
+ * out in front of this wall, whichever side of it that is.
+ */
+function standingOn(doc: HouseDocument, level: string, chosen: Facing, span: number): Span[] {
+  const rooms = new Map(
+    roomsOf(doc, level)
+      .filter((room) => room.id)
+      .map((room) => [room.id!, room] as const),
+  )
+  const unit = {
+    x: (chosen.b.x - chosen.a.x) / (span || 1),
+    y: (chosen.b.y - chosen.a.y) / (span || 1),
+  }
+  // How far off the wall's centre line a thing may be and still be up against it:
+  // half the wall, and a hand's breadth of room for the ones that stand a little
+  // proud. Measured against the thing's own corners rather than its middle, or a
+  // staircase at the wall round the corner counts as standing at this one.
+  const reach = (doc.walls[chosen.wall.id]?.thickness ?? 0) / 2 + 120
+
+  return Object.values(doc.objects)
+    .filter((object) => object.level === level && object.against !== undefined)
+    .flatMap((object) => {
+      const room = rooms.get(object.room)
+      const spot = room && standingAt(doc, level, room, object)
+      if (!spot) return []
+
+      const corners = footprintOf(spot, object).map((corner) => ({
+        along: (corner.x - chosen.a.x) * unit.x + (corner.y - chosen.a.y) * unit.y,
+        off: Math.abs((corner.x - chosen.a.x) * unit.y - (corner.y - chosen.a.y) * unit.x),
+      }))
+      if (Math.min(...corners.map((corner) => corner.off)) > reach) return []
+
+      const alongs = corners.map((corner) => corner.along)
+      return [{ from: Math.min(...alongs), to: Math.max(...alongs) }]
+    })
+}
+
+/**
+ * The walls of a room that face one way, the outermost ones only.
+ *
+ * A side is not always one wall: cut a room out of a corner and the wall it faces
+ * across can end up in two pieces. Everything at the outermost offset counts,
+ * because that is what somebody means by "the south wall" — the front of the
+ * house, not a partition standing back from it.
+ */
+export function wallsFacing(
+  doc: HouseDocument,
+  level: string,
+  room: Room,
+  side: Side,
+  what: string,
+): Facing[] {
   const { axis, low } = SIDES[side]
   const walls = boundaryWallsOf(doc, level, room)
     .map((wall) => ({ wall, a: doc.nodes[wall.a]!, b: doc.nodes[wall.b]! }))
@@ -52,34 +252,10 @@ export function placeOpening(
 
   const offsets = walls.map(({ a }) => a[axis])
   const outermost = low ? Math.min(...offsets) : Math.max(...offsets)
-  const chosen = walls
-    .filter(({ a }) => a[axis] === outermost)
-    .reduce((best, next) => (spanOf(next) > spanOf(best) ? next : best))
-
-  const span = spanOf(chosen)
-  if (width > span) {
-    throw new CommandError(
-      `${what}: ${width} mm does not fit the ${span} mm wall on the ${side} side of ${room.name}`,
-    )
-  }
-
-  const taken = Object.values(doc.openings)
-    .filter((opening) => opening.wall === chosen.wall.id)
-    .map((opening) => spanAround(opening.t * span, opening.width))
-  const gap = widestSpan(freeSpans(span, taken))
-
-  if (!gap || gap.to - gap.from < width) {
-    throw new CommandError(
-      `${what}: ${width} mm does not fit beside the openings already in the ${side} wall of ${room.name}`,
-    )
-  }
-
-  return {
-    wall: chosen.wall.id,
-    t: (gap.from + gap.to) / 2 / span,
-    swing: sideOfWall(chosen.a, chosen.b, room.centre),
-  }
+  return walls.filter(({ a }) => a[axis] === outermost)
 }
+
+type Facing = { wall: { id: string }; a: { x: number; y: number }; b: { x: number; y: number } }
 
 const spanOf = ({ a, b }: { a: { x: number; y: number }; b: { x: number; y: number } }) =>
   Math.round(Math.hypot(b.x - a.x, b.y - a.y))

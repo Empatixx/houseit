@@ -3,7 +3,8 @@
   "workspaces": {
     ".": {
       "entry": ["scripts/*.mjs"],
-      "project": ["scripts/*.mjs"]
+      "project": ["scripts/*.mjs"],
+      "ignoreDependencies": ["playwright-core"]
     },
     "packages/core": {
       "entry": ["src/**/*.ts"],

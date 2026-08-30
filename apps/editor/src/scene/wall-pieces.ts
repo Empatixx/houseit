@@ -61,18 +61,24 @@ export function planPieces(
   const line = lineWeight(wall.thickness)
   const inner = wall.thickness - 2 * line
   const holes = openings.map((opening) => spanAround(growA + opening.t * span, opening.width))
+  // A doorway is a gap in the drawing, not a hole filled in with white. Both rooms
+  // run their floor to the middle of the wall, so leaving the gap empty is what
+  // puts half of each room's floor in the opening — which is what a doorway looks
+  // like. A window is different: it keeps the wall drawn across it, with its own
+  // white and its pane line laid over the top.
+  const doorways = openings.flatMap((opening, index) =>
+    opening.kind === 'door' ? [holes[index]!] : [],
+  )
 
-  const pieces: WallPiece[] = [
-    {
-      key: 'outline',
-      colour: INK.outline,
-      at: length / 2,
-      length,
-      thickness: wall.thickness,
-      base: 0,
-      height: wall.height,
-    },
-  ]
+  const pieces: WallPiece[] = freeSpans(length, doorways).map((solid) => ({
+    key: `outline-${solid.from}`,
+    colour: INK.outline,
+    at: middleOf(solid),
+    length: solid.to - solid.from,
+    thickness: wall.thickness,
+    base: 0,
+    height: wall.height,
+  }))
 
   for (const solid of freeSpans(length, holes)) {
     pieces.push({
@@ -88,26 +94,27 @@ export function planPieces(
 
   openings.forEach((opening, index) => {
     const hole = holes[index]!
-    pieces.push({
-      key: `${opening.id}-glass`,
-      colour: INK.glass,
-      at: middleOf(hole),
-      length: opening.width,
-      thickness: inner,
-      base: 2,
-      height: wall.height,
-    })
-
     if (opening.kind === 'window') {
-      pieces.push({
-        key: `${opening.id}-pane`,
-        colour: INK.outline,
-        at: middleOf(hole),
-        length: opening.width,
-        thickness: line,
-        base: 4,
-        height: wall.height,
-      })
+      pieces.push(
+        {
+          key: `${opening.id}-glass`,
+          colour: INK.glass,
+          at: middleOf(hole),
+          length: opening.width,
+          thickness: inner,
+          base: 2,
+          height: wall.height,
+        },
+        {
+          key: `${opening.id}-pane`,
+          colour: INK.outline,
+          at: middleOf(hole),
+          length: opening.width,
+          thickness: line,
+          base: 4,
+          height: wall.height,
+        },
+      )
       return
     }
 

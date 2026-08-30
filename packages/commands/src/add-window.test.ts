@@ -2,7 +2,7 @@ import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
 import { runScript } from './run'
 
-const FLOOR = 'floor-shape --kind rectangle --width 12m --depth 9m --name dům'
+const FLOOR = 'floor-shape --material oak --kind rectangle --width 12m --depth 9m --name dům'
 
 const floor = () => {
   const doc = createEmptyDocument()
@@ -89,7 +89,27 @@ test('windowing a room that does not exist says so', () => {
 test('a room cut out of another can be windowed on its own outside wall', () => {
   const { doc } = floor()
 
-  const next = runScript(doc, 'add-room --name kuchyň --from dům --side west --width 3.6m')
+  const next = runScript(
+    doc,
+    'add-room --material oak --name kuchyň --from dům --side west --width 3.6m',
+  )
 
   expect(openings(runScript(next, 'add-window --room kuchyň --side west'))).toHaveLength(1)
+})
+
+test('a window is happy over the sofa, because that is where a sofa goes', () => {
+  const { doc } = floor()
+
+  const next = runScript(
+    doc,
+    [
+      'add-object --room dům --type sofa --against north --width 3m',
+      'add-window --room dům --side north --width 1.2m',
+    ].join('\n'),
+  )
+  const window = Object.values(next.openings)[0]!
+
+  // Doors keep clear of the furniture because a door has to open. A window does
+  // not, and making it dodge the sofa leaves a wall of windowless corners.
+  expect(window.t).toBeCloseTo(0.5, 5)
 })

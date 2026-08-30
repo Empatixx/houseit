@@ -31,7 +31,12 @@ export function RoomFloors() {
         shape.closePath()
         const material = room.floor ? floorMaterial(room.floor) : undefined
         return {
-          key: room.nodes.join('-'),
+          // The material is part of the key on purpose. Laying a floor in a room
+          // that had none swaps a plain white material for one with a texture, and
+          // patching that onto the material already on screen leaves it black
+          // until the page is reloaded. Keyed this way the mesh is built afresh,
+          // with its texture from the start, exactly as it is on a reload.
+          key: `${room.nodes.join('-')}-${room.floor ?? 'bare'}`,
           geometry: new ShapeGeometry(shape),
           texture: material ? floorTexture(material) : undefined,
         }

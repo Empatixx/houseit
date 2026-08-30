@@ -1,12 +1,10 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 import { MM, toWorld } from './plan-coordinates'
-import type { ViewMode } from './view-mode'
-import { INK, planPieces, solidPieces } from './wall-pieces'
+import { planPieces } from './wall-pieces'
 
 type WallMeshProps = {
   wall: Wall
   doc: HouseDocument
-  view: ViewMode
   /** How many walls meet at each node, so free ends are not extended. */
   degrees: Map<string, number>
 }
@@ -23,7 +21,7 @@ type WallMeshProps = {
  * lifting one above another, because the plan is drawn from straight overhead:
  * there is no z-order to set, only height.
  */
-export function WallMesh({ wall, doc, view, degrees }: WallMeshProps) {
+export function WallMesh({ wall, doc, degrees }: WallMeshProps) {
   const a = doc.nodes[wall.a]
   const b = doc.nodes[wall.b]
   if (!a || !b) return null
@@ -38,8 +36,7 @@ export function WallMesh({ wall, doc, view, degrees }: WallMeshProps) {
   const length = span + growA + growB
 
   const openings = Object.values(doc.openings).filter((opening) => opening.wall === wall.id)
-  const build = view === 'plan' ? planPieces : solidPieces
-  const pieces = build(wall, openings, length, growA, span)
+  const pieces = planPieces(wall, openings, length, growA, span)
   const angle = Math.atan2(dy, dx)
 
   return (
@@ -56,15 +53,9 @@ export function WallMesh({ wall, doc, view, degrees }: WallMeshProps) {
             key={piece.key}
             position={toWorld(x, y, base + piece.height / 2)}
             rotation={[0, angle + (piece.turn ?? 0), 0]}
-            castShadow
-            receiveShadow
           >
             <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
-            {view === 'plan' ? (
-              <meshBasicMaterial color={piece.colour} />
-            ) : (
-              <meshStandardMaterial color={INK.perspective} />
-            )}
+            <meshBasicMaterial color={piece.colour} />
           </mesh>
         )
       })}

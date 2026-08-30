@@ -83,3 +83,56 @@ export function outlinePoints(spec: OutlineSpec): Point[] {
 }
 
 const p = (x: number, y: number): Point => ({ x, y })
+
+/** One leg of a walk round a building: how far, and which way. */
+export type Leg = { heading: 'n' | 's' | 'e' | 'w'; length: number }
+
+const HEADINGS = {
+  n: { x: 0, y: 1 },
+  s: { x: 0, y: -1 },
+  e: { x: 1, y: 0 },
+  w: { x: -1, y: 0 },
+} as const
+
+/**
+ * The corners of a building described by walking round it.
+ *
+ * This is how a footprint is actually described on site — so many metres east,
+ * so many north — and it is the only way to give any shape at all without
+ * naming a coordinate. The predefined kinds are a shorthand for the walks people
+ * take most often; anything else is still a walk.
+ *
+ * The last leg back to where you started is not given: you stop when the way home
+ * is a straight line, and it closes itself.
+ */
+export function walkPoints(legs: Leg[]): Point[] {
+  require(legs.length >= 3, 'a building needs at least three sides')
+
+  const points: Point[] = [p(0, 0)]
+  for (const leg of legs) {
+    require(leg.length > 0, 'every leg of the walk has to go somewhere')
+    const step = HEADINGS[leg.heading]
+    const last = points[points.length - 1]!
+    points.push(p(last.x + step.x * leg.length, last.y + step.y * leg.length))
+  }
+
+  const end = points[points.length - 1]!
+  require(end.x === 0 ||
+    end.y === 0, 'the walk does not close: from where it ends, home is not a straight line')
+  if (end.x === 0 && end.y === 0) points.pop()
+
+  const area = shoelace(points)
+  require(area !== 0, 'the walk encloses nothing')
+  // Faces are read counter-clockwise, so a walk taken the other way is turned round.
+  return area > 0 ? points : points.reverse()
+}
+
+function shoelace(points: Point[]): number {
+  let total = 0
+  for (let i = 0; i < points.length; i += 1) {
+    const a = points[i]!
+    const b = points[(i + 1) % points.length]!
+    total += a.x * b.y - b.x * a.y
+  }
+  return total / 2
+}

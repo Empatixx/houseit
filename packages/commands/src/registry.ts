@@ -1,11 +1,23 @@
 import { addDoor } from './add-door'
+import { addObject } from './add-object'
 import { addRoom } from './add-room'
 import { addWindow } from './add-window'
 import type { Command } from './define-command'
 import { floorShape } from './floor-shape'
+import { removeDoor, removeObject, removeWindow } from './remove'
 import { setFloor } from './set-floor'
 
-const ALL: Command[] = [floorShape, addRoom, addWindow, addDoor, setFloor]
+const ALL: Command[] = [
+  floorShape,
+  addRoom,
+  addWindow,
+  addDoor,
+  setFloor,
+  addObject,
+  removeObject,
+  removeWindow,
+  removeDoor,
+]
 
 export const REGISTRY: ReadonlyMap<string, Command> = new Map(ALL.map((c) => [c.name, c]))
 

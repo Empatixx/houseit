@@ -1,41 +1,36 @@
-import { Grid, OrbitControls, OrthographicCamera, PerspectiveCamera } from '@react-three/drei'
+import { Grid, OrbitControls, OrthographicCamera } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { FitToPlan } from './fit-to-plan'
+import { Furniture } from './furniture/furniture'
 import { RoomAnnotations } from './room-annotations'
 import { RoomFloors } from './room-floors'
-import type { ViewMode } from './view-mode'
 import { Walls } from './walls'
 
 /**
- * Both views are the same scene; only the camera moves. That is the whole reason
- * the renderer is three.js rather than a 2D canvas — walls, and later sockets and
- * cable runs, are authored once and appear in both.
+ * The plan: one orthographic camera looking straight down.
+ *
+ * There was a second camera here once, and there will be again — the model still
+ * carries the heights a perspective view needs, a table top at 740 and a seat at
+ * 420, and the parts a plan never shows, like a table's legs. What was deleted is
+ * the view, not the knowledge behind it.
  */
-export function PlanScene({ view, fitKey }: { view: ViewMode; fitKey: number }) {
+/**
+ * Where the camera starts, held still on purpose.
+ *
+ * Written inline these would be a fresh array on every render, which react-three
+ * would dutifully apply again — putting the camera back where it started every
+ * time anything changed, and quietly undoing whatever framed the plan.
+ */
+const OVERHEAD: [number, number, number] = [0, 40, 0]
+const UP: [number, number, number] = [0, 0, -1]
+
+export function PlanScene({ fitKey }: { fitKey: number }) {
   return (
-    <Canvas flat shadows dpr={[1, 2]}>
-      {view === 'plan' ? (
-        <OrthographicCamera
-          makeDefault
-          position={[0, 40, 0]}
-          zoom={45}
-          up={[0, 0, -1]}
-          near={0.1}
-          far={200}
-        />
-      ) : (
-        <PerspectiveCamera makeDefault position={[12, 10, 12]} fov={45} near={0.1} far={500} />
-      )}
-      <OrbitControls
-        makeDefault
-        enableRotate={view === 'perspective'}
-        enableDamping={false}
-        target={[0, 0, 0]}
-      />
+    <Canvas flat dpr={[1, 2]}>
+      <OrthographicCamera makeDefault position={OVERHEAD} zoom={45} up={UP} near={0.1} far={200} />
+      <OrbitControls makeDefault enableRotate={false} enableDamping={false} />
 
       <color attach="background" args={['#f4f4f5']} />
-      <ambientLight intensity={0.75} />
-      <directionalLight position={[8, 20, 6]} intensity={1.1} castShadow />
 
       <Grid
         position={[0, -0.05, 0]}
@@ -50,9 +45,10 @@ export function PlanScene({ view, fitKey }: { view: ViewMode; fitKey: number }) 
       />
 
       <RoomFloors />
-      <Walls view={view} />
+      <Furniture />
+      <Walls />
       <RoomAnnotations />
-      {view === 'plan' ? <FitToPlan fitKey={fitKey} /> : null}
+      <FitToPlan fitKey={fitKey} />
     </Canvas>
   )
 }

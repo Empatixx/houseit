@@ -77,6 +77,38 @@ export const RoomSchema = z.object({
   floor: z.string().optional(),
 })
 
+export const SideSchema = z.enum(['north', 'south', 'east', 'west'])
+
+/**
+ * Something standing in a room: a table, a chair.
+ *
+ * It belongs to a room, not to a wall. A wall gets split the moment another room
+ * is cut beside it, and everything measured along that wall stops meaning what it
+ * meant; a room is recomputed from the graph after every edit and survives. So a
+ * table is stored as "in the kitchen, a third of the way across" and is still
+ * that after the disposition changes underneath it.
+ */
+export const ObjectSchema = z.object({
+  id,
+  level: id,
+  room: id,
+  type: z.string().min(1),
+  /** The side it backs onto. Absent means it stands out in the room. */
+  against: SideSchema.optional(),
+  /** Where along that side, 0 at one end and 1 at the other. */
+  along: z.number().min(0).max(1).default(0.5),
+  width: mm.positive(),
+  depth: mm.positive(),
+  surface: z.string().min(1),
+  /**
+   * A turn about its own middle, in whole degrees, on top of the way it already
+   * faces where it stands. Absent means square on, which nearly everything is.
+   */
+  turn: z.number().int().min(-359).max(359).optional(),
+  /** Places at a table. Ignored by everything without them. */
+  seats: z.number().int().positive().optional(),
+})
+
 export const DeviceSchema = z.object({
   id,
   kind: z.enum(['socket', 'switch', 'light', 'panel']),
@@ -103,6 +135,7 @@ const DocumentShape = z.object({
   walls: byId(WallSchema),
   openings: byId(OpeningSchema),
   rooms: byId(RoomSchema),
+  objects: byId(ObjectSchema),
   devices: byId(DeviceSchema),
   circuits: byId(CircuitSchema),
 })
@@ -143,6 +176,7 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   checkKeysMatchIds(doc.walls, 'walls', ctx)
   checkKeysMatchIds(doc.openings, 'openings', ctx)
   checkKeysMatchIds(doc.rooms, 'rooms', ctx)
+  checkKeysMatchIds(doc.objects, 'objects', ctx)
   checkKeysMatchIds(doc.devices, 'devices', ctx)
   checkKeysMatchIds(doc.circuits, 'circuits', ctx)
 
@@ -161,6 +195,12 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   for (const room of Object.values(doc.rooms)) {
     const path = ['rooms', room.id, 'level']
     checkReference(doc.levels, room.level, path, `room ${room.id}`, ctx)
+  }
+
+  for (const object of Object.values(doc.objects)) {
+    const what = `object ${object.id}`
+    checkReference(doc.levels, object.level, ['objects', object.id, 'level'], what, ctx)
+    checkReference(doc.rooms, object.room, ['objects', object.id, 'room'], what, ctx)
   }
 
   for (const device of Object.values(doc.devices)) {
@@ -188,6 +228,8 @@ export type Node = z.infer<typeof NodeSchema>
 export type Wall = z.infer<typeof WallSchema>
 export type Opening = z.infer<typeof OpeningSchema>
 export type Room = z.infer<typeof RoomSchema>
+export type Side = z.infer<typeof SideSchema>
+export type HouseObject = z.infer<typeof ObjectSchema>
 export type Device = z.infer<typeof DeviceSchema>
 export type Circuit = z.infer<typeof CircuitSchema>
 export type HouseDocument = z.infer<typeof DocumentSchema>
@@ -210,6 +252,7 @@ export function createEmptyDocument(): HouseDocument {
     walls: {},
     openings: {},
     rooms: {},
+    objects: {},
     devices: {},
     circuits: {},
   }

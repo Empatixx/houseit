@@ -3,7 +3,7 @@ import { applyPatches } from 'immer'
 import { expect, test } from 'vitest'
 import { runScriptWithPatches } from './patches'
 
-const script = 'floor-shape --kind rectangle --width 12m --depth 9m --name dům'
+const script = 'floor-shape --material oak --kind rectangle --width 12m --depth 9m --name dům'
 
 test('reports the patches that produced the new document', () => {
   const before = createEmptyDocument()

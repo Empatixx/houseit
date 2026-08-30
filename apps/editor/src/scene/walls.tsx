@@ -1,8 +1,7 @@
 import { useDocument } from '../store/store'
-import type { ViewMode } from './view-mode'
 import { WallMesh } from './wall-mesh'
 
-export function Walls({ view }: { view: ViewMode }) {
+export function Walls() {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
 
@@ -18,7 +17,7 @@ export function Walls({ view }: { view: ViewMode }) {
   return (
     <>
       {walls.map((wall) => (
-        <WallMesh key={wall.id} wall={wall} doc={doc} view={view} degrees={degrees} />
+        <WallMesh key={wall.id} wall={wall} doc={doc} degrees={degrees} />
       ))}
     </>
   )

@@ -14,7 +14,13 @@ export type FloorMaterial = {
   id: string
   /** What it is called in help and in the plan. */
   label: string
-  /** Size of one repeat of the texture on the floor, in millimetres. */
+  /**
+   * Size of one repeat of the texture on the floor, in millimetres.
+   *
+   * Small enough to repeat inside a room. A three metre repeat puts a single tile
+   * across a kitchen, and one tile of an even material is a grey rectangle — which
+   * reads as a floor nobody has chosen rather than as poured concrete.
+   */
   unit: { width: number; depth: number }
   /** File name under the editor's texture folder. */
   texture: string
@@ -48,12 +54,12 @@ export const FLOOR_MATERIALS: readonly FloorMaterial[] = [
     colour: '#d9b681',
   },
   { id: 'tile', label: 'Ceramic tile', unit: u(600), texture: 'tile.png', colour: '#dcdcd8' },
-  { id: 'marble', label: 'Marble', unit: u(1600), texture: 'marble.png', colour: '#e8e7e4' },
+  { id: 'marble', label: 'Marble', unit: u(1400), texture: 'marble.png', colour: '#e8e7e4' },
   { id: 'terrazzo', label: 'Terrazzo', unit: u(1200), texture: 'terrazzo.png', colour: '#e0ddd5' },
   {
     id: 'concrete',
     label: 'Poured concrete',
-    unit: u(3000),
+    unit: u(1500),
     texture: 'concrete.png',
     colour: '#cbcac6',
   },

@@ -7,10 +7,13 @@ import { defineCommand } from './define-command'
 /**
  * Lays a floor in one room.
  *
+ * Every room already has a floor: `floor-shape` and `add-room` both insist on one,
+ * so this is for changing it rather than for supplying what was missing.
+ *
  * The material is stored on the room record, not on the face it currently
  * occupies, so it stays where it was put when a partition moves and the faces are
  * all recomputed. Cut a room in two and the half that keeps the name keeps the
- * floor; the new half starts bare.
+ * floor; the new half gets whatever the cut asked for.
  *
  * The list of materials comes from the catalogue, so `--help` and the MCP tool
  * description stay in step with it without a second copy of the list.

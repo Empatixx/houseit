@@ -1,17 +1,10 @@
-import type { ViewMode } from '../scene/view-mode'
 import { documentStore, useDocument } from '../store/store'
 import { CommandBar } from './command-bar'
 
 const button =
   'rounded border border-neutral-300 bg-white px-2.5 py-1 text-sm text-neutral-700 enabled:hover:border-neutral-400 disabled:opacity-40'
 
-type ToolbarProps = {
-  view: ViewMode
-  onView: (view: ViewMode) => void
-  onFit: () => void
-}
-
-export function Toolbar({ view, onView, onFit }: ToolbarProps) {
+export function Toolbar({ onFit }: { onFit: () => void }) {
   const canUndo = useDocument((state) => state.canUndo)
   const canRedo = useDocument((state) => state.canRedo)
 
@@ -40,13 +33,6 @@ export function Toolbar({ view, onView, onFit }: ToolbarProps) {
         </button>
         <button type="button" className={button} onClick={onFit}>
           Fit
-        </button>
-        <button
-          type="button"
-          className={button}
-          onClick={() => onView(view === 'plan' ? 'perspective' : 'plan')}
-        >
-          {view === 'plan' ? '3D' : 'Plan'}
         </button>
       </div>
     </header>

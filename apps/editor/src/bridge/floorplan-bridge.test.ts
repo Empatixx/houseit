@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { createDocumentStore } from '../store/document-store'
 import { installFloorplanBridge } from './floorplan-bridge'
 
-const floor = 'floor-shape --kind rectangle --width 12m --depth 9m --name dům'
+const floor = 'floor-shape --material oak --kind rectangle --width 12m --depth 9m --name dům'
 
 const bridgeOn = (store = createDocumentStore()) => {
   installFloorplanBridge(store)

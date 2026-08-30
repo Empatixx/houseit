@@ -40,7 +40,7 @@ export const addDoor = defineCommand({
       throw new CommandError(`add-door: there is no room called ${args.room}`)
     }
 
-    const spot = placeOpening(draft, level, room, args.side, args.width, 'add-door')
+    const spot = placeOpening(draft, level, room, args.side, args.width, 'add-door', true)
     const id = allocateId(draft.openings, 'o')
     draft.openings[id] = {
       id,

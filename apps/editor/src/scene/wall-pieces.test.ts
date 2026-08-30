@@ -31,7 +31,7 @@ test('a blank wall is an outline with the fill sitting inside it', () => {
 
   expect(pieces).toEqual([
     {
-      key: 'outline',
+      key: 'outline-0',
       colour: INK.outline,
       at: 3000,
       length: 6000,
@@ -68,8 +68,8 @@ test('an opening is white with a line down the middle of it, drawn over the whit
   expect(pane.base).toBeGreaterThan(glass.base)
 })
 
-test('the outline runs the whole wall, openings included, so it shows at the faces', () => {
-  const outline = plan([window_]).find((piece) => piece.key === 'outline')!
+test('the outline runs across a window, so the wall shows at its faces', () => {
+  const outline = plan([window_]).find((piece) => piece.key === 'outline-0')!
 
   expect(outline).toMatchObject({ length: 6000, thickness: 300, base: 0 })
 })
@@ -116,11 +116,27 @@ const door: Opening = {
   swing: 1,
 }
 
-test('a door opening is white like a window, but with no pane line across it', () => {
+test('a doorway is left open, so the floors of the two rooms meet in it', () => {
   const keys = plan([door]).map((piece) => piece.key)
 
-  expect(keys).toContain('d1-glass')
+  // Nothing at all is drawn across the gap — no white, and no outline either.
+  // Both rooms' floors reach the middle of the wall, so a doorway filled in with
+  // anything is a doorway with a white slab lying in it.
+  expect(keys).not.toContain('d1-glass')
   expect(keys).not.toContain('d1-pane')
+
+  // Nothing belonging to the wall itself is left standing in the gap.
+  const inTheGap = plan([door]).filter(
+    (piece) => !piece.key.startsWith('d1-') && Math.abs(piece.at - 3000) < door.width / 2,
+  )
+  expect(inTheGap).toEqual([])
+})
+
+test('the wall each side of a doorway is outlined, so the jambs show', () => {
+  const outlines = plan([door]).filter((piece) => piece.key.startsWith('outline-'))
+
+  expect(outlines.map((piece) => piece.length)).toEqual([2600, 2600])
+  expect(outlines.every((piece) => piece.thickness === 300)).toBe(true)
 })
 
 test('the leaf stands square to the wall, on the side the door swings to', () => {

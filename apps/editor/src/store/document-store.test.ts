@@ -2,8 +2,8 @@ import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
 import { createDocumentStore } from './document-store'
 
-const floor = 'floor-shape --kind rectangle --width 12m --depth 9m --name dům'
-const kitchen = 'add-room --name kuchyň --from dům --side west --width 3.6m'
+const floor = 'floor-shape --material oak --kind rectangle --width 12m --depth 9m --name dům'
+const kitchen = 'add-room --material oak --name kuchyň --from dům --side west --width 3.6m'
 
 const roomCount = (store: ReturnType<typeof createDocumentStore>) => {
   const { doc, level } = store.getState()
@@ -52,7 +52,7 @@ test('a new command after undo drops what could have been redone', () => {
   store.getState().exec(kitchen)
   store.getState().undo()
 
-  store.getState().exec('add-room --name ložnice --from dům --side east --width 4m')
+  store.getState().exec('add-room --material oak --name ložnice --from dům --side east --width 4m')
 
   expect(store.getState().canRedo).toBe(false)
   expect(roomCount(store)).toBe(2)

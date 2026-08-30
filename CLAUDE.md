@@ -1,0 +1,106 @@
+# Working on houseit
+
+## Everything goes through the CLI, and that is the test
+
+An agent gets at this plan through one door: the commands in `packages/commands`,
+reached over MCP. Every change is made the way an agent would have to make it —
+`floor-shape`, `add-room`, `add-window`, `add-door`, `set-floor`, `add-object` —
+and never by writing to the document. If something cannot be said as a command,
+that is the bug, and it is the bug to fix.
+
+Working this way is not ceremony, it is the test. Everything found by hand so far
+was found by driving the real commands and looking at what came out:
+
+- a doorway drawn as a white slab, because the floors were never asked to meet in it
+- a floor laid in a room that had none coming out black until the page reloaded
+- a window left at a size no window is ever built at
+
+None of it shows up in a unit test, and none of it would have been noticed by
+editing the document behind the commands' back. So: cut the room, lay the floor,
+hang the door, place the thing — all through `exec` — then look.
+
+An option a plan cannot do without belongs in the schema as required, not as
+something with a default nobody checks.
+
+## Look at one object at a time
+
+Furniture is judged by eye, and it cannot be judged in a furnished plan: the thing
+is forty pixels across, half under a rug, and every conclusion about what is wrong
+with it is a guess dressed up as an observation. Do not guess at a drawing. Look at
+it.
+
+```bash
+bun run dev                 # the editor on :5173
+scripts/chrome.sh           # a Chrome with a debugging port, on its own profile
+
+node scripts/look.mjs --type tv --surface black --out /tmp/tv.png
+node scripts/look.mjs --type sofa --seats 3 --width 2.4m --out /tmp/sofa.png
+```
+
+`look.mjs` clears the plan, builds a room barely bigger than the one object through
+the CLI, frames it, saves a picture, and puts the plan you were working on back.
+The object comes out filling the frame, so what is drawn is what you see.
+
+Then read the picture. Crop and enlarge if a detail is in question:
+
+```bash
+sips --cropToHeightWidth 400 300 --cropOffset 610 380 /tmp/tv.png --out /tmp/c.png
+sips -Z 1100 /tmp/c.png --out /tmp/big.png
+```
+
+One object, changed, looked at, then the next. Building a catalogue in one go and
+showing it at the end has been tried here, and the whole lot was thrown out.
+
+Rooms are looked at the same way, only in place: run the commands against the real
+plan, screenshot it, crop to the corner in question. A room, its floor, its door
+and what stands in it are one drawing and have to be judged as one.
+
+## The drawing is seen from straight above
+
+Not from in front, not from an angle: from directly overhead, orthographic, no
+perspective at all. Everything drawn has to survive that question — *would you see
+this from up there?*
+
+What you see of a thing is its topmost surface and whatever reaches out past it.
+Nothing on a vertical face is visible. So:
+
+- a cupboard handle is under the worktop and invisible; what shows is the part of
+  it standing off the front edge, and that is the only part worth drawing
+- a fridge handle is the end of a bar reaching out past the door, not a mark laid
+  on top of the box
+- a toilet roll shows its side, not its end, because it hangs on a rod along the
+  wall — it draws as a rectangle, and a circle there is a roll on the floor
+- a television is its display edge-on: a thin bar, with the stand's legs coming
+  out from behind it
+- a flush button *is* visible, because a cistern's top face points at the reader
+
+Anything that has to be shown but cannot be seen from up here is a plan
+convention, and it should be drawn as a line rather than as a solid — the way a
+chair's spindles and a door's swing are.
+
+There is no z-order in the plan, only height — see `stacking.ts`. What covers what
+is decided by `layer` (a rug under the furniture, a television on top of it), then
+by a part's `lift` within one object, then by a per-object nudge that keeps two
+things from flickering against each other.
+
+A box whose face is exactly flush with a wall's face does not render at all. Inset
+it.
+
+## Skeleton and surface are separate
+
+`skeleton.ts` is pure form and carries no colours; `surfaces.ts` is pure fill. One
+table is oak, walnut, marble or glass without there being four tables. A new
+material costs a row in `surfaces.ts`; a new piece of furniture costs a skeleton;
+neither costs the other anything.
+
+Whatever a skeleton draws must stay inside the size its type declares, or a command
+places a thing against a wall it actually overlaps. A type that spreads further —
+chairs round a table, fringe off a rug — says so with `reach`. A test holds the
+catalogue to this.
+
+## Checks
+
+```bash
+bun run test        # vitest through turbo; `bun test` at the root is not it
+bun run typecheck && bun run lint && bun run depcruise && bun run knip
+```
