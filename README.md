@@ -90,8 +90,8 @@ Each room can take a floor material:
 set-floor --room kuchyň --material oak
 ```
 
-Materials: `oak`, `walnut`, `parquet`, `tile`, `marble`, `terrazzo`, `concrete`,
-`carpet`. The textures are generated rather than photographed — run
+Materials: `oak`, `oak-white`, `oak-grey`, `oak-smoked`, `walnut`, `parquet`,
+`tile`, `marble`, `terrazzo`, `concrete`, `carpet`. The textures are generated rather than photographed — run
 `node scripts/make-textures.mjs` to rebuild them after editing a pattern. They
 tile seamlessly and are laid at their real size, so a 300 mm tile is 300 mm in
 any room and boards run on across a doorway.

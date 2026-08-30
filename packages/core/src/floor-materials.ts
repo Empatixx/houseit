@@ -23,8 +23,23 @@ export type FloorMaterial = {
 }
 
 export const FLOOR_MATERIALS: readonly FloorMaterial[] = [
-  { id: 'oak', label: 'Oak boards', unit: u(1200), texture: 'oak.png', colour: '#e0c49b' },
-  { id: 'walnut', label: 'Walnut boards', unit: u(1200), texture: 'walnut.png', colour: '#8d6242' },
+  { id: 'oak', label: 'Oak boards', unit: u(1200), texture: 'oak.png', colour: '#e6d3b6' },
+  {
+    id: 'oak-white',
+    label: 'Limed oak',
+    unit: u(1200),
+    texture: 'oak-white.png',
+    colour: '#eee9e0',
+  },
+  { id: 'oak-grey', label: 'Grey oak', unit: u(1200), texture: 'oak-grey.png', colour: '#cdc9c2' },
+  {
+    id: 'oak-smoked',
+    label: 'Smoked oak',
+    unit: u(1200),
+    texture: 'oak-smoked.png',
+    colour: '#b39272',
+  },
+  { id: 'walnut', label: 'Walnut boards', unit: u(1200), texture: 'walnut.png', colour: '#7d5c42' },
   {
     id: 'parquet',
     label: 'Block parquet',
