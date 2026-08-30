@@ -25,7 +25,7 @@ const label = (id: string, level: string, x: number, y: number, name: string) =>
 
 test('a room takes the name of the label that falls inside it', () => {
   const { doc, level } = twoRooms()
-  doc.roomLabels.r1 = label('r1', level, 2000, 1500, 'kitchen')
+  doc.rooms.r1 = label('r1', level, 2000, 1500, 'kitchen')
 
   const named = roomsOf(doc, level).find((room) => room.name === 'kitchen')
 
@@ -34,8 +34,8 @@ test('a room takes the name of the label that falls inside it', () => {
 
 test('each room takes its own label', () => {
   const { doc, level } = twoRooms()
-  doc.roomLabels.r1 = label('r1', level, 2000, 1500, 'kitchen')
-  doc.roomLabels.r2 = label('r2', level, 5000, 1500, 'hall')
+  doc.rooms.r1 = label('r1', level, 2000, 1500, 'kitchen')
+  doc.rooms.r2 = label('r2', level, 5000, 1500, 'hall')
 
   const names = roomsOf(doc, level)
     .map((room) => room.name)
@@ -52,14 +52,14 @@ test('a room with no label inside it stays unnamed', () => {
 
 test('a label outside every room names nothing', () => {
   const { doc, level } = twoRooms()
-  doc.roomLabels.r1 = label('r1', level, 20000, 20000, 'garden')
+  doc.rooms.r1 = label('r1', level, 20000, 20000, 'garden')
 
   expect(roomsOf(doc, level).every((room) => room.name === undefined)).toBe(true)
 })
 
 test('a label keeps its room after the partition it sits beside moves', () => {
   const { doc, level } = twoRooms()
-  doc.roomLabels.r1 = label('r1', level, 1000, 1500, 'kitchen')
+  doc.rooms.r1 = label('r1', level, 1000, 1500, 'kitchen')
 
   // Slide the shared partition from x = 4000 to x = 2000.
   for (const node of Object.values(doc.nodes)) {

@@ -18,8 +18,15 @@ export class MigrationError extends Error {
  */
 type Migration = (doc: Record<string, unknown>) => Record<string, unknown>
 
-/** Indexed by the version being migrated away from. Empty while v1 is current. */
-const MIGRATIONS: Record<number, Migration> = {}
+/** Indexed by the version being migrated away from. */
+const MIGRATIONS: Record<number, Migration> = {
+  /**
+   * Room labels become rooms. A label was only ever a name pinned to a point;
+   * a room is a record with an id, so a floor material — and later a socket —
+   * has something lasting to belong to.
+   */
+  1: ({ roomLabels, ...doc }) => ({ ...doc, rooms: roomLabels ?? {} }),
+}
 
 function readVersion(input: unknown): number {
   if (typeof input !== 'object' || input === null || !('version' in input)) {

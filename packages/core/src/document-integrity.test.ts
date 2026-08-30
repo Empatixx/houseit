@@ -54,14 +54,14 @@ test('rejects an opening positioned outside its wall', () => {
   expect(() => parseDocument(broken)).toThrow()
 })
 
-test('accepts a room label anchored to a point on a level', () => {
+test('accepts a room anchored to a point on a level', () => {
   const { level, ...doc } = documentWithOneWall()
   const withLabel = {
     ...doc,
-    roomLabels: { r1: { id: 'r1', level, x: 2000, y: 1500, name: 'kitchen' } },
+    rooms: { r1: { id: 'r1', level, x: 2000, y: 1500, name: 'kitchen' } },
   }
 
-  expect(parseDocument(withLabel).roomLabels.r1?.name).toBe('kitchen')
+  expect(parseDocument(withLabel).rooms.r1?.name).toBe('kitchen')
 })
 
 test('rejects a device hosted on a wall that does not exist', () => {

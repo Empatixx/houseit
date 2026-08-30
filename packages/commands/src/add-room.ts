@@ -99,10 +99,10 @@ export const addRoom = defineCommand({
     const cut = anchor(Math.round((fromLow ? low + at : high + at) / 2))
     const rest = anchor(Math.round((fromLow ? at + high : low + at) / 2))
 
-    const labelId = allocateId(draft.roomLabels, 'r')
-    draft.roomLabels[labelId] = { id: labelId, level, ...cut, name: args.name }
+    const roomId = allocateId(draft.rooms, 'r')
+    draft.rooms[roomId] = { id: roomId, level, ...cut, name: args.name }
 
-    const previous = Object.values(draft.roomLabels).find((label) => label.id === source.labelId)
+    const previous = source.id ? draft.rooms[source.id] : undefined
     if (previous) {
       previous.x = rest.x
       previous.y = rest.y

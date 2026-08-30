@@ -82,6 +82,23 @@ Each command is declared once, with a Zod schema for its arguments. That single
 declaration produces the CLI parser, the MCP tool description the agent reads, the
 `--help` text, and the runtime validation. Adding a command means adding one file.
 
+## Floors
+
+Each room can take a floor material:
+
+```
+set-floor --room kuchyň --material oak
+```
+
+Materials: `oak`, `walnut`, `parquet`, `tile`, `marble`, `terrazzo`, `concrete`,
+`carpet`. The textures are generated rather than photographed — run
+`node scripts/make-textures.mjs` to rebuild them after editing a pattern. They
+tile seamlessly and are laid at their real size, so a 300 mm tile is 300 mm in
+any room and boards run on across a doorway.
+
+The plan is saved in the browser as you go, so a reload picks up where you left
+off.
+
 ## Scope
 
 **v1** draws architecture in plan view: walls, openings, derived rooms, room labels,

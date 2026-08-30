@@ -7,25 +7,28 @@ import type { Point } from './outlines'
 export type Room = Face & {
   /** Where to hang the room's label, in millimetres. */
   centre: Point
-  /** Name of the label anchored inside this room, if there is one. */
+  /** The stored room this face belongs to, if any is anchored inside it. */
+  id?: string
   name?: string
-  labelId?: string
+  /** Id from the floor material catalogue, off the stored room. */
+  floor?: string
 }
 
 /**
- * Rooms are faces with their names attached. Because a face has no stable
- * identity — it is recomputed from the wall graph on every edit — a name is stored
- * as an anchor point and matched to whichever face now contains it. That is what
- * keeps the kitchen labelled as the kitchen after a partition moves.
+ * Faces of the wall graph with their stored rooms attached.
+ *
+ * A face has no lasting identity — it is recomputed on every edit — so the room
+ * record is matched to it by the anchor point the record carries. That is what
+ * keeps the kitchen the kitchen, with its own floor, after a partition moves.
  */
 export function roomsOf(doc: HouseDocument, level: string): Room[] {
-  const labels = Object.values(doc.roomLabels).filter((label) => label.level === level)
+  const stored = Object.values(doc.rooms).filter((room) => room.level === level)
 
   return findFaces(doc, level).map((face) => {
     const polygon = face.nodes.map((id) => doc.nodes[id]!)
-    const label = labels.find((candidate) => contains(polygon, candidate.x, candidate.y))
+    const found = stored.find((candidate) => contains(polygon, candidate.x, candidate.y))
     const room: Room = { ...face, centre: centroidOf(polygon, face.area) }
-    return label ? { ...room, name: label.name, labelId: label.id } : room
+    return found ? { ...room, id: found.id, name: found.name, floor: found.floor } : room
   })
 }
 

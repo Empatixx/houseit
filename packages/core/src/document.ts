@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { HostSchema } from './host'
 
 /** Bumped whenever the stored shape changes; see `migrate`. */
-export const DOCUMENT_VERSION = 1
+export const DOCUMENT_VERSION = 2
 
 /**
  * Every length in the document is a whole number of millimetres. Floating point
@@ -58,11 +58,24 @@ export const OpeningSchema = z.object({
 })
 
 /**
- * A room's name is an anchor point, not a property of the room. After every edit
- * the label is matched to whichever derived face contains it, so the kitchen stays
- * the kitchen when a partition moves.
+ * A room. Its identity is stored; its shape is not.
+ *
+ * The shape is a face of the wall graph, recomputed after every edit, so it can
+ * never be a stable place to hang anything on. What is stored is a record with an
+ * id and an anchor point, and after each edit the record is matched to whichever
+ * face now contains that point. That is what lets a floor finish, a name stick,
+ * and later a socket belong to the kitchen while a partition moves around it.
  */
-export const RoomLabelSchema = z.object({ id, level: id, x: mm, y: mm, name: z.string() })
+export const RoomSchema = z.object({
+  id,
+  level: id,
+  /** Anchor point, in millimetres. The record binds to the face containing it. */
+  x: mm,
+  y: mm,
+  name: z.string(),
+  /** Id from the floor material catalogue. Absent means a plain floor. */
+  floor: z.string().optional(),
+})
 
 export const DeviceSchema = z.object({
   id,
@@ -89,7 +102,7 @@ const DocumentShape = z.object({
   nodes: byId(NodeSchema),
   walls: byId(WallSchema),
   openings: byId(OpeningSchema),
-  roomLabels: byId(RoomLabelSchema),
+  rooms: byId(RoomSchema),
   devices: byId(DeviceSchema),
   circuits: byId(CircuitSchema),
 })
@@ -121,7 +134,7 @@ function checkReference(
 }
 
 /**
- * Rooms are absent by design: they are faces of the wall graph, recomputed after
+ * A room's shape is absent by design: it is a face of the wall graph, recomputed after
  * every edit rather than stored. See `@houseit/geometry`.
  */
 export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
@@ -129,7 +142,7 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   checkKeysMatchIds(doc.nodes, 'nodes', ctx)
   checkKeysMatchIds(doc.walls, 'walls', ctx)
   checkKeysMatchIds(doc.openings, 'openings', ctx)
-  checkKeysMatchIds(doc.roomLabels, 'roomLabels', ctx)
+  checkKeysMatchIds(doc.rooms, 'rooms', ctx)
   checkKeysMatchIds(doc.devices, 'devices', ctx)
   checkKeysMatchIds(doc.circuits, 'circuits', ctx)
 
@@ -145,9 +158,9 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
     checkReference(doc.walls, opening.wall, path, `opening ${opening.id}`, ctx)
   }
 
-  for (const label of Object.values(doc.roomLabels)) {
-    const path = ['roomLabels', label.id, 'level']
-    checkReference(doc.levels, label.level, path, `room label ${label.id}`, ctx)
+  for (const room of Object.values(doc.rooms)) {
+    const path = ['rooms', room.id, 'level']
+    checkReference(doc.levels, room.level, path, `room ${room.id}`, ctx)
   }
 
   for (const device of Object.values(doc.devices)) {
@@ -174,7 +187,7 @@ export type Level = z.infer<typeof LevelSchema>
 export type Node = z.infer<typeof NodeSchema>
 export type Wall = z.infer<typeof WallSchema>
 export type Opening = z.infer<typeof OpeningSchema>
-export type RoomLabel = z.infer<typeof RoomLabelSchema>
+export type Room = z.infer<typeof RoomSchema>
 export type Device = z.infer<typeof DeviceSchema>
 export type Circuit = z.infer<typeof CircuitSchema>
 export type HouseDocument = z.infer<typeof DocumentSchema>
@@ -196,7 +209,7 @@ export function createEmptyDocument(): HouseDocument {
     nodes: {},
     walls: {},
     openings: {},
-    roomLabels: {},
+    rooms: {},
     devices: {},
     circuits: {},
   }

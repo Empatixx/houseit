@@ -1,13 +1,18 @@
+import { floorMaterial } from '@houseit/core/floor-materials'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry } from 'three'
 import { useDocument } from '../store/store'
+import { floorTexture } from './floor-texture'
 import { MM } from './plan-coordinates'
 
 /**
  * A filled floor under each derived room. Without it the plan is a set of
  * disconnected outlines; with it the rooms read as rooms. Rebuilt whenever the
  * document changes, which is also whenever the faces themselves change.
+ *
+ * A room with a material laid gets its texture; one without stays white, so an
+ * unfinished plan still reads as a drawing rather than as a mistake.
  */
 export function RoomFloors() {
   const doc = useDocument((state) => state.doc)
@@ -24,7 +29,12 @@ export function RoomFloors() {
           else shape.lineTo(node.x * MM, node.y * MM)
         })
         shape.closePath()
-        return { key: room.nodes.join('-'), geometry: new ShapeGeometry(shape) }
+        const material = room.floor ? floorMaterial(room.floor) : undefined
+        return {
+          key: room.nodes.join('-'),
+          geometry: new ShapeGeometry(shape),
+          texture: material ? floorTexture(material) : undefined,
+        }
       }),
     [doc, level],
   )
@@ -39,7 +49,11 @@ export function RoomFloors() {
           position={[0, 0.01, 0]}
           receiveShadow
         >
-          <meshBasicMaterial color="#ffffff" />
+          {floor.texture ? (
+            <meshBasicMaterial map={floor.texture} />
+          ) : (
+            <meshBasicMaterial color="#ffffff" />
+          )}
         </mesh>
       ))}
     </>

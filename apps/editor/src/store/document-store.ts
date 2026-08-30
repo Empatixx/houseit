@@ -27,10 +27,11 @@ export type DocumentState = {
  * smaller, and it cannot drift from what the commands actually did. One script is
  * one history entry, so a script that draws four rooms undoes in a single step.
  */
-export function createDocumentStore(initial: HouseDocument = createEmptyDocument()) {
+export function createDocumentStore(initial: HouseDocument | undefined = undefined) {
+  const start = initial ?? createEmptyDocument()
   return createStore<DocumentState>()((set, get) => ({
-    doc: initial,
-    level: Object.keys(initial.levels)[0]!,
+    doc: start,
+    level: Object.keys(start.levels)[0]!,
     past: [],
     future: [],
     canUndo: false,

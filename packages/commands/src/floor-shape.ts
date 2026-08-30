@@ -62,8 +62,8 @@ export const floorShape = defineCommand({
 
     const area = Math.abs(shoelace(points))
     const centre = centroidOf(points, shoelace(points) / 2)
-    const labelId = allocateId(draft.roomLabels, 'r')
-    draft.roomLabels[labelId] = { id: labelId, level, x: centre.x, y: centre.y, name: args.name }
+    const roomId = allocateId(draft.rooms, 'r')
+    draft.rooms[roomId] = { id: roomId, level, x: centre.x, y: centre.y, name: args.name }
     if (area === 0) throw new CommandError('floor-shape: that shape encloses nothing')
   },
 })
