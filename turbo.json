@@ -1,0 +1,26 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "boundaries": {
+    "tags": {
+      "app": { "dependents": { "deny": ["app", "lib", "config"] } },
+      "lib": { "dependencies": { "allow": ["lib", "config"] } },
+      "config": { "dependencies": { "allow": ["config"] } }
+    }
+  },
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/biome.json"]
+    },
+    "typecheck": { "dependsOn": ["^typecheck"] },
+    "test": { "dependsOn": ["^test"] },
+    "test:coverage": { "outputs": ["coverage/**"] },
+    "dev": { "cache": false, "persistent": true },
+    "preview": { "cache": false, "persistent": true }
+  }
+}

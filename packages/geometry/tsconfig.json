@@ -1,0 +1,5 @@
+{
+  "extends": "@houseit/typescript-config/base.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["src/**/*.ts", "vitest.config.ts"]
+}

@@ -1,0 +1,37 @@
+{
+  "name": "houseit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.14",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "prebuild": "bun run --parallel boundaries knip depcruise && turbo lint typecheck test",
+    "boundaries": "turbo boundaries",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "format": "biome check --write .",
+    "knip": "knip",
+    "depcruise": "depcruise apps packages",
+    "postinstall": "bun run scripts/link-depcruise-typescript.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.11",
+    "@houseit/typescript-config": "workspace:*",
+    "@types/node": "^26.4.0",
+    "dependency-cruiser": "^18.2.0",
+    "knip": "^6.33.0",
+    "turbo": "^2.10.12",
+    "typescript": "7.0.2",
+    "@typescript/typescript6": "^6"
+  }
+}

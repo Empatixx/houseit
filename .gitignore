@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+playwright-report/
+test-results/
+.playwright-mcp/
+dist/

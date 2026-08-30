@@ -1,0 +1,28 @@
+{
+  "name": "@houseit/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "turbo": {
+    "tags": [
+      "lib"
+    ]
+  },
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "zod": "^4.5.2"
+  },
+  "devDependencies": {
+    "@houseit/typescript-config": "workspace:*",
+    "@houseit/vitest-config": "workspace:*",
+    "vitest": "^4.1.11"
+  }
+}

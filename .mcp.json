@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "houseit": {
+      "command": "node",
+      "args": ["./apps/mcp/dist/server.js"]
+    }
+  }
+}

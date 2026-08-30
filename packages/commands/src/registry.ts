@@ -1,0 +1,22 @@
+import { addDoor } from './add-door'
+import { addRoom } from './add-room'
+import { addWindow } from './add-window'
+import type { Command } from './define-command'
+import { floorShape } from './floor-shape'
+
+const ALL: Command[] = [floorShape, addRoom, addWindow, addDoor]
+
+export const REGISTRY: ReadonlyMap<string, Command> = new Map(ALL.map((c) => [c.name, c]))
+
+/** Help text for humans at a terminal and for the agent reading the MCP tool. */
+export function describeCommands(): string {
+  return ALL.map((command) => {
+    const options = command.options
+      .map((option) => {
+        const flag = option.kind === 'boolean' ? `--${option.flag}` : `--${option.flag} <value>`
+        return option.required ? flag : `[${flag}]`
+      })
+      .join(' ')
+    return `${command.name} ${options}\n    ${command.summary}`
+  }).join('\n\n')
+}

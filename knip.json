@@ -1,0 +1,41 @@
+{
+  "$schema": "https://unjs.io/schema/knip.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.mjs"],
+      "project": ["scripts/*.mjs"]
+    },
+    "packages/core": {
+      "entry": ["src/**/*.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/geometry": {
+      "entry": ["src/**/*.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/commands": {
+      "entry": ["src/**/*.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/vitest-config": {
+      "entry": ["*-package.ts"],
+      "project": ["*.ts"]
+    },
+    "packages/typescript-config": {
+      "entry": [],
+      "project": []
+    },
+    "apps/editor": {
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/bridge": {
+      "entry": ["src/**/*.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "apps/mcp": {
+      "entry": ["src/server.ts", "src/cli.ts"],
+      "project": ["src/**/*.ts"]
+    }
+  },
+  "ignoreDependencies": ["@types/shell-quote", "tailwindcss"]
+}
