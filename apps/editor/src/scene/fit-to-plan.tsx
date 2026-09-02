@@ -1,4 +1,4 @@
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import type { OrthographicCamera, Vector3 } from 'three'
 import { useDocument } from '../store/store'
@@ -7,6 +7,19 @@ import { MM } from './plan-coordinates'
 type Controls = { target: Vector3; update: () => void }
 
 const PADDING = 0.9
+
+/** Where the plan was framed to, so the framing can be held for a moment. */
+type Framing = { x: number; z: number; zoom: number; until: number }
+
+/**
+ * How long a fresh framing is held against whatever else moves the camera.
+ *
+ * Long enough for every effect that runs at start-up to have had its say —
+ * the controls being recreated for the camera that arrives a beat later, the
+ * canvas being measured for real — and short enough that somebody panning a
+ * moment after a Fit is not fought.
+ */
+const HOLD = 800
 
 /**
  * Frames the plan. Runs once when geometry first appears and then only when the
@@ -19,6 +32,7 @@ export function FitToPlan({ fitKey }: { fitKey: number }) {
   const controls = useThree((state) => state.controls) as Controls | null
   const size = useThree((state) => state.size)
   const framed = useRef('')
+  const held = useRef<Framing | null>(null)
 
   useEffect(() => {
     // Keyed on the camera as well as the ask: a camera that arrives a beat later
@@ -51,18 +65,52 @@ export function FitToPlan({ fitKey }: { fitKey: number }) {
     const centreZ = -((Math.min(...ys) + Math.max(...ys)) / 2) * MM
     const width = Math.max(Math.max(...xs) - Math.min(...xs), 1) * MM
     const height = Math.max(Math.max(...ys) - Math.min(...ys), 1) * MM
+    const zoom = PADDING * Math.min(size.width / width, size.height / height)
 
-    controls.target.set(centreX, 0, centreZ)
-
-    camera.position.set(centreX, camera.position.y, centreZ)
-    controls.update()
-    // Set the zoom after the controls have run: their update() writes camera.zoom
-    // for an orthographic camera and would otherwise undo this.
-    const overhead = camera as OrthographicCamera
-    overhead.zoom = PADDING * Math.min(size.width / width, size.height / height)
-    camera.updateProjectionMatrix()
+    frame(camera as OrthographicCamera, controls, { x: centreX, z: centreZ, zoom })
+    // Held for a moment. On a reload the controls' target went back to the origin
+    // after this ran — the camera stayed over the middle of the plan and looked
+    // at its corner, which showed the walls from the side — and nothing in this
+    // effect's inputs changed to say so. Holding the framing for a few frames
+    // puts it right whatever undid it.
+    held.current = { x: centreX, z: centreZ, zoom, until: performance.now() + HOLD }
     framed.current = asked
   }, [doc, level, camera, controls, size, fitKey])
 
+  // After the controls have run for the frame, so what they undid is redone: the
+  // controls update at a priority below zero, and this runs at the default. (A
+  // priority above zero would take over the render loop, and nothing is drawn.)
+  useFrame(() => {
+    const wanted = held.current
+    if (!wanted || !controls) return
+    if (performance.now() > wanted.until) {
+      held.current = null
+      return
+    }
+    const overhead = camera as OrthographicCamera
+    const moved =
+      controls.target.x !== wanted.x ||
+      controls.target.z !== wanted.z ||
+      camera.position.x !== wanted.x ||
+      camera.position.z !== wanted.z ||
+      overhead.zoom !== wanted.zoom
+    if (moved) frame(overhead, controls, wanted)
+  })
+
   return null
+}
+
+/** Puts the camera straight over a point, looking down at it, at a zoom. */
+function frame(
+  camera: OrthographicCamera,
+  controls: Controls,
+  to: { x: number; z: number; zoom: number },
+) {
+  controls.target.set(to.x, 0, to.z)
+  camera.position.set(to.x, camera.position.y, to.z)
+  controls.update()
+  // Set the zoom after the controls have run: their update() writes camera.zoom
+  // for an orthographic camera and would otherwise undo this.
+  camera.zoom = to.zoom
+  camera.updateProjectionMatrix()
 }
