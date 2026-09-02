@@ -80,6 +80,7 @@ set-surface  --room kitchen --type sofa-3 --surface linen
 rename-room  --room kitchen --name kuchyň
 set-room-kind --room snug --kind living
 move-wall    --room kitchen --side east --by 300
+add-wall     --room living --side north --along 0.3 --length 2.5m
 remove-room  --room pantry --into kitchen
 describe     --room kitchen
 measure      --room kitchen --side north
@@ -131,6 +132,14 @@ something would be left standing in masonry. A room's panel knocks it through in
 neighbour with `remove-room`: the wall between them goes, and what stood in the room
 stays where it stood. A garage or a terrace is a room like any other — `add-room` cuts
 it, `set-room-kind` says what it is.
+
+Shapes are made the way a builder makes them. The floor starts as a rectangle, an L, a U,
+a T, or a walk round any outline (`floor-shape`, from the panel while the plan is empty).
+A room is cut off a side or out of a corner of another — a stepped side too, and what
+comes off a stepped side is L-shaped. `add-wall` puts a wall in from a side: right across,
+and the room is two; or a stub of a length, and the room has an alcove, the arm of a T.
+Two stubs meeting close a room between them. On the plan the wall tool is a drag from a
+wall into the room; the room's panel cuts rooms off it.
 
 Each command is declared once, with a Zod schema for its arguments. That single
 declaration produces the CLI parser, the MCP tool description the agent reads, the

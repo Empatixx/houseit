@@ -4,8 +4,8 @@
 
 An agent gets at this plan through one door: the commands in `packages/commands`,
 reached over MCP. Every change is made the way an agent would have to make it —
-`floor-shape`, `add-room`, `add-window`, `add-door`, `set-floor`, `add-object` —
-and never by writing to the document. If something cannot be said as a command,
+`floor-shape`, `add-room`, `add-wall`, `add-window`, `add-door`, `set-floor`,
+`add-object`, `move-wall`, `remove-room` — and never by writing to the document. If something cannot be said as a command,
 that is the bug, and it is the bug to fix.
 
 Working this way is not ceremony, it is the test. Everything found by hand so far

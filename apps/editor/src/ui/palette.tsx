@@ -47,6 +47,9 @@ export function Palette() {
         <Chip armed={armed?.kind === 'window'} onClick={() => arm({ kind: 'window' })}>
           window
         </Chip>
+        <Chip armed={armed?.kind === 'wall'} onClick={() => arm({ kind: 'wall' })}>
+          wall
+        </Chip>
       </div>
       <input
         className={INPUT}
@@ -86,9 +89,11 @@ export function Palette() {
         })}
       </ul>
       <p className="text-[11px] leading-4 text-neutral-500">
-        {armed
-          ? 'Click a room to put it there. Shift keeps it armed; Escape lets go.'
-          : 'Pick something, then click where it goes.'}
+        {armed?.kind === 'wall'
+          ? 'Drag from a wall into a room: as far as you drag, or right across if you reach the far wall. Escape lets go.'
+          : armed
+            ? 'Click a room to put it there. Shift keeps it armed; Escape lets go.'
+            : 'Pick something, then click where it goes.'}
       </p>
     </aside>
   )

@@ -6,6 +6,7 @@ export type Armed =
   | { kind: 'object'; type: string }
   | { kind: 'door'; variant: 'hinged' | 'sliding' | 'pocket' | 'garage' }
   | { kind: 'window' }
+  | { kind: 'wall' }
 
 type ToolState = {
   armed: Armed | null

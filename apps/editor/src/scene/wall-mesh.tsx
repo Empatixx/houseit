@@ -3,8 +3,10 @@ import type { Point } from '@houseit/geometry/outlines'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useRef, useState } from 'react'
 import { moveOpeningTo } from '../edit/opening-commands'
+import { drawWallFrom } from '../edit/shape-commands'
 import { moveWallBy } from '../edit/wall-commands'
 import { selectionStore } from '../store/selection'
+import { toolStore } from '../store/tool'
 import { dragged, pointOnPlan } from './drag'
 import { MM, toWorld } from './plan-coordinates'
 import { planPieces } from './wall-pieces'
@@ -73,7 +75,7 @@ export function WallMesh({ wall, doc, degrees }: WallMeshProps) {
             position={toWorld(x, y, base + piece.height / 2)}
             rotation={[0, angle + (piece.turn ?? 0), 0]}
             onClick={(event) => {
-              if (dragged(event)) return
+              if (dragged(event) || toolStore.getState().armed?.kind === 'wall') return
               event.stopPropagation()
               selectionStore
                 .getState()
@@ -84,8 +86,15 @@ export function WallMesh({ wall, doc, degrees }: WallMeshProps) {
             onPointerDown={(event) => carry.down(event, opening ? opening.id : wall.id)}
             onPointerMove={carry.move}
             onPointerUp={(event) => {
-              const shift = carry.up(event)
-              if (!shift) return
+              const carried = carry.up(event)
+              if (!carried) return
+              // With the wall tool armed, a drag off a wall draws a new wall
+              // into the room rather than moving anything.
+              if (toolStore.getState().armed?.kind === 'wall') {
+                if (drawWallFrom(wall, carried.from, carried.shift)) toolStore.getState().arm(null)
+                return
+              }
+              const { shift } = carried
               if (opening && centre) {
                 moveOpeningTo(opening, { x: centre.x + shift.x, y: centre.y + shift.y })
               } else if (!opening) {
@@ -139,15 +148,16 @@ function useCarry() {
     setHeld(live.current)
   }
 
-  /** Lets go; the way it was carried, if it was carried rather than clicked. */
-  const up = (event: ThreeEvent<PointerEvent>): Point | undefined => {
+  /** Lets go; where it was picked up and how far it was carried, if carried rather than clicked. */
+  const up = (event: ThreeEvent<PointerEvent>): { from: Point; shift: Point } | undefined => {
     const carried = live.current
     if (!carried) return undefined
     ;(event.target as Element).releasePointerCapture(event.pointerId)
     live.current = null
     setHeld(null)
     if (controls) controls.enabled = true
-    return Math.hypot(carried.shift.x, carried.shift.y) < 30 ? undefined : carried.shift
+    if (Math.hypot(carried.shift.x, carried.shift.y) < 30) return undefined
+    return { from: carried.from, shift: carried.shift }
   }
 
   return { held, down, move, up }
