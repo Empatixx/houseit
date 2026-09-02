@@ -4,7 +4,7 @@ import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
-import { placeOpening } from './place-opening'
+import { placeOpening, placeOpeningAt } from './place-opening'
 
 const DEFAULT_WIDTH = 1200
 const DEFAULT_HEIGHT = 1500
@@ -24,6 +24,8 @@ export const addWindow = defineCommand({
     width: length().default(DEFAULT_WIDTH),
     height: length().default(DEFAULT_HEIGHT),
     sill: length().default(DEFAULT_SILL),
+    /** Exactly where along that side, 0 west or south and 1 the other end. Left out, the place is chosen. */
+    along: z.coerce.number().min(0).max(1).optional(),
     level: z.string().optional(),
   }),
   run: (draft, args) => {
@@ -37,7 +39,10 @@ export const addWindow = defineCommand({
       throw new CommandError(`add-window: there is no room called ${args.room}`)
     }
 
-    const spot = placeOpening(draft, level, room, args.side, args.width, 'add-window')
+    const spot =
+      args.along !== undefined
+        ? placeOpeningAt(draft, level, room, args.side, args.width, args.along, 'add-window')
+        : placeOpening(draft, level, room, args.side, args.width, 'add-window')
     const id = allocateId(draft.openings, 'o')
     draft.openings[id] = {
       id,

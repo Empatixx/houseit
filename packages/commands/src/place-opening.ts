@@ -2,6 +2,7 @@ import type { HouseDocument, Opening } from '@houseit/core/document'
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { sideRun } from '@houseit/geometry/sides'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { type Box, boxOf, clashes } from './boxes'
@@ -44,6 +45,8 @@ export function placeOpening(
   width: number,
   what: string,
   swings = false,
+  /** An opening to leave out of the count: the one being moved is not in its own way. */
+  except?: string,
 ): Placement {
   // A side can be more than one wall, and the roomiest is only the best guess at
   // which of them to use. Cut a hall out of a living room and its far side is two
@@ -66,7 +69,7 @@ export function placeOpening(
 
     const taken = [
       ...Object.values(doc.openings)
-        .filter((opening) => opening.wall === chosen.wall.id)
+        .filter((opening) => opening.wall === chosen.wall.id && opening.id !== except)
         .map((opening) => spanAround(opening.t * span, opening.width)),
       // Only a door. A window has nothing to keep clear of — a sofa under a
       // window is where a sofa goes, and the same is true of a bed and a worktop.
@@ -78,7 +81,7 @@ export function placeOpening(
     if (gaps.length === 0) continue
     roomToStand = true
 
-    const swing = sideOfWall(chosen.a, chosen.b, room.centre)
+    const swing = sideSign(chosen.a, chosen.b, room.centre)
     // The middle of a stretch first, because that is where an opening looks like
     // it was meant to go; hard against either end only when the middle is taken.
     const tries = gaps.flatMap((free) => [
@@ -87,7 +90,7 @@ export function placeOpening(
       free.to - width / 2,
     ])
     const at = swings
-      ? tries.find((spot) => swingIsClear(doc, level, chosen, span, spot, width, swing))
+      ? tries.find((spot) => swingIsClear(doc, level, chosen, span, spot, width, swing, except))
       : tries[0]
 
     if (at !== undefined) return { wall: chosen.wall.id, t: at / span, swing }
@@ -99,6 +102,78 @@ export function placeOpening(
           `everywhere it would fit, something is standing in front of it`
       : `${what}: ${width} mm does not fit beside the openings already in the ${side} wall of ${room.name}`,
   )
+}
+
+/**
+ * Where an opening goes when somebody says exactly where: this far along one
+ * side of a room, in the sense `add-object --along` uses, 0 at the west or
+ * south end and 1 at the other. What a drag on the plan ends in, and what an
+ * agent says when the middle of the free stretch is not what it wants.
+ *
+ * Checked the way a chosen place is checked: it has to lie in one wall of that
+ * side, clear of the openings already there, and a door has to be able to open.
+ * Refused with the reason, so the drag can say it.
+ */
+export function placeOpeningAt(
+  doc: HouseDocument,
+  level: string,
+  room: Room,
+  side: Side,
+  width: number,
+  along: number,
+  what: string,
+  swings = false,
+  except?: string,
+): Placement {
+  const run = sideRun(doc, level, room, side)
+  if (!run) throw new CommandError(`${what}: ${room.name} has no wall facing ${side}`)
+  const centre = {
+    x: run.from.x + (run.to.x - run.from.x) * along,
+    y: run.from.y + (run.to.y - run.from.y) * along,
+  }
+
+  const walls = wallsFacing(doc, level, room, side, what)
+  const found = walls
+    .map((wall) => {
+      const span = spanOf(wall)
+      const at =
+        ((centre.x - wall.a.x) * (wall.b.x - wall.a.x) +
+          (centre.y - wall.a.y) * (wall.b.y - wall.a.y)) /
+        (span || 1)
+      return { wall, span, at }
+    })
+    .find(({ span, at }) => at >= 0 && at <= span)
+  if (!found) {
+    throw new CommandError(
+      `${what}: there is no wall at ${along} along the ${side} side of ${room.name}`,
+    )
+  }
+  const { wall: chosen, span, at } = found
+
+  if (at - width / 2 < 0 || at + width / 2 > span) {
+    throw new CommandError(
+      `${what}: ${width} mm at ${along} runs past the end of the ${side} wall of ${room.name}`,
+    )
+  }
+  const wanted = spanAround(at, width)
+  const overlapping = Object.values(doc.openings).find((opening) => {
+    if (opening.wall !== chosen.wall.id || opening.id === except) return false
+    const other = spanAround(opening.t * span, opening.width)
+    return other.from < wanted.to && wanted.from < other.to
+  })
+  if (overlapping) {
+    throw new CommandError(
+      `${what}: there is already a ${overlapping.kind} at that place in the ${side} wall of ${room.name}`,
+    )
+  }
+
+  const swing = sideSign(chosen.a, chosen.b, room.centre)
+  if (swings && !swingIsClear(doc, level, chosen, span, at, width, swing, except)) {
+    throw new CommandError(
+      `${what}: a door at ${along} along the ${side} wall of ${room.name} could not open — something is standing in its swing`,
+    )
+  }
+  return { wall: chosen.wall.id, t: at / span, swing }
 }
 
 /**
@@ -157,11 +232,12 @@ function swingIsClear(
   at: number,
   width: number,
   swing: -1 | 1,
+  except?: string,
 ): boolean {
   const box = sweptBy(chosen.a, chosen.b, span, at, width, swing)
 
   const doors = Object.values(doc.openings)
-    .filter((opening) => doc.walls[opening.wall]?.level === level)
+    .filter((opening) => opening.id !== except && doc.walls[opening.wall]?.level === level)
     .map((opening) => swingOf(doc, opening))
     .filter((other): other is Box => other !== undefined)
   if (doors.some((other) => clashes(box, other))) return false
@@ -266,9 +342,10 @@ const spanOf = ({ a, b }: { a: { x: number; y: number }; b: { x: number; y: numb
 
 /**
  * Which side of the wall a point lies on, positive being a quarter turn
- * counter-clockwise from the wall's own direction.
+ * counter-clockwise from the wall's own direction. A door's `swing` is this,
+ * for the room it opens into.
  */
-function sideOfWall(
+export function sideSign(
   a: { x: number; y: number },
   b: { x: number; y: number },
   point: { x: number; y: number },

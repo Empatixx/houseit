@@ -1,8 +1,11 @@
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
-/** What is picked on the plan: a room by its record, or a thing standing in one. */
-type Selection = { kind: 'room'; id: string } | { kind: 'object'; id: string }
+/** What is picked on the plan: a room by its record, a thing standing in one, or a door or window. */
+type Selection =
+  | { kind: 'room'; id: string }
+  | { kind: 'object'; id: string }
+  | { kind: 'opening'; id: string }
 
 type SelectionState = {
   selected: Selection | null

@@ -71,7 +71,8 @@ One MCP tool, `floorplan`, taking a command string. It parses like a CLI:
 floor-shape  --material natural-oak --kind l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name house
 add-room     --material tile-white --name kitchen --from house --side west --width 3.6m
 add-door     --room kitchen --side east --variant pocket
-add-window   --room kitchen --side north --width 1.2m
+add-window   --room kitchen --side north --width 1.2m --along 0.3
+move-window  --room kitchen --side north --to-side west
 add-object   --room kitchen --type sofa-3 --against south --surface linen
 move-object  --room kitchen --type sofa-3 --against west
 turn-object  --room kitchen --type sofa-3 --by 90
@@ -98,10 +99,12 @@ with no window, a kitchen with no fridge. What sort of room a room is comes from
 name for now, in English or Czech. An empty list is what a finished plan gets.
 
 Editing by hand on the plan goes through the same door. Dragging a thing ends in one
-`move-object`, R turns it with `turn-object`, Delete is `remove-object` — so a sofa
-dragged into a wall snaps back with the command's own refusal, every edit undoes, and
-the agent's `describe` tells it what was done by hand. Where there are two of a kind,
-`--nth 2` says which; `describe` numbers them the same way.
+`move-object`, R turns it with `turn-object`, Delete is `remove-object`; a door or a
+window dragged along its wall, or to another wall of the room, is `move-door` or
+`move-window`, and Delete takes it out — so a sofa dragged into a wall, or a door
+dragged to where the wardrobe would stop it opening, snaps back with the command's own
+refusal, every edit undoes, and the agent's `describe` tells it what was done by hand.
+Where there are two of a kind, `--nth 2` says which; `describe` numbers them the same way.
 
 Each command is declared once, with a Zod schema for its arguments. That single
 declaration produces the CLI parser, the MCP tool description the agent reads, the

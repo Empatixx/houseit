@@ -1,4 +1,4 @@
-import type { HouseDocument } from '@houseit/core/document'
+import type { HouseDocument, Opening } from '@houseit/core/document'
 import {
   type Dimension,
   extentDimensions,
@@ -43,6 +43,7 @@ export function Dimensions() {
   const pickedRoom =
     selected?.kind === 'room' ? rooms.find((room) => room.id === selected.id) : undefined
   const pickedObject = selected?.kind === 'object' ? doc.objects[selected.id] : undefined
+  const pickedOpening = selected?.kind === 'opening' ? doc.openings[selected.id] : undefined
   const objectRoom = pickedObject ? rooms.find((room) => room.id === pickedObject.room) : undefined
   const spot =
     pickedObject && objectRoom ? standingAt(doc, level, objectRoom, pickedObject) : undefined
@@ -62,6 +63,7 @@ export function Dimensions() {
     <>
       {pickedRoom ? <RoomHighlight room={pickedRoom} doc={doc} /> : null}
       {pickedObject && spot ? <Outline corners={footprintOf(spot, pickedObject)} /> : null}
+      {pickedOpening ? <Outline corners={openingCorners(doc, pickedOpening)} /> : null}
       {lines.map((line) => (
         <DimensionLine key={keyOf(line)} dimension={line} />
       ))}
@@ -139,6 +141,38 @@ function DimensionLine({ dimension }: { dimension: Dimension }) {
       </Html>
     </>
   )
+}
+
+/** The four corners of an opening: its width along the wall, the wall's thickness across it. */
+function openingCorners(doc: HouseDocument, opening: Opening): Point[] {
+  const wall = doc.walls[opening.wall]
+  const a = wall && doc.nodes[wall.a]
+  const b = wall && doc.nodes[wall.b]
+  if (!wall || !a || !b) return []
+  const span = Math.hypot(b.x - a.x, b.y - a.y) || 1
+  const along = { x: (b.x - a.x) / span, y: (b.y - a.y) / span }
+  const across = { x: -along.y, y: along.x }
+  const centre = { x: a.x + (b.x - a.x) * opening.t, y: a.y + (b.y - a.y) * opening.t }
+  const half = opening.width / 2
+  const deep = wall.thickness / 2
+  return [
+    {
+      x: centre.x - along.x * half - across.x * deep,
+      y: centre.y - along.y * half - across.y * deep,
+    },
+    {
+      x: centre.x + along.x * half - across.x * deep,
+      y: centre.y + along.y * half - across.y * deep,
+    },
+    {
+      x: centre.x + along.x * half + across.x * deep,
+      y: centre.y + along.y * half + across.y * deep,
+    },
+    {
+      x: centre.x - along.x * half + across.x * deep,
+      y: centre.y - along.y * half + across.y * deep,
+    },
+  ]
 }
 
 /** A dimension is told from another by where it runs. */

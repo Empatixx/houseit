@@ -1,6 +1,6 @@
 import type { Point } from '@houseit/geometry/outlines'
 import { Plane, type Ray, Vector3 } from 'three'
-import { MM } from '../plan-coordinates'
+import { MM } from './plan-coordinates'
 
 /** The floor of the plan: everything dragged is dragged along it. */
 const GROUND = new Plane(new Vector3(0, 1, 0), 0)

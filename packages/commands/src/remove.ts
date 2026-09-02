@@ -1,10 +1,9 @@
 import type { Opening } from '@houseit/core/document'
 import { OBJECT_TYPE_IDS } from '@houseit/core/object-types'
 import { z } from 'zod'
-import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
-import { wallsFacing } from './place-opening'
-import { levelOf, newest, objectNamed, roomNamed } from './resolve'
+import { openingNamed } from './openings'
+import { levelOf, objectNamed, roomNamed } from './resolve'
 
 /**
  * Taking things back out again.
@@ -42,30 +41,18 @@ function removeOpening(kind: Opening['kind']) {
   const name = `remove-${kind}`
   return defineCommand({
     name,
-    summary: `Take the last ${kind} back out of the wall on one side of a room`,
+    summary: `Take a ${kind} back out of the wall on one side of a room: the last, or the nth`,
     args: z.object({
       room: z.string().min(1),
       side: z.enum(['north', 'south', 'east', 'west']),
+      /** Which one, when there are several in that wall: 1 for the first put in. Left out, the last. */
+      nth: z.coerce.number().int().positive().optional(),
       level: z.string().optional(),
     }),
     run: (draft, args) => {
       const level = levelOf(draft, args.level, name)
       const room = roomNamed(draft, level, args.room, name)
-      const walls = new Set(
-        wallsFacing(draft, level, room, args.side, name).map((it) => it.wall.id),
-      )
-
-      const found = newest(
-        Object.values(draft.openings).filter(
-          (opening) => opening.kind === kind && walls.has(opening.wall),
-        ),
-      )
-      if (!found) {
-        throw new CommandError(
-          `${name}: there is no ${kind} in the ${args.side} wall of ${args.room}`,
-        )
-      }
-
+      const found = openingNamed(draft, level, room, kind, args.side, args.nth, name)
       delete draft.openings[found.id]
     },
   })

@@ -4,7 +4,7 @@ import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
-import { placeOpening } from './place-opening'
+import { placeOpening, placeOpeningAt } from './place-opening'
 
 const DEFAULT_HEIGHT = 1970
 
@@ -35,6 +35,8 @@ export const addDoor = defineCommand({
     variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).default('hinged'),
     width: length().optional(),
     height: length().default(DEFAULT_HEIGHT),
+    /** Exactly where along that side, 0 west or south and 1 the other end. Left out, the place is chosen. */
+    along: z.coerce.number().min(0).max(1).optional(),
     level: z.string().optional(),
   }),
   run: (draft, args) => {
@@ -52,7 +54,10 @@ export const addDoor = defineCommand({
     // Only a hinged leaf sweeps into the room; the rest stay in the wall's plane,
     // so nothing standing in front of them is in their way.
     const swings = args.variant === 'hinged'
-    const spot = placeOpening(draft, level, room, args.side, width, 'add-door', swings)
+    const spot =
+      args.along !== undefined
+        ? placeOpeningAt(draft, level, room, args.side, width, args.along, 'add-door', swings)
+        : placeOpening(draft, level, room, args.side, width, 'add-door', swings)
     const id = allocateId(draft.openings, 'o')
     draft.openings[id] = {
       id,

@@ -26,6 +26,8 @@ export type WallReport = { side: Side; length: number }
 
 export type DoorReport = {
   side: Side
+  /** Which of the doors in that wall, counting from one — only when there are several. */
+  nth?: number
   /** Along that side, in the sense `add-object --along` uses: 0 west or south, 1 east or north. */
   along: number
   width: number
@@ -34,7 +36,7 @@ export type DoorReport = {
   to: string
 }
 
-export type WindowReport = { side: Side; along: number; width: number }
+export type WindowReport = { side: Side; nth?: number; along: number; width: number }
 
 export type ObjectReport = {
   type: string
@@ -100,7 +102,9 @@ export function surveyRoom(
   const ys = corners.map((corner) => corner.y)
   const walls = boundaryWallsOf(doc, level, room)
   const walled = new Set(walls.map((wall) => wall.id))
-  const openings = Object.values(doc.openings).filter((opening) => walled.has(opening.wall))
+  const openings = Object.values(doc.openings)
+    .filter((opening) => walled.has(opening.wall))
+    .sort((one, other) => order(one.id) - order(other.id))
 
   const doors: DoorReport[] = []
   const windows: WindowReport[] = []
@@ -120,6 +124,18 @@ export function surveyRoom(
       })
     } else {
       windows.push({ side, along, width: opening.width })
+    }
+  }
+
+  // Two doors in one wall are told apart by number, the way move-door takes them.
+  for (const list of [doors, windows]) {
+    for (const side of new Set(list.map((it) => it.side))) {
+      const onSide = list.filter((it) => it.side === side)
+      if (onSide.length > 1) {
+        onSide.forEach((it, index) => {
+          it.nth = index + 1
+        })
+      }
     }
   }
 

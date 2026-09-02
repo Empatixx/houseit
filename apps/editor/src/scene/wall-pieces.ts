@@ -37,6 +37,10 @@ export type WallPiece = {
   aside?: number
   /** Rotation on top of the wall's own, in the same sense as `aside`. */
   turn?: number
+  /** The door or window this piece draws, so it can be picked and dragged. */
+  opening?: string
+  /** Not drawn at all: there only to be clicked, where the drawing is a gap. */
+  hidden?: boolean
 }
 
 /** How many dashes draw a door's swing, and the quarter turn they cover. */
@@ -94,42 +98,68 @@ export function planPieces(
 
   openings.forEach((opening, index) => {
     const hole = holes[index]!
-    if (opening.kind === 'window') {
-      pieces.push(
-        {
-          key: `${opening.id}-glass`,
-          colour: INK.glass,
-          at: middleOf(hole),
-          length: opening.width,
-          thickness: inner,
-          base: 2,
-          height: wall.height,
-        },
-        {
-          key: `${opening.id}-pane`,
-          colour: INK.outline,
-          at: middleOf(hole),
-          length: opening.width,
-          thickness: line,
-          base: 4,
-          height: wall.height,
-        },
-      )
-      return
-    }
-
-    if (opening.variant === 'garage') {
-      pieces.push(...garageOf(opening, hole, line, wall))
-      return
-    }
-    if (opening.variant === 'sliding' || opening.variant === 'pocket') {
-      pieces.push(...slidingOf(opening, hole, line, wall))
-      return
-    }
-    pieces.push(...swingOf(opening, hole, line, wall))
+    const before = pieces.length
+    drawOpening(opening, hole, line, inner, wall, pieces)
+    for (const piece of pieces.slice(before)) piece.opening = opening.id
   })
 
   return pieces
+}
+
+/** The pieces of one opening, pushed onto the wall's. */
+function drawOpening(
+  opening: Opening,
+  hole: Span,
+  line: number,
+  inner: number,
+  wall: Wall,
+  pieces: WallPiece[],
+): void {
+  if (opening.kind === 'window') {
+    pieces.push(
+      {
+        key: `${opening.id}-glass`,
+        colour: INK.glass,
+        at: middleOf(hole),
+        length: opening.width,
+        thickness: inner,
+        base: 2,
+        height: wall.height,
+      },
+      {
+        key: `${opening.id}-pane`,
+        colour: INK.outline,
+        at: middleOf(hole),
+        length: opening.width,
+        thickness: line,
+        base: 4,
+        height: wall.height,
+      },
+    )
+    return
+  }
+
+  if (opening.variant === 'garage') {
+    pieces.push(...garageOf(opening, hole, line, wall))
+    return
+  }
+  if (opening.variant === 'sliding' || opening.variant === 'pocket') {
+    pieces.push(...slidingOf(opening, hole, line, wall))
+    return
+  }
+  pieces.push(...swingOf(opening, hole, line, wall))
+  // A doorway is drawn as a gap, and a gap cannot be clicked. What takes the
+  // click is a box filling the opening that is never seen.
+  pieces.push({
+    key: `${opening.id}-pick`,
+    colour: INK.glass,
+    at: middleOf(hole),
+    length: opening.width,
+    thickness: wall.thickness,
+    base: 0,
+    height: wall.height,
+    hidden: true,
+  })
 }
 
 /**

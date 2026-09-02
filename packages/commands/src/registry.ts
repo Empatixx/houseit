@@ -8,6 +8,7 @@ import { describe } from './describe'
 import { floorShape } from './floor-shape'
 import { measure } from './measure'
 import { moveObject } from './move-object'
+import { moveDoor, moveWindow } from './move-opening'
 import { removeDoor, removeObject, removeWindow } from './remove'
 import { setFloor } from './set-floor'
 import { turnObject } from './turn-object'
@@ -17,6 +18,8 @@ const ALL: AnyCommand[] = [
   addRoom,
   addWindow,
   addDoor,
+  moveWindow,
+  moveDoor,
   setFloor,
   addObject,
   moveObject,
