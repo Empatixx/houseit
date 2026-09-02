@@ -76,6 +76,9 @@ move-window  --room kitchen --side north --to-side west
 add-object   --room kitchen --type sofa-3 --against south --surface linen
 move-object  --room kitchen --type sofa-3 --against west
 turn-object  --room kitchen --type sofa-3 --by 90
+set-surface  --room kitchen --type sofa-3 --surface linen
+rename-room  --room kitchen --name kuchyň
+set-room-kind --room snug --kind living
 describe     --room kitchen
 measure      --room kitchen --side north
 check-plan
@@ -105,6 +108,12 @@ window dragged along its wall, or to another wall of the room, is `move-door` or
 dragged to where the wardrobe would stop it opening, snaps back with the command's own
 refusal, every edit undoes, and the agent's `describe` tells it what was done by hand.
 Where there are two of a kind, `--nth 2` says which; `describe` numbers them the same way.
+
+A panel beside the plan shows what is picked and lets it be changed: a room's name, kind
+and floor, a thing's finish, size and turn, a door's kind and width, a window's width,
+height and sill. Each field is one command — `rename-room`, `set-room-kind`, `set-floor`,
+`set-surface`, `resize-object`, `turn-object`, `set-door`, `set-window` — and a field the
+plan refuses goes back to what the plan says, with the refusal beside the command bar.
 
 Each command is declared once, with a Zod schema for its arguments. That single
 declaration produces the CLI parser, the MCP tool description the agent reads, the
