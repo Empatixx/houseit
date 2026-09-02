@@ -1,4 +1,4 @@
-import type { HouseDocument, Opening, Wall } from '@houseit/core/document'
+import type { HouseDocument } from '@houseit/core/document'
 import {
   type Dimension,
   extentDimensions,
@@ -6,9 +6,8 @@ import {
   planExtent,
   roomDimensions,
 } from '@houseit/geometry/dimensions'
-import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
-import { footprintOf, standingAt } from '@houseit/geometry/standing'
+import { standingAt } from '@houseit/geometry/standing'
 import { Html, Line } from '@react-three/drei'
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry } from 'three'
@@ -20,6 +19,7 @@ import { MM, toWorld } from './plan-coordinates'
 const INK = '#2f6fed'
 /** Drawn above everything: walls stand 2.8 m tall, and a dimension is read over them. */
 const ABOVE = 3200
+
 /** The little bar across each end of a dimension line, in millimetres. */
 const TICK = 110
 
@@ -27,6 +27,7 @@ const TICK = 110
  * Dimensions, the way the reference shows them: pick a room and every wall of it gets
  * its clear length, with the whole plan's width and depth outside; pick a thing
  * and it gets its distances to the walls round it. Or ask for all of them.
+ * What is picked is shown by its colour, where it is drawn; this only measures.
  *
  * The numbers come from `@houseit/geometry`, so what is drawn here is what the
  * agent will be told when it asks — one source for both.
@@ -43,8 +44,6 @@ export function Dimensions() {
   const pickedRoom =
     selected?.kind === 'room' ? rooms.find((room) => room.id === selected.id) : undefined
   const pickedObject = selected?.kind === 'object' ? doc.objects[selected.id] : undefined
-  const pickedOpening = selected?.kind === 'opening' ? doc.openings[selected.id] : undefined
-  const pickedWall = selected?.kind === 'wall' ? doc.walls[selected.id] : undefined
   const objectRoom = pickedObject ? rooms.find((room) => room.id === pickedObject.room) : undefined
   const spot =
     pickedObject && objectRoom ? standingAt(doc, level, objectRoom, pickedObject) : undefined
@@ -63,9 +62,6 @@ export function Dimensions() {
   return (
     <>
       {pickedRoom ? <RoomHighlight room={pickedRoom} doc={doc} /> : null}
-      {pickedObject && spot ? <Outline corners={footprintOf(spot, pickedObject)} /> : null}
-      {pickedOpening ? <Outline corners={openingCorners(doc, pickedOpening)} /> : null}
-      {pickedWall ? <Outline corners={wallCorners(doc, pickedWall)} /> : null}
       {lines.map((line) => (
         <DimensionLine key={keyOf(line)} dimension={line} />
       ))}
@@ -91,12 +87,6 @@ function RoomHighlight({ room, doc }: { room: Room; doc: HouseDocument }) {
       <meshBasicMaterial color={INK} transparent opacity={0.18} depthWrite={false} />
     </mesh>
   )
-}
-
-/** A blue frame round the picked thing, drawn over everything. */
-function Outline({ corners }: { corners: Point[] }) {
-  const points = [...corners, corners[0]!].map((corner) => toWorld(corner.x, corner.y, ABOVE))
-  return <Line points={points} color={INK} lineWidth={1.5} />
 }
 
 /** A dimension: the line, a bar across each end, and the length beside its middle. */
@@ -143,54 +133,6 @@ function DimensionLine({ dimension }: { dimension: Dimension }) {
       </Html>
     </>
   )
-}
-
-/** The four corners of an opening: its width along the wall, the wall's thickness across it. */
-function openingCorners(doc: HouseDocument, opening: Opening): Point[] {
-  const wall = doc.walls[opening.wall]
-  const a = wall && doc.nodes[wall.a]
-  const b = wall && doc.nodes[wall.b]
-  if (!wall || !a || !b) return []
-  const span = Math.hypot(b.x - a.x, b.y - a.y) || 1
-  const along = { x: (b.x - a.x) / span, y: (b.y - a.y) / span }
-  const across = { x: -along.y, y: along.x }
-  const centre = { x: a.x + (b.x - a.x) * opening.t, y: a.y + (b.y - a.y) * opening.t }
-  const half = opening.width / 2
-  const deep = wall.thickness / 2
-  return [
-    {
-      x: centre.x - along.x * half - across.x * deep,
-      y: centre.y - along.y * half - across.y * deep,
-    },
-    {
-      x: centre.x + along.x * half - across.x * deep,
-      y: centre.y + along.y * half - across.y * deep,
-    },
-    {
-      x: centre.x + along.x * half + across.x * deep,
-      y: centre.y + along.y * half + across.y * deep,
-    },
-    {
-      x: centre.x - along.x * half + across.x * deep,
-      y: centre.y - along.y * half + across.y * deep,
-    },
-  ]
-}
-
-/** The four corners of a wall: its length between its nodes, its thickness across. */
-function wallCorners(doc: HouseDocument, wall: Wall): Point[] {
-  const a = doc.nodes[wall.a]
-  const b = doc.nodes[wall.b]
-  if (!a || !b) return []
-  const span = Math.hypot(b.x - a.x, b.y - a.y) || 1
-  const half = wall.thickness / 2
-  const across = { x: (-(b.y - a.y) / span) * half, y: ((b.x - a.x) / span) * half }
-  return [
-    { x: a.x - across.x, y: a.y - across.y },
-    { x: b.x - across.x, y: b.y - across.y },
-    { x: b.x + across.x, y: b.y + across.y },
-    { x: a.x + across.x, y: a.y + across.y },
-  ]
 }
 
 /** A dimension is told from another by where it runs. */

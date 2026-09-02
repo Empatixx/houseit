@@ -19,12 +19,15 @@ import { setFloor } from './set-floor'
 import { setDoor, setWindow } from './set-opening'
 import { setRoomKind } from './set-room-kind'
 import { setSurface } from './set-surface'
+import { removeWall, resizeWall } from './stub-commands'
 import { turnObject } from './turn-object'
 
 const ALL: AnyCommand[] = [
   floorShape,
   addRoom,
   addWall,
+  removeWall,
+  resizeWall,
   moveWall,
   removeRoom,
   addWindow,

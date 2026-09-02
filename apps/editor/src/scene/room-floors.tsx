@@ -3,6 +3,7 @@ import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry } from 'three'
 import { placeArmed } from '../edit/place-commands'
+import { hoverStore, useHover } from '../store/hover'
 import { selectionStore } from '../store/selection'
 import { useDocument } from '../store/store'
 import { toolStore } from '../store/tool'
@@ -15,11 +16,13 @@ import { MM } from './plan-coordinates'
  * document changes, which is also whenever the faces themselves change.
  *
  * A room with a material laid gets its texture; one without stays white, so an
- * unfinished plan still reads as a drawing rather than as a mistake.
+ * unfinished plan still reads as a drawing rather than as a mistake. The room
+ * under the pointer gets a pale blue wash, so the hand knows what a click picks.
  */
 export function RoomFloors() {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
+  const hovered = useHover((state) => state.hovered)
 
   const floors = useMemo(
     () =>
@@ -58,6 +61,11 @@ export function RoomFloors() {
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0, 0.01, 0]}
           receiveShadow
+          onPointerOver={(event) => {
+            event.stopPropagation()
+            hoverStore.getState().hover(floor.id ? { kind: 'room', id: floor.id } : null)
+          }}
+          onPointerOut={() => hoverStore.getState().hover(null)}
           // A click, not the end of a pan: the pointer has to have stayed put.
           onClick={(event) => {
             if (event.delta > 4) return
@@ -82,6 +90,18 @@ export function RoomFloors() {
           )}
         </mesh>
       ))}
+      {floors.map((floor) =>
+        floor.id && hovered?.kind === 'room' && hovered.id === floor.id ? (
+          <mesh
+            key={`${floor.key}-hover`}
+            geometry={floor.geometry}
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, 0.015, 0]}
+          >
+            <meshBasicMaterial color="#2f6fed" transparent opacity={0.08} depthWrite={false} />
+          </mesh>
+        ) : null,
+      )}
     </>
   )
 }

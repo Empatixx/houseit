@@ -4,6 +4,7 @@ import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
 import { remove, turnBy } from './object-commands'
 import { removeOpening } from './opening-commands'
+import { removeStub } from './wall-commands'
 
 /**
  * Keys for what is picked: R turns a thing a quarter turn (shift, the other
@@ -43,6 +44,14 @@ export function useEditKeys(): void {
           event.preventDefault()
           removeOpening(opening)
           selectionStore.getState().select(null)
+        }
+        return
+      }
+      if (selected?.kind === 'wall') {
+        const wall = documentStore.getState().doc.walls[selected.id]
+        if (wall && (event.key === 'Delete' || event.key === 'Backspace')) {
+          event.preventDefault()
+          if (removeStub(wall)) selectionStore.getState().select(null)
         }
         return
       }

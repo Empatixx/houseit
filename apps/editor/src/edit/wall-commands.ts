@@ -1,5 +1,7 @@
 import { moveWall } from '@houseit/commands/move-wall'
 import { removeRoom } from '@houseit/commands/remove-room'
+import { removeWall, resizeWall } from '@houseit/commands/stub-commands'
+import { type Stub, stubsOn } from '@houseit/commands/stubs'
 import type { Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
@@ -44,4 +46,57 @@ export function nameWall(wall: Wall) {
   }
   noticeStore.getState().say('this wall bounds no named room, so nothing can be said about it')
   return undefined
+}
+
+const SIDE_LIST = ['north', 'east', 'south', 'west'] as const
+
+/**
+ * A wall as a stub, if it is one: hanging off one side of a named room with
+ * its far end free. Named the way `remove-wall` takes it — room, side, and
+ * how far along the side it hangs.
+ */
+export function stubOf(
+  wall: Wall,
+): { room: Room & { name: string }; side: (typeof SIDE_LIST)[number]; stub: Stub } | undefined {
+  const { doc, level } = documentStore.getState()
+  for (const room of roomsOf(doc, level)) {
+    if (!room.name || !room.nodes.includes(wall.a) || !room.nodes.includes(wall.b)) continue
+    for (const side of SIDE_LIST) {
+      const stub = stubsOn(doc, level, room, side).find(
+        (candidate) => candidate.wall.id === wall.id,
+      )
+      if (stub) return { room: { ...room, name: room.name }, side, stub }
+    }
+  }
+  return undefined
+}
+
+/** Takes a stub out; a wall with both ends attached is not one, and says so. */
+export function removeStub(wall: Wall): boolean {
+  const found = stubOf(wall)
+  if (!found) {
+    noticeStore.getState().say('this wall bounds rooms; knock a room through to take it out')
+    return false
+  }
+  return runEdit(() =>
+    documentStore
+      .getState()
+      .apply(removeWall, { room: found.room.name, side: found.side, along: found.stub.along }),
+  )
+}
+
+/** Makes a stub another length. */
+export function resizeStub(wall: Wall, length: number): boolean {
+  const found = stubOf(wall)
+  if (!found) return false
+  const rounded = Math.round(length / 10) * 10
+  if (rounded === found.stub.length) return true
+  return runEdit(() =>
+    documentStore.getState().apply(resizeWall, {
+      room: found.room.name,
+      side: found.side,
+      along: found.stub.along,
+      length: rounded,
+    }),
+  )
 }

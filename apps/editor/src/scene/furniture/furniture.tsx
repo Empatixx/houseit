@@ -3,13 +3,14 @@ import { type Layer, layerOf, symbolOf } from '@houseit/core/object-types'
 import { type Surface, surfaceOf } from '@houseit/core/surfaces'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
-import { type Spot, standingAt } from '@houseit/geometry/standing'
+import { type Spot, standingAt, swingOf } from '@houseit/geometry/standing'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Texture } from 'three'
-import { moveTo } from '../../edit/object-commands'
+import { moveTo, turnTo } from '../../edit/object-commands'
 import { placeArmedIn } from '../../edit/place-commands'
-import { selectionStore } from '../../store/selection'
+import { EMPHASIS, hoverStore, useHover } from '../../store/hover'
+import { selectionStore, useSelection } from '../../store/selection'
 import { useDocument } from '../../store/store'
 import { toolStore } from '../../store/tool'
 import { dragged, pointOnPlan } from '../drag'
@@ -78,39 +79,127 @@ type GlyphProps = {
 function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   const texture = useSymbol(symbol, surface, object)
   const drag = useDrag(object, spot)
+  const spin = useSpin(object, spot)
+  const picked = useSelection(
+    (state) => state.selected?.kind === 'object' && state.selected.id === object.id,
+  )
+  const hovered = useHover(
+    (state) => state.hovered?.kind === 'object' && state.hovered.id === object.id,
+  )
   if (!texture) return null
 
   const at = { x: spot.at.x + drag.shift.x, y: spot.at.y + drag.shift.y }
+  const turn = spin.preview ?? spot.turn
+  // Picked, the picture goes a bold blue; under the pointer, a pale one. The
+  // white of the symbol takes the colour, the lines stay the lines.
+  const tint = picked ? EMPHASIS.picked.tint : hovered ? EMPHASIS.hovered.tint : '#ffffff'
+
+  // The handle for turning stands off the thing's front, and turns with it.
+  const reach = object.depth / 2 + 350
+  const handle = { x: at.x - Math.sin(turn) * reach, y: at.y + Math.cos(turn) * reach }
+
   return (
-    <mesh
-      position={toWorld(at.x, at.y, symbolHeight(stack))}
-      // Laid flat, then turned the way the thing faces. The plane's own +y ends
-      // up as plan +y once it lies down, which is the thing's front — so it is
-      // turned half round to put the symbol's top at the back.
-      rotation={[-Math.PI / 2, 0, spot.turn + Math.PI]}
-      onClick={(event) => {
-        if (dragged(event)) return
-        event.stopPropagation()
-        // Something armed from the palette lands here too — a click on the rug
-        // means the floor under it, not the rug.
-        const armed = toolStore.getState().armed
-        if (armed) {
-          const point = { x: event.point.x / MM, y: -event.point.z / MM }
-          if (placeArmedIn(armed, object.room, point) && !event.shiftKey) {
-            toolStore.getState().arm(null)
+    <>
+      <mesh
+        position={toWorld(at.x, at.y, symbolHeight(stack))}
+        // Laid flat, then turned the way the thing faces. The plane's own +y ends
+        // up as plan +y once it lies down, which is the thing's front — so it is
+        // turned half round to put the symbol's top at the back.
+        rotation={[-Math.PI / 2, 0, turn + Math.PI]}
+        onPointerOver={(event) => {
+          event.stopPropagation()
+          hoverStore.getState().hover({ kind: 'object', id: object.id })
+        }}
+        onPointerOut={() => hoverStore.getState().hover(null)}
+        onClick={(event) => {
+          if (dragged(event)) return
+          event.stopPropagation()
+          // Something armed from the palette lands here too — a click on the rug
+          // means the floor under it, not the rug.
+          const armed = toolStore.getState().armed
+          if (armed) {
+            const point = { x: event.point.x / MM, y: -event.point.z / MM }
+            if (placeArmedIn(armed, object.room, point) && !event.shiftKey) {
+              toolStore.getState().arm(null)
+            }
+            return
           }
-          return
-        }
-        selectionStore.getState().select({ kind: 'object', id: object.id })
-      }}
-      onPointerDown={drag.down}
-      onPointerMove={drag.move}
-      onPointerUp={drag.up}
-    >
-      <planeGeometry args={[object.width * MM, object.depth * MM]} />
-      <meshBasicMaterial map={texture} transparent alphaTest={0.02} opacity={drag.live ? 0.7 : 1} />
-    </mesh>
+          selectionStore.getState().select({ kind: 'object', id: object.id })
+        }}
+        onPointerDown={drag.down}
+        onPointerMove={drag.move}
+        onPointerUp={drag.up}
+      >
+        <planeGeometry args={[object.width * MM, object.depth * MM]} />
+        <meshBasicMaterial
+          map={texture}
+          color={tint}
+          transparent
+          alphaTest={0.02}
+          opacity={drag.live ? 0.7 : 1}
+        />
+      </mesh>
+      {picked ? (
+        <mesh
+          position={toWorld(handle.x, handle.y, symbolHeight(stack) + 400)}
+          rotation={[-Math.PI / 2, 0, 0]}
+          onPointerDown={spin.down}
+          onPointerMove={spin.move}
+          onPointerUp={spin.up}
+        >
+          <circleGeometry args={[0.13, 24]} />
+          <meshBasicMaterial color={EMPHASIS.picked.line} />
+        </mesh>
+      ) : null}
+    </>
   )
+}
+
+/**
+ * Turning a thing by its handle: the picture turns with the pointer while the
+ * handle is held, to the nearest fifteen degrees, and letting go is one
+ * `turn-object` — which the plan may refuse, and the thing turns back.
+ */
+function useSpin(object: HouseObject, spot: Spot) {
+  const controls = useThree((state) => state.controls) as { enabled: boolean } | null
+  const holding = useRef(false)
+  const [preview, setPreview] = useState<number | null>(null)
+  // The way the thing faces before any turn of its own: what the turn is on top of.
+  const base = spot.turn - swingOf(object)
+
+  const angleTo = (point: Point) => {
+    const total = Math.atan2(point.y - spot.at.y, point.x - spot.at.x) - Math.PI / 2
+    const degrees = Math.round(((total - base) * 180) / Math.PI / 15) * 15
+    return ((degrees % 360) + 360) % 360
+  }
+
+  const down = (event: ThreeEvent<PointerEvent>) => {
+    if (event.button !== 0) return
+    event.stopPropagation()
+    ;(event.target as Element).setPointerCapture(event.pointerId)
+    holding.current = true
+    if (controls) controls.enabled = false
+  }
+  const move = (event: ThreeEvent<PointerEvent>) => {
+    if (!holding.current) return
+    const now = pointOnPlan(event.ray)
+    if (!now) return
+    setPreview(base + (angleTo(now) * Math.PI) / 180)
+  }
+  const up = (event: ThreeEvent<PointerEvent>) => {
+    if (!holding.current) return
+    ;(event.target as Element).releasePointerCapture(event.pointerId)
+    holding.current = false
+    if (controls) controls.enabled = true
+    const now = pointOnPlan(event.ray)
+    setPreview(null)
+    if (!now) return
+    const degrees = angleTo(now)
+    const normalised = degrees > 180 ? degrees - 360 : degrees
+    if (normalised !== (object.turn ?? 0)) turnTo(object, normalised)
+  }
+
+  return { preview, down, move, up }
 }
 
 /** A thing picked up and put down: how far it has been carried so far, in millimetres. */
