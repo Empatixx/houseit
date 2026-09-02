@@ -1,11 +1,10 @@
-import type { HouseDocument, Opening } from '@houseit/core/document'
+import type { Opening } from '@houseit/core/document'
 import { OBJECT_TYPE_IDS, objectType } from '@houseit/core/object-types'
-import { roomsOf } from '@houseit/geometry/rooms'
-import type { Draft } from 'immer'
 import { z } from 'zod'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { wallsFacing } from './place-opening'
+import { levelOf, newest, roomNamed } from './resolve'
 
 /**
  * Taking things back out again.
@@ -19,29 +18,6 @@ import { wallsFacing } from './place-opening'
  * Ask for more than one and you ask more than once. Taking out every chair on one
  * word is the kind of help nobody wants from a drawing.
  */
-
-/** The last thing added is the one with the highest number in its id. */
-const newest = <T extends { id: string }>(entries: T[]): T | undefined =>
-  entries.reduce<T | undefined>(
-    (best, next) => (best === undefined || order(next.id) > order(best.id) ? next : best),
-    undefined,
-  )
-
-const order = (id: string) => Number.parseInt(id.replace(/^\D+/, ''), 10) || 0
-
-function roomNamed(draft: Draft<HouseDocument>, level: string, name: string, what: string) {
-  const room = roomsOf(draft, level).find((candidate) => candidate.name === name)
-  if (!room?.id) throw new CommandError(`${what}: there is no room called ${name}`)
-  return room
-}
-
-function levelOf(draft: Draft<HouseDocument>, given: string | undefined, what: string) {
-  const level = given ?? Object.keys(draft.levels)[0]
-  if (!level || !draft.levels[level]) {
-    throw new CommandError(`${what}: unknown level ${given ?? '<none>'}`)
-  }
-  return level
-}
 
 export const removeObject = defineCommand({
   name: 'remove-object',

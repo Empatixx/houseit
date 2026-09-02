@@ -1,5 +1,11 @@
 import { expect, test } from 'vitest'
-import { extentDimensions, objectClearances, planExtent, roomDimensions } from './dimensions'
+import {
+  extentDimensions,
+  interiorSize,
+  objectClearances,
+  planExtent,
+  roomDimensions,
+} from './dimensions'
 import { roomsOf } from './rooms'
 import { planWith } from './test-utils'
 
@@ -98,4 +104,11 @@ test('a side that faces no wall gets no clearance', () => {
 
   // Due east of the thing the room runs on to the far wall at 8000.
   expect(east?.length).toBe(8000 - 75 - 1250)
+})
+
+test('the clear size of a room is its box less half a wall on each outer side', () => {
+  const { doc, level } = box()
+  const room = roomsOf(doc, level)[0]!
+
+  expect(interiorSize(doc, level, room)).toEqual({ width: 5850, depth: 3850 })
 })

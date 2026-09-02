@@ -19,6 +19,20 @@ None of it shows up in a unit test, and none of it would have been noticed by
 editing the document behind the commands' back. So: cut the room, lay the floor,
 hang the door, place the thing — all through `exec` — then look.
 
+Looking is a command too. `describe` says what is there in the words the other
+commands take — the kitchen is 4200 by 3600, its door is in the south wall and
+opens from the hall, a sofa stands against its west wall at 0.5 — and `measure`
+puts a tape on it: a room's walls, one side of it with what is on it and what is
+still free, a thing's distance to each wall. Over MCP the last of them in a
+script comes back with a picture of what it looked at, the room picked out with
+its dimensions the way a click would pick it. From a terminal:
+
+```bash
+node apps/mcp/dist/cli.js describe --room kitchen
+node apps/mcp/dist/cli.js measure --room kitchen --side north
+node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg measure --room kitchen --type sofa-3
+```
+
 An option a plan cannot do without belongs in the schema as required, not as
 something with a default nobody checks.
 

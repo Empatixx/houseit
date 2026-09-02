@@ -5,19 +5,31 @@ import { CommandError } from './command-error'
 import { flagOf, type OptionSpec } from './option-spec'
 import { parseArgv } from './parse-argv'
 
+/**
+ * What a command has to say for itself, beyond what it did to the document.
+ *
+ * Most commands say nothing: the plan afterwards is the answer. The ones that
+ * only look — `describe`, `measure` — answer with this, and it has to be plain
+ * data, because it leaves the transaction it was made in and crosses to whoever
+ * asked as JSON. Nothing from the draft may be handed back as it is.
+ */
+export type Output = Record<string, unknown>
+
 /** A command with its schema already consumed, so the registry holds one flat type. */
 export type Command = {
   name: string
   summary: string
   options: OptionSpec[]
-  execute: (draft: Draft<HouseDocument>, argv: string[]) => void
+  execute: (draft: Draft<HouseDocument>, argv: string[]) => Output | undefined
 }
 
 type Definition<Args extends z.ZodObject> = {
   name: string
   summary: string
   args: Args
-  run: (draft: Draft<HouseDocument>, args: z.infer<Args>) => void
+  /** Does the work; a command that only looks answers with its output. */
+  // biome-ignore lint/suspicious/noConfusingVoidType: a command that changes the plan returns nothing at all
+  run: (draft: Draft<HouseDocument>, args: z.infer<Args>) => Output | void
 }
 
 /** Unwraps optional/default/nullable wrappers to reach the value type underneath. */
@@ -66,7 +78,7 @@ export function defineCommand<Args extends z.ZodObject>(definition: Definition<A
           .join('; ')
         throw new CommandError(`${definition.name}: ${detail}`)
       }
-      definition.run(draft, result.data as z.infer<Args>)
+      return definition.run(draft, result.data as z.infer<Args>) as Output | undefined
     },
   }
 }

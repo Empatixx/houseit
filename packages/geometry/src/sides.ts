@@ -137,3 +137,38 @@ function crossingHalf(
 }
 
 const lengthOf = ({ a, b }: SideWall) => Math.round(Math.hypot(b.x - a.x, b.y - a.y))
+
+/**
+ * Which side of a room a wall of it lies on, read off the way the room's face
+ * walks it: faces run counter-clockwise, so the room is on the left of every
+ * edge, and a wall with the room lying south of it is the north wall. Nothing
+ * for a wall the room does not walk.
+ */
+export function sideOfWall(
+  doc: HouseDocument,
+  level: string,
+  room: Room,
+  wallId: string,
+): Side | undefined {
+  const wall = doc.walls[wallId]
+  if (!wall || wall.level !== level) return undefined
+  const count = room.nodes.length
+
+  for (let i = 0; i < count; i += 1) {
+    const aId = room.nodes[i]!
+    const bId = room.nodes[(i + 1) % count]!
+    const walked = (wall.a === aId && wall.b === bId) || (wall.a === bId && wall.b === aId)
+    if (!walked) continue
+    const a = doc.nodes[aId]
+    const b = doc.nodes[bId]
+    if (!a || !b) continue
+    return sideFacing({ x: -(b.y - a.y), y: b.x - a.x })
+  }
+  return undefined
+}
+
+/** The side a wall is on, from the way it faces into its room: facing south, it is the north wall. */
+export function sideFacing(inward: Point): Side {
+  if (Math.abs(inward.y) >= Math.abs(inward.x)) return inward.y < 0 ? 'north' : 'south'
+  return inward.x < 0 ? 'east' : 'west'
+}

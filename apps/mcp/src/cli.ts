@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-import { connectToEditor, execOnPage, readPlan } from './editor-page'
+import { writeFileSync } from 'node:fs'
+import { connectToEditor, execOnPage, pictureOf, readPlan, showOnPage } from './editor-page'
 import { report, toolDescription } from './report'
+import { viewOf } from './view-of'
 
 /**
  * The same registry the MCP tool uses, reached from a terminal. Useful without an
@@ -13,6 +15,15 @@ async function main(argv: string[]): Promise<number> {
     return 0
   }
 
+  // `houseit --picture out.jpg describe --room kitchen` saves what the agent
+  // would have been shown. Taken off the front, before the command begins.
+  let picture: string | undefined
+  if (argv[0] === '--picture') {
+    picture = argv[1]
+    if (!picture) throw new Error('--picture needs a file to write to')
+    argv = argv.slice(2)
+  }
+
   const page = await connectToEditor()
 
   if (argv[0] === 'get-plan') {
@@ -20,10 +31,25 @@ async function main(argv: string[]): Promise<number> {
     return 0
   }
 
-  const result = await execOnPage(page, argv.join(' '))
+  // Back into one line the way the shell had it: a room called "master bedroom"
+  // arrives as one argument here and has to be one word in the script too.
+  const source = argv.map(quoted).join(' ')
+  const result = await execOnPage(page, source)
   process.stdout.write(`${report(result)}\n`)
+
+  const view = result.ok && picture ? viewOf(source) : undefined
+  if (view && picture) {
+    const shown = await showOnPage(page, view)
+    if (!shown.ok) throw new Error(shown.error)
+    writeFileSync(picture, await pictureOf(page))
+    process.stderr.write(`picture written to ${picture}\n`)
+  }
   return result.ok ? 0 : 1
 }
+
+/** A token as the script's own tokenizer will read it back: quoted if it has to be. */
+const quoted = (token: string) =>
+  /[\s"'\\]/.test(token) || token === '' ? `"${token.replace(/(["\\])/g, '\\$1')}"` : token
 
 main(process.argv.slice(2)).then(
   (code) => process.exit(code),

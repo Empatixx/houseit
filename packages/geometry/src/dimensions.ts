@@ -2,6 +2,7 @@ import type { HouseDocument, Side } from '@houseit/core/document'
 import { wallBetween } from './boundary'
 import type { Point } from './outlines'
 import type { Room } from './rooms'
+import { wallsOnSide } from './sides'
 import { footprintOf, type Spot } from './standing'
 
 /**
@@ -69,6 +70,38 @@ export function roomDimensions(doc: HouseDocument, level: string, room: Room): D
   }
 
   return dimensions
+}
+
+/**
+ * The clear size of a room: the box round it, less the walls on its outer sides.
+ *
+ * For a rectangle it is what a tape measure across the room says. For a room
+ * that steps, it is the box the whole room would fit in, which is still the
+ * number wanted for "is it big enough for a bed and a wardrobe" — the walls of
+ * the step show up as a shorter run in the room's dimensions.
+ */
+export function interiorSize(
+  doc: HouseDocument,
+  level: string,
+  room: Room,
+): { width: number; depth: number } {
+  const corners = room.nodes.map((id) => doc.nodes[id]).filter((node) => node !== undefined)
+  if (corners.length === 0) return { width: 0, depth: 0 }
+
+  const xs = corners.map((corner) => corner.x)
+  const ys = corners.map((corner) => corner.y)
+  // Only the walls on the room's very edge take anything off; a partition
+  // dangling into it does not make it narrower.
+  const half = (side: Side) =>
+    Math.max(
+      0,
+      ...wallsOnSide(doc, level, room, side).map((w) => doc.walls[w.wall]?.thickness ?? 0),
+    ) / 2
+
+  return {
+    width: Math.round(Math.max(...xs) - Math.min(...xs) - half('west') - half('east')),
+    depth: Math.round(Math.max(...ys) - Math.min(...ys) - half('south') - half('north')),
+  }
 }
 
 export type Extent = { x0: number; y0: number; x1: number; y1: number }

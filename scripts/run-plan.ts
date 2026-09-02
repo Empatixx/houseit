@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs'
 import { createEmptyDocument } from '../packages/core/src/document'
 import { roomsOf } from '../packages/geometry/src/rooms'
 import { standingAt } from '../packages/geometry/src/standing'
-import { runScript } from '../packages/commands/src/run'
+import { askScript, runScript } from '../packages/commands/src/run'
 
 const file = process.argv[2]
 if (!file) {
@@ -29,6 +29,8 @@ lines.forEach((line, index) => {
   const trimmed = line.trim()
   if (!trimmed || trimmed.startsWith('#')) return
   try {
+    // A line that only looks — describe, measure — prints what it saw, where it is.
+    for (const said of askScript(doc, trimmed)) console.log(JSON.stringify(said, null, 2))
     doc = runScript(doc, trimmed)
   } catch (error) {
     failed = true

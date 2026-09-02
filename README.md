@@ -68,15 +68,25 @@ coinciding, and face detection collapses when they do not.
 One MCP tool, `floorplan`, taking a command string. It parses like a CLI:
 
 ```
-add-room     --name kitchen --x 0 --y 0 --w 4200 --h 3600
-move-wall    --id w3 --dx 250
-add-opening  --wall w3 --t 0.5 --kind door --width 900
-rename-room  --at 2100,1800 --name "living room"
-get-plan
+floor-shape  --material natural-oak --kind l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name house
+add-room     --material tile-white --name kitchen --from house --side west --width 3.6m
+add-door     --room kitchen --side east --variant pocket
+add-window   --room kitchen --side north --width 1.2m
+add-object   --room kitchen --type sofa-3 --against south --surface linen
+describe     --room kitchen
+measure      --room kitchen --side north
 ```
 
 Several commands separated by newlines apply as one transaction — all of them land, or
 none do.
+
+Two of them only look. `describe` says what is there — every room's clear size, floor,
+neighbours, doors with where they lead, windows, and what stands in it, all in the same
+words the other commands take. `measure` puts a tape on the plan, a room, one side of a
+room (what is on it and what is still free) or a thing in it (its distance to each
+wall). Both answer with JSON, and over MCP the answer comes with a picture of what was
+asked about, picked out and framed the way a click would show it. So the agent ends a
+script with `describe --room kitchen` and sees the kitchen it just made.
 
 Each command is declared once, with a Zod schema for its arguments. That single
 declaration produces the CLI parser, the MCP tool description the agent reads, the
@@ -226,5 +236,7 @@ node apps/mcp/dist/cli.js --help
 node apps/mcp/dist/cli.js floor-shape --kind l --width 12m --depth 9m \
   --notch-width 4m --notch-depth 3m --name dům
 node apps/mcp/dist/cli.js add-room --name kuchyň --from dům --side west --width 3.6m
+node apps/mcp/dist/cli.js describe --room kuchyň
+node apps/mcp/dist/cli.js --picture /tmp/kuchyň.jpg measure --room kuchyň
 node apps/mcp/dist/cli.js get-plan
 ```

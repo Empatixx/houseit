@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { roomsOf } from './rooms'
-import { sideRun, wallOnSide } from './sides'
+import { sideOfWall, sideRun, wallOnSide } from './sides'
 import { planWith } from './test-utils'
 
 const only = () => {
@@ -82,4 +82,34 @@ test('a side split into two walls in line is still one run', () => {
   // Six metres of wall, less half of each end wall — not the near half of it
   // because a partition happens to meet it in the middle.
   expect(run.length).toBe(6000 - 150)
+})
+
+test('a wall is on the side of the room it faces into from', () => {
+  const { doc, level } = planWith([
+    [0, 0, 6000, 0],
+    [6000, 0, 6000, 4000],
+    [6000, 4000, 0, 4000],
+    [0, 4000, 0, 0],
+  ])
+  const room = roomsOf(doc, level)[0]!
+
+  const sides = Object.values(doc.walls).map((wall) => {
+    const a = doc.nodes[wall.a]!
+    const b = doc.nodes[wall.b]!
+    return `${sideOfWall(doc, level, room, wall.id)}:${(a.y + b.y) / 2},${(a.x + b.x) / 2}`
+  })
+
+  expect(sides.sort()).toEqual(['east:2000,6000', 'north:4000,3000', 'south:0,3000', 'west:2000,0'])
+})
+
+test('a wall the room does not walk is on no side of it', () => {
+  const { doc, level } = planWith([
+    [0, 0, 6000, 0],
+    [6000, 0, 6000, 4000],
+    [6000, 4000, 0, 4000],
+    [0, 4000, 0, 0],
+  ])
+  const room = roomsOf(doc, level)[0]!
+
+  expect(sideOfWall(doc, level, room, 'no-such-wall')).toBeUndefined()
 })

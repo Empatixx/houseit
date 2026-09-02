@@ -1,6 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { enablePatches, type Patch, produceWithPatches } from 'immer'
 import { applyScript } from './apply-script'
+import type { Output } from './define-command'
 
 // Immer ships patch support as an opt-in plugin; undo history depends on it.
 enablePatches()
@@ -11,6 +12,8 @@ export type ScriptResult = {
   patches: Patch[]
   /** Patches that take the new document back to the old one, for undo. */
   inversePatches: Patch[]
+  /** What the commands that only looked had to say, in the order they ran. */
+  output: Output[]
 }
 
 /**
@@ -19,8 +22,9 @@ export type ScriptResult = {
  * pair is a fraction of the size and cannot drift from what actually happened.
  */
 export function runScriptWithPatches(doc: HouseDocument, source: string): ScriptResult {
+  let output: Output[] = []
   const [next, patches, inversePatches] = produceWithPatches(doc, (draft) => {
-    applyScript(draft, source)
+    output = applyScript(draft, source)
   })
-  return { doc: next, patches, inversePatches }
+  return { doc: next, patches, inversePatches, output }
 }

@@ -26,7 +26,7 @@ import { Walls } from './walls'
 const OVERHEAD: [number, number, number] = [0, 40, 0]
 const UP: [number, number, number] = [0, 0, -1]
 
-export function PlanScene({ fitKey }: { fitKey: number }) {
+export function PlanScene() {
   return (
     <Canvas flat dpr={[1, 2]} onPointerMissed={() => selectionStore.getState().select(null)}>
       <OrthographicCamera makeDefault position={OVERHEAD} zoom={45} up={UP} near={0.1} far={200} />
@@ -51,7 +51,7 @@ export function PlanScene({ fitKey }: { fitKey: number }) {
       <Walls />
       <RoomAnnotations />
       <Dimensions />
-      <FitToPlan fitKey={fitKey} />
+      <FitToPlan />
     </Canvas>
   )
 }

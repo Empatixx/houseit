@@ -2,12 +2,15 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import type { OrthographicCamera, Vector3 } from 'three'
 import { useDocument } from '../store/store'
+import { useView, type ViewBox } from '../store/view'
 import { MM } from './plan-coordinates'
 
 type Controls = { target: Vector3; update: () => void }
 
 /** Room left round the plan: enough for the overall dimensions drawn outside it. */
 const PADDING = 0.84
+/** Round a box asked for by name, which brings its own margin with it. */
+const BOX_PADDING = 0.96
 
 /** Where the plan was framed to, so the framing can be held for a moment. */
 type Framing = { x: number; z: number; zoom: number; until: number }
@@ -23,12 +26,15 @@ type Framing = { x: number; z: number; zoom: number; until: number }
 const HOLD = 800
 
 /**
- * Frames the plan. Runs once when geometry first appears and then only when the
- * Fit button asks — refitting on every edit would fight whoever is panning.
+ * Frames the plan, or whatever box was asked for. Runs once when geometry first
+ * appears and then only when asked — refitting on every edit would fight
+ * whoever is panning.
  */
-export function FitToPlan({ fitKey }: { fitKey: number }) {
+export function FitToPlan() {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
+  const box = useView((state) => state.box)
+  const fitKey = useView((state) => state.asked)
   const camera = useThree((state) => state.camera)
   const controls = useThree((state) => state.controls) as Controls | null
   const size = useThree((state) => state.size)
@@ -54,19 +60,15 @@ export function FitToPlan({ fitKey }: { fitKey: number }) {
     const asked = `${fitKey}-${camera.uuid}-${size.width}x${size.height}`
     if (framed.current === asked) return
 
-    const nodes = Object.values(doc.walls)
-      .filter((wall) => wall.level === level)
-      .flatMap((wall) => [doc.nodes[wall.a], doc.nodes[wall.b]])
-      .filter((node) => node !== undefined)
-    if (nodes.length === 0) return
+    const target = box ?? planBox(doc, level)
+    if (!target) return
 
-    const xs = nodes.map((node) => node.x)
-    const ys = nodes.map((node) => node.y)
-    const centreX = ((Math.min(...xs) + Math.max(...xs)) / 2) * MM
-    const centreZ = -((Math.min(...ys) + Math.max(...ys)) / 2) * MM
-    const width = Math.max(Math.max(...xs) - Math.min(...xs), 1) * MM
-    const height = Math.max(Math.max(...ys) - Math.min(...ys), 1) * MM
-    const zoom = PADDING * Math.min(size.width / width, size.height / height)
+    const centreX = ((target.x0 + target.x1) / 2) * MM
+    const centreZ = -((target.y0 + target.y1) / 2) * MM
+    const width = Math.max(target.x1 - target.x0, 1) * MM
+    const height = Math.max(target.y1 - target.y0, 1) * MM
+    const padding = box ? BOX_PADDING : PADDING
+    const zoom = padding * Math.min(size.width / width, size.height / height)
 
     frame(camera as OrthographicCamera, controls, { x: centreX, z: centreZ, zoom })
     // Held for a moment. On a reload the controls' target went back to the origin
@@ -76,7 +78,7 @@ export function FitToPlan({ fitKey }: { fitKey: number }) {
     // puts it right whatever undid it.
     held.current = { x: centreX, z: centreZ, zoom, until: performance.now() + HOLD }
     framed.current = asked
-  }, [doc, level, camera, controls, size, fitKey])
+  }, [doc, level, box, camera, controls, size, fitKey])
 
   // After the controls have run for the frame, so what they undid is redone: the
   // controls update at a priority below zero, and this runs at the default. (A
@@ -99,6 +101,25 @@ export function FitToPlan({ fitKey }: { fitKey: number }) {
   })
 
   return null
+}
+
+/** The box round every wall of the level, or nothing while there are none. */
+function planBox(
+  doc: {
+    walls: Record<string, { level: string; a: string; b: string }>
+    nodes: Record<string, { x: number; y: number } | undefined>
+  },
+  level: string,
+): ViewBox | undefined {
+  const nodes = Object.values(doc.walls)
+    .filter((wall) => wall.level === level)
+    .flatMap((wall) => [doc.nodes[wall.a], doc.nodes[wall.b]])
+    .filter((node) => node !== undefined)
+  if (nodes.length === 0) return undefined
+
+  const xs = nodes.map((node) => node.x)
+  const ys = nodes.map((node) => node.y)
+  return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) }
 }
 
 /** Puts the camera straight over a point, looking down at it, at a zoom. */

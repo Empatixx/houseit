@@ -10,6 +10,7 @@ type SelectionState = {
   showAll: boolean
   select: (selection: Selection | null) => void
   toggleAll: () => void
+  showDimensions: (all: boolean) => void
 }
 
 /**
@@ -21,6 +22,7 @@ export const selectionStore = createStore<SelectionState>()((set) => ({
   showAll: false,
   select: (selected) => set({ selected }),
   toggleAll: () => set((state) => ({ showAll: !state.showAll })),
+  showDimensions: (showAll) => set({ showAll }),
 }))
 
 export function useSelection<T>(selector: (state: SelectionState) => T): T {

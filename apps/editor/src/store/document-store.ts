@@ -1,3 +1,4 @@
+import type { Output } from '@houseit/commands/define-command'
 import { runScriptWithPatches } from '@houseit/commands/patches'
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { applyPatches, enablePatches, type Patch } from 'immer'
@@ -17,7 +18,8 @@ export type DocumentState = {
   canUndo: boolean
   canRedo: boolean
   /** Applies a script. Throws `CommandError` on bad input, leaving the document alone. */
-  exec: (source: string) => void
+  /** Runs a script; what comes back is what its `describe` and `measure` lines said. */
+  exec: (source: string) => Output[]
   undo: () => void
   redo: () => void
   /** Starts again from nothing, history and all. */
@@ -42,7 +44,7 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
     exec: (source) => {
       const { doc, past } = get()
       const result = runScriptWithPatches(doc, source)
-      if (result.patches.length === 0) return
+      if (result.patches.length === 0) return result.output
 
       const nextPast = [...past, { patches: result.patches, inversePatches: result.inversePatches }]
       set({
@@ -52,6 +54,7 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
         canUndo: true,
         canRedo: false,
       })
+      return result.output
     },
 
     undo: () => {

@@ -1,4 +1,4 @@
-import type { ExecResult, PlanSnapshot } from '@houseit/bridge/contract'
+import type { ExecResult, PlanSnapshot, ShowResult, ViewRequest } from '@houseit/bridge/contract'
 import { chromium, type Page } from 'playwright-core'
 
 /** Where Chrome listens when started with `--remote-debugging-port=9222`. */
@@ -60,4 +60,32 @@ export function execOnPage(page: Page, source: string): Promise<ExecResult> {
 
 export function readPlan(page: Page): Promise<PlanSnapshot> {
   return page.evaluate(() => window.floorplan.getPlan())
+}
+
+export function showOnPage(page: Page, view: ViewRequest): Promise<ShowResult> {
+  return page.evaluate((asked) => window.floorplan.show(asked), view)
+}
+
+/**
+ * How long the tab gets to frame what it was asked to show before the picture
+ * is taken: the framing lands on the next paint, and the labels follow it.
+ */
+const SETTLE_MS = 400
+
+/** What a picture is: the bytes and what to call them. */
+export const PICTURE_TYPE = 'image/jpeg'
+
+/**
+ * A picture of the plan as the tab shows it now.
+ *
+ * Taken at CSS size rather than device pixels, and as JPEG: a drawing of lines
+ * and labels over photographed floors reads fine that way, at a tenth of the
+ * bytes a retina PNG of the same view comes to — and every byte of it is
+ * handed to the agent in the answer.
+ */
+export async function pictureOf(page: Page): Promise<Buffer> {
+  // A tab behind another is not painted, and a picture of it is a picture of nothing.
+  await page.bringToFront().catch(() => undefined)
+  await page.waitForTimeout(SETTLE_MS)
+  return page.locator('canvas').first().screenshot({ type: 'jpeg', quality: 85, scale: 'css' })
 }

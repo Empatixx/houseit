@@ -9,15 +9,48 @@ const roomLine = (room: RoomSummary) =>
 /**
  * What the agent reads back. Rooms rather than raw walls: the derived rooms are
  * what the plan means, and they are what a next command will be reasoned from.
+ *
+ * A script that asked something — `describe`, `measure` — gets its answers
+ * instead, as JSON, one after another. The answers already say what the plan
+ * holds, and a room count on top of them would be noise.
  */
 export function report(result: ExecResult): string {
   if (!result.ok) return result.error
+
+  if (result.output.length > 0) {
+    return result.output.map((entry) => compactJson(entry)).join('\n')
+  }
 
   if (result.rooms.length === 0) {
     return 'Done. The plan has no rooms yet — walls must close before a room exists.'
   }
 
   return [`Done. ${result.rooms.length} room(s):`, ...result.rooms.map(roomLine)].join('\n')
+}
+
+/** How wide a line of the answer may be before its object is spread over several. */
+const LINE = 100
+
+/**
+ * JSON that is read rather than parsed: anything short enough stays on one
+ * line — a wall, a door, a clearance — and only what would not fit is opened
+ * out. Pretty-printed, a room is two hundred lines of one number each; this
+ * way it is twenty, and each of them says something.
+ */
+export function compactJson(value: unknown, indent = ''): string {
+  const flat = JSON.stringify(value)
+  if (flat === undefined) return 'null'
+  if (flat.length + indent.length <= LINE || typeof value !== 'object' || value === null)
+    return flat
+
+  const inner = `${indent}  `
+  if (Array.isArray(value)) {
+    return `[\n${value.map((entry) => `${inner}${compactJson(entry, inner)}`).join(',\n')}\n${indent}]`
+  }
+  const entries = Object.entries(value).filter(([, entry]) => entry !== undefined)
+  return `{\n${entries
+    .map(([key, entry]) => `${inner}${JSON.stringify(key)}: ${compactJson(entry, inner)}`)
+    .join(',\n')}\n${indent}}`
 }
 
 /**
@@ -29,6 +62,11 @@ export function toolDescription(): string {
     'Edit the floor plan open in the browser. Takes one or more commands, one per',
     'line, applied as a single transaction — if any line fails, nothing changes.',
     'Lines starting with # are comments. Lengths are in millimetres.',
+    '',
+    'describe and measure change nothing and answer with JSON, and the last of',
+    'them in a script also comes back with a picture of what it looked at — the',
+    'room picked out with its dimensions, the thing with its clearances. Put one',
+    'at the end of a script to see what the script did, or on its own to read the plan.',
     '',
     'Commands:',
     '',
