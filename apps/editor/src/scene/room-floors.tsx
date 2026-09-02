@@ -5,7 +5,7 @@ import { Shape, ShapeGeometry } from 'three'
 import { placeArmed } from '../edit/place-commands'
 import { hoverStore, useHover } from '../store/hover'
 import { selectionStore } from '../store/selection'
-import { useDocument } from '../store/store'
+import { useDocument, usePlanDoc } from '../store/store'
 import { toolStore } from '../store/tool'
 import { floorTexture } from './floor-texture'
 import { MM } from './plan-coordinates'
@@ -20,7 +20,7 @@ import { MM } from './plan-coordinates'
  * under the pointer gets a pale blue wash, so the hand knows what a click picks.
  */
 export function RoomFloors() {
-  const doc = useDocument((state) => state.doc)
+  const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
   const hovered = useHover((state) => state.hovered)
 

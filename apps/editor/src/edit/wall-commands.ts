@@ -8,22 +8,37 @@ import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { SIDES, sideOfWall } from '@houseit/geometry/sides'
 import { documentStore } from '../store/store'
 import { sayError } from './notice'
+import { endPreview, previewCommand } from './preview'
 import { runEdit } from './run-edit'
 
 /** What a drag of a wall, or a button on a room, does — as the commands an agent would give. */
 
-/** Moves a wall by however far across itself it was carried, as `move-wall` on a room it bounds. */
-export function moveWallBy(wall: Wall, shift: Point): boolean {
+/** What `move-wall` is asked for a wall carried this far across itself, to the nearest centimetre. */
+function wallMoveArgs(wall: Wall, shift: Point) {
   const named = nameWall(wall)
-  if (!named) return false
+  if (!named) return undefined
   const { axis, low } = SIDES[named.side]
   const outward = low ? -1 : 1
-  // Only the part of the carry that is across the wall counts, to the nearest centimetre.
   const by = Math.round((shift[axis] * outward) / 10) * 10
-  if (by === 0) return true
-  return runEdit(() =>
-    documentStore.getState().apply(moveWall, { room: named.room.name, side: named.side, by }),
-  )
+  return { room: named.room.name, side: named.side, by }
+}
+
+/** Moves a wall by however far across itself it was carried, as `move-wall` on a room it bounds. */
+export function moveWallBy(wall: Wall, shift: Point): boolean {
+  const args = wallMoveArgs(wall, shift)
+  if (!args) return false
+  if (args.by === 0) return true
+  return runEdit(() => documentStore.getState().apply(moveWall, args))
+}
+
+/** Shows where the wall, and the rooms round it, would come to. */
+export function previewWallMove(wall: Wall, shift: Point): void {
+  const args = wallMoveArgs(wall, shift)
+  if (!args || args.by === 0) {
+    endPreview()
+    return
+  }
+  previewCommand(moveWall, args)
 }
 
 /** Knocks a room through into a neighbour. */
@@ -85,18 +100,28 @@ export function removeStub(wall: Wall): boolean {
   )
 }
 
+/** What `resize-wall` is asked for a stub pulled to a length. */
+function stubResizeArgs(wall: Wall, length: number) {
+  const found = stubOf(wall)
+  if (!found) return undefined
+  const rounded = Math.max(10, Math.round(length / 10) * 10)
+  if (rounded === found.stub.length) return undefined
+  return { room: found.room.name, side: found.side, along: found.stub.along, length: rounded }
+}
+
 /** Makes a stub another length. */
 export function resizeStub(wall: Wall, length: number): boolean {
-  const found = stubOf(wall)
-  if (!found) return false
-  const rounded = Math.round(length / 10) * 10
-  if (rounded === found.stub.length) return true
-  return runEdit(() =>
-    documentStore.getState().apply(resizeWall, {
-      room: found.room.name,
-      side: found.side,
-      along: found.stub.along,
-      length: rounded,
-    }),
-  )
+  const args = stubResizeArgs(wall, length)
+  if (!args) return stubOf(wall) !== undefined
+  return runEdit(() => documentStore.getState().apply(resizeWall, args))
+}
+
+/** Shows the stub at the length it is being pulled to — and the room it would close. */
+export function previewStubResize(wall: Wall, length: number): void {
+  const args = stubResizeArgs(wall, length)
+  if (!args) {
+    endPreview()
+    return
+  }
+  previewCommand(resizeWall, args)
 }

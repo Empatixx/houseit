@@ -3,9 +3,17 @@ import type { Point } from '@houseit/geometry/outlines'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import { moveOpeningTo } from '../edit/opening-commands'
-import { drawWallFrom } from '../edit/shape-commands'
-import { moveWallBy, resizeStub, stubOf } from '../edit/wall-commands'
+import { endPreview } from '../edit/preview'
+import { drawWallFrom, previewDrawnWall } from '../edit/shape-commands'
+import {
+  moveWallBy,
+  previewStubResize,
+  previewWallMove,
+  resizeStub,
+  stubOf,
+} from '../edit/wall-commands'
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
+import { usePreview } from '../store/preview'
 import { selectionStore, useSelection } from '../store/selection'
 import { toolStore, useTool } from '../store/tool'
 import { dragged, pointOnPlan } from './drag'
@@ -48,6 +56,7 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
   const armed = useTool((state) => state.armed)
   const carry = useCarry()
   const [pull, setPull] = useState(0)
+  const previewing = usePreview((state) => state.doc !== null)
   const a0 = doc.nodes[wall.a]
   const b0 = doc.nodes[wall.b]
 
@@ -60,18 +69,20 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
   const unit = { x: (b0.x - a0.x) / span0, y: (b0.y - a0.y) / span0 }
   const across = { x: -unit.y, y: unit.x }
 
-  // Carried across itself, the whole wall moves with the pointer.
+  // Carried across itself, the whole wall moves with the pointer — and with
+  // it the rooms either side, drawn from the preview; only where the plan
+  // refuses the move does the wall alone follow, so the hand still sees it.
   const held = carry.held
   const drawing = armed?.kind === 'wall'
   let offset = { x: 0, y: 0 }
-  if (held && held.id === wall.id && !drawing) {
+  if (held && held.id === wall.id && !drawing && !previewing) {
     const shift = held.shift.x * across.x + held.shift.y * across.y
     offset = { x: across.x * shift, y: across.y * shift }
   }
   // A stub's free end pulled along the wall makes the wall that much longer, live.
   let a = { x: a0.x + offset.x, y: a0.y + offset.y }
   let b = { x: b0.x + offset.x, y: b0.y + offset.y }
-  if (pull !== 0 && stub) {
+  if (pull !== 0 && stub && !previewing) {
     if (stub.stub.tip === wall.b) b = { x: b.x + unit.x * pull, y: b.y + unit.y * pull }
     else a = { x: a.x - unit.x * pull, y: a.y - unit.y * pull }
   }
@@ -145,9 +156,20 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
                 )
             }}
             onPointerDown={(event) => carry.down(event, opening ? opening.id : wall.id)}
-            onPointerMove={carry.move}
+            onPointerMove={(event) => {
+              const carried = carry.move(event)
+              if (!carried || opening) return
+              // The rooms follow the wall as it is carried: what the drop would
+              // do, drawn as the pointer goes.
+              if (toolStore.getState().armed?.kind === 'wall') {
+                previewDrawnWall(wall, carried.from, carried.shift)
+              } else {
+                previewWallMove(wall, carried.shift)
+              }
+            }}
             onPointerUp={(event) => {
               const carried = carry.up(event)
+              endPreview()
               if (!carried) return
               // With the wall tool armed, a drag off a wall draws a new wall
               // into the room rather than moving anything.
@@ -174,7 +196,7 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
         )
       })}
 
-      {held && held.id === wall.id && drawing ? (
+      {held && held.id === wall.id && drawing && !previewing ? (
         // The wall being drawn: from where the drag began, across the wall's
         // line, as far as the pointer has gone that way.
         <DrawnWall from={held.from} along={across} shift={held.shift} height={wall.height} />
@@ -200,7 +222,9 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
             if (!from) return
             const now = pointOnPlan(event.ray)
             if (!now) return
-            setPull((now.x - from.x) * tipDirection.x + (now.y - from.y) * tipDirection.y)
+            const pulled = (now.x - from.x) * tipDirection.x + (now.y - from.y) * tipDirection.y
+            setPull(pulled)
+            previewStubResize(wall, stub.stub.length + pulled)
           }}
           onPointerUp={(event) => {
             if (!pullStart.current) return
@@ -209,6 +233,7 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
             carry.release()
             const change = pull
             setPull(0)
+            endPreview()
             if (Math.abs(change) >= 30) resizeStub(wall, stub.stub.length + change)
           }}
         >
@@ -284,13 +309,14 @@ function useCarry() {
     if (controls) controls.enabled = false
   }
 
-  const move = (event: ThreeEvent<PointerEvent>) => {
+  const move = (event: ThreeEvent<PointerEvent>): Held | undefined => {
     const carried = live.current
-    if (!carried) return
+    if (!carried) return undefined
     const now = pointOnPlan(event.ray)
-    if (!now) return
+    if (!now) return carried
     live.current = { ...carried, shift: { x: now.x - carried.from.x, y: now.y - carried.from.y } }
     setHeld(live.current)
+    return live.current
   }
 
   /** Lets go; where it was picked up and how far it was carried, if carried rather than clicked. */

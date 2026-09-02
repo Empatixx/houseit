@@ -1,6 +1,6 @@
 import { roomsOf } from '@houseit/geometry/rooms'
 import { Html } from '@react-three/drei'
-import { useDocument } from '../store/store'
+import { useDocument, usePlanDoc } from '../store/store'
 import { toWorld } from './plan-coordinates'
 
 const squareMetres = (area: number) => (area / 1_000_000).toFixed(1)
@@ -10,7 +10,7 @@ const squareMetres = (area: number) => (area / 1_000_000).toFixed(1)
  * at any zoom is a line of HTML and a shader's worth of work in WebGL.
  */
 export function RoomAnnotations() {
-  const doc = useDocument((state) => state.doc)
+  const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
 
   return (

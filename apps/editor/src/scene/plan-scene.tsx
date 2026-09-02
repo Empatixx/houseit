@@ -1,8 +1,9 @@
-import { Grid, OrbitControls, OrthographicCamera } from '@react-three/drei'
+import { OrbitControls, OrthographicCamera } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { selectionStore } from '../store/selection'
 import { useTool } from '../store/tool'
 import { Dimensions } from './dimensions'
+import { DotGrid } from './dot-grid'
 import { FitToPlan } from './fit-to-plan'
 import { Furniture } from './furniture/furniture'
 import { RoomAnnotations } from './room-annotations'
@@ -41,17 +42,7 @@ export function PlanScene() {
 
       <color attach="background" args={['#f4f4f5']} />
 
-      <Grid
-        position={[0, -0.05, 0]}
-        args={[200, 200]}
-        cellSize={1}
-        cellColor="#e4e4e7"
-        sectionSize={5}
-        sectionColor="#d4d4d8"
-        infiniteGrid
-        fadeDistance={90}
-        followCamera={false}
-      />
+      <DotGrid />
 
       <RoomFloors />
       <Furniture />

@@ -121,9 +121,12 @@ plan refuses goes back to what the plan says, with the refusal as a toast.
 What is picked goes blue where it is drawn — a room's walls and floor, a thing's picture,
 a door, a wall — and whatever the pointer is over goes a paler blue first. A picked thing
 has a handle at its front to turn it by; a picked wall stub has one at its free end to pull
-it. A small card over the plan's top right corner holds undo and redo, and a gear for the
-measurements and for fitting the plan to the window; the mark sits in the other corner.
-The editor is built on shadcn/ui.
+it. A wall carried across the plan takes the rooms with it as it goes — the floors either
+side, the walls that meet it, the labels — because the drawing runs the command the drop
+would run on a copy of the plan and draws that; so does a stub being pulled, and a wall
+being drawn. Two small cards over the plan's top right corner hold undo and redo, and a
+gear for the measurements and for fitting the plan to the window. The editor is built on
+shadcn/ui, on a paper of dots.
 
 The bar along the bottom of the plan says what the next click does. Furniture opens
 upward — a category to the side, a search at the top — and Structure holds the doors and

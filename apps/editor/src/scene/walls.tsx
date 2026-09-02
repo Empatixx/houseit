@@ -2,11 +2,11 @@ import { boundaryWallsOf } from '@houseit/geometry/boundary'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { useSelection } from '../store/selection'
-import { useDocument } from '../store/store'
+import { useDocument, usePlanDoc } from '../store/store'
 import { WallMesh } from './wall-mesh'
 
 export function Walls() {
-  const doc = useDocument((state) => state.doc)
+  const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
   const selected = useSelection((state) => state.selected)
 

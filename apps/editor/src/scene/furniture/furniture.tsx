@@ -11,7 +11,7 @@ import { moveTo, turnTo } from '../../edit/object-commands'
 import { placeArmedIn } from '../../edit/place-commands'
 import { EMPHASIS, hoverStore, useHover } from '../../store/hover'
 import { selectionStore, useSelection } from '../../store/selection'
-import { useDocument } from '../../store/store'
+import { useDocument, usePlanDoc } from '../../store/store'
 import { toolStore } from '../../store/tool'
 import { dragged, pointOnPlan } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
@@ -26,7 +26,7 @@ import { symbolTexture } from './symbol-texture'
  * as it stands now — so moving a partition moves the furniture with it.
  */
 export function Furniture() {
-  const doc = useDocument((state) => state.doc)
+  const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
 
   const drawn = useMemo(() => {

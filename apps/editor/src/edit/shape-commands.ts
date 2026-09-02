@@ -7,6 +7,7 @@ import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { SIDES, sideOfWall, sideRun } from '@houseit/geometry/sides'
 import { documentStore } from '../store/store'
+import { endPreview, previewCommand } from './preview'
 import { runEdit } from './run-edit'
 
 /**
@@ -16,11 +17,11 @@ import { runEdit } from './run-edit'
  */
 
 /**
- * A wall drawn from a point on a wall into the room on the side the pointer
- * went. As far as it was dragged; or right across, if it was let go within
- * reach of the far wall.
+ * What `add-wall` is asked for a wall drawn from a point on a wall into the
+ * room on the side the pointer went: as far as it was dragged, or right
+ * across if it was let go within reach of the far wall.
  */
-export function drawWallFrom(wall: Wall, from: Point, shift: Point): boolean {
+function drawnWallArgs(wall: Wall, from: Point, shift: Point) {
   const { doc, level } = documentStore.getState()
   const rooms = roomsOf(doc, level)
 
@@ -38,28 +39,43 @@ export function drawWallFrom(wall: Wall, from: Point, shift: Point): boolean {
       break
     }
   }
-  if (!found) return false
+  if (!found) return undefined
 
   const run = sideRun(doc, level, found.room, found.side)
-  if (!run || run.length === 0) return false
+  if (!run || run.length === 0) return undefined
   const unit = { x: (run.to.x - run.from.x) / run.length, y: (run.to.y - run.from.y) / run.length }
   const along = ((from.x - run.from.x) * unit.x + (from.y - run.from.y) * unit.y) / run.length
   const { axis } = SIDES[found.side]
   const length = Math.round(Math.abs(shift[axis]) / 10) * 10
-  if (length < SNAP) return false
+  if (length < SNAP) return undefined
 
   // Let go within reach of the far wall: right across.
   const far = farWallDistance(doc, found.room, found.side, from)
   const across = far !== undefined && far - length <= SNAP
 
-  return runEdit(() =>
-    documentStore.getState().apply(addWall, {
-      room: found.room.name,
-      side: found.side,
-      along: Math.round(Math.min(1, Math.max(0, along)) * 1000) / 1000,
-      ...(across ? {} : { length }),
-    }),
-  )
+  return {
+    room: found.room.name,
+    side: found.side,
+    along: Math.round(Math.min(1, Math.max(0, along)) * 1000) / 1000,
+    ...(across ? {} : { length }),
+  }
+}
+
+/** Draws the wall the drag described, or says why it cannot be there. */
+export function drawWallFrom(wall: Wall, from: Point, shift: Point): boolean {
+  const args = drawnWallArgs(wall, from, shift)
+  if (!args) return false
+  return runEdit(() => documentStore.getState().apply(addWall, args))
+}
+
+/** Shows the wall being drawn, and what it would cut off. */
+export function previewDrawnWall(wall: Wall, from: Point, shift: Point): void {
+  const args = drawnWallArgs(wall, from, shift)
+  if (!args) {
+    endPreview()
+    return
+  }
+  previewCommand(addWall, args)
 }
 
 /** How far it is from a point on one side of a room to the first wall across from it. */

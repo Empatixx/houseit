@@ -12,7 +12,7 @@ import { Html, Line } from '@react-three/drei'
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry } from 'three'
 import { useSelection } from '../store/selection'
-import { useDocument } from '../store/store'
+import { useDocument, usePlanDoc } from '../store/store'
 import { MM, toWorld } from './plan-coordinates'
 
 /** The blue the reference picks things out in, and the sheet the labels sit on. */
@@ -33,7 +33,7 @@ const TICK = 110
  * agent will be told when it asks — one source for both.
  */
 export function Dimensions() {
-  const doc = useDocument((state) => state.doc)
+  const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
   const selected = useSelection((state) => state.selected)
   const showAll = useSelection((state) => state.showAll)
