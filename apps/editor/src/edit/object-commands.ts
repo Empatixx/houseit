@@ -1,5 +1,7 @@
-import { commandLine } from '@houseit/commands/command-line'
+import { moveObject } from '@houseit/commands/move-object'
+import { removeObject } from '@houseit/commands/remove'
 import { objectsIn } from '@houseit/commands/survey'
+import { turnObject } from '@houseit/commands/turn-object'
 import type { HouseObject } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
@@ -8,10 +10,13 @@ import { noticeStore } from '../store/notice'
 import { documentStore } from '../store/store'
 
 /**
- * What a drag or a key does to a thing, said as the command an agent would
- * say. Nothing here touches the document: the line is built, run through the
- * same store the command bar and the bridge use, and refused by the same
- * checks — so a sofa cannot be dragged into a wall, and every move undoes.
+ * What a drag or a key does to a thing, as the command an agent would give.
+ *
+ * Nothing here touches the document, and nothing here writes a line of text:
+ * the command is called with typed arguments through the same store the
+ * command bar and the bridge use, and refused by the same checks — so a sofa
+ * cannot be dragged into a wall, and every move undoes. The words are the
+ * agent's way in; this is the editor's, and the logic under both is one.
  */
 
 /** Moves a thing to where it was let go, or says why it cannot go there. */
@@ -20,20 +25,21 @@ export function moveTo(object: HouseObject, centre: Point): void {
   if (!named) return
   const { doc, level, room } = named
   const drop = dropOf(doc, level, room, object, centre)
-  run(commandLine('move-object', { room: room.name, type: object.type, nth: named.nth, ...drop }))
+  run(() =>
+    documentStore
+      .getState()
+      .apply(moveObject, { room: room.name, type: object.type, nth: named.nth, ...drop }),
+  )
 }
 
 /** Turns a thing on the spot by so many degrees, or says why it cannot turn. */
 export function turnBy(object: HouseObject, degrees: number): void {
   const named = name(object)
   if (!named) return
-  run(
-    commandLine('turn-object', {
-      room: named.room.name,
-      type: object.type,
-      nth: named.nth,
-      by: degrees,
-    }),
+  run(() =>
+    documentStore
+      .getState()
+      .apply(turnObject, { room: named.room.name, type: object.type, nth: named.nth, by: degrees }),
   )
 }
 
@@ -41,7 +47,11 @@ export function turnBy(object: HouseObject, degrees: number): void {
 export function remove(object: HouseObject): void {
   const named = name(object)
   if (!named) return
-  run(commandLine('remove-object', { room: named.room.name, type: object.type, nth: named.nth }))
+  run(() =>
+    documentStore
+      .getState()
+      .apply(removeObject, { room: named.room.name, type: object.type, nth: named.nth }),
+  )
 }
 
 /**
@@ -64,9 +74,9 @@ function name(object: HouseObject) {
   return { doc, level, room: { ...room, name: room.name }, nth }
 }
 
-function run(line: string): void {
+function run(change: () => unknown): void {
   try {
-    documentStore.getState().exec(line)
+    change()
     noticeStore.getState().clear()
   } catch (error) {
     noticeStore.getState().say(error instanceof Error ? error.message : String(error))

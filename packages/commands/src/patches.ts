@@ -1,7 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { enablePatches, type Patch, produceWithPatches } from 'immer'
 import { applyScript } from './apply-script'
-import type { Output } from './define-command'
+import type { ArgsOf, Output, TypedCommand } from './define-command'
 
 // Immer ships patch support as an opt-in plugin; undo history depends on it.
 enablePatches()
@@ -25,6 +25,25 @@ export function runScriptWithPatches(doc: HouseDocument, source: string): Script
   let output: Output[] = []
   const [next, patches, inversePatches] = produceWithPatches(doc, (draft) => {
     output = applyScript(draft, source)
+  })
+  return { doc: next, patches, inversePatches, output }
+}
+
+/**
+ * One command on typed arguments, as a transaction with patches — what the
+ * editor runs when a drag or a key has been worked out into a command. The
+ * same history entry a script makes, so an undo does not care which door the
+ * change came in by.
+ */
+export function applyWithPatches<C extends TypedCommand>(
+  doc: HouseDocument,
+  command: C,
+  args: ArgsOf<C>,
+): ScriptResult {
+  let output: Output[] = []
+  const [next, patches, inversePatches] = produceWithPatches(doc, (draft) => {
+    const said = command.apply(draft, args)
+    output = said === undefined ? [] : [said]
   })
   return { doc: next, patches, inversePatches, output }
 }

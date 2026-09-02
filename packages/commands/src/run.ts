@@ -1,7 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { produce } from 'immer'
 import { applyScript } from './apply-script'
-import type { Output } from './define-command'
+import type { ArgsOf, Output, TypedCommand } from './define-command'
 
 /**
  * Runs one or more commands against a document and returns the result. Use
@@ -25,4 +25,15 @@ export function askScript(doc: HouseDocument, source: string): Output[] {
     output = applyScript(draft, source)
   })
   return output
+}
+
+/** Runs one command on typed arguments and returns the document after it. */
+export function applyCommand<C extends TypedCommand>(
+  doc: HouseDocument,
+  command: C,
+  args: ArgsOf<C>,
+): HouseDocument {
+  return produce(doc, (draft) => {
+    command.apply(draft, args)
+  })
 }

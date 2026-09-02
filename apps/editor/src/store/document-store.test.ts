@@ -1,3 +1,4 @@
+import { moveObject } from '@houseit/commands/move-object'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
 import { createDocumentStore } from './document-store'
@@ -74,4 +75,27 @@ test('a failing script leaves the document untouched and nothing to undo', () =>
   expect(() => store.getState().exec('no-such-command')).toThrow(/no-such-command/)
   expect(roomCount(store)).toBe(0)
   expect(store.getState().canUndo).toBe(false)
+})
+
+test('apply runs a command on typed arguments, with the same history a script gets', () => {
+  const store = createDocumentStore()
+  store.getState().exec(`${floor}\nadd-object --room dům --type sofa-3 --against south`)
+
+  store.getState().apply(moveObject, { room: 'dům', type: 'sofa-3', against: 'north' })
+
+  const sofa = Object.values(store.getState().doc.objects)[0]!
+  expect(sofa.against).toBe('north')
+  store.getState().undo()
+  expect(Object.values(store.getState().doc.objects)[0]!.against).toBe('south')
+})
+
+test('apply is checked by the same schema as the words are', () => {
+  const store = createDocumentStore()
+  store.getState().exec(floor)
+
+  expect(() =>
+    store.getState().apply(moveObject, { room: 'dům', type: 'sofa-3', along: 7 }),
+  ).toThrow(/move-object: along/)
+  expect(store.getState().canUndo).toBe(true) // only the floor
+  expect(store.getState().past).toHaveLength(1)
 })

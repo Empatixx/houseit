@@ -1,5 +1,9 @@
-import type { Output } from '@houseit/commands/define-command'
-import { runScriptWithPatches } from '@houseit/commands/patches'
+import type { ArgsOf, Output, TypedCommand } from '@houseit/commands/define-command'
+import {
+  applyWithPatches,
+  runScriptWithPatches,
+  type ScriptResult,
+} from '@houseit/commands/patches'
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { applyPatches, enablePatches, type Patch } from 'immer'
 import { createStore } from 'zustand/vanilla'
@@ -17,9 +21,18 @@ export type DocumentState = {
   future: HistoryEntry[]
   canUndo: boolean
   canRedo: boolean
-  /** Applies a script. Throws `CommandError` on bad input, leaving the document alone. */
-  /** Runs a script; what comes back is what its `describe` and `measure` lines said. */
+  /**
+   * Runs a script of command lines, as the command bar and the bridge do.
+   * Throws `CommandError` on bad input, leaving the document alone; what comes
+   * back is what its `describe` and `measure` lines said.
+   */
   exec: (source: string) => Output[]
+  /**
+   * Runs one command on typed arguments, as the editor does for a drag or a
+   * key. The same checks, the same history entry — only no line of text in
+   * between.
+   */
+  apply: <C extends TypedCommand>(command: C, args: ArgsOf<C>) => Output[]
   undo: () => void
   redo: () => void
   /** Starts again from nothing, history and all. */
@@ -33,70 +46,74 @@ export type DocumentState = {
  */
 export function createDocumentStore(initial: HouseDocument | undefined = undefined) {
   const start = initial ?? createEmptyDocument()
-  return createStore<DocumentState>()((set, get) => ({
-    doc: start,
-    level: Object.keys(start.levels)[0]!,
-    past: [],
-    future: [],
-    canUndo: false,
-    canRedo: false,
-
-    exec: (source) => {
-      const { doc, past } = get()
-      const result = runScriptWithPatches(doc, source)
+  return createStore<DocumentState>()((set, get) => {
+    /** Takes a finished transaction into the document and the history, if it changed anything. */
+    const commit = (result: ScriptResult): Output[] => {
       if (result.patches.length === 0) return result.output
-
-      const nextPast = [...past, { patches: result.patches, inversePatches: result.inversePatches }]
+      const { past } = get()
       set({
         doc: result.doc,
-        past: nextPast,
+        past: [...past, { patches: result.patches, inversePatches: result.inversePatches }],
         future: [],
         canUndo: true,
         canRedo: false,
       })
       return result.output
-    },
+    }
 
-    undo: () => {
-      const { doc, past, future } = get()
-      const entry = past.at(-1)
-      if (!entry) return
+    return {
+      doc: start,
+      level: Object.keys(start.levels)[0]!,
+      past: [],
+      future: [],
+      canUndo: false,
+      canRedo: false,
 
-      const nextPast = past.slice(0, -1)
-      set({
-        doc: applyPatches(doc, entry.inversePatches),
-        past: nextPast,
-        future: [...future, entry],
-        canUndo: nextPast.length > 0,
-        canRedo: true,
-      })
-    },
+      exec: (source) => commit(runScriptWithPatches(get().doc, source)),
 
-    reset: () => {
-      const empty = createEmptyDocument()
-      set({
-        doc: empty,
-        level: Object.keys(empty.levels)[0]!,
-        past: [],
-        future: [],
-        canUndo: false,
-        canRedo: false,
-      })
-    },
+      apply: (command, args) => commit(applyWithPatches(get().doc, command, args)),
 
-    redo: () => {
-      const { doc, past, future } = get()
-      const entry = future.at(-1)
-      if (!entry) return
+      undo: () => {
+        const { doc, past, future } = get()
+        const entry = past.at(-1)
+        if (!entry) return
 
-      const nextFuture = future.slice(0, -1)
-      set({
-        doc: applyPatches(doc, entry.patches),
-        past: [...past, entry],
-        future: nextFuture,
-        canUndo: true,
-        canRedo: nextFuture.length > 0,
-      })
-    },
-  }))
+        const nextPast = past.slice(0, -1)
+        set({
+          doc: applyPatches(doc, entry.inversePatches),
+          past: nextPast,
+          future: [...future, entry],
+          canUndo: nextPast.length > 0,
+          canRedo: true,
+        })
+      },
+
+      reset: () => {
+        const empty = createEmptyDocument()
+        set({
+          doc: empty,
+          level: Object.keys(empty.levels)[0]!,
+          past: [],
+          future: [],
+          canUndo: false,
+          canRedo: false,
+        })
+      },
+
+      redo: () => {
+        const { doc, past, future } = get()
+        const entry = future.at(-1)
+        if (!entry) return
+
+        const nextFuture = future.slice(0, -1)
+        set({
+          doc: applyPatches(doc, entry.patches),
+          past: [...past, entry],
+          future: nextFuture,
+          canUndo: true,
+          canRedo: nextFuture.length > 0,
+        })
+      },
+    }
+  })
 }

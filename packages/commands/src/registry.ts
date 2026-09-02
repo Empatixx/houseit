@@ -2,7 +2,7 @@ import { addDoor } from './add-door'
 import { addObject } from './add-object'
 import { addRoom } from './add-room'
 import { addWindow } from './add-window'
-import type { Command } from './define-command'
+import type { AnyCommand } from './define-command'
 import { describe } from './describe'
 import { floorShape } from './floor-shape'
 import { measure } from './measure'
@@ -11,7 +11,7 @@ import { removeDoor, removeObject, removeWindow } from './remove'
 import { setFloor } from './set-floor'
 import { turnObject } from './turn-object'
 
-const ALL: Command[] = [
+const ALL: AnyCommand[] = [
   floorShape,
   addRoom,
   addWindow,
@@ -27,7 +27,7 @@ const ALL: Command[] = [
   measure,
 ]
 
-export const REGISTRY: ReadonlyMap<string, Command> = new Map(ALL.map((c) => [c.name, c]))
+export const REGISTRY: ReadonlyMap<string, AnyCommand> = new Map(ALL.map((c) => [c.name, c]))
 
 /** Help text for humans at a terminal and for the agent reading the MCP tool. */
 export function describeCommands(): string {

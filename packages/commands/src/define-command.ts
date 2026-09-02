@@ -15,13 +15,34 @@ import { parseArgv } from './parse-argv'
  */
 export type Output = Record<string, unknown>
 
-/** A command with its schema already consumed, so the registry holds one flat type. */
-export type Command = {
+/**
+ * A command as the command line and the agent see it: a name, a summary, the
+ * options it takes, and a way to run it from words. The registry holds these.
+ */
+export type AnyCommand = {
   name: string
   summary: string
   options: OptionSpec[]
+  /** Runs the command from its words on a line, as the terminal and the MCP tool do. */
   execute: (draft: Draft<HouseDocument>, argv: string[]) => Output | undefined
 }
+
+/**
+ * The same command with its arguments typed, for code that already knows what
+ * it wants — the editor turning a drag into a move — and has no business
+ * writing a line of text for a parser to read straight back.
+ */
+export type Command<Args extends z.ZodObject> = AnyCommand & {
+  args: Args
+  /** Runs the command on typed arguments. Checked by the same schema as the words are. */
+  apply(draft: Draft<HouseDocument>, args: z.input<Args>): Output | undefined
+}
+
+/** Any typed command, whatever it takes — for code that is handed commands as values. */
+export type TypedCommand = Command<z.ZodObject>
+
+/** What a typed command takes, as it may be given: `--along 0.5` may be a number here. */
+export type ArgsOf<C extends TypedCommand> = C extends Command<infer Args> ? z.input<Args> : never
 
 type Definition<Args extends z.ZodObject> = {
   name: string
@@ -59,26 +80,33 @@ function optionsOf(args: z.ZodObject): OptionSpec[] {
 
 /**
  * Declares a command once. The single declaration drives the CLI parser, the MCP
- * tool description, `--help` and runtime validation — there is no second place to
- * update when a command changes.
+ * tool description, `--help`, runtime validation and the typed call the editor
+ * makes — there is no second place to update when a command changes, and no
+ * way in that skips the checks.
  */
-export function defineCommand<Args extends z.ZodObject>(definition: Definition<Args>): Command {
+export function defineCommand<Args extends z.ZodObject>(
+  definition: Definition<Args>,
+): Command<Args> {
   const options = optionsOf(definition.args)
+
+  const apply = (draft: Draft<HouseDocument>, args: z.input<Args>): Output | undefined => {
+    const result = definition.args.safeParse(args)
+    if (!result.success) {
+      const detail = result.error.issues
+        .map((issue) => `${issue.path.join('.') || '<argument>'}: ${issue.message}`)
+        .join('; ')
+      throw new CommandError(`${definition.name}: ${detail}`)
+    }
+    return definition.run(draft, result.data as z.infer<Args>) as Output | undefined
+  }
 
   return {
     name: definition.name,
     summary: definition.summary,
     options,
-    execute: (draft, argv) => {
-      const values = parseArgv(definition.name, options, argv)
-      const result = definition.args.safeParse(values)
-      if (!result.success) {
-        const detail = result.error.issues
-          .map((issue) => `${issue.path.join('.') || '<argument>'}: ${issue.message}`)
-          .join('; ')
-        throw new CommandError(`${definition.name}: ${detail}`)
-      }
-      return definition.run(draft, result.data as z.infer<Args>) as Output | undefined
-    },
+    args: definition.args,
+    apply,
+    execute: (draft, argv) =>
+      apply(draft, parseArgv(definition.name, options, argv) as z.input<Args>),
   }
 }

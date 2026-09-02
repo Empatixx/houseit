@@ -37,11 +37,14 @@ An option a plan cannot do without belongs in the schema as required, not as
 something with a default nobody checks.
 
 The same holds for the mouse. A drag on the plan is not a second way of moving
-things: it is worked out into one `move-object` line (`apps/editor/src/edit`),
-run through the same store as the command bar and the bridge, and refused by
-the same check (`standing-check.ts`) with the same words. If a hand edit needs
-something a command cannot say, the command grows — the drag never writes to
-the document itself.
+things: it is worked out into one `move-object` (`apps/editor/src/edit`), run
+through the same store as the command bar and the bridge, and refused by the
+same check (`standing-check.ts`) with the same words. The editor calls the
+command with typed arguments (`store.apply(moveObject, {...})`); only the
+terminal and the MCP tool go through the words (`store.exec(line)`). Neither
+the editor nor the logic under it ever builds a line of text for the parser to
+read back. If a hand edit needs something a command cannot say, the command
+grows — the drag never writes to the document itself.
 
 ## Look at one object at a time
 
