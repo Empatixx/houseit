@@ -20,6 +20,9 @@ export function RoomAnnotations() {
           key={room.nodes.join('-')}
           position={toWorld(room.centre.x, room.centre.y)}
           center
+          // Kept under the menus and the toasts: a label is part of the drawing,
+          // and drei would otherwise stack it over everything on the page.
+          zIndexRange={[5, 0]}
           // The wrapper too, not only the text: a label that takes the pointer
           // takes the click meant for the room under it.
           style={{ pointerEvents: 'none' }}

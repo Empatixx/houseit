@@ -121,7 +121,7 @@ function DimensionLine({ dimension }: { dimension: Dimension }) {
       <Html
         position={toWorld(middle.x, middle.y, ABOVE)}
         center
-        zIndexRange={[20, 10]}
+        zIndexRange={[8, 5]}
         style={{ pointerEvents: 'none' }}
       >
         <div
