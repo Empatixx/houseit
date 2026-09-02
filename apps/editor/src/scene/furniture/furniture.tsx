@@ -7,6 +7,7 @@ import { type Spot, standingAt, swingOf } from '@houseit/geometry/standing'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Texture } from 'three'
+import { aimAt, putDown } from '../../edit/draw-commands'
 import { moveTo, turnTo } from '../../edit/object-commands'
 import { placeArmedIn } from '../../edit/place-commands'
 import { EMPHASIS, hoverStore, useHover } from '../../store/hover'
@@ -119,6 +120,10 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
           const armed = toolStore.getState().armed
           if (armed) {
             const point = { x: event.point.x / MM, y: -event.point.z / MM }
+            if (armed.kind === 'wall') {
+              putDown(point)
+              return
+            }
             if (placeArmedIn(armed, object.room, point) && !event.shiftKey) {
               toolStore.getState().arm(null)
             }
@@ -126,8 +131,17 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
           }
           selectionStore.getState().select({ kind: 'object', id: object.id })
         }}
-        onPointerDown={drag.down}
-        onPointerMove={drag.move}
+        onPointerDown={(event) => {
+          if (toolStore.getState().armed?.kind === 'wall') return
+          drag.down(event)
+        }}
+        onPointerMove={(event) => {
+          if (toolStore.getState().armed?.kind === 'wall') {
+            aimAt({ x: event.point.x / MM, y: -event.point.z / MM })
+            return
+          }
+          drag.move(event)
+        }}
         onPointerUp={drag.up}
       >
         <planeGeometry args={[object.width * MM, object.depth * MM]} />

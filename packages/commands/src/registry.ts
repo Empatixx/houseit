@@ -6,6 +6,7 @@ import { addWindow } from './add-window'
 import { checkPlan } from './check-plan'
 import type { AnyCommand } from './define-command'
 import { describe } from './describe'
+import { drawWall } from './draw-wall'
 import { floorShape } from './floor-shape'
 import { measure } from './measure'
 import { moveObject } from './move-object'
@@ -26,6 +27,7 @@ const ALL: AnyCommand[] = [
   floorShape,
   addRoom,
   addWall,
+  drawWall,
   removeWall,
   resizeWall,
   moveWall,

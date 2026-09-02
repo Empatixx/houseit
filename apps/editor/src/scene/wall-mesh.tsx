@@ -2,9 +2,9 @@ import type { HouseDocument, Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
+import { aimAt, putDown } from '../edit/draw-commands'
 import { moveOpeningTo } from '../edit/opening-commands'
 import { endPreview } from '../edit/preview'
-import { drawWallFrom, previewDrawnWall } from '../edit/shape-commands'
 import {
   moveWallBy,
   previewStubResize,
@@ -15,7 +15,7 @@ import {
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
 import { usePreview } from '../store/preview'
 import { selectionStore, useSelection } from '../store/selection'
-import { toolStore, useTool } from '../store/tool'
+import { toolStore } from '../store/tool'
 import { dragged, pointOnPlan } from './drag'
 import { MM, toWorld } from './plan-coordinates'
 import { INK, planPieces } from './wall-pieces'
@@ -28,9 +28,6 @@ type WallMeshProps = {
   /** Whether the picked room is bounded by this wall, which turns it blue with the room. */
   ofPickedRoom: boolean
 }
-
-/** How thick a wall drawn by hand comes out, until it is a wall and can be changed. */
-const DRAWN_THICKNESS = 150
 
 /**
  * One wall, drawn as a stack of boxes.
@@ -53,7 +50,6 @@ const DRAWN_THICKNESS = 150
 export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
   const selected = useSelection((state) => state.selected)
   const hovered = useHover((state) => state.hovered)
-  const armed = useTool((state) => state.armed)
   const carry = useCarry()
   const [pull, setPull] = useState(0)
   const previewing = usePreview((state) => state.doc !== null)
@@ -73,9 +69,8 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
   // it the rooms either side, drawn from the preview; only where the plan
   // refuses the move does the wall alone follow, so the hand still sees it.
   const held = carry.held
-  const drawing = armed?.kind === 'wall'
   let offset = { x: 0, y: 0 }
-  if (held && held.id === wall.id && !drawing && !previewing) {
+  if (held && held.id === wall.id && !previewing) {
     const shift = held.shift.x * across.x + held.shift.y * across.y
     offset = { x: across.x * shift, y: across.y * shift }
   }
@@ -147,36 +142,37 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
             }}
             onPointerOut={() => hoverStore.getState().hover(null)}
             onClick={(event) => {
-              if (dragged(event) || toolStore.getState().armed?.kind === 'wall') return
+              if (dragged(event)) return
               event.stopPropagation()
+              if (toolStore.getState().armed?.kind === 'wall') {
+                putDown({ x: event.point.x / MM, y: -event.point.z / MM })
+                return
+              }
               selectionStore
                 .getState()
                 .select(
                   opening ? { kind: 'opening', id: opening.id } : { kind: 'wall', id: wall.id },
                 )
             }}
-            onPointerDown={(event) => carry.down(event, opening ? opening.id : wall.id)}
+            onPointerDown={(event) => {
+              if (toolStore.getState().armed?.kind === 'wall') return
+              carry.down(event, opening ? opening.id : wall.id)
+            }}
             onPointerMove={(event) => {
+              if (toolStore.getState().armed?.kind === 'wall') {
+                aimAt({ x: event.point.x / MM, y: -event.point.z / MM })
+                return
+              }
               const carried = carry.move(event)
               if (!carried || opening) return
               // The rooms follow the wall as it is carried: what the drop would
               // do, drawn as the pointer goes.
-              if (toolStore.getState().armed?.kind === 'wall') {
-                previewDrawnWall(wall, carried.from, carried.shift)
-              } else {
-                previewWallMove(wall, carried.shift)
-              }
+              previewWallMove(wall, carried.shift)
             }}
             onPointerUp={(event) => {
               const carried = carry.up(event)
               endPreview()
               if (!carried) return
-              // With the wall tool armed, a drag off a wall draws a new wall
-              // into the room rather than moving anything.
-              if (toolStore.getState().armed?.kind === 'wall') {
-                if (drawWallFrom(wall, carried.from, carried.shift)) toolStore.getState().arm(null)
-                return
-              }
               const { shift } = carried
               if (opening && centre) {
                 moveOpeningTo(opening, { x: centre.x + shift.x, y: centre.y + shift.y })
@@ -195,12 +191,6 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
           </mesh>
         )
       })}
-
-      {held && held.id === wall.id && drawing && !previewing ? (
-        // The wall being drawn: from where the drag began, across the wall's
-        // line, as far as the pointer has gone that way.
-        <DrawnWall from={held.from} along={across} shift={held.shift} height={wall.height} />
-      ) : null}
 
       {picked && stub && tip ? (
         <mesh
@@ -256,33 +246,6 @@ function tinted(colour: string, emphasis: Emphasis | undefined): string {
   if (colour === INK.wall) return blues.fill
   if (colour === INK.glass) return blues.glass
   return colour
-}
-
-/** The wall the wall tool is drawing, live: a bold blue box from the start to the pointer. */
-function DrawnWall({
-  from,
-  along,
-  shift,
-  height,
-}: {
-  from: Point
-  along: Point
-  shift: Point
-  height: number
-}) {
-  const reach = shift.x * along.x + shift.y * along.y
-  if (Math.abs(reach) < 30) return null
-  const to = { x: from.x + along.x * reach, y: from.y + along.y * reach }
-  const middle = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }
-  return (
-    <mesh
-      position={toWorld(middle.x, middle.y, height / 2 + 20)}
-      rotation={[0, Math.atan2(to.y - from.y, to.x - from.x), 0]}
-    >
-      <boxGeometry args={[Math.abs(reach) * MM, height * MM, DRAWN_THICKNESS * MM]} />
-      <meshBasicMaterial color={EMPHASIS.picked.line} />
-    </mesh>
-  )
 }
 
 /** Something on the wall picked up: which, where the pointer took it, and how far it has come. */

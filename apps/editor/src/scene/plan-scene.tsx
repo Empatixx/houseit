@@ -4,6 +4,7 @@ import { selectionStore } from '../store/selection'
 import { useTool } from '../store/tool'
 import { Dimensions } from './dimensions'
 import { DotGrid } from './dot-grid'
+import { Drawing } from './drawing'
 import { FitToPlan } from './fit-to-plan'
 import { Furniture } from './furniture/furniture'
 import { RoomAnnotations } from './room-annotations'
@@ -49,6 +50,7 @@ export function PlanScene() {
       <Walls />
       <RoomAnnotations />
       <Dimensions />
+      <Drawing />
       <FitToPlan />
     </Canvas>
   )

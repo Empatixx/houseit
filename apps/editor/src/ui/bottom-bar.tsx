@@ -61,7 +61,9 @@ export function BottomBar() {
       {label ? (
         <Badge variant="secondary" className="pointer-events-auto gap-1 pr-1">
           {label}
-          <span className="text-muted-foreground">· click a room</span>
+          <span className="text-muted-foreground">
+            {armed?.kind === 'wall' ? '· click corners, Enter finishes' : '· click a room'}
+          </span>
           <button
             type="button"
             className="ml-1 rounded-sm p-0.5 hover:bg-foreground/10"
@@ -91,14 +93,19 @@ export function BottomBar() {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span>
-              <Toggle aria-label="Draw wall" disabled>
-                <PenLineIcon />
-                Draw wall
-              </Toggle>
-            </span>
+            <Toggle
+              aria-label="Draw wall"
+              pressed={armed?.kind === 'wall'}
+              onPressedChange={(on) => toolStore.getState().arm(on ? { kind: 'wall' } : null)}
+            >
+              <PenLineIcon />
+              Draw wall
+            </Toggle>
           </TooltipTrigger>
-          <TooltipContent>Coming soon</TooltipContent>
+          <TooltipContent>
+            Click to put corners down, square to the last; click the last corner or press Enter to
+            finish, Escape to throw it away
+          </TooltipContent>
         </Tooltip>
       </div>
     </div>

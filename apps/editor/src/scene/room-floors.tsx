@@ -2,6 +2,7 @@ import { floorMaterial } from '@houseit/core/floor-materials'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry } from 'three'
+import { aimAt, finishDrawing, putDown } from '../edit/draw-commands'
 import { placeArmed } from '../edit/place-commands'
 import { hoverStore, useHover } from '../store/hover'
 import { selectionStore } from '../store/selection'
@@ -65,7 +66,15 @@ export function RoomFloors() {
             event.stopPropagation()
             hoverStore.getState().hover(floor.id ? { kind: 'room', id: floor.id } : null)
           }}
+          onPointerMove={(event) => {
+            if (toolStore.getState().armed?.kind === 'wall') {
+              aimAt({ x: event.point.x / MM, y: -event.point.z / MM })
+            }
+          }}
           onPointerOut={() => hoverStore.getState().hover(null)}
+          onDoubleClick={() => {
+            if (toolStore.getState().armed?.kind === 'wall') finishDrawing()
+          }}
           // A click, not the end of a pan: the pointer has to have stayed put.
           onClick={(event) => {
             if (event.delta > 4) return
@@ -75,6 +84,10 @@ export function RoomFloors() {
             const armed = toolStore.getState().armed
             if (armed) {
               const point = { x: event.point.x / MM, y: -event.point.z / MM }
+              if (armed.kind === 'wall') {
+                putDown(point)
+                return
+              }
               if (placeArmed(armed, floor.room, point) && !event.shiftKey) {
                 toolStore.getState().arm(null)
               }

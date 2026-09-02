@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
 import { DoubleSide, ShaderMaterial } from 'three'
+import { aimAt, finishDrawing, putDown } from '../edit/draw-commands'
+import { toolStore, useTool } from '../store/tool'
+import { MM } from './plan-coordinates'
 
 /** How far apart the dots are, in metres, and how much darker every fifth one is. */
 const CELL = 1
@@ -10,6 +13,7 @@ const CELL = 1
  * pixels across, not a metre across.
  */
 export function DotGrid() {
+  const drawing = useTool((state) => state.armed?.kind === 'wall')
   const material = useMemo(
     () =>
       new ShaderMaterial({
@@ -56,7 +60,26 @@ export function DotGrid() {
   )
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} material={material}>
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, -0.05, 0]}
+      material={material}
+      // The paper takes the pencil: a corner where it is clicked, and the
+      // line to the next corner following the pointer over it.
+      onPointerMove={
+        drawing ? (event) => aimAt({ x: event.point.x / MM, y: -event.point.z / MM }) : undefined
+      }
+      onClick={
+        drawing
+          ? (event) => {
+              if (event.delta > 4 || toolStore.getState().armed?.kind !== 'wall') return
+              event.stopPropagation()
+              putDown({ x: event.point.x / MM, y: -event.point.z / MM })
+            }
+          : undefined
+      }
+      onDoubleClick={drawing ? () => finishDrawing() : undefined}
+    >
       <planeGeometry args={[400, 400]} />
     </mesh>
   )

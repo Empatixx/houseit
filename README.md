@@ -81,6 +81,7 @@ rename-room  --room kitchen --name kuchyň
 set-room-kind --room snug --kind living
 move-wall    --room kitchen --side east --by 300
 add-wall     --room living --side north --along 0.3 --length 2.5m
+draw-wall    --room living --side north --along 0.6 --walk "3m s, 2m e"
 remove-room  --room pantry --into kitchen
 describe     --room kitchen
 measure      --room kitchen --side north
@@ -133,7 +134,12 @@ upward — a category to the side, a search at the top — and Structure holds t
 the window. Pick one and the next click on a room puts it there — `add-object` against the
 nearest wall or out in the room, `add-door` or `add-window` in the nearest wall, each with
 the exact `--along` the click meant. Shift keeps it armed for the next click; Escape lets
-go. Draw wall waits its turn; `add-wall` is there already for the agent.
+go. Draw wall is the pencil: a click puts a corner down, the line to the next follows the
+pointer square to the last one — north, south, east or west, never in between — snapping
+to the corners and walls it comes near, the rooms it would make showing as it goes. A click
+on the last corner, or on the first, or Enter finishes; Escape throws it away. The drawing
+is one `draw-wall`: a walk of legs from where it started, on a side of a room or on the
+paper, every leg a wall joined to whatever it crosses or reaches.
 
 Walls move too. Pick one and drag it across itself and it becomes one `move-wall`: the
 whole line of it moves, the walls meeting it stretch or shorten, the doors in them keep

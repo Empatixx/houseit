@@ -121,8 +121,91 @@ export function wallInto(
   return join(draft, level, start, end, thickness)
 }
 
+/**
+ * A wall along a straight line between two points, wherever they are: on a
+ * wall, at a node, or out in the open. Every wall the line crosses and every
+ * node it passes through becomes a joint, so a line drawn across two rooms
+ * is a partition in each, meeting the walls between as a T. Stretches that
+ * already have a wall along them are left as they are. An end that is not
+ * on anything stands free.
+ */
+export function linkPoints(
+  draft: Draft<HouseDocument>,
+  level: string,
+  from: Point,
+  to: Point,
+  thickness: number,
+  what: string,
+): string[] {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const length = Math.hypot(dx, dy)
+  if (length === 0) return []
+  const unit = { x: dx / length, y: dy / length }
+
+  // Where along the line something is already: a node on it, or a wall across it.
+  const along = new Map<number, Point>()
+  along.set(0, from)
+  along.set(length, to)
+  for (const node of Object.values(draft.nodes)) {
+    const t = (node.x - from.x) * unit.x + (node.y - from.y) * unit.y
+    const off = Math.abs((node.x - from.x) * unit.y - (node.y - from.y) * unit.x)
+    if (t > 0.5 && t < length - 0.5 && off < 0.5) along.set(Math.round(t), { x: node.x, y: node.y })
+  }
+  for (const wall of Object.values(draft.walls)) {
+    if (wall.level !== level) continue
+    const a = draft.nodes[wall.a]
+    const b = draft.nodes[wall.b]
+    if (!a || !b) continue
+    const edge = { x: b.x - a.x, y: b.y - a.y }
+    const denominator = unit.x * edge.y - unit.y * edge.x
+    if (Math.abs(denominator) < 1e-9) continue
+    const gap = { x: a.x - from.x, y: a.y - from.y }
+    const t = (gap.x * edge.y - gap.y * edge.x) / denominator
+    const u = (gap.x * unit.y - gap.y * unit.x) / denominator
+    if (u <= 0 || u >= 1 || t <= 0.5 || t >= length - 0.5) continue
+    along.set(Math.round(t), {
+      x: Math.round(from.x + unit.x * t),
+      y: Math.round(from.y + unit.y * t),
+    })
+  }
+
+  const stops = [...along.entries()].sort((one, other) => one[0] - other[0]).map(([, p]) => p)
+  const made: string[] = []
+  for (let i = 0; i + 1 < stops.length; i += 1) {
+    const start = nodeAtOrNew(draft, level, stops[i]!)
+    const end = nodeAtOrNew(draft, level, stops[i + 1]!)
+    if (start === end || wallBetween(draft, level, start, end)) continue
+    const middle = {
+      x: (stops[i]!.x + stops[i + 1]!.x) / 2,
+      y: (stops[i]!.y + stops[i + 1]!.y) / 2,
+    }
+    if (wallUnder(draft, level, middle)) continue
+    made.push(join(draft, level, start, end, thickness))
+  }
+  if (made.length === 0) throw new CommandError(`${what}: there is a wall there already`)
+  return made
+}
+
+/** The node at a point, split out of a wall if one is there, or new if nothing is. */
+function nodeAtOrNew(draft: Draft<HouseDocument>, level: string, point: Point): string {
+  for (const node of Object.values(draft.nodes)) {
+    if (node.x === point.x && node.y === point.y) return node.id
+  }
+  const wall = wallUnder(draft, level, point)
+  if (wall) return splitWall(draft, wall.id, { x: Math.round(point.x), y: Math.round(point.y) })
+  const id = allocateId(draft.nodes, 'n')
+  draft.nodes[id] = { id, x: Math.round(point.x), y: Math.round(point.y) }
+  return id
+}
+
 /** The node at a point: one already there, or one split out of the wall under it. */
-function nodeAt(draft: Draft<HouseDocument>, level: string, point: Point, what: string): string {
+export function nodeAt(
+  draft: Draft<HouseDocument>,
+  level: string,
+  point: Point,
+  what: string,
+): string {
   for (const node of Object.values(draft.nodes)) {
     if (node.x === point.x && node.y === point.y) return node.id
   }
@@ -146,7 +229,11 @@ function wallUnder(draft: Draft<HouseDocument>, level: string, point: Point): Wa
 }
 
 /** A point on the nearest wall or node within reach of a point, or nothing. */
-function nearWall(draft: Draft<HouseDocument>, level: string, point: Point): Point | undefined {
+export function nearWall(
+  draft: Draft<HouseDocument>,
+  level: string,
+  point: Point,
+): Point | undefined {
   for (const node of Object.values(draft.nodes)) {
     if (Math.hypot(node.x - point.x, node.y - point.y) <= SNAP) return { x: node.x, y: node.y }
   }
