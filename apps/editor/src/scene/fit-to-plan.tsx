@@ -6,7 +6,8 @@ import { MM } from './plan-coordinates'
 
 type Controls = { target: Vector3; update: () => void }
 
-const PADDING = 0.9
+/** Room left round the plan: enough for the overall dimensions drawn outside it. */
+const PADDING = 0.84
 
 /** Where the plan was framed to, so the framing can be held for a moment. */
 type Framing = { x: number; z: number; zoom: number; until: number }

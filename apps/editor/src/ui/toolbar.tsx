@@ -1,3 +1,4 @@
+import { selectionStore, useSelection } from '../store/selection'
 import { documentStore, useDocument } from '../store/store'
 import { CommandBar } from './command-bar'
 
@@ -7,6 +8,7 @@ const button =
 export function Toolbar({ onFit }: { onFit: () => void }) {
   const canUndo = useDocument((state) => state.canUndo)
   const canRedo = useDocument((state) => state.canRedo)
+  const showAll = useSelection((state) => state.showAll)
 
   return (
     <header className="flex items-start gap-4 border-b border-neutral-200 bg-white px-4 py-2">
@@ -15,6 +17,14 @@ export function Toolbar({ onFit }: { onFit: () => void }) {
       <CommandBar />
 
       <div className="ml-auto flex gap-2">
+        <button
+          type="button"
+          className={`${button} ${showAll ? 'border-blue-500 text-blue-600' : ''}`}
+          aria-pressed={showAll}
+          onClick={() => selectionStore.getState().toggleAll()}
+        >
+          Dimensions
+        </button>
         <button
           type="button"
           className={button}

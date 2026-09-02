@@ -16,7 +16,14 @@ export function RoomAnnotations() {
   return (
     <>
       {roomsOf(doc, level).map((room) => (
-        <Html key={room.nodes.join('-')} position={toWorld(room.centre.x, room.centre.y)} center>
+        <Html
+          key={room.nodes.join('-')}
+          position={toWorld(room.centre.x, room.centre.y)}
+          center
+          // The wrapper too, not only the text: a label that takes the pointer
+          // takes the click meant for the room under it.
+          style={{ pointerEvents: 'none' }}
+        >
           <div className="pointer-events-none select-none whitespace-nowrap text-center leading-tight">
             <div className="text-sm font-medium text-neutral-900">{room.name ?? 'unnamed'}</div>
             <div className="text-xs text-neutral-500">{squareMetres(room.area)} m²</div>

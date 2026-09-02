@@ -2,6 +2,7 @@ import { floorMaterial } from '@houseit/core/floor-materials'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry } from 'three'
+import { selectionStore } from '../store/selection'
 import { useDocument } from '../store/store'
 import { floorTexture } from './floor-texture'
 import { MM } from './plan-coordinates'
@@ -37,6 +38,7 @@ export function RoomFloors() {
           // until the page is reloaded. Keyed this way the mesh is built afresh,
           // with its texture from the start, exactly as it is on a reload.
           key: `${room.nodes.join('-')}-${room.floor ?? 'bare'}`,
+          id: room.id,
           geometry: new ShapeGeometry(shape),
           texture: material ? floorTexture(material) : undefined,
         }
@@ -53,6 +55,12 @@ export function RoomFloors() {
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0, 0.01, 0]}
           receiveShadow
+          // A click, not the end of a pan: the pointer has to have stayed put.
+          onClick={(event) => {
+            if (event.delta > 4) return
+            event.stopPropagation()
+            selectionStore.getState().select(floor.id ? { kind: 'room', id: floor.id } : null)
+          }}
         >
           {floor.texture ? (
             <meshBasicMaterial map={floor.texture} />

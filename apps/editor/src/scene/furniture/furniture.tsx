@@ -5,6 +5,7 @@ import { roomsOf } from '@houseit/geometry/rooms'
 import { type Spot, standingAt } from '@houseit/geometry/standing'
 import { useEffect, useMemo, useState } from 'react'
 import type { Texture } from 'three'
+import { selectionStore } from '../../store/selection'
 import { useDocument } from '../../store/store'
 import { MM, toWorld } from '../plan-coordinates'
 import { symbolHeight } from './stacking'
@@ -79,6 +80,11 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
       // up as plan +y once it lies down, which is the thing's front — so it is
       // turned half round to put the symbol's top at the back.
       rotation={[-Math.PI / 2, 0, spot.turn + Math.PI]}
+      onClick={(event) => {
+        if (event.delta > 4) return
+        event.stopPropagation()
+        selectionStore.getState().select({ kind: 'object', id: object.id })
+      }}
     >
       <planeGeometry args={[object.width * MM, object.depth * MM]} />
       <meshBasicMaterial map={texture} transparent alphaTest={0.02} />
