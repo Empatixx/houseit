@@ -1,4 +1,4 @@
-import type { HouseDocument, HouseObject, Side } from '@houseit/core/document'
+import type { HouseDocument, Side } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import type { Room } from '@houseit/geometry/rooms'
 import { sideRun } from '@houseit/geometry/sides'
@@ -22,7 +22,7 @@ export function dropOf(
   doc: HouseDocument,
   level: string,
   room: Room,
-  object: HouseObject,
+  object: { width: number; depth: number; turn?: number },
   centre: Point,
 ): Drop {
   let best: { side: Side; gap: number; along: number } | undefined

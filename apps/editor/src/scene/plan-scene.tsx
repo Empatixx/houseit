@@ -1,6 +1,7 @@
 import { Grid, OrbitControls, OrthographicCamera } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { selectionStore } from '../store/selection'
+import { useTool } from '../store/tool'
 import { Dimensions } from './dimensions'
 import { FitToPlan } from './fit-to-plan'
 import { Furniture } from './furniture/furniture'
@@ -27,8 +28,14 @@ const OVERHEAD: [number, number, number] = [0, 40, 0]
 const UP: [number, number, number] = [0, 0, -1]
 
 export function PlanScene() {
+  const armed = useTool((state) => state.armed)
   return (
-    <Canvas flat dpr={[1, 2]} onPointerMissed={() => selectionStore.getState().select(null)}>
+    <Canvas
+      flat
+      dpr={[1, 2]}
+      style={{ cursor: armed ? 'crosshair' : 'default' }}
+      onPointerMissed={() => selectionStore.getState().select(null)}
+    >
       <OrthographicCamera makeDefault position={OVERHEAD} zoom={45} up={UP} near={0.1} far={200} />
       <OrbitControls makeDefault enableRotate={false} enableDamping={false} />
 

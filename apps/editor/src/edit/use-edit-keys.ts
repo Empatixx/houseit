@@ -1,14 +1,16 @@
 import { useEffect } from 'react'
 import { selectionStore } from '../store/selection'
 import { documentStore } from '../store/store'
+import { toolStore } from '../store/tool'
 import { remove, turnBy } from './object-commands'
 import { removeOpening } from './opening-commands'
 
 /**
  * Keys for what is picked: R turns a thing a quarter turn (shift, the other
  * way), the brackets turn it by fifteen degrees, Delete takes a thing or an
- * opening out. Cmd or Ctrl with Z undoes, with shift redoes. Nothing while
- * typing into a field.
+ * opening out, Escape lets go of what is picked and what the palette armed.
+ * Cmd or Ctrl with Z undoes, with shift redoes. Nothing while typing into a
+ * field.
  */
 export function useEditKeys(): void {
   useEffect(() => {
@@ -18,6 +20,12 @@ export function useEditKeys(): void {
         target &&
         (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
       ) {
+        return
+      }
+
+      if (event.key === 'Escape') {
+        toolStore.getState().arm(null)
+        selectionStore.getState().select(null)
         return
       }
 

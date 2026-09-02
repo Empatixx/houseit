@@ -7,7 +7,7 @@ import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
 import { placeAgainst, placeFree, placeSomewhereAgainst } from './place-object'
-import { canStand, takenBy } from './standing-check'
+import { canStand, standingProblem, takenBy } from './standing-check'
 
 /**
  * Puts something in a room.
@@ -88,10 +88,17 @@ export const addObject = defineCommand({
     const spot = spots.find((candidate) => canStand(draft, level, room, candidate, shape))
 
     if (!spot) {
+      // One place was asked for, so the one reason it will not do is worth saying.
+      const first = spots[0]
+      const problem =
+        args.along !== undefined && first
+          ? standingProblem(draft, level, room, first, shape)
+          : undefined
+      const where = args.against
+        ? `against the ${args.against} side of ${args.room}`
+        : `in ${args.room}`
       throw new CommandError(
-        args.against
-          ? `add-object: a ${width} by ${depth} mm ${type.label.toLowerCase()} does not fit against the ${args.against} side of ${args.room}`
-          : `add-object: a ${width} by ${depth} mm ${type.label.toLowerCase()} does not fit in ${args.room}`,
+        `add-object: a ${width} by ${depth} mm ${type.label.toLowerCase()} does not fit ${where}${problem ? `: ${problem}` : ''}`,
       )
     }
 

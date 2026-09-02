@@ -115,6 +115,12 @@ height and sill. Each field is one command — `rename-room`, `set-room-kind`, `
 `set-surface`, `resize-object`, `turn-object`, `set-door`, `set-window` — and a field the
 plan refuses goes back to what the plan says, with the refusal beside the command bar.
 
+A palette on the other side lists every door, the window and the whole catalogue of
+things, by name. Pick one and the next click on a room puts it there — `add-object`
+against the nearest wall or out in the room, `add-door` or `add-window` in the nearest
+wall, each with the exact `--along` the click meant. Shift keeps it armed for the next
+click; Escape lets go.
+
 Each command is declared once, with a Zod schema for its arguments. That single
 declaration produces the CLI parser, the MCP tool description the agent reads, the
 `--help` text, and the runtime validation. Adding a command means adding one file.

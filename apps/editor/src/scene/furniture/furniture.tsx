@@ -8,8 +8,10 @@ import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Texture } from 'three'
 import { moveTo } from '../../edit/object-commands'
+import { placeArmedIn } from '../../edit/place-commands'
 import { selectionStore } from '../../store/selection'
 import { useDocument } from '../../store/store'
+import { toolStore } from '../../store/tool'
 import { dragged, pointOnPlan } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
 import { symbolHeight } from './stacking'
@@ -89,6 +91,16 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
       onClick={(event) => {
         if (dragged(event)) return
         event.stopPropagation()
+        // Something armed from the palette lands here too — a click on the rug
+        // means the floor under it, not the rug.
+        const armed = toolStore.getState().armed
+        if (armed) {
+          const point = { x: event.point.x / MM, y: -event.point.z / MM }
+          if (placeArmedIn(armed, object.room, point) && !event.shiftKey) {
+            toolStore.getState().arm(null)
+          }
+          return
+        }
         selectionStore.getState().select({ kind: 'object', id: object.id })
       }}
       onPointerDown={drag.down}

@@ -2,8 +2,10 @@ import { floorMaterial } from '@houseit/core/floor-materials'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry } from 'three'
+import { placeArmed } from '../edit/place-commands'
 import { selectionStore } from '../store/selection'
 import { useDocument } from '../store/store'
+import { toolStore } from '../store/tool'
 import { floorTexture } from './floor-texture'
 import { MM } from './plan-coordinates'
 
@@ -32,6 +34,7 @@ export function RoomFloors() {
         shape.closePath()
         const material = room.floor ? floorMaterial(room.floor) : undefined
         return {
+          room,
           // The material is part of the key on purpose. Laying a floor in a room
           // that had none swaps a plain white material for one with a texture, and
           // patching that onto the material already on screen leaves it black
@@ -59,6 +62,16 @@ export function RoomFloors() {
           onClick={(event) => {
             if (event.delta > 4) return
             event.stopPropagation()
+            // Something armed from the palette lands where the room was clicked;
+            // otherwise the click picks the room.
+            const armed = toolStore.getState().armed
+            if (armed) {
+              const point = { x: event.point.x / MM, y: -event.point.z / MM }
+              if (placeArmed(armed, floor.room, point) && !event.shiftKey) {
+                toolStore.getState().arm(null)
+              }
+              return
+            }
             selectionStore.getState().select(floor.id ? { kind: 'room', id: floor.id } : null)
           }}
         >
