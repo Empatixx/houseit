@@ -79,6 +79,8 @@ turn-object  --room kitchen --type sofa-3 --by 90
 set-surface  --room kitchen --type sofa-3 --surface linen
 rename-room  --room kitchen --name kuchyň
 set-room-kind --room snug --kind living
+move-wall    --room kitchen --side east --by 300
+remove-room  --room pantry --into kitchen
 describe     --room kitchen
 measure      --room kitchen --side north
 check-plan
@@ -120,6 +122,15 @@ things, by name. Pick one and the next click on a room puts it there — `add-ob
 against the nearest wall or out in the room, `add-door` or `add-window` in the nearest
 wall, each with the exact `--along` the click meant. Shift keeps it armed for the next
 click; Escape lets go.
+
+Walls move too. Pick one and drag it across itself and it becomes one `move-wall`: the
+whole line of it moves, the walls meeting it stretch or shorten, the doors in them keep
+their distance from the end that stayed, and the rooms either side grow and shrink —
+refused where a wall would shorten to nothing, a window would be pushed off its wall, or
+something would be left standing in masonry. A room's panel knocks it through into a
+neighbour with `remove-room`: the wall between them goes, and what stood in the room
+stays where it stood. A garage or a terrace is a room like any other — `add-room` cuts
+it, `set-room-kind` says what it is.
 
 Each command is declared once, with a Zod schema for its arguments. That single
 declaration produces the CLI parser, the MCP tool description the agent reads, the

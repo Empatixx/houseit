@@ -1,4 +1,4 @@
-import type { HouseDocument, Opening } from '@houseit/core/document'
+import type { HouseDocument, Opening, Wall } from '@houseit/core/document'
 import {
   type Dimension,
   extentDimensions,
@@ -44,6 +44,7 @@ export function Dimensions() {
     selected?.kind === 'room' ? rooms.find((room) => room.id === selected.id) : undefined
   const pickedObject = selected?.kind === 'object' ? doc.objects[selected.id] : undefined
   const pickedOpening = selected?.kind === 'opening' ? doc.openings[selected.id] : undefined
+  const pickedWall = selected?.kind === 'wall' ? doc.walls[selected.id] : undefined
   const objectRoom = pickedObject ? rooms.find((room) => room.id === pickedObject.room) : undefined
   const spot =
     pickedObject && objectRoom ? standingAt(doc, level, objectRoom, pickedObject) : undefined
@@ -64,6 +65,7 @@ export function Dimensions() {
       {pickedRoom ? <RoomHighlight room={pickedRoom} doc={doc} /> : null}
       {pickedObject && spot ? <Outline corners={footprintOf(spot, pickedObject)} /> : null}
       {pickedOpening ? <Outline corners={openingCorners(doc, pickedOpening)} /> : null}
+      {pickedWall ? <Outline corners={wallCorners(doc, pickedWall)} /> : null}
       {lines.map((line) => (
         <DimensionLine key={keyOf(line)} dimension={line} />
       ))}
@@ -172,6 +174,22 @@ function openingCorners(doc: HouseDocument, opening: Opening): Point[] {
       x: centre.x - along.x * half + across.x * deep,
       y: centre.y - along.y * half + across.y * deep,
     },
+  ]
+}
+
+/** The four corners of a wall: its length between its nodes, its thickness across. */
+function wallCorners(doc: HouseDocument, wall: Wall): Point[] {
+  const a = doc.nodes[wall.a]
+  const b = doc.nodes[wall.b]
+  if (!a || !b) return []
+  const span = Math.hypot(b.x - a.x, b.y - a.y) || 1
+  const half = wall.thickness / 2
+  const across = { x: (-(b.y - a.y) / span) * half, y: ((b.x - a.x) / span) * half }
+  return [
+    { x: a.x - across.x, y: a.y - across.y },
+    { x: b.x - across.x, y: b.y - across.y },
+    { x: b.x + across.x, y: b.y + across.y },
+    { x: a.x + across.x, y: a.y + across.y },
   ]
 }
 

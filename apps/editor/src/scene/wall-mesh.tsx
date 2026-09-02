@@ -3,6 +3,7 @@ import type { Point } from '@houseit/geometry/outlines'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useRef, useState } from 'react'
 import { moveOpeningTo } from '../edit/opening-commands'
+import { moveWallBy } from '../edit/wall-commands'
 import { selectionStore } from '../store/selection'
 import { dragged, pointOnPlan } from './drag'
 import { MM, toWorld } from './plan-coordinates'
@@ -29,7 +30,8 @@ type WallMeshProps = {
  *
  * The pieces of a door or a window can be picked, and carried: along the wall
  * while they are held, and when let go, wherever they were let go becomes one
- * `move-door` or `move-window` — which the plan may refuse.
+ * `move-door` or `move-window` — which the plan may refuse. The wall itself
+ * can be picked and carried too, across itself, and let go as one `move-wall`.
  */
 export function WallMesh({ wall, doc, degrees }: WallMeshProps) {
   const a = doc.nodes[wall.a]
@@ -70,26 +72,26 @@ export function WallMesh({ wall, doc, degrees }: WallMeshProps) {
             key={piece.key}
             position={toWorld(x, y, base + piece.height / 2)}
             rotation={[0, angle + (piece.turn ?? 0), 0]}
-            onClick={
-              opening
-                ? (event) => {
-                    if (dragged(event)) return
-                    event.stopPropagation()
-                    selectionStore.getState().select({ kind: 'opening', id: opening.id })
-                  }
-                : undefined
-            }
-            onPointerDown={opening ? (event) => carry.down(event, opening.id) : undefined}
-            onPointerMove={opening ? carry.move : undefined}
-            onPointerUp={
-              opening && centre
-                ? (event) => {
-                    const shift = carry.up(event)
-                    if (shift)
-                      moveOpeningTo(opening, { x: centre.x + shift.x, y: centre.y + shift.y })
-                  }
-                : undefined
-            }
+            onClick={(event) => {
+              if (dragged(event)) return
+              event.stopPropagation()
+              selectionStore
+                .getState()
+                .select(
+                  opening ? { kind: 'opening', id: opening.id } : { kind: 'wall', id: wall.id },
+                )
+            }}
+            onPointerDown={(event) => carry.down(event, opening ? opening.id : wall.id)}
+            onPointerMove={carry.move}
+            onPointerUp={(event) => {
+              const shift = carry.up(event)
+              if (!shift) return
+              if (opening && centre) {
+                moveOpeningTo(opening, { x: centre.x + shift.x, y: centre.y + shift.y })
+              } else if (!opening) {
+                moveWallBy(wall, shift)
+              }
+            }}
           >
             <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
             <meshBasicMaterial

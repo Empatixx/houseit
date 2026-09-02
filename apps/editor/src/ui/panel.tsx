@@ -1,4 +1,5 @@
-import type { HouseObject, Opening } from '@houseit/core/document'
+import { surveyRoom } from '@houseit/commands/survey'
+import type { HouseObject, Opening, Wall } from '@houseit/core/document'
 import { FLOOR_MATERIALS } from '@houseit/core/floor-materials'
 import { objectType } from '@houseit/core/object-types'
 import { ROOM_KINDS, roomKindOf } from '@houseit/core/room-kinds'
@@ -9,6 +10,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 import { finish, nameObject, remove, resize, turnTo } from '../edit/object-commands'
 import { nameOpening, removeOpening, setOpening } from '../edit/opening-commands'
 import { layFloor, rename, setKind } from '../edit/room-commands'
+import { knockThrough, nameWall } from '../edit/wall-commands'
 import { selectionStore, useSelection } from '../store/selection'
 import { useDocument } from '../store/store'
 
@@ -42,8 +44,35 @@ export function Panel() {
     const object = doc.objects[selected.id]
     return <aside className={SHELL}>{object ? <ObjectPanel object={object} /> : null}</aside>
   }
-  const opening = doc.openings[selected.id]
-  return <aside className={SHELL}>{opening ? <OpeningPanel opening={opening} /> : null}</aside>
+  if (selected.kind === 'opening') {
+    const opening = doc.openings[selected.id]
+    return <aside className={SHELL}>{opening ? <OpeningPanel opening={opening} /> : null}</aside>
+  }
+  const wall = doc.walls[selected.id]
+  return <aside className={SHELL}>{wall ? <WallPanel wall={wall} /> : null}</aside>
+}
+
+function WallPanel({ wall }: { wall: Wall }) {
+  const doc = useDocument((state) => state.doc)
+  const a = doc.nodes[wall.a]
+  const b = doc.nodes[wall.b]
+  const length = a && b ? Math.round(Math.hypot(b.x - a.x, b.y - a.y)) : 0
+  const named = nameWall(wall)
+  return (
+    <>
+      <Heading>Wall</Heading>
+      <Facts
+        rows={[
+          ['Length', `${length} mm`],
+          ['Thickness', `${wall.thickness} mm`],
+          ['Bounds', named ? `${named.room.name}, ${named.side} side` : '—'],
+        ]}
+      />
+      <p className="text-xs text-neutral-500">
+        Drag the wall across itself to move it; the walls meeting it follow.
+      </p>
+    </>
+  )
 }
 
 const SHELL =
@@ -95,7 +124,41 @@ function RoomPanel({ room }: { room: Room }) {
           ['Area', `${(room.area / 1_000_000).toFixed(1)} m²`],
         ]}
       />
+      <KnockThrough room={room} />
     </>
+  )
+}
+
+/** Knocks the room through into one of its neighbours, and the room is gone. */
+function KnockThrough({ room }: { room: Room }) {
+  const doc = useDocument((state) => state.doc)
+  const level = useDocument((state) => state.level)
+  const neighbours = surveyRoom(doc, level, room).neighbours
+  const [into, setInto] = useState('')
+  if (neighbours.length === 0) return null
+  return (
+    <Field label="Knock through into">
+      <div className="flex gap-1">
+        <select className={INPUT} value={into} onChange={(event) => setInto(event.target.value)}>
+          <option value="">—</option>
+          {neighbours.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className={`${BUTTON} mt-0 shrink-0`}
+          disabled={into === ''}
+          onClick={() => {
+            if (knockThrough(room, into)) selectionStore.getState().select(null)
+          }}
+        >
+          Go
+        </button>
+      </div>
+    </Field>
   )
 }
 
