@@ -2,19 +2,17 @@ import { Maximize2Icon, Redo2Icon, SettingsIcon, Undo2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { selectionStore, useSelection } from '../store/selection'
 import { documentStore, useDocument } from '../store/store'
 import { viewStore } from '../store/view'
-import { Logo } from './logo'
 
 /**
- * What floats over the top of the plan: the mark and the name in one corner;
- * in the other a small card with the two arrows that take an edit back and
- * forward, the gear with what the plan shows, and the button for the panel.
+ * What floats over the plan's top right corner: one small card with the two
+ * arrows that take an edit back and forward, and another with the gear for
+ * what the plan shows and the button for the panel beside it.
  */
 export function TopOverlay() {
   const canUndo = useDocument((state) => state.canUndo)
@@ -22,12 +20,8 @@ export function TopOverlay() {
   const showAll = useSelection((state) => state.showAll)
 
   return (
-    <>
-      <div className="pointer-events-auto absolute top-3 left-3 flex h-10 items-center gap-2 rounded-xl border bg-card px-3 shadow-md">
-        <Logo size={20} />
-        <span className="text-sm font-semibold tracking-tight">houseit</span>
-      </div>
-      <div className="pointer-events-auto absolute top-3 right-3 flex h-10 items-center gap-0.5 rounded-xl border bg-card px-1 shadow-md">
+    <div className="pointer-events-none absolute top-3 right-3 flex items-center gap-2">
+      <div className="pointer-events-auto flex h-10 items-center gap-0.5 rounded-xl border bg-card px-1 shadow-md">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -56,7 +50,8 @@ export function TopOverlay() {
           </TooltipTrigger>
           <TooltipContent>Redo ⇧⌘Z</TooltipContent>
         </Tooltip>
-        <Separator orientation="vertical" className="mx-1 h-5!" />
+      </div>
+      <div className="pointer-events-auto flex h-10 items-center gap-0.5 rounded-xl border bg-card px-1 shadow-md">
         <Popover>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -99,6 +94,6 @@ export function TopOverlay() {
           <TooltipContent>Panel</TooltipContent>
         </Tooltip>
       </div>
-    </>
+    </div>
   )
 }
