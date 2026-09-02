@@ -4,7 +4,8 @@
     ".": {
       "entry": ["scripts/*.mjs"],
       "project": ["scripts/*.mjs"],
-      "ignoreDependencies": ["playwright-core"]
+      "ignoreDependencies": ["playwright-core"],
+      "ignoreBinaries": ["sips"]
     },
     "packages/core": {
       "entry": ["src/**/*.ts"],

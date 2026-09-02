@@ -33,8 +33,8 @@ it.
 bun run dev                 # the editor on :5173
 scripts/chrome.sh           # a Chrome with a debugging port, on its own profile
 
-node scripts/look.mjs --type tv --surface black --out /tmp/tv.png
-node scripts/look.mjs --type sofa --seats 3 --width 2.4m --out /tmp/sofa.png
+node scripts/look.mjs --type media-unit --surface walnut --out /tmp/tv.png
+node scripts/look.mjs --type sofa-3 --surface grey --width 2.4m --out /tmp/sofa.png
 ```
 
 `look.mjs` clears the plan, builds a room barely bigger than the one object through
@@ -79,24 +79,26 @@ convention, and it should be drawn as a line rather than as a solid — the way 
 chair's spindles and a door's swing are.
 
 There is no z-order in the plan, only height — see `stacking.ts`. What covers what
-is decided by `layer` (a rug under the furniture, a television on top of it), then
-by a part's `lift` within one object, then by a per-object nudge that keeps two
-things from flickering against each other.
+is decided by `layer` (a rug under the furniture, a lamp on top of it), then by a
+per-object nudge that keeps two things from flickering against each other.
 
 A box whose face is exactly flush with a wall's face does not render at all. Inset
 it.
 
-## Skeleton and surface are separate
+## Symbol and surface are separate
 
-`skeleton.ts` is pure form and carries no colours; `surfaces.ts` is pure fill. One
-table is oak, walnut, marble or glass without there being four tables. A new
-material costs a row in `surfaces.ts`; a new piece of furniture costs a skeleton;
-neither costs the other anything.
+Furniture is drawn from the reference's plan symbols: one SVG per type under
+`apps/editor/public/symbols/`, listed with its real size in
+`packages/core/src/catalog.ts`. Both come out of `scripts/import-catalog.mjs`,
+which reads the teardown in `.playwright-mcp/surfaces/` — change the mapping there, not
+the generated file. `surfaces.ts` is pure fill: the symbol's white becomes the
+surface's colour, the lines stay the lines. One bed is white, linen or blue without
+there being three beds. A new finish costs a row in `surfaces.ts`; a new piece of
+furniture costs a symbol and a row in the import mapping; neither costs the other
+anything.
 
-Whatever a skeleton draws must stay inside the size its type declares, or a command
-places a thing against a wall it actually overlaps. A type that spreads further —
-chairs round a table, fringe off a rug — says so with `reach`. A test holds the
-catalogue to this.
+A symbol is scaled to the size its type declares, so it is held to that size by
+construction. Its top edge is the thing's back — the side that goes against a wall.
 
 ## Checks
 

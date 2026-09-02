@@ -87,17 +87,75 @@ declaration produces the CLI parser, the MCP tool description the agent reads, t
 Each room can take a floor material:
 
 ```
-set-floor --room kuchyň --material oak
+set-floor --room kuchyň --material natural-oak
 ```
 
-Materials: `oak`, `oak-white`, `oak-grey`, `oak-smoked`, `walnut`, `parquet`,
-`tile`, `marble`, `terrazzo`, `concrete`, `carpet`. The textures are generated rather than photographed — run
-`node scripts/make-textures.mjs` to rebuild them after editing a pattern. They
-tile seamlessly and are laid at their real size, so a 300 mm tile is 300 mm in
-any room and boards run on across a doorway.
+Materials, photographed and brought in from the reference: `white-oak`, `natural-oak`,
+`red-oak`, `ash`, `beech`, `birch`, `tile-white`, `tile-beige`, `tile-blue`,
+`tile-seafoam`, `tile-slate`, `tile-hex-mint`, `tile-herringbone`, `tile-terracotta`,
+`marble-white`, `marble-beige`, `calacatta`, `limestone`, `granite`, `soapstone`,
+`concrete-light`, `concrete-dark`, `terrazzo-stone`, `brick-beige`, `brick-grey`,
+`brick-red`. All of them tile seamlessly and are laid at their real size, so a
+300 mm tile is 300 mm in any room and boards run on across a doorway.
 
 The plan is saved in the browser as you go, so a reload picks up where you left
 off.
+
+## Furniture
+
+```
+add-object --room living --type sofa-l --against east --surface grey
+add-object --room living --type dining-6 --along 0.86 --across 0.74
+add-object --room office --type office-desk --against west --surface walnut
+```
+
+A thing is put in a room, never at coordinates. Name a side and it backs onto
+that wall; leave the side out and a free-standing thing goes to the middle of
+the room, a wall-standing one to the roomiest wall. `--along` says where along
+the wall (or across the room) from 0 to 1, `--across` how far up a free-standing
+thing stands, and both are checked like any other place — the command refuses a
+spot where something already is. `--turn` turns it about its own middle.
+
+The catalogue — 94 types, from `queen-bed` and `nightstand` through `kitchen-l`,
+`island-4`, `refrigerator`, `bathtub`, `office-desk-l`, `washer-dryer`, `sedan` to
+`pool-table` — is the reference's, brought in by `node scripts/import-catalog.mjs` from the
+teardown in `features.md` and kept as data in
+`packages/core/src/catalog.ts`. Each type is one plan symbol scaled to the
+type's size, with its white swapped for the surface it was given. `--help` on
+`add-object` lists every id.
+
+## Doors
+
+```
+add-door --room entry --side south --width 914
+add-door --room hall --side south --width 1.6m --variant sliding
+add-door --room garage --side south --variant garage
+add-door --room pantry --side east --variant pocket
+```
+
+Hinged unless said otherwise, and drawn with its leaf and swing. A sliding door
+is two lapped panels, a pocket door one that runs into the wall, and a garage
+door a panel across the whole opening. Each has its own default width.
+
+## Plans by address
+
+```
+http://localhost:5173/?plan=sample-house
+```
+
+A plan named in the address is drawn in place of whatever the browser had: the
+editor fetches `public/plans/<name>.txt` — a command script, the same lines the
+agent sends — and runs it. That is how a plan becomes a thing with a URL.
+`sample-house` is a furnished two-bedroom house after the one the reference drew.
+
+To check a script without a browser, line by line:
+
+```
+bun scripts/run-plan.ts apps/editor/public/plans/sample-house.txt
+```
+
+It stops at the first line that fails, says why, and lists every room with its
+size and everything standing in it.
 
 ## Scope
 

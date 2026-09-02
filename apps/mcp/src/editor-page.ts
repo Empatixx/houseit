@@ -32,8 +32,27 @@ export async function connectToEditor(endpoint = DEFAULT_ENDPOINT): Promise<Page
     }
   }
 
+  // No tab has the editor in it, but Chrome is here: open one. The agent then
+  // needs nothing beyond a running dev server and a Chrome it can reach.
+  const context = browser.contexts()[0]
+  if (context) {
+    const page = await context.newPage()
+    await page.goto(EDITOR_URL).catch(() => undefined)
+    const ready = await page
+      .waitForFunction("typeof window.floorplan?.exec === 'function'", undefined, {
+        timeout: 10_000,
+      })
+      .then(() => true)
+      .catch(() => false)
+    if (ready) return page
+    await page.close().catch(() => undefined)
+  }
+
   throw new Error(NOT_FOUND)
 }
+
+/** Where the editor is served from, when a tab has to be opened for it. */
+const EDITOR_URL = process.env.HOUSEIT_URL ?? 'http://localhost:5173'
 
 export function execOnPage(page: Page, source: string): Promise<ExecResult> {
   return page.evaluate((script) => window.floorplan.exec(script), source)

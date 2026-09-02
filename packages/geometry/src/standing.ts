@@ -8,6 +8,8 @@ export type Standing = {
   against?: Side
   /** 0 at one end of that side, 1 at the other. */
   along: number
+  /** Standing free: how far up the room, 0 south and 1 north. Absent is the middle. */
+  across?: number
   width: number
   depth: number
   /**
@@ -50,10 +52,16 @@ export function standingAt(
 ): Spot | undefined {
   if (!thing.against) {
     const xs = room.nodes.map((node) => doc.nodes[node]?.x ?? 0)
+    const ys = room.nodes.map((node) => doc.nodes[node]?.y ?? 0)
     const low = Math.min(...xs)
     const high = Math.max(...xs)
+    const south = Math.min(...ys)
+    const north = Math.max(...ys)
     return {
-      at: { x: low + thing.along * (high - low), y: room.centre.y },
+      at: {
+        x: low + thing.along * (high - low),
+        y: thing.across === undefined ? room.centre.y : south + thing.across * (north - south),
+      },
       turn: swingOf(thing),
     }
   }

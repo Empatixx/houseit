@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { OBJECT_TYPE_IDS, OBJECT_TYPES, objectType } from './object-types'
+import { layerOf, OBJECT_TYPE_IDS, OBJECT_TYPES, objectType, symbolOf } from './object-types'
 import { SURFACE_IDS, surfaceOf } from './surfaces'
 
 test('every type can be found by the id the command surface offers', () => {
@@ -8,201 +8,88 @@ test('every type can be found by the id the command surface offers', () => {
   }
 })
 
+test('no two types share an id', () => {
+  expect(new Set(OBJECT_TYPE_IDS).size).toBe(OBJECT_TYPES.length)
+})
+
 test('every type is finished in surfaces that exist', () => {
   for (const entry of OBJECT_TYPES) {
-    expect(entry.surfaces.length).toBeGreaterThan(0)
+    expect(entry.surfaces.length, entry.id).toBeGreaterThan(0)
     for (const surface of entry.surfaces) {
       expect(SURFACE_IDS).toContain(surface)
     }
   }
 })
 
-test('a chair is never made of glass, a table can be', () => {
-  expect(objectType('chair')?.surfaces).not.toContain('glass')
-  expect(objectType('table')?.surfaces).toContain('glass')
-})
-
-test('a textured surface says how big one repeat of it is', () => {
-  for (const id of SURFACE_IDS) {
-    const surface = surfaceOf(id)!
-    if (surface.texture) expect(surface.unit).toBeGreaterThan(0)
+test('every type has a real size and a symbol to draw it with', () => {
+  for (const entry of OBJECT_TYPES) {
+    expect(entry.size.width, entry.id).toBeGreaterThan(0)
+    expect(entry.size.depth, entry.id).toBeGreaterThan(0)
+    expect(entry.symbol, entry.id).toMatch(/^[a-z0-9-]+\.svg$/)
+    expect(symbolOf(entry.id)).toBe(entry.symbol)
   }
 })
 
-test('a pattern says it is one, so it can be coloured rather than taken as-is', () => {
+test('every surface has a fill and a darker line to draw it with', () => {
   for (const id of SURFACE_IDS) {
     const surface = surfaceOf(id)!
-    if (surface.tint) expect(surface.texture).toBeDefined()
+    expect(surface.fill).toMatch(/^#[0-9a-f]{6}$/)
+    expect(surface.line).toMatch(/^#[0-9a-f]{6}$/)
   }
-})
-
-test('one weave serves several colours, and each keeps its own', () => {
-  const weaves = SURFACE_IDS.map((id) => surfaceOf(id)!).filter(
-    (surface) => surface.texture === 'weave.png',
-  )
-
-  expect(weaves.length).toBeGreaterThan(2)
-  expect(new Set(weaves.map((surface) => surface.fill)).size).toBe(weaves.length)
 })
 
 test('an unknown type is absent rather than a stand-in', () => {
   expect(objectType('piano')).toBeUndefined()
+  expect(symbolOf('piano')).toBeUndefined()
 })
 
-test('a television comes in black and nothing else yet', () => {
-  for (const id of ['tv', 'tv-large']) {
-    expect(objectType(id)?.surfaces, id).toEqual(['black'])
+test('a rug lies under the furniture and a lamp stands on it; everything else is on the floor', () => {
+  expect(layerOf('rug-rect')).toBe('under')
+  expect(layerOf('rug-round')).toBe('under')
+  expect(layerOf('table-lamp')).toBe('over')
+  expect(layerOf('floor-lamp')).toBe('over')
+  expect(layerOf('queen-bed')).toBe('floor')
+  expect(layerOf('piano')).toBe('floor')
+})
+
+test('a bed is seen as its bedding and comes in white unless told otherwise', () => {
+  for (const id of ['queen-bed', 'king-bed', 'twin-bed']) {
+    expect(objectType(id)?.surfaces[0], id).toBe('white')
+    expect(objectType(id)?.stands, id).toBe('wall')
   }
 })
 
-test('the console under it is furniture, and dark wood unless told otherwise', () => {
-  for (const id of ['tv-stand', 'tv-stand-small']) {
-    expect(objectType(id)?.surfaces[0], id).toBe('walnut')
-    expect(objectType(id)?.surfaces, id).toContain('marble')
+test('sanitary ware is white or black and backs onto a wall', () => {
+  for (const id of ['toilet-tank', 'vanity-sink', 'bathtub']) {
+    expect(objectType(id)?.surfaces, id).toEqual(['white', 'black'])
+    expect(objectType(id)?.stands, id).toBe('wall')
   }
 })
 
-test('a television sits on top of the furniture rather than on the floor', () => {
-  expect(objectType('tv')?.layer).toBe('over')
-  expect(objectType('rug')?.layer).toBe('under')
-  expect(objectType('table')?.layer).toBeUndefined()
-})
-
-test('a toilet is a bathroom fitting: white, and it backs onto a wall', () => {
-  expect(objectType('toilet')?.surfaces[0]).toBe('white')
-  expect(objectType('toilet')?.stands).toBe('wall')
-})
-
-test('a toilet roll takes its own piece of wall, beside the toilet and not on it', () => {
-  expect(objectType('toilet-roll')?.stands).toBe('wall')
-  expect(objectType('toilet-roll')?.layer).toBeUndefined()
-})
-
-test('a basin is sanitary ware, a vanity is the cabinet it sits on', () => {
-  expect(objectType('basin')?.surfaces).toEqual(['white', 'black'])
-  expect(objectType('vanity')?.surfaces).toContain('marble')
-  expect(objectType('vanity')?.surfaces).toContain('walnut')
-  // Both back onto a wall: a basin in the middle of a room has nothing to plumb to.
-  expect(objectType('basin')?.stands).toBe('wall')
-  expect(objectType('vanity')?.stands).toBe('wall')
-})
-
-test('a texture is laid small enough to show on the thing it is laid on', () => {
-  // A 2.4 m repeat on a 1.2 m vanity top puts half a tile on it, and marble with
-  // no vein in it is not marble. Furniture is smaller than a floor, so its
-  // patterns have to be.
-  for (const id of SURFACE_IDS) {
-    const surface = surfaceOf(id)!
-    if (surface.texture) expect(surface.unit, id).toBeLessThanOrEqual(1600)
+test('appliances are steel unless told otherwise', () => {
+  for (const id of ['refrigerator', 'stove', 'dishwasher']) {
+    expect(objectType(id)?.surfaces[0], id).toBe('steel')
   }
 })
 
-test('a fridge is steel unless told otherwise, and it backs onto a wall', () => {
-  expect(objectType('fridge')?.surfaces[0]).toBe('steel')
-  expect(objectType('fridge')?.stands).toBe('wall')
-})
-
-test('a bin goes against a wall, because that is where a bin goes', () => {
-  expect(objectType('bin')?.stands).toBe('wall')
-})
-
-test('a fridge comes in more than one finish', () => {
-  const fridge = objectType('fridge')!.surfaces
-
-  expect(fridge).toContain('steel')
-  expect(fridge).toContain('white')
-  expect(fridge).toContain('graphite')
-  expect(fridge).toContain('black')
-})
-
-test('a kitchen unit is finished like furniture, marble worktop included', () => {
-  expect(objectType('cabinet')?.surfaces).toContain('marble')
-  expect(objectType('cabinet')?.surfaces).toContain('walnut')
-  expect(objectType('cabinet')?.stands).toBe('wall')
-})
-
-test('a sink unit is a kitchen unit, finished like one', () => {
-  expect(objectType('sink')?.surfaces).toContain('marble')
-  expect(objectType('sink')?.stands).toBe('wall')
-})
-
-test('a cooker is an appliance, and it stands a little proud of the units', () => {
-  const cooker = objectType('cooker')!
-  const unit = objectType('cabinet')!
-
-  expect(cooker.surfaces).toContain('steel')
-  expect(cooker.stands).toBe('wall')
-  // Deeper than the run it stands in, so it can be told from the cupboards.
-  expect(cooker.size.depth).toBeGreaterThan(unit.size.depth)
-  expect(objectType('fridge')!.size.depth).toBeGreaterThan(unit.size.depth)
-})
-
-test('what forms a run says so, and what does not says nothing', () => {
-  for (const id of ['cabinet', 'sink', 'cooker', 'fridge']) {
+test('a kitchen is a run: its pieces stand shoulder to shoulder', () => {
+  for (const id of ['counter-straight', 'refrigerator', 'stove', 'dishwasher', 'kitchen-sink']) {
     expect(objectType(id)?.abuts, id).toBe(true)
   }
-  expect(objectType('sofa')?.abuts).toBeUndefined()
+  expect(objectType('sofa-3')?.abuts).toBeUndefined()
 })
 
-test('a flight of stairs is finished in wood or in stone', () => {
-  const stairs = objectType('stairs-up')!
-
-  expect(stairs.surfaces).toContain('oak')
-  expect(stairs.surfaces).toContain('walnut')
-  expect(stairs.surfaces).toContain('marble')
-  // Against a wall. A flight standing out in the middle of a room is a stage.
-  expect(stairs.stands).toBe('wall')
+test('tables and rugs stand free; what has a back stands at a wall', () => {
+  expect(objectType('dining-6')?.stands).toBe('free')
+  expect(objectType('coffee-table')?.stands).toBe('free')
+  expect(objectType('rug-rect')?.stands).toBe('free')
+  expect(objectType('sofa-3')?.stands).toBe('wall')
+  expect(objectType('media-unit')?.stands).toBe('wall')
+  expect(objectType('dresser')?.stands).toBe('wall')
 })
 
-test('the flight down is the same flight as the one up', () => {
-  const up = objectType('stairs-up')!
-  const down = objectType('stairs-down')!
-
-  expect(down.size).toEqual(up.size)
-  expect(down.surfaces).toEqual(up.surfaces)
-  // A long run and a narrow one: that is what makes it a staircase and not a step.
-  expect(up.size.width).toBeGreaterThan(up.size.depth * 2)
-})
-
-test('a staircase that turns back on itself is two flights and a landing', () => {
-  const turn = objectType('stairs-turn-up')!
-  const straight = objectType('stairs-up')!
-
-  expect(turn.surfaces).toEqual(straight.surfaces)
-  expect(turn.stands).toBe('wall')
-  // Half the run of a straight flight, because it doubles back — and wide enough
-  // for two flights side by side with the wall between them.
-  expect(turn.size.width).toBeLessThan(straight.size.width)
-  expect(turn.size.depth).toBeGreaterThan(straight.size.depth * 2)
-  expect(objectType('stairs-turn-down')!.size).toEqual(turn.size)
-})
-
-test('a bed is bedding, and it stands against a wall like a bed does', () => {
-  const double = objectType('bed')!
-
-  expect(double.stands).toBe('wall')
-  expect(double.surfaces).toContain('white')
-  expect(double.surfaces).toContain('linen')
-  // Longer than it is wide, whichever bed it is: you lie along it.
-  expect(double.size.depth).toBeGreaterThan(double.size.width)
-  expect(objectType('bed-single')!.size.width).toBeLessThan(double.size.width)
-  expect(objectType('bed-single')!.size.depth).toBe(double.size.depth)
-})
-
-test('a bath is sanitary ware, and the shape a bath is', () => {
-  const bath = objectType('bath')!
-
-  expect(bath.stands).toBe('wall')
-  expect(bath.surfaces).toContain('white')
-  expect(bath.surfaces).toContain('black')
-  // Long and narrow: you lie in it, and it goes along a wall like the tub it is.
-  expect(bath.size.width).toBeGreaterThan(bath.size.depth * 2)
-})
-
-test('a shower is sanitary ware too, and square, because a tray is', () => {
-  const shower = objectType('shower')!
-
-  expect(shower.stands).toBe('wall')
-  expect(shower.surfaces).toEqual(objectType('bath')!.surfaces)
-  expect(shower.size.width).toBe(shower.size.depth)
+test('sizes are the real ones, in millimetres', () => {
+  // A queen bed is 60 by 80 inches, give or take the frame round it.
+  expect(objectType('queen-bed')?.size).toEqual({ width: 1549, depth: 2057 })
+  expect(objectType('sedan')?.size.depth).toBeGreaterThan(4500)
 })

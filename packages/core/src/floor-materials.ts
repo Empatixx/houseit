@@ -1,3 +1,5 @@
+import { CATALOG_FLOOR_MATERIALS } from './catalog'
+
 /**
  * What a floor can be made of.
  *
@@ -28,48 +30,8 @@ export type FloorMaterial = {
   colour: string
 }
 
-export const FLOOR_MATERIALS: readonly FloorMaterial[] = [
-  { id: 'oak', label: 'Oak boards', unit: u(1200), texture: 'oak.png', colour: '#e6d3b6' },
-  {
-    id: 'oak-white',
-    label: 'Limed oak',
-    unit: u(1200),
-    texture: 'oak-white.png',
-    colour: '#eee9e0',
-  },
-  { id: 'oak-grey', label: 'Grey oak', unit: u(1200), texture: 'oak-grey.png', colour: '#cdc9c2' },
-  {
-    id: 'oak-smoked',
-    label: 'Smoked oak',
-    unit: u(1200),
-    texture: 'oak-smoked.png',
-    colour: '#b39272',
-  },
-  { id: 'walnut', label: 'Walnut boards', unit: u(1200), texture: 'walnut.png', colour: '#7d5c42' },
-  {
-    id: 'parquet',
-    label: 'Block parquet',
-    unit: u(600),
-    texture: 'parquet.png',
-    colour: '#d9b681',
-  },
-  { id: 'tile', label: 'Ceramic tile', unit: u(600), texture: 'tile.png', colour: '#dcdcd8' },
-  { id: 'marble', label: 'Marble', unit: u(1400), texture: 'marble.png', colour: '#e8e7e4' },
-  { id: 'terrazzo', label: 'Terrazzo', unit: u(1200), texture: 'terrazzo.png', colour: '#e0ddd5' },
-  {
-    id: 'concrete',
-    label: 'Poured concrete',
-    unit: u(1500),
-    texture: 'concrete.png',
-    colour: '#cbcac6',
-  },
-  { id: 'carpet', label: 'Carpet', unit: u(1000), texture: 'carpet.png', colour: '#b9ada0' },
-] as const
-
-/** Every texture is square, so a repeat is stated once. */
-function u(side: number) {
-  return { width: side, depth: side }
-}
+/** the reference's floor photographs, brought in by `scripts/import-catalog.mjs`. */
+export const FLOOR_MATERIALS: readonly FloorMaterial[] = CATALOG_FLOOR_MATERIALS
 
 export const FLOOR_MATERIAL_IDS = FLOOR_MATERIALS.map((material) => material.id)
 

@@ -118,10 +118,92 @@ export function planPieces(
       return
     }
 
+    if (opening.variant === 'garage') {
+      pieces.push(...garageOf(opening, hole, line, wall))
+      return
+    }
+    if (opening.variant === 'sliding' || opening.variant === 'pocket') {
+      pieces.push(...slidingOf(opening, hole, line, wall))
+      return
+    }
     pieces.push(...swingOf(opening, hole, line, wall))
   })
 
   return pieces
+}
+
+/**
+ * A garage door: the opening drawn closed, as a white panel filling the wall
+ * with one line along its middle — the way the reference draws it, and the way a
+ * sectional door reads from above, since it is never open in a plan.
+ */
+function garageOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPiece[] {
+  const inner = wall.thickness - 2 * line
+  return [
+    {
+      key: `${opening.id}-panel`,
+      colour: INK.glass,
+      at: middleOf(hole),
+      length: opening.width,
+      thickness: inner,
+      base: 2,
+      height: wall.height,
+    },
+    {
+      key: `${opening.id}-line`,
+      colour: INK.outline,
+      at: middleOf(hole),
+      length: opening.width,
+      thickness: line,
+      base: 4,
+      height: wall.height,
+    },
+  ]
+}
+
+/**
+ * A sliding door: two panels, each half the opening, lapped past one another so
+ * the plan shows them as the two leaves they are. A pocket door is the same
+ * drawing with one leaf, and its other half run back into the wall it hides in.
+ */
+function slidingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPiece[] {
+  const width = opening.width
+  const leaf = Math.max(line * 2, wall.thickness / 3)
+  const pocket = opening.variant === 'pocket'
+  // A sliding pair splits the opening; a pocket leaf covers it when closed and is
+  // drawn half out of the wall, the rest of it inside.
+  const panel = pocket ? width : width / 2 + line
+  const towards = opening.hinge === 'a' ? 1 : -1
+  const first = pocket ? hole.from + width * 0.5 : hole.from + panel / 2
+  const second = pocket ? hole.from - width * 0.5 : hole.to - panel / 2
+
+  const panels: WallPiece[] = [
+    { key: 'near', at: first, aside: -leaf / 2 },
+    { key: 'far', at: second, aside: leaf / 2 },
+  ].flatMap(({ key, at, aside }) => [
+    {
+      key: `${opening.id}-${key}`,
+      colour: INK.outline,
+      at: at * 1 + 0 * towards,
+      aside,
+      length: panel,
+      thickness: leaf,
+      base: 4,
+      height: wall.height,
+    },
+    {
+      key: `${opening.id}-${key}-fill`,
+      colour: INK.glass,
+      at,
+      aside,
+      length: panel - 2 * line,
+      thickness: Math.max(1, leaf - 2 * line),
+      base: 6,
+      height: wall.height,
+    },
+  ])
+
+  return pocket ? panels.slice(0, 2) : panels
 }
 
 /**

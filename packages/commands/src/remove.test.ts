@@ -5,7 +5,7 @@ import { runScript } from './run'
 const room = () =>
   runScript(
     createEmptyDocument(),
-    'floor-shape --material oak --kind rectangle --width 6m --depth 4m --name pokoj',
+    'floor-shape --material natural-oak --kind rectangle --width 6m --depth 4m --name pokoj',
   )
 
 const build = (script: string[]) => runScript(room(), script.join('\n'))
@@ -14,8 +14,8 @@ const openings = (doc: HouseDocument) => Object.values(doc.openings)
 
 test('something put in a room can be taken out of it again', () => {
   const doc = build([
-    'add-object --room pokoj --type table',
-    'remove-object --room pokoj --type table',
+    'add-object --room pokoj --type dining-6',
+    'remove-object --room pokoj --type dining-6',
   ])
 
   expect(things(doc)).toEqual([])
@@ -23,26 +23,28 @@ test('something put in a room can be taken out of it again', () => {
 
 test('the one put in last comes out first, so removing undoes adding', () => {
   const doc = build([
-    'add-object --room pokoj --type chair --surface oak',
-    'add-object --room pokoj --type chair --surface black',
-    'remove-object --room pokoj --type chair',
+    'add-object --room pokoj --type office-chair --surface fabric',
+    'add-object --room pokoj --type office-chair --surface grey',
+    'remove-object --room pokoj --type office-chair',
   ])
 
-  expect(things(doc).map((thing) => thing.surface)).toEqual(['oak'])
+  expect(things(doc).map((thing) => thing.surface)).toEqual(['fabric'])
 })
 
 test('only the type asked for is taken out', () => {
   const doc = build([
-    'add-object --room pokoj --type table',
-    'add-object --room pokoj --type rug',
-    'remove-object --room pokoj --type rug',
+    'add-object --room pokoj --type dining-6',
+    'add-object --room pokoj --type rug-rect',
+    'remove-object --room pokoj --type rug-rect',
   ])
 
-  expect(things(doc).map((thing) => thing.type)).toEqual(['table'])
+  expect(things(doc).map((thing) => thing.type)).toEqual(['dining-6'])
 })
 
 test('taking out something that was never there says so', () => {
-  expect(() => build(['remove-object --room pokoj --type table'])).toThrow(/no dining table/i)
+  expect(() => build(['remove-object --room pokoj --type dining-6'])).toThrow(
+    /no rectangular dining set/i,
+  )
 })
 
 test('a window can be taken out of the side it went into', () => {

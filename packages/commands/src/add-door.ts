@@ -6,8 +6,14 @@ import { defineCommand } from './define-command'
 import { length } from './length-schema'
 import { placeOpening } from './place-opening'
 
-const DEFAULT_WIDTH = 800
 const DEFAULT_HEIGHT = 1970
+
+/**
+ * How wide each sort of door is unless told otherwise — the reference's defaults, in
+ * millimetres: a hinged leaf at 36", two sliding panels at 60", a pocket leaf
+ * at 32" and a garage door at 9 feet.
+ */
+const WIDTHS = { hinged: 800, sliding: 1520, pocket: 810, garage: 2740 } as const
 
 /**
  * A door is placed the same way a window is — by room and compass side — which
@@ -25,7 +31,9 @@ export const addDoor = defineCommand({
   args: z.object({
     room: z.string().min(1),
     side: z.enum(['north', 'south', 'east', 'west']),
-    width: length().default(DEFAULT_WIDTH),
+    /** Hinged unless said otherwise; sliding and pocket doors do not swing. */
+    variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).default('hinged'),
+    width: length().optional(),
     height: length().default(DEFAULT_HEIGHT),
     level: z.string().optional(),
   }),
@@ -40,14 +48,19 @@ export const addDoor = defineCommand({
       throw new CommandError(`add-door: there is no room called ${args.room}`)
     }
 
-    const spot = placeOpening(draft, level, room, args.side, args.width, 'add-door', true)
+    const width = args.width ?? WIDTHS[args.variant]
+    // Only a hinged leaf sweeps into the room; the rest stay in the wall's plane,
+    // so nothing standing in front of them is in their way.
+    const swings = args.variant === 'hinged'
+    const spot = placeOpening(draft, level, room, args.side, width, 'add-door', swings)
     const id = allocateId(draft.openings, 'o')
     draft.openings[id] = {
       id,
       wall: spot.wall,
       t: spot.t,
       kind: 'door',
-      width: args.width,
+      variant: args.variant,
+      width,
       height: args.height,
       sillHeight: 0,
       hinge: 'a',

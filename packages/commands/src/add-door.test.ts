@@ -4,8 +4,9 @@ import type { Box } from './boxes'
 import { swingOf } from './place-opening'
 import { runScript } from './run'
 
-const FLOOR = 'floor-shape --material oak --kind rectangle --width 12m --depth 9m --name dům'
-const CUT = 'add-room --material oak --name kuchyň --from dům --side west --width 3.6m'
+const FLOOR =
+  'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name dům'
+const CUT = 'add-room --material natural-oak --name kuchyň --from dům --side west --width 3.6m'
 
 const floor = () => {
   const doc = createEmptyDocument()
@@ -21,7 +22,13 @@ test('a door is an opening that reaches the floor', () => {
   const next = runScript(doc, 'add-door --room dům --side south')
 
   expect(openings(next)).toEqual([
-    expect.objectContaining({ kind: 'door', width: 800, height: 1970, sillHeight: 0 }),
+    expect.objectContaining({
+      kind: 'door',
+      variant: 'hinged',
+      width: 800,
+      height: 1970,
+      sillHeight: 0,
+    }),
   ])
 })
 
@@ -84,7 +91,7 @@ test('a door is not hung behind the furniture already standing at that wall', ()
     doc,
     [
       // Three metres of sofa across the middle of the twelve metre wall.
-      'add-object --room dům --type sofa --against north --width 3m',
+      'add-object --room dům --type sofa-3 --against north --width 3m',
       'add-door --room dům --side north --width 0.9m',
     ].join('\n'),
   )
@@ -103,7 +110,7 @@ test('nor on the toilet in the room on the other side of that same wall', () => 
     [
       CUT,
       // Against the wall the two rooms share, halfway along it.
-      'add-object --room kuchyň --type toilet --against east',
+      'add-object --room kuchyň --type toilet-tank --against east',
       'add-door --room dům --side west --width 0.9m',
     ].join('\n'),
   )
@@ -118,7 +125,8 @@ test('nor on the toilet in the room on the other side of that same wall', () => 
   expect(Math.abs(at - 4500)).toBeGreaterThan((900 + 380) / 2)
 })
 
-const SMALL = 'floor-shape --material tile --kind rectangle --width 2m --depth 2m --name předsíň'
+const SMALL =
+  'floor-shape --material tile-white --kind rectangle --width 2m --depth 2m --name předsíň'
 
 const clash = (one: Box, other: Box) =>
   one.x0 < other.x1 && other.x0 < one.x1 && one.y0 < other.y1 && other.y0 < one.y1
@@ -145,7 +153,7 @@ test('a door does not swing into the furniture already standing in the room', ()
     createEmptyDocument(),
     [
       SMALL,
-      'add-object --room předsíň --type vanity --against west --surface oak',
+      'add-object --room předsíň --type vanity-sink --against west',
       'add-door --room předsíň --side north --width 0.9m',
     ].join('\n'),
   )

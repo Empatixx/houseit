@@ -5,7 +5,15 @@ import { type SideRun, sideRun } from '@houseit/geometry/sides'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 import { reachOf } from '@houseit/geometry/standing'
 
-export type Spot = { against?: Side; along: number }
+export type Spot = { against?: Side; along: number; across?: number }
+
+/**
+ * How far up the room a free-standing thing is tried, in turn: the middle of
+ * the room first, then rows above and below it. The middle is where a table
+ * goes; the rest is for when the middle is taken, or is a corner that was cut
+ * out of the room.
+ */
+const ROWS = [undefined, 0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85]
 
 const SIDES: Side[] = ['north', 'east', 'south', 'west']
 
@@ -105,9 +113,27 @@ export function placeFree(
     )
     .map((object) => spanAround(object.along * span, reachOf(object).across))
 
-  return wideEnough(freeSpans(span, taken), width).map((gap) => ({
-    along: (gap.from + gap.to) / 2 / span,
-  }))
+  // The middle of each clear stretch first, then places either side of it, a
+  // step at a time out to the ends. One candidate a stretch was the first
+  // version, and in a room that is not a rectangle the middle of a stretch can
+  // sit over a corner that was cut out — so the caller was refused a place that
+  // was there, a metre to one side.
+  const alongs = wideEnough(freeSpans(span, taken), width).flatMap((gap) =>
+    acrossGap(gap, width).map((at) => at / span),
+  )
+  return ROWS.flatMap((across) =>
+    alongs.map((along) => (across === undefined ? { along } : { along, across })),
+  )
+}
+
+/** Positions along a clear stretch: its middle, then outwards from it by steps. */
+function acrossGap(gap: Span, width: number): number[] {
+  const step = 250
+  const middle = (gap.from + gap.to) / 2
+  const reach = (gap.to - gap.from - width) / 2
+  const offsets = [0]
+  for (let out = step; out <= reach; out += step) offsets.push(out, -out)
+  return offsets.map((offset) => middle + offset)
 }
 
 /**

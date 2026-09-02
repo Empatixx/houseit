@@ -32,6 +32,7 @@ test('rejects an opening hosted on a wall that does not exist', () => {
         wall: 'w-missing',
         t: 0.5,
         kind: 'door',
+        variant: 'hinged',
         width: 900,
         height: 1970,
         sillHeight: 0,
@@ -47,7 +48,16 @@ test('rejects an opening positioned outside its wall', () => {
   const broken = {
     ...doc,
     openings: {
-      o1: { id: 'o1', wall: 'w1', t: 1.4, kind: 'door', width: 900, height: 1970, sillHeight: 0 },
+      o1: {
+        id: 'o1',
+        wall: 'w1',
+        t: 1.4,
+        kind: 'door',
+        variant: 'hinged',
+        width: 900,
+        height: 1970,
+        sillHeight: 0,
+      },
     },
   }
 

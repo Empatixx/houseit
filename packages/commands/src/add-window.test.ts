@@ -2,7 +2,8 @@ import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
 import { runScript } from './run'
 
-const FLOOR = 'floor-shape --material oak --kind rectangle --width 12m --depth 9m --name dům'
+const FLOOR =
+  'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name dům'
 
 const floor = () => {
   const doc = createEmptyDocument()
@@ -29,7 +30,14 @@ test('a window with no dimensions given is a plain 1.2 m one at sill height', ()
   const next = runScript(doc, 'add-window --room dům --side south')
 
   expect(openings(next)).toEqual([
-    expect.objectContaining({ kind: 'window', width: 1200, height: 1500, sillHeight: 900, t: 0.5 }),
+    expect.objectContaining({
+      kind: 'window',
+      variant: 'hinged',
+      width: 1200,
+      height: 1500,
+      sillHeight: 900,
+      t: 0.5,
+    }),
   ])
 })
 
@@ -91,7 +99,7 @@ test('a room cut out of another can be windowed on its own outside wall', () => 
 
   const next = runScript(
     doc,
-    'add-room --material oak --name kuchyň --from dům --side west --width 3.6m',
+    'add-room --material natural-oak --name kuchyň --from dům --side west --width 3.6m',
   )
 
   expect(openings(runScript(next, 'add-window --room kuchyň --side west'))).toHaveLength(1)
@@ -103,7 +111,7 @@ test('a window is happy over the sofa, because that is where a sofa goes', () =>
   const next = runScript(
     doc,
     [
-      'add-object --room dům --type sofa --against north --width 3m',
+      'add-object --room dům --type sofa-3 --against north --width 3m',
       'add-window --room dům --side north --width 1.2m',
     ].join('\n'),
   )

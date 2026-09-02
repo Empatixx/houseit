@@ -43,6 +43,12 @@ export const OpeningSchema = z.object({
   /** Centre of the opening along the wall, 0 at end `a` and 1 at end `b`. */
   t: z.number().min(0).max(1),
   kind: z.enum(['door', 'window']),
+  /**
+   * What sort of door it is, which is what decides how it is drawn: a hinged
+   * leaf with its swing, two sliding panels, a leaf that pockets into the wall, or
+   * a garage door across the whole opening. A window ignores it.
+   */
+  variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).default('hinged'),
   width: mm.positive(),
   height: mm.positive(),
   sillHeight: mm.nonnegative(),
@@ -97,6 +103,12 @@ export const ObjectSchema = z.object({
   against: SideSchema.optional(),
   /** Where along that side, 0 at one end and 1 at the other. */
   along: z.number().min(0).max(1).default(0.5),
+  /**
+   * For a thing standing free: how far up the room it stands, 0 at the south
+   * and 1 at the north. Absent means the middle of the room, which is where a
+   * free-standing thing goes unless the middle is taken.
+   */
+  across: z.number().min(0).max(1).optional(),
   width: mm.positive(),
   depth: mm.positive(),
   surface: z.string().min(1),

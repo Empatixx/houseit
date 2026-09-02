@@ -19,7 +19,8 @@ test('every material states a real size, so a tile is the same size in any room'
   for (const material of FLOOR_MATERIALS) {
     expect(material.unit.width).toBeGreaterThan(0)
     expect(material.unit.depth).toBeGreaterThan(0)
-    expect(material.texture).toMatch(/\.png$/)
+    // Drawn patterns are PNG; the photographs brought in from the reference are JPEG.
+    expect(material.texture).toMatch(/\.(png|jpg)$/)
     expect(material.colour).toMatch(/^#[0-9a-f]{6}$/)
   }
 })

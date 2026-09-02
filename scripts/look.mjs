@@ -11,8 +11,8 @@
  *
  * The plan you were working on is put back afterwards, whatever happens.
  *
- *   node scripts/look.mjs --type tv --surface black --out /tmp/tv.png
- *   node scripts/look.mjs --type sofa --seats 3 --against north
+ *   node scripts/look.mjs --type media-unit --surface walnut --out /tmp/tv.png
+ *   node scripts/look.mjs --type sofa-3 --surface grey --against north
  */
 import { createRequire } from 'node:module'
 
@@ -74,7 +74,7 @@ async function build(page, width, depth, args) {
   await page.waitForTimeout(1500)
 
   const script = [
-    `floor-shape --material tile --kind rectangle --width ${Math.round(width)} --depth ${Math.round(depth)} --name look`,
+    `floor-shape --material tile-white --kind rectangle --width ${Math.round(width)} --depth ${Math.round(depth)} --name look`,
     ['add-object --room look', `--type ${args.type}`, ...flags(args)].join(' '),
   ].join('\n')
 

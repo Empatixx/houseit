@@ -26,6 +26,14 @@ export const addObject = defineCommand({
     room: z.string().min(1),
     type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]),
     against: z.enum(['north', 'south', 'east', 'west']).optional(),
+    /**
+     * Where along that side, or across the room, 0 at one end and 1 at the
+     * other. Left out, the place is chosen — which is nearly always right. Said,
+     * it is checked like any other place and refused if something is there.
+     */
+    along: z.coerce.number().min(0).max(1).optional(),
+    /** Standing free: how far up the room, 0 south and 1 north. Left out, the middle. */
+    across: z.coerce.number().min(0).max(1).optional(),
     width: length().optional(),
     depth: length().optional(),
     surface: z.enum(SURFACE_IDS as [string, ...string[]]).optional(),
@@ -67,11 +75,19 @@ export const addObject = defineCommand({
     const layer = layerOf(type.id)
     const abuts = type.abuts ?? false
     const spots =
-      args.against !== undefined
-        ? placeAgainst(draft, level, room, args.against, taken.width, layer, abuts)
-        : type.stands === 'wall'
-          ? placeSomewhereAgainst(draft, level, room, taken.width, layer, abuts)
-          : placeFree(draft, room, taken.width, layer)
+      args.along !== undefined
+        ? [
+            {
+              ...(args.against !== undefined ? { against: args.against } : {}),
+              along: args.along,
+              ...(args.across !== undefined ? { across: args.across } : {}),
+            },
+          ]
+        : args.against !== undefined
+          ? placeAgainst(draft, level, room, args.against, taken.width, layer, abuts)
+          : type.stands === 'wall'
+            ? placeSomewhereAgainst(draft, level, room, taken.width, layer, abuts)
+            : placeFree(draft, room, taken.width, layer)
 
     // Every candidate is put where the drawing would put it and then checked
     // against the room itself, so nothing lands half in the room next door. The
@@ -146,6 +162,7 @@ export const addObject = defineCommand({
       type: type.id,
       ...(spot.against ? { against: spot.against } : {}),
       along: spot.along,
+      ...(spot.across !== undefined ? { across: spot.across } : {}),
       width,
       depth,
       surface,

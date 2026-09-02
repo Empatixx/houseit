@@ -20,6 +20,8 @@ export type DocumentState = {
   exec: (source: string) => void
   undo: () => void
   redo: () => void
+  /** Starts again from nothing, history and all. */
+  reset: () => void
 }
 
 /**
@@ -64,6 +66,18 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
         future: [...future, entry],
         canUndo: nextPast.length > 0,
         canRedo: true,
+      })
+    },
+
+    reset: () => {
+      const empty = createEmptyDocument()
+      set({
+        doc: empty,
+        level: Object.keys(empty.levels)[0]!,
+        past: [],
+        future: [],
+        canUndo: false,
+        canRedo: false,
       })
     },
 

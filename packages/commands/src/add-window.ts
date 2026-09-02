@@ -44,6 +44,7 @@ export const addWindow = defineCommand({
       wall: spot.wall,
       t: spot.t,
       kind: 'window',
+      variant: 'hinged',
       width: args.width,
       height: args.height,
       sillHeight: args.sill,
