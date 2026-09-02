@@ -56,6 +56,8 @@ export type ObjectReport = {
 
 export type RoomReport = {
   name?: string
+  /** What sort of room it was told it is; left out, read from the name. */
+  kind?: string
   areaM2: number
   /** Clear width and depth, between wall faces. */
   width: number
@@ -146,6 +148,7 @@ export function surveyRoom(
 
   return {
     ...(room.name === undefined ? {} : { name: room.name }),
+    ...(room.kind === undefined ? {} : { kind: room.kind }),
     areaM2: Math.round(room.area / 10_000) / 100,
     ...interiorSize(doc, level, room),
     box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) },

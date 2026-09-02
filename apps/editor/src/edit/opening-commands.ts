@@ -1,6 +1,7 @@
 import { moveDoor, moveWindow } from '@houseit/commands/move-opening'
 import { openingsOn, roomOfOpening } from '@houseit/commands/openings'
 import { removeDoor, removeWindow } from '@houseit/commands/remove'
+import { setDoor, setWindow } from '@houseit/commands/set-opening'
 import type { Opening } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
@@ -8,6 +9,7 @@ import { sideOfWall } from '@houseit/geometry/sides'
 import { openingDropOf } from '../scene/opening-drop'
 import { noticeStore } from '../store/notice'
 import { documentStore } from '../store/store'
+import { runEdit } from './run-edit'
 
 /**
  * What a drag or a key does to a door or a window, as the command an agent
@@ -33,6 +35,30 @@ export function moveOpeningTo(opening: Opening, point: Point): void {
   )
 }
 
+/** Changes a door's kind or width, or a window's width, height or sill, where it is. */
+export function setOpening(
+  opening: Opening,
+  fields: { variant?: string; width?: number; height?: number; sill?: number },
+): boolean {
+  const named = name(opening)
+  if (!named) return false
+  const where = { room: named.room.name, side: named.side, nth: named.nth }
+  return runEdit(() =>
+    opening.kind === 'door'
+      ? documentStore.getState().apply(setDoor, {
+          ...where,
+          ...(fields.variant === undefined ? {} : { variant: fields.variant as 'hinged' }),
+          ...(fields.width === undefined ? {} : { width: fields.width }),
+        })
+      : documentStore.getState().apply(setWindow, {
+          ...where,
+          ...(fields.width === undefined ? {} : { width: fields.width }),
+          ...(fields.height === undefined ? {} : { height: fields.height }),
+          ...(fields.sill === undefined ? {} : { sill: fields.sill }),
+        }),
+  )
+}
+
 /** Takes an opening out of its wall. */
 export function removeOpening(opening: Opening): void {
   const named = name(opening)
@@ -49,6 +75,10 @@ export function removeOpening(opening: Opening): void {
  * An opening the way a command names it: the room it belongs to, the side of
  * that room its wall is on, and which of the openings there it is.
  */
+export function nameOpening(opening: Opening) {
+  return name(opening)
+}
+
 function name(opening: Opening) {
   const { doc, level } = documentStore.getState()
   const room = roomOfOpening(doc, roomsOf(doc, level), opening)
@@ -76,10 +106,5 @@ function name(opening: Opening) {
 }
 
 function run(change: () => unknown): void {
-  try {
-    change()
-    noticeStore.getState().clear()
-  } catch (error) {
-    noticeStore.getState().say(error instanceof Error ? error.message : String(error))
-  }
+  runEdit(change)
 }

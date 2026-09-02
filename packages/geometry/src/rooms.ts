@@ -12,6 +12,8 @@ export type Room = Face & {
   name?: string
   /** Id from the floor material catalogue, off the stored room. */
   floor?: string
+  /** What sort of room it was told it is, off the stored room. */
+  kind?: string
 }
 
 /**
@@ -28,7 +30,9 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
     const polygon = face.nodes.map((id) => doc.nodes[id]!)
     const found = stored.find((candidate) => contains(polygon, candidate.x, candidate.y))
     const room: Room = { ...face, centre: centroidOf(polygon, face.area) }
-    return found ? { ...room, id: found.id, name: found.name, floor: found.floor } : room
+    return found
+      ? { ...room, id: found.id, name: found.name, floor: found.floor, kind: found.kind }
+      : room
   })
 }
 

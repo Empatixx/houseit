@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { HostSchema } from './host'
+import { ROOM_KIND_IDS } from './room-kinds'
 
 /** Bumped whenever the stored shape changes; see `migrate`. */
 export const DOCUMENT_VERSION = 2
@@ -81,6 +82,8 @@ export const RoomSchema = z.object({
   name: z.string(),
   /** Id from the floor material catalogue. Absent means a plain floor. */
   floor: z.string().optional(),
+  /** What sort of room it is, from `room-kinds`. Absent, the name is read for it. */
+  kind: z.enum(ROOM_KIND_IDS as [string, ...string[]]).optional(),
 })
 
 export const SideSchema = z.enum(['north', 'south', 'east', 'west'])

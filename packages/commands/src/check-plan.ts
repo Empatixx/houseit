@@ -1,6 +1,6 @@
 import type { HouseDocument, HouseObject } from '@houseit/core/document'
 import { layerOf, objectType } from '@houseit/core/object-types'
-import { kindOf } from '@houseit/core/room-kinds'
+import { roomKindOf } from '@houseit/core/room-kinds'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { z } from 'zod'
@@ -122,7 +122,7 @@ function reach(rooms: RoomReport[]): Problem[] {
 /** A bedroom or a bathroom does not open straight onto the kitchen or the living room. */
 function privacy(rooms: RoomReport[]): Problem[] {
   const problems: Problem[] = []
-  const kinds = new Map(rooms.map((room) => [room.name, kindOf(room.name)] as const))
+  const kinds = new Map(rooms.map((room) => [room.name, roomKindOf(room)] as const))
   for (const room of rooms) {
     const kind = kinds.get(room.name)
     if (!kind || !['bedroom', 'bathroom', 'half-bath'].includes(kind.id)) continue
@@ -145,7 +145,7 @@ function privacy(rooms: RoomReport[]): Problem[] {
 function sizes(rooms: RoomReport[]): Problem[] {
   const problems: Problem[] = []
   for (const room of rooms) {
-    const kind = kindOf(room.name)
+    const kind = roomKindOf(room)
     if (!kind) continue
     if (room.areaM2 < kind.minArea) {
       problems.push({
@@ -171,7 +171,7 @@ function sizes(rooms: RoomReport[]): Problem[] {
 /** A room somebody lives in has a window. */
 function windows(rooms: RoomReport[]): Problem[] {
   return rooms
-    .filter((room) => kindOf(room.name)?.needsWindow && room.windows.length === 0)
+    .filter((room) => roomKindOf(room)?.needsWindow && room.windows.length === 0)
     .map((room) => ({
       code: 'window.missing',
       severity: 'warning' as const,
@@ -184,7 +184,7 @@ function windows(rooms: RoomReport[]): Problem[] {
 function kitchens(doc: HouseDocument, level: string, rooms: Room[]): Problem[] {
   const problems: Problem[] = []
   for (const room of rooms) {
-    if (kindOf(room.name)?.id !== 'kitchen') continue
+    if (roomKindOf(room)?.id !== 'kitchen') continue
     const types = objectsIn(doc, level, room).map((object) => object.type)
     const missing = [
       ['a sink', types.some((type) => /^kitchen-(?!sink)|kitchen-sink|island-\d-sink/.test(type))],

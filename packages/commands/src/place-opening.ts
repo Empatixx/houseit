@@ -149,31 +149,57 @@ export function placeOpeningAt(
     )
   }
   const { wall: chosen, span, at } = found
+  const swing = checkOpeningAt(doc, level, room, chosen.wall.id, at, width, what, swings, except)
+  return { wall: chosen.wall.id, t: at / span, swing }
+}
+
+/**
+ * Whether an opening of a width can be at a place in a wall: within the
+ * wall's length, clear of the other openings in it, and — for a door that
+ * swings — with nothing standing in its swing. Refused with the reason;
+ * otherwise the way the door swings, towards the room it was asked from.
+ */
+export function checkOpeningAt(
+  doc: HouseDocument,
+  level: string,
+  room: Room,
+  wallId: string,
+  at: number,
+  width: number,
+  what: string,
+  swings = false,
+  except?: string,
+): -1 | 1 {
+  const wall = doc.walls[wallId]
+  const a = wall && doc.nodes[wall.a]
+  const b = wall && doc.nodes[wall.b]
+  if (!wall || !a || !b) throw new CommandError(`${what}: there is no such wall`)
+  const chosen = { wall: { id: wallId }, a, b }
+  const span = spanOf(chosen)
+  const where = `the wall of ${room.name}`
 
   if (at - width / 2 < 0 || at + width / 2 > span) {
-    throw new CommandError(
-      `${what}: ${width} mm at ${along} runs past the end of the ${side} wall of ${room.name}`,
-    )
+    throw new CommandError(`${what}: ${width} mm there runs past the end of ${where}`)
   }
   const wanted = spanAround(at, width)
   const overlapping = Object.values(doc.openings).find((opening) => {
-    if (opening.wall !== chosen.wall.id || opening.id === except) return false
+    if (opening.wall !== wallId || opening.id === except) return false
     const other = spanAround(opening.t * span, opening.width)
     return other.from < wanted.to && wanted.from < other.to
   })
   if (overlapping) {
     throw new CommandError(
-      `${what}: there is already a ${overlapping.kind} at that place in the ${side} wall of ${room.name}`,
+      `${what}: there is already a ${overlapping.kind} at that place in ${where}`,
     )
   }
 
-  const swing = sideSign(chosen.a, chosen.b, room.centre)
+  const swing = sideSign(a, b, room.centre)
   if (swings && !swingIsClear(doc, level, chosen, span, at, width, swing, except)) {
     throw new CommandError(
-      `${what}: a door at ${along} along the ${side} wall of ${room.name} could not open — something is standing in its swing`,
+      `${what}: a door there could not open — something is standing in its swing`,
     )
   }
-  return { wall: chosen.wall.id, t: at / span, swing }
+  return swing
 }
 
 /**

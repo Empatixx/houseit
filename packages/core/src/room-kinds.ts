@@ -101,6 +101,16 @@ export const ROOM_KINDS: RoomKind[] = [
   kind('terrace', 'Terrace', 4, {}, ['terrace', 'patio', 'balcony', 'deck', 'terasa', 'balkon']),
 ]
 
+export const ROOM_KIND_IDS = ROOM_KINDS.map((kind) => kind.id)
+
+/**
+ * What kind of room a room is: what it was told it is, or failing that what
+ * its name says. The told kind wins, so "the snug" can be a living room.
+ */
+export function roomKindOf(room: { name?: string; kind?: string }): RoomKind | undefined {
+  return (room.kind !== undefined ? roomKind(room.kind) : undefined) ?? kindOf(room.name)
+}
+
 /** The kind a name says, or nothing if it says none of them. */
 export function kindOf(name: string | undefined): RoomKind | undefined {
   if (!name) return undefined

@@ -10,7 +10,12 @@ import { measure } from './measure'
 import { moveObject } from './move-object'
 import { moveDoor, moveWindow } from './move-opening'
 import { removeDoor, removeObject, removeWindow } from './remove'
+import { renameRoom } from './rename-room'
+import { resizeObject } from './resize-object'
 import { setFloor } from './set-floor'
+import { setDoor, setWindow } from './set-opening'
+import { setRoomKind } from './set-room-kind'
+import { setSurface } from './set-surface'
 import { turnObject } from './turn-object'
 
 const ALL: AnyCommand[] = [
@@ -21,9 +26,15 @@ const ALL: AnyCommand[] = [
   moveWindow,
   moveDoor,
   setFloor,
+  renameRoom,
+  setRoomKind,
+  setDoor,
+  setWindow,
   addObject,
   moveObject,
   turnObject,
+  resizeObject,
+  setSurface,
   removeObject,
   removeWindow,
   removeDoor,
