@@ -6,8 +6,10 @@ import type { Command } from './define-command'
 import { describe } from './describe'
 import { floorShape } from './floor-shape'
 import { measure } from './measure'
+import { moveObject } from './move-object'
 import { removeDoor, removeObject, removeWindow } from './remove'
 import { setFloor } from './set-floor'
+import { turnObject } from './turn-object'
 
 const ALL: Command[] = [
   floorShape,
@@ -16,6 +18,8 @@ const ALL: Command[] = [
   addDoor,
   setFloor,
   addObject,
+  moveObject,
+  turnObject,
   removeObject,
   removeWindow,
   removeDoor,

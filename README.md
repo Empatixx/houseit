@@ -73,6 +73,8 @@ add-room     --material tile-white --name kitchen --from house --side west --wid
 add-door     --room kitchen --side east --variant pocket
 add-window   --room kitchen --side north --width 1.2m
 add-object   --room kitchen --type sofa-3 --against south --surface linen
+move-object  --room kitchen --type sofa-3 --against west
+turn-object  --room kitchen --type sofa-3 --by 90
 describe     --room kitchen
 measure      --room kitchen --side north
 ```
@@ -87,6 +89,12 @@ room (what is on it and what is still free) or a thing in it (its distance to ea
 wall). Both answer with JSON, and over MCP the answer comes with a picture of what was
 asked about, picked out and framed the way a click would show it. So the agent ends a
 script with `describe --room kitchen` and sees the kitchen it just made.
+
+Editing by hand on the plan goes through the same door. Dragging a thing ends in one
+`move-object`, R turns it with `turn-object`, Delete is `remove-object` — so a sofa
+dragged into a wall snaps back with the command's own refusal, every edit undoes, and
+the agent's `describe` tells it what was done by hand. Where there are two of a kind,
+`--nth 2` says which; `describe` numbers them the same way.
 
 Each command is declared once, with a Zod schema for its arguments. That single
 declaration produces the CLI parser, the MCP tool description the agent reads, the

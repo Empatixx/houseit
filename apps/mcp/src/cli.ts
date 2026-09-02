@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { writeFileSync } from 'node:fs'
+import { quoted } from '@houseit/commands/command-line'
 import { connectToEditor, execOnPage, pictureOf, readPlan, showOnPage } from './editor-page'
 import { report, toolDescription } from './report'
 import { viewOf } from './view-of'
@@ -46,10 +47,6 @@ async function main(argv: string[]): Promise<number> {
   }
   return result.ok ? 0 : 1
 }
-
-/** A token as the script's own tokenizer will read it back: quoted if it has to be. */
-const quoted = (token: string) =>
-  /[\s"'\\]/.test(token) || token === '' ? `"${token.replace(/(["\\])/g, '\\$1')}"` : token
 
 main(process.argv.slice(2)).then(
   (code) => process.exit(code),

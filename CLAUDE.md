@@ -36,6 +36,13 @@ node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg measure --room kitchen --ty
 An option a plan cannot do without belongs in the schema as required, not as
 something with a default nobody checks.
 
+The same holds for the mouse. A drag on the plan is not a second way of moving
+things: it is worked out into one `move-object` line (`apps/editor/src/edit`),
+run through the same store as the command bar and the bridge, and refused by
+the same check (`standing-check.ts`) with the same words. If a hand edit needs
+something a command cannot say, the command grows — the drag never writes to
+the document itself.
+
 ## Look at one object at a time
 
 Furniture is judged by eye, and it cannot be judged in a furnished plan: the thing

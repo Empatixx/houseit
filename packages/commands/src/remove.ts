@@ -1,10 +1,10 @@
 import type { Opening } from '@houseit/core/document'
-import { OBJECT_TYPE_IDS, objectType } from '@houseit/core/object-types'
+import { OBJECT_TYPE_IDS } from '@houseit/core/object-types'
 import { z } from 'zod'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { wallsFacing } from './place-opening'
-import { levelOf, newest, roomNamed } from './resolve'
+import { levelOf, newest, objectNamed, roomNamed } from './resolve'
 
 /**
  * Taking things back out again.
@@ -21,24 +21,18 @@ import { levelOf, newest, roomNamed } from './resolve'
 
 export const removeObject = defineCommand({
   name: 'remove-object',
-  summary: 'Take the last thing of a type back out of a room',
+  summary: 'Take a thing back out of a room: the last one of its type, or the nth',
   args: z.object({
     room: z.string().min(1),
     type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]),
+    /** Which one, when there are several: 1 for the first put in. Left out, the last. */
+    nth: z.coerce.number().int().positive().optional(),
     level: z.string().optional(),
   }),
   run: (draft, args) => {
     const level = levelOf(draft, args.level, 'remove-object')
     const room = roomNamed(draft, level, args.room, 'remove-object')
-    const label = objectType(args.type)!.label.toLowerCase()
-
-    const found = newest(
-      Object.values(draft.objects).filter(
-        (object) => object.room === room.id && object.type === args.type,
-      ),
-    )
-    if (!found) throw new CommandError(`remove-object: there is no ${label} in ${args.room}`)
-
+    const found = objectNamed(draft, level, room, args.type, args.nth, 'remove-object')
     delete draft.objects[found.id]
   },
 })

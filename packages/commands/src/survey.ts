@@ -38,6 +38,8 @@ export type WindowReport = { side: Side; along: number; width: number }
 
 export type ObjectReport = {
   type: string
+  /** Which of its type in the room, counting from one — only when there are several. */
+  nth?: number
   against?: Side
   along: number
   across?: number
@@ -139,7 +141,9 @@ export function surveyRoom(
     })),
     doors,
     windows,
-    objects: objectsIn(doc, level, room).map((object) => surveyObject(doc, level, room, object)),
+    objects: objectsIn(doc, level, room).map((object, _, all) =>
+      surveyObject(doc, level, room, object, all),
+    ),
   }
 }
 
@@ -155,10 +159,14 @@ export function surveyObject(
   level: string,
   room: Room,
   object: HouseObject,
+  among: HouseObject[] = objectsIn(doc, level, room),
 ): ObjectReport {
   const spot = standingAt(doc, level, room, object)
+  const ofType = among.filter((other) => other.type === object.type)
+  const nth = ofType.length > 1 ? ofType.indexOf(object) + 1 : undefined
   return {
     type: object.type,
+    ...(nth === undefined ? {} : { nth }),
     ...(object.against === undefined ? {} : { against: object.against }),
     along: object.along,
     ...(object.across === undefined ? {} : { across: object.across }),

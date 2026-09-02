@@ -14,7 +14,7 @@ import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { z } from 'zod'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
-import { levelOf, newest, roomNamed } from './resolve'
+import { levelOf, objectNamed, roomNamed } from './resolve'
 import { objectsIn, surveyObject } from './survey'
 
 /**
@@ -34,6 +34,8 @@ export const measure = defineCommand({
     side: z.enum(['north', 'south', 'east', 'west']).optional(),
     /** With a room: the last thing of this type put there, and its distance to each wall. */
     type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]).optional(),
+    /** Which one of that type, counting from one. Left out, the last. */
+    nth: z.coerce.number().int().positive().optional(),
     level: z.string().optional(),
   }),
   run: (draft, args) => {
@@ -45,7 +47,7 @@ export const measure = defineCommand({
       return measureLevel(draft, level)
     }
     const room = roomNamed(draft, level, args.room, 'measure')
-    if (args.type !== undefined) return measureObject(draft, level, room, args.type)
+    if (args.type !== undefined) return measureObject(draft, level, room, args.type, args.nth)
     if (args.side !== undefined) return measureSide(draft, level, room, args.side)
     return measureRoom(draft, level, room)
   },
@@ -138,10 +140,15 @@ function measureSide(doc: HouseDocument, level: string, room: Room, side: Side) 
   }
 }
 
-function measureObject(doc: HouseDocument, level: string, room: Room, type: string) {
+function measureObject(
+  doc: HouseDocument,
+  level: string,
+  room: Room & { id: string },
+  type: string,
+  nth: number | undefined,
+) {
   const label = objectType(type)?.label.toLowerCase() ?? type
-  const found = newest(objectsIn(doc, level, room).filter((object) => object.type === type))
-  if (!found) throw new CommandError(`measure: there is no ${label} in ${room.name}`)
+  const found = objectNamed(doc, level, room, type, nth, 'measure')
   const spot = standingAt(doc, level, room, found)
   if (!spot) throw new CommandError(`measure: the ${label} in ${room.name} has nowhere to stand`)
 

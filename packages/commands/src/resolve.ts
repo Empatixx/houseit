@@ -1,4 +1,5 @@
-import type { HouseDocument } from '@houseit/core/document'
+import type { HouseDocument, HouseObject } from '@houseit/core/document'
+import { objectType } from '@houseit/core/object-types'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import type { Draft } from 'immer'
 import { CommandError } from './command-error'
@@ -51,3 +52,37 @@ export const newest = <T extends { id: string }>(entries: T[]): T | undefined =>
 
 /** Ids are a prefix and a number: `o12` came after `o3`. */
 export const order = (id: string) => Number.parseInt(id.replace(/^\D+/, ''), 10) || 0
+
+/**
+ * The nth thing of a kind in the order they went in, counting from one; none
+ * asked for, the last. Two nightstands are "the first" and "the second", which
+ * is what a person says and what `describe` reports — an id is not.
+ */
+export function nthOf<T extends { id: string }>(
+  entries: T[],
+  nth: number | undefined,
+): T | undefined {
+  const sorted = [...entries].sort((one, other) => order(one.id) - order(other.id))
+  return nth === undefined ? sorted.at(-1) : sorted[nth - 1]
+}
+
+/** The thing a command means: of this type, in this room, the nth or the last. */
+export function objectNamed(
+  doc: HouseDocument | Draft<HouseDocument>,
+  level: string,
+  room: Room & { id: string },
+  type: string,
+  nth: number | undefined,
+  what: string,
+): HouseObject {
+  const label = objectType(type)?.label.toLowerCase() ?? type
+  const ofType = Object.values(doc.objects).filter(
+    (object) => object.level === level && object.room === room.id && object.type === type,
+  )
+  const found = nthOf(ofType, nth)
+  if (found) return found as HouseObject
+  if (ofType.length === 0) throw new CommandError(`${what}: there is no ${label} in ${room.name}`)
+  throw new CommandError(
+    `${what}: there is no ${nth}th ${label} in ${room.name} — there are ${ofType.length}`,
+  )
+}
