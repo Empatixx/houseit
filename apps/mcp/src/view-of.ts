@@ -4,7 +4,7 @@ import { REGISTRY } from '@houseit/commands/registry'
 import { scriptLines } from '@houseit/commands/script-lines'
 
 /** The commands that look rather than change, and so are worth a picture. */
-const LOOKS = new Set(['describe', 'measure'])
+const LOOKS = new Set(['describe', 'measure', 'check-plan'])
 
 /**
  * What the last look in a script was at, if it had one: the room, the thing in

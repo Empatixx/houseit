@@ -77,6 +77,7 @@ move-object  --room kitchen --type sofa-3 --against west
 turn-object  --room kitchen --type sofa-3 --by 90
 describe     --room kitchen
 measure      --room kitchen --side north
+check-plan
 ```
 
 Several commands separated by newlines apply as one transaction — all of them land, or
@@ -89,6 +90,12 @@ room (what is on it and what is still free) or a thing in it (its distance to ea
 wall). Both answer with JSON, and over MCP the answer comes with a picture of what was
 asked about, picked out and framed the way a click would show it. So the agent ends a
 script with `describe --room kitchen` and sees the kitchen it just made.
+
+`check-plan` reads the plan for trouble the way The reference's review does: a room nobody can
+walk to from the front door, a bedroom opening straight into the kitchen, a door that
+cannot swing for the sofa in front of it, a laundry too small to be one, a living room
+with no window, a kitchen with no fridge. What sort of room a room is comes from its
+name for now, in English or Czech. An empty list is what a finished plan gets.
 
 Editing by hand on the plan goes through the same door. Dragging a thing ends in one
 `move-object`, R turns it with `turn-object`, Delete is `remove-object` — so a sofa

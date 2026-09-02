@@ -124,9 +124,13 @@ function sweptBy(a: Point, b: Point, span: number, at: number, width: number, sw
   )
 }
 
-/** Where a door already in the plan opens, or nothing if it is a window. */
+/**
+ * Where a door already in the plan opens, or nothing if it is a window — or a
+ * door that does not swing: a sliding or pocket door runs along its wall, and a
+ * garage door lifts, so the car in front of it is where the car goes.
+ */
 export function swingOf(doc: HouseDocument, opening: Opening): Box | undefined {
-  if (opening.kind !== 'door') return undefined
+  if (opening.kind !== 'door' || opening.variant !== 'hinged') return undefined
   const wall = doc.walls[opening.wall]
   const a = wall && doc.nodes[wall.a]
   const b = wall && doc.nodes[wall.b]

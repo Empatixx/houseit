@@ -2,6 +2,7 @@ import { addDoor } from './add-door'
 import { addObject } from './add-object'
 import { addRoom } from './add-room'
 import { addWindow } from './add-window'
+import { checkPlan } from './check-plan'
 import type { AnyCommand } from './define-command'
 import { describe } from './describe'
 import { floorShape } from './floor-shape'
@@ -25,6 +26,7 @@ const ALL: AnyCommand[] = [
   removeDoor,
   describe,
   measure,
+  checkPlan,
 ]
 
 export const REGISTRY: ReadonlyMap<string, AnyCommand> = new Map(ALL.map((c) => [c.name, c]))

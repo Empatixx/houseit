@@ -1,0 +1,114 @@
+import { createEmptyDocument } from '@houseit/core/document'
+import { expect, test } from 'vitest'
+import type { Problem } from './check-plan'
+import { askScript, runScript } from './run'
+
+const check = (script: string) => {
+  const doc = runScript(createEmptyDocument(), script)
+  const [report] = askScript(doc, 'check-plan') as { ok: boolean; problems: Problem[] }[]
+  return report!
+}
+
+const codes = (script: string) => check(script).problems.map((problem) => problem.code)
+
+const HOUSE =
+  'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name house'
+
+test('a house with one room and a front door is fine', () => {
+  const report = check(`${HOUSE}\nadd-door --room house --side south`)
+
+  expect(report.ok).toBe(true)
+  expect(report.problems).toEqual([])
+})
+
+test('a house nobody can get into, and a room nobody can get to', () => {
+  const script = [
+    HOUSE,
+    'add-room --material natural-oak --name bedroom --from house --side west --width 4m',
+    'add-window --room bedroom --side north',
+  ].join('\n')
+
+  expect(codes(script)).toContain('house.no-entrance')
+  expect(codes(script)).toContain('room.no-door')
+  expect(codes(`${script}\nadd-door --room house --side south`)).toContain('room.no-door')
+  expect(
+    codes(`${script}\nadd-door --room house --side south\nadd-door --room bedroom --side east`),
+  ).toEqual([])
+})
+
+test('a bedroom opening straight into the living room is called out, a hall between is not', () => {
+  const script = [
+    HOUSE,
+    'add-room --material natural-oak --name living --from house --side west --width 6m',
+    'add-room --material natural-oak --name bedroom --from house --side north --width 4m',
+    'add-door --room living --side south',
+    'add-door --room bedroom --side west',
+    'add-window --room bedroom --side north',
+    'add-window --room living --side south',
+  ].join('\n')
+
+  expect(codes(script)).toContain('room.opens-to-public')
+  expect(check(script).problems.find((it) => it.code === 'room.opens-to-public')?.room).toBe(
+    'bedroom',
+  )
+})
+
+test('a room too small or too dark for what it is called', () => {
+  const script = [
+    HOUSE,
+    // A hall across the top, and a laundry cut off the end of it: 1.5 by 1.5.
+    'add-room --material natural-oak --name hall --from house --side north --width 1.5m',
+    'add-room --material natural-oak --name laundry --from hall --side west --width 1.5m',
+    'add-room --material natural-oak --name bedroom --from house --side east --width 4m',
+    'add-door --room house --side south',
+    'add-door --room hall --side south',
+    'add-door --room laundry --side east',
+    'add-door --room bedroom --side west',
+  ].join('\n')
+  const report = check(script)
+
+  expect(report.ok).toBe(true)
+  expect(report.problems.map((it) => `${it.code}:${it.room}`)).toEqual(
+    expect.arrayContaining(['room.too-small:laundry', 'window.missing:bedroom']),
+  )
+})
+
+test('a door that cannot open for what stands in its swing', () => {
+  const script = [
+    HOUSE,
+    'add-door --room house --side south',
+    'add-object --room house --type sofa-3 --against south --along 0.5',
+  ].join('\n')
+  const report = check(script)
+
+  const blocked = report.problems.find((it) => it.code === 'door.blocked')
+  expect(blocked?.message).toMatch(/sofa/)
+  expect(report.ok).toBe(false)
+})
+
+test('a kitchen with nothing to cook on', () => {
+  const script = [
+    HOUSE,
+    'add-room --material tile-white --name kitchen --from house --side west --width 4m',
+    'add-door --room house --side south',
+    'add-door --room kitchen --side east',
+    'add-window --room kitchen --side north',
+    'add-object --room kitchen --type refrigerator --against north',
+  ].join('\n')
+
+  const problem = check(script).problems.find((it) => it.code === 'kitchen.incomplete')
+  expect(problem?.message).toMatch(/no a sink, no a stove/)
+})
+
+test('errors come before warnings, and the answer is plain data', () => {
+  const script = [
+    HOUSE,
+    'add-room --material natural-oak --name bedroom --from house --side west --width 4m',
+    'add-door --room house --side south',
+  ].join('\n')
+  const report = check(script)
+
+  const severities = report.problems.map((it) => it.severity)
+  expect(severities.indexOf('warning')).toBeGreaterThanOrEqual(severities.lastIndexOf('error'))
+  expect(JSON.parse(JSON.stringify(report))).toEqual(report)
+})
