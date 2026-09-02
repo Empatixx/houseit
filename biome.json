@@ -11,7 +11,8 @@
       "!**/coverage",
       "!**/playwright-report",
       "!**/test-results",
-      "!**/public/symbols"
+      "!**/public/symbols",
+      "!**/components/ui"
     ]
   },
   "formatter": {

@@ -3,10 +3,21 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@houseit/core/*": ["packages/core/src/*"],
-      "@houseit/geometry/*": ["packages/geometry/src/*"],
-      "@houseit/commands/*": ["packages/commands/src/*"],
-      "@houseit/bridge/*": ["packages/bridge/src/*"]
+      "@houseit/core/*": [
+        "packages/core/src/*"
+      ],
+      "@houseit/geometry/*": [
+        "packages/geometry/src/*"
+      ],
+      "@houseit/commands/*": [
+        "packages/commands/src/*"
+      ],
+      "@houseit/bridge/*": [
+        "packages/bridge/src/*"
+      ],
+      "@/*": [
+        "apps/editor/src/*"
+      ]
     }
   }
 }

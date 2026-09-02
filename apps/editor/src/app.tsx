@@ -1,23 +1,31 @@
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { useEditKeys } from './edit/use-edit-keys'
 import { PlanScene } from './scene/plan-scene'
-import { viewStore } from './store/view'
-import { Palette } from './ui/palette'
-import { Panel } from './ui/panel'
-import { Toolbar } from './ui/toolbar'
+import { BottomBar } from './ui/bottom-bar'
+import { Inspector } from './ui/inspector'
+import { TopOverlay } from './ui/top-overlay'
 
+/**
+ * The shell: the plan as the main card, the inspector as a card beside it,
+ * white on a quiet grey. What there is to press floats over the plan's
+ * corners and along its foot; nothing sits above it.
+ */
 export function App() {
   useEditKeys()
 
   return (
-    <div className="flex h-full w-full flex-col bg-neutral-100 text-neutral-900">
-      <Toolbar onFit={() => viewStore.getState().frame(null)} />
-      <div className="flex min-h-0 flex-1">
-        <Palette />
-        <main className="relative min-w-0 flex-1">
+    <TooltipProvider delayDuration={0}>
+      <SidebarProvider defaultOpen className="h-dvh min-h-0 bg-muted p-3">
+        <SidebarInset className="relative min-h-0 overflow-hidden rounded-2xl border bg-background shadow-sm md:peer-data-[variant=inset]:m-0">
           <PlanScene />
-        </main>
-        <Panel />
-      </div>
-    </div>
+          <TopOverlay />
+          <BottomBar />
+        </SidebarInset>
+        <Inspector />
+      </SidebarProvider>
+      <Toaster position="bottom-right" />
+    </TooltipProvider>
   )
 }

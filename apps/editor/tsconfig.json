@@ -1,5 +1,10 @@
 {
   "extends": "@houseit/typescript-config/react-library.json",
-  "compilerOptions": { "types": ["vite/client"] },
+  "compilerOptions": {
+    "types": ["vite/client"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "vitest.config.ts"]
 }

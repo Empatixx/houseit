@@ -6,8 +6,8 @@ import type { Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { SIDES, sideOfWall } from '@houseit/geometry/sides'
-import { noticeStore } from '../store/notice'
 import { documentStore } from '../store/store'
+import { sayError } from './notice'
 import { runEdit } from './run-edit'
 
 /** What a drag of a wall, or a button on a room, does — as the commands an agent would give. */
@@ -44,7 +44,7 @@ export function nameWall(wall: Wall) {
     const side = sideOfWall(doc, level, room, wall.id)
     if (side) return { room: { ...room, name: room.name }, side }
   }
-  noticeStore.getState().say('this wall bounds no named room, so nothing can be said about it')
+  sayError('this wall bounds no named room, so nothing can be said about it')
   return undefined
 }
 
@@ -75,7 +75,7 @@ export function stubOf(
 export function removeStub(wall: Wall): boolean {
   const found = stubOf(wall)
   if (!found) {
-    noticeStore.getState().say('this wall bounds rooms; knock a room through to take it out')
+    sayError('this wall bounds rooms; knock a room through to take it out')
     return false
   }
   return runEdit(() =>

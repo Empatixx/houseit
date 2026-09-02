@@ -7,8 +7,8 @@ import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { sideOfWall } from '@houseit/geometry/sides'
 import { openingDropOf } from '../scene/opening-drop'
-import { noticeStore } from '../store/notice'
 import { documentStore } from '../store/store'
+import { sayError } from './notice'
 import { runEdit } from './run-edit'
 
 /**
@@ -83,7 +83,7 @@ function name(opening: Opening) {
   const { doc, level } = documentStore.getState()
   const room = roomOfOpening(doc, roomsOf(doc, level), opening)
   if (!room?.name) {
-    noticeStore.getState().say('this opening is in no named room, so nothing can be said about it')
+    sayError('this opening is in no named room, so nothing can be said about it')
     return undefined
   }
   const side = sideOfWall(doc, level, room, opening.wall)
@@ -93,13 +93,11 @@ function name(opening: Opening) {
     nth =
       openingsOn(doc, level, room, side, opening.kind).findIndex((it) => it.id === opening.id) + 1
   } catch (error) {
-    noticeStore.getState().say(error instanceof Error ? error.message : String(error))
+    sayError(error instanceof Error ? error.message : String(error))
     return undefined
   }
   if (nth === 0) {
-    noticeStore
-      .getState()
-      .say(`this ${opening.kind} is not in a wall on the ${side} side of ${room.name}`)
+    sayError(`this ${opening.kind} is not in a wall on the ${side} side of ${room.name}`)
     return undefined
   }
   return { doc, level, room: { ...room, name: room.name }, side, nth }

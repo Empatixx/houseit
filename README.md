@@ -112,17 +112,25 @@ dragged to where the wardrobe would stop it opening, snaps back with the command
 refusal, every edit undoes, and the agent's `describe` tells it what was done by hand.
 Where there are two of a kind, `--nth 2` says which; `describe` numbers them the same way.
 
-A panel beside the plan shows what is picked and lets it be changed: a room's name, kind
-and floor, a thing's finish, size and turn, a door's kind and width, a window's width,
+The inspector beside the plan shows what is picked and lets it be changed: a room's name,
+kind and floor, a thing's finish, size and turn, a door's kind and width, a window's width,
 height and sill. Each field is one command — `rename-room`, `set-room-kind`, `set-floor`,
 `set-surface`, `resize-object`, `turn-object`, `set-door`, `set-window` — and a field the
-plan refuses goes back to what the plan says, with the refusal beside the command bar.
+plan refuses goes back to what the plan says, with the refusal as a toast.
 
-A palette on the other side lists every door, the window and the whole catalogue of
-things, by name. Pick one and the next click on a room puts it there — `add-object`
-against the nearest wall or out in the room, `add-door` or `add-window` in the nearest
-wall, each with the exact `--along` the click meant. Shift keeps it armed for the next
-click; Escape lets go.
+What is picked goes blue where it is drawn — a room's walls and floor, a thing's picture,
+a door, a wall — and whatever the pointer is over goes a paler blue first. A picked thing
+has a handle at its front to turn it by; a picked wall stub has one at its free end to pull
+it. A small card over the plan's top right corner holds undo and redo, and a gear for the
+measurements and for fitting the plan to the window; the mark sits in the other corner.
+The editor is built on shadcn/ui.
+
+The bar along the bottom of the plan says what the next click does. Furniture opens
+upward — a category to the side, a search at the top — and Structure holds the doors and
+the window. Pick one and the next click on a room puts it there — `add-object` against the
+nearest wall or out in the room, `add-door` or `add-window` in the nearest wall, each with
+the exact `--along` the click meant. Shift keeps it armed for the next click; Escape lets
+go. Draw wall waits its turn; `add-wall` is there already for the agent.
 
 Walls move too. Pick one and drag it across itself and it becomes one `move-wall`: the
 whole line of it moves, the walls meeting it stretch or shorten, the doors in them keep

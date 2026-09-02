@@ -8,8 +8,8 @@ import type { HouseObject } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { dropOf } from '../scene/furniture/drop'
-import { noticeStore } from '../store/notice'
 import { documentStore } from '../store/store'
+import { sayError } from './notice'
 import { runEdit } from './run-edit'
 
 /**
@@ -102,9 +102,7 @@ function name(object: HouseObject) {
   const { doc, level } = documentStore.getState()
   const room = roomsOf(doc, level).find((candidate) => candidate.id === object.room)
   if (!room?.name) {
-    noticeStore
-      .getState()
-      .say('the room this stands in has no name, so nothing can be said about it')
+    sayError('the room this stands in has no name, so nothing can be said about it')
     return undefined
   }
   const nth =

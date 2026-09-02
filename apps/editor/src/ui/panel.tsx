@@ -7,6 +7,17 @@ import { SURFACES } from '@houseit/core/surfaces'
 import { interiorSize } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { type ReactNode, useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import { finish, nameObject, remove, resize, turnTo } from '../edit/object-commands'
 import { nameOpening, removeOpening, setOpening } from '../edit/opening-commands'
 import { layFloor, rename, setKind } from '../edit/room-commands'
@@ -21,41 +32,37 @@ import { useDocument } from '../store/store'
  * field ends in the command an agent would give, through the same store —
  * the panel is another way of typing it, not another way of changing the plan.
  */
-export function Panel() {
+export function PanelContent() {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
   const selected = useSelection((state) => state.selected)
 
   if (!selected) {
     const empty = !Object.values(doc.walls).some((wall) => wall.level === level)
-    return (
-      <aside className={SHELL}>
-        {empty ? (
-          <FloorForm />
-        ) : (
-          <p className="text-xs text-neutral-500">
-            Pick a room, a thing, a door or a wall to see it here. Drag things and openings to move
-            them, drag a wall across itself; R turns, Delete removes, ⌘Z undoes.
-          </p>
-        )}
-      </aside>
+    return empty ? (
+      <FloorForm />
+    ) : (
+      <p className="text-xs leading-5 text-muted-foreground">
+        Pick a room, a thing, a door or a wall to see it here. Drag things and openings to move
+        them, drag a wall across itself; R turns, Delete removes, ⌘Z undoes.
+      </p>
     )
   }
 
   if (selected.kind === 'room') {
     const room = roomsOf(doc, level).find((candidate) => candidate.id === selected.id)
-    return <aside className={SHELL}>{room ? <RoomPanel room={room} /> : null}</aside>
+    return room ? <RoomPanel room={room} /> : null
   }
   if (selected.kind === 'object') {
     const object = doc.objects[selected.id]
-    return <aside className={SHELL}>{object ? <ObjectPanel object={object} /> : null}</aside>
+    return object ? <ObjectPanel object={object} /> : null
   }
   if (selected.kind === 'opening') {
     const opening = doc.openings[selected.id]
-    return <aside className={SHELL}>{opening ? <OpeningPanel opening={opening} /> : null}</aside>
+    return opening ? <OpeningPanel opening={opening} /> : null
   }
   const wall = doc.walls[selected.id]
-  return <aside className={SHELL}>{wall ? <WallPanel wall={wall} /> : null}</aside>
+  return wall ? <WallPanel wall={wall} /> : null
 }
 
 function WallPanel({ wall }: { wall: Wall }) {
@@ -74,15 +81,13 @@ function WallPanel({ wall }: { wall: Wall }) {
           ['Bounds', named ? `${named.room.name}, ${named.side} side` : '—'],
         ]}
       />
-      <p className="text-xs text-neutral-500">
-        Drag the wall across itself to move it; the walls meeting it follow.
+      <p className="text-xs leading-5 text-muted-foreground">
+        Drag the wall across itself to move it; the walls meeting it follow. A stub's free end has a
+        handle to pull it; Delete takes a stub out.
       </p>
     </>
   )
 }
-
-const SHELL =
-  'flex w-64 shrink-0 flex-col gap-3 overflow-y-auto border-l border-neutral-200 bg-white px-3 py-3 text-sm'
 
 function RoomPanel({ room }: { room: Room }) {
   const doc = useDocument((state) => state.doc)
@@ -97,32 +102,39 @@ function RoomPanel({ room }: { room: Room }) {
         <TextField value={room.name ?? ''} onCommit={(name) => rename(room, name)} />
       </Field>
       <Field label="Kind">
-        <select
-          className={INPUT}
-          value={room.kind ?? ''}
-          onChange={(event) => setKind(room, event.target.value)}
+        <Select
+          value={room.kind ?? 'none'}
+          onValueChange={(value) => value !== 'none' && setKind(room, value)}
         >
-          <option value="">{kind ? `${kind.label} (from the name)` : 'not said'}</option>
-          {ROOM_KINDS.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">
+              {kind ? `${kind.label} (from the name)` : 'not said'}
+            </SelectItem>
+            {ROOM_KINDS.map((entry) => (
+              <SelectItem key={entry.id} value={entry.id}>
+                {entry.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Field>
       <Field label="Floor">
-        <select
-          className={INPUT}
-          value={room.floor ?? ''}
-          onChange={(event) => layFloor(room, event.target.value)}
-        >
-          <option value="">bare</option>
-          {FLOOR_MATERIALS.map((material) => (
-            <option key={material.id} value={material.id}>
-              {material.label}
-            </option>
-          ))}
-        </select>
+        <Select value={room.floor ?? 'bare'} onValueChange={(value) => layFloor(room, value)}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="bare">bare</SelectItem>
+            {FLOOR_MATERIALS.map((material) => (
+              <SelectItem key={material.id} value={material.id}>
+                {material.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Field>
       <Facts
         rows={[
@@ -130,6 +142,7 @@ function RoomPanel({ room }: { room: Room }) {
           ['Area', `${(room.area / 1_000_000).toFixed(1)} m²`],
         ]}
       />
+      <Separator />
       <CutRoom room={room} />
       <KnockThrough room={room} />
     </>
@@ -155,68 +168,219 @@ function CutRoom({ room }: { room: Room }) {
   const [name, setName] = useState('')
   const corner = where.includes('-')
   return (
-    <details className="rounded border border-neutral-200 px-2 py-1">
-      <summary className="cursor-pointer text-xs text-neutral-600">Cut off a room</summary>
-      <div className="mt-2 flex flex-col gap-2">
-        <Field label="Where">
-          <select
-            className={INPUT}
-            value={where}
-            onChange={(event) => setWhere(event.target.value as CutRequest['where'])}
-          >
+    <div className="flex flex-col gap-3">
+      <Heading>Cut off a room</Heading>
+      <Field label="Where">
+        <Select value={where} onValueChange={(value) => setWhere(value as CutRequest['where'])}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
             {WHERE.map((option) => (
-              <option key={option} value={option}>
+              <SelectItem key={option} value={option}>
                 {option.includes('-') ? `${option} corner` : `${option} side`}
-              </option>
+              </SelectItem>
             ))}
-          </select>
+          </SelectContent>
+        </Select>
+      </Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Width (mm)">
+          <Input inputMode="numeric" value={width} onChange={(e) => setWidth(e.target.value)} />
         </Field>
+        <Field label="Depth (mm)">
+          <Input
+            inputMode="numeric"
+            value={corner ? depth : ''}
+            disabled={!corner}
+            placeholder={corner ? '' : 'right across'}
+            onChange={(e) => setDepth(e.target.value)}
+          />
+        </Field>
+      </div>
+      <Field label="Name">
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="new room" />
+      </Field>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          const done = cutRoom(room, {
+            where,
+            width: Number(width),
+            ...(corner ? { depth: Number(depth) } : {}),
+            name: name.trim() || 'room',
+            material: room.floor ?? 'natural-oak',
+          })
+          if (done) setName('')
+        }}
+      >
+        Cut
+      </Button>
+    </div>
+  )
+}
+
+/** Knocks the room through into one of its neighbours, and the room is gone. */
+function KnockThrough({ room }: { room: Room }) {
+  const doc = useDocument((state) => state.doc)
+  const level = useDocument((state) => state.level)
+  const neighbours = surveyRoom(doc, level, room).neighbours
+  const [into, setInto] = useState('')
+  if (neighbours.length === 0) return null
+  return (
+    <Field label="Knock through into">
+      <div className="flex gap-1">
+        <Select value={into} onValueChange={setInto}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="—" />
+          </SelectTrigger>
+          <SelectContent>
+            {neighbours.map((name) => (
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          disabled={into === ''}
+          onClick={() => {
+            if (knockThrough(room, into)) selectionStore.getState().select(null)
+          }}
+        >
+          Go
+        </Button>
+      </div>
+    </Field>
+  )
+}
+
+function ObjectPanel({ object }: { object: HouseObject }) {
+  const type = objectType(object.type)
+  const named = nameObject(object)
+  const surfaces = SURFACES.filter((surface) => type?.surfaces.includes(surface.id))
+
+  return (
+    <>
+      <Heading>{type?.label ?? object.type}</Heading>
+      <Field label="Finish">
+        <Select value={object.surface} onValueChange={(value) => finish(object, value)}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {surfaces.map((surface) => (
+              <SelectItem key={surface.id} value={surface.id}>
+                {surface.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Width (mm)">
+          <NumberField value={object.width} onCommit={(width) => resize(object, { width })} />
+        </Field>
+        <Field label="Depth (mm)">
+          <NumberField value={object.depth} onCommit={(depth) => resize(object, { depth })} />
+        </Field>
+      </div>
+      <Field label="Turn (°)">
+        <NumberField value={object.turn ?? 0} onCommit={(turn) => turnTo(object, turn)} />
+      </Field>
+      <Facts
+        rows={[
+          ['Room', named?.room.name ?? '—'],
+          [
+            'Stands',
+            object.against
+              ? `against the ${object.against} wall at ${object.along}`
+              : `free at ${object.along} along, ${object.across ?? 0.5} across`,
+          ],
+        ]}
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        className="hover:border-destructive hover:text-destructive"
+        onClick={() => {
+          remove(object)
+          selectionStore.getState().select(null)
+        }}
+      >
+        Remove
+      </Button>
+    </>
+  )
+}
+
+function OpeningPanel({ opening }: { opening: Opening }) {
+  const named = nameOpening(opening)
+  const isDoor = opening.kind === 'door'
+
+  return (
+    <>
+      <Heading>{isDoor ? 'Door' : 'Window'}</Heading>
+      {isDoor ? (
+        <Field label="Kind">
+          <Select
+            value={opening.variant}
+            onValueChange={(value) => setOpening(opening, { variant: value })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {['hinged', 'sliding', 'pocket', 'garage'].map((variant) => (
+                <SelectItem key={variant} value={variant}>
+                  {variant}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      ) : null}
+      <Field label="Width (mm)">
+        <NumberField value={opening.width} onCommit={(width) => setOpening(opening, { width })} />
+      </Field>
+      {isDoor ? null : (
         <div className="grid grid-cols-2 gap-2">
-          <Field label="Width (mm)">
-            <input
-              className={INPUT}
-              inputMode="numeric"
-              value={width}
-              onChange={(e) => setWidth(e.target.value)}
+          <Field label="Height (mm)">
+            <NumberField
+              value={opening.height}
+              onCommit={(height) => setOpening(opening, { height })}
             />
           </Field>
-          <Field label="Depth (mm)">
-            <input
-              className={INPUT}
-              inputMode="numeric"
-              value={corner ? depth : ''}
-              disabled={!corner}
-              placeholder={corner ? '' : 'right across'}
-              onChange={(e) => setDepth(e.target.value)}
+          <Field label="Sill (mm)">
+            <NumberField
+              value={opening.sillHeight}
+              onCommit={(sill) => setOpening(opening, { sill })}
             />
           </Field>
         </div>
-        <Field label="Name">
-          <input
-            className={INPUT}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="new room"
-          />
-        </Field>
-        <button
-          type="button"
-          className={`${BUTTON} hover:border-neutral-400 hover:text-neutral-900`}
-          onClick={() => {
-            const done = cutRoom(room, {
-              where,
-              width: Number(width),
-              ...(corner ? { depth: Number(depth) } : {}),
-              name: name.trim() || 'room',
-              material: room.floor ?? 'natural-oak',
-            })
-            if (done) setName('')
-          }}
-        >
-          Cut
-        </button>
-      </div>
-    </details>
+      )}
+      <Facts
+        rows={[
+          ['Room', named?.room.name ?? '—'],
+          ['Wall', named ? `${named.side}${named.nth > 1 ? `, no. ${named.nth}` : ''}` : '—'],
+        ]}
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        className="hover:border-destructive hover:text-destructive"
+        onClick={() => {
+          removeOpening(opening)
+          selectionStore.getState().select(null)
+        }}
+      >
+        Remove
+      </Button>
+    </>
   )
 }
 
@@ -233,33 +397,31 @@ function FloorForm() {
   const [name, setName] = useState('house')
   const [material, setMaterial] = useState('natural-oak')
   const number = (value: string, set: (next: string) => void) => (
-    <input
-      className={INPUT}
-      inputMode="numeric"
-      value={value}
-      onChange={(e) => set(e.target.value)}
-    />
+    <Input inputMode="numeric" value={value} onChange={(e) => set(e.target.value)} />
   )
   return (
     <>
       <Heading>Floor</Heading>
-      <p className="text-xs text-neutral-500">Nothing is drawn yet. Start with the outline.</p>
+      <p className="text-xs leading-5 text-muted-foreground">
+        Nothing is drawn yet. Start with the outline.
+      </p>
       <Field label="Shape">
-        <select
-          className={INPUT}
-          value={kind}
-          onChange={(e) => setKind(e.target.value as FloorRequest['kind'])}
-        >
-          <option value="rectangle">rectangle</option>
-          <option value="l">L</option>
-          <option value="u">U</option>
-          <option value="t">T</option>
-          <option value="walk">walk round it</option>
-        </select>
+        <Select value={kind} onValueChange={(value) => setKind(value as FloorRequest['kind'])}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="rectangle">rectangle</SelectItem>
+            <SelectItem value="l">L</SelectItem>
+            <SelectItem value="u">U</SelectItem>
+            <SelectItem value="t">T</SelectItem>
+            <SelectItem value="walk">walk round it</SelectItem>
+          </SelectContent>
+        </Select>
       </Field>
       {kind === 'walk' ? (
         <Field label="Legs">
-          <input className={INPUT} value={walk} onChange={(e) => setWalk(e.target.value)} />
+          <Input value={walk} onChange={(e) => setWalk(e.target.value)} />
         </Field>
       ) : (
         <div className="grid grid-cols-2 gap-2">
@@ -280,20 +442,24 @@ function FloorForm() {
         </div>
       ) : null}
       <Field label="Name">
-        <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} />
+        <Input value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
       <Field label="Floor">
-        <select className={INPUT} value={material} onChange={(e) => setMaterial(e.target.value)}>
-          {FLOOR_MATERIALS.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.label}
-            </option>
-          ))}
-        </select>
+        <Select value={material} onValueChange={setMaterial}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FLOOR_MATERIALS.map((entry) => (
+              <SelectItem key={entry.id} value={entry.id}>
+                {entry.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Field>
-      <button
-        type="button"
-        className={`${BUTTON} hover:border-neutral-400 hover:text-neutral-900`}
+      <Button
+        size="sm"
         onClick={() =>
           drawFloor({
             kind,
@@ -310,179 +476,25 @@ function FloorForm() {
         }
       >
         Draw
-      </button>
+      </Button>
     </>
   )
 }
-
-/** Knocks the room through into one of its neighbours, and the room is gone. */
-function KnockThrough({ room }: { room: Room }) {
-  const doc = useDocument((state) => state.doc)
-  const level = useDocument((state) => state.level)
-  const neighbours = surveyRoom(doc, level, room).neighbours
-  const [into, setInto] = useState('')
-  if (neighbours.length === 0) return null
-  return (
-    <Field label="Knock through into">
-      <div className="flex gap-1">
-        <select className={INPUT} value={into} onChange={(event) => setInto(event.target.value)}>
-          <option value="">—</option>
-          {neighbours.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className={`${BUTTON} mt-0 shrink-0`}
-          disabled={into === ''}
-          onClick={() => {
-            if (knockThrough(room, into)) selectionStore.getState().select(null)
-          }}
-        >
-          Go
-        </button>
-      </div>
-    </Field>
-  )
-}
-
-function ObjectPanel({ object }: { object: HouseObject }) {
-  const type = objectType(object.type)
-  const named = nameObject(object)
-  const surfaces = SURFACES.filter((surface) => type?.surfaces.includes(surface.id))
-
-  return (
-    <>
-      <Heading>{type?.label ?? object.type}</Heading>
-      <Field label="Finish">
-        <select
-          className={INPUT}
-          value={object.surface}
-          onChange={(event) => finish(object, event.target.value)}
-        >
-          {surfaces.map((surface) => (
-            <option key={surface.id} value={surface.id}>
-              {surface.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="Width">
-          <NumberField value={object.width} onCommit={(width) => resize(object, { width })} />
-        </Field>
-        <Field label="Depth">
-          <NumberField value={object.depth} onCommit={(depth) => resize(object, { depth })} />
-        </Field>
-      </div>
-      <Field label="Turn (°)">
-        <NumberField value={object.turn ?? 0} onCommit={(turn) => turnTo(object, turn)} />
-      </Field>
-      <Facts
-        rows={[
-          ['Room', named?.room.name ?? '—'],
-          [
-            'Stands',
-            object.against
-              ? `against the ${object.against} wall at ${object.along}`
-              : `free at ${object.along} along, ${object.across ?? 0.5} across`,
-          ],
-        ]}
-      />
-      <button
-        type="button"
-        className={BUTTON}
-        onClick={() => {
-          remove(object)
-          selectionStore.getState().select(null)
-        }}
-      >
-        Remove
-      </button>
-    </>
-  )
-}
-
-function OpeningPanel({ opening }: { opening: Opening }) {
-  const named = nameOpening(opening)
-  const isDoor = opening.kind === 'door'
-
-  return (
-    <>
-      <Heading>{isDoor ? 'Door' : 'Window'}</Heading>
-      {isDoor ? (
-        <Field label="Kind">
-          <select
-            className={INPUT}
-            value={opening.variant}
-            onChange={(event) => setOpening(opening, { variant: event.target.value })}
-          >
-            {['hinged', 'sliding', 'pocket', 'garage'].map((variant) => (
-              <option key={variant} value={variant}>
-                {variant}
-              </option>
-            ))}
-          </select>
-        </Field>
-      ) : null}
-      <Field label="Width">
-        <NumberField value={opening.width} onCommit={(width) => setOpening(opening, { width })} />
-      </Field>
-      {isDoor ? null : (
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Height">
-            <NumberField
-              value={opening.height}
-              onCommit={(height) => setOpening(opening, { height })}
-            />
-          </Field>
-          <Field label="Sill">
-            <NumberField
-              value={opening.sillHeight}
-              onCommit={(sill) => setOpening(opening, { sill })}
-            />
-          </Field>
-        </div>
-      )}
-      <Facts
-        rows={[
-          ['Room', named?.room.name ?? '—'],
-          ['Wall', named ? `${named.side}${named.nth > 1 ? `, no. ${named.nth}` : ''}` : '—'],
-        ]}
-      />
-      <button
-        type="button"
-        className={BUTTON}
-        onClick={() => {
-          removeOpening(opening)
-          selectionStore.getState().select(null)
-        }}
-      >
-        Remove
-      </button>
-    </>
-  )
-}
-
-const INPUT =
-  'w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm text-neutral-900 outline-none focus:border-neutral-500'
-const BUTTON =
-  'mt-1 rounded border border-neutral-300 bg-white px-2.5 py-1 text-sm text-neutral-700 hover:border-red-400 hover:text-red-600'
 
 function Heading({ children }: { children: ReactNode }) {
   return (
-    <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{children}</h2>
+    <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      {children}
+    </h2>
   )
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs text-neutral-500">{label}</span>
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
       {children}
-    </label>
+    </div>
   )
 }
 
@@ -491,8 +503,8 @@ function Facts({ rows }: { rows: [string, string][] }) {
     <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
       {rows.map(([term, detail]) => (
         <div key={term} className="contents">
-          <dt className="text-neutral-500">{term}</dt>
-          <dd className="text-neutral-800">{detail}</dd>
+          <dt className="text-muted-foreground">{term}</dt>
+          <dd className="text-foreground">{detail}</dd>
         </div>
       ))}
     </dl>
@@ -511,8 +523,7 @@ function TextField({ value, onCommit }: { value: string; onCommit: (value: strin
     if (!onCommit(draft)) setDraft(value)
   }
   return (
-    <input
-      className={INPUT}
+    <Input
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}
@@ -537,8 +548,7 @@ function NumberField({ value, onCommit }: { value: number; onCommit: (value: num
     if (!onCommit(Math.round(parsed))) setDraft(String(value))
   }
   return (
-    <input
-      className={INPUT}
+    <Input
       inputMode="numeric"
       value={draft}
       onChange={(event) => setDraft(event.target.value)}
