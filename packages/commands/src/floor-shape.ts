@@ -1,5 +1,5 @@
 import { FLOOR_MATERIAL_IDS } from '@houseit/core/floor-materials'
-import { centroidOf } from '@houseit/geometry/centroid'
+import { anchorInside } from '@houseit/geometry/anchor'
 import { type OutlineSpec, outlinePoints, walkPoints } from '@houseit/geometry/outlines'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
@@ -75,7 +75,7 @@ export const floorShape = defineCommand({
     })
 
     const area = Math.abs(shoelace(points))
-    const centre = centroidOf(points, shoelace(points) / 2)
+    const centre = anchorInside(points, shoelace(points) / 2)
     const roomId = allocateId(draft.rooms, 'r')
     draft.rooms[roomId] = {
       id: roomId,

@@ -1,13 +1,14 @@
 import { FLOOR_MATERIAL_IDS } from '@houseit/core/floor-materials'
-import { type Axis, crossingsOf, sideIsStraight } from '@houseit/geometry/cut'
-import { roomsOf } from '@houseit/geometry/rooms'
+import { anchorInside } from '@houseit/geometry/anchor'
+import type { Axis } from '@houseit/geometry/cut'
+import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
 import { CORNERS, type Corner, cutCorner } from './cut-corner'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
-import { splitWall } from './split-wall'
+import { partitionAlong } from './partition'
 
 const PARTITION_THICKNESS = 150
 
@@ -97,47 +98,76 @@ export const addRoom = defineCommand({
       )
     }
     const at = fromLow ? low + args.width : high - args.width
-    const far = fromLow ? low : high
 
-    if (!sideIsStraight(draft, source, axis, at, far)) {
-      throw new CommandError(
-        `add-room: the ${args.side} side of ${args.from} is stepped, so cutting there would ` +
-          `leave a tail along the step — cut from a straight side first`,
-      )
-    }
-
-    const crossings = crossingsOf(draft, level, source, axis, at)
-    if (crossings.length !== 2) {
-      throw new CommandError(
-        `add-room: a straight partition there would meet ${args.from} in ${crossings.length} places, not two`,
-      )
-    }
-
-    const ends = crossings.map((crossing) => splitWall(draft, crossing.wall, crossing.point))
-    const partitionId = allocateId(draft.walls, 'w')
-    draft.walls[partitionId] = {
-      id: partitionId,
-      level,
-      a: ends[0]!,
-      b: ends[1]!,
-      thickness: args.thickness,
-      baseOffset: 0,
-      height: draft.levels[level].height,
-    }
-
-    // Anchor both names deliberately rather than letting the old label fall into
-    // whichever half happens to contain it.
-    const across: Axis = axis === 'x' ? 'y' : 'x'
-    const middle = Math.round((crossings[0]!.point[across] + crossings[1]!.point[across]) / 2)
-    const anchor = (value: number) =>
-      axis === 'x' ? { x: value, y: middle } : { x: middle, y: value }
-
-    const cut = anchor(Math.round((fromLow ? low + at : high + at) / 2))
-    const rest = anchor(Math.round((fromLow ? at + high : low + at) / 2))
-
-    settle(draft, level, source, args.name, args.material, cut, rest)
+    // The cut runs right across, going round any step in the room: a room that
+    // is not a rectangle comes apart along the line all the same, and what is
+    // cut off may be L-shaped — which is what an L-shaped room is.
+    partitionAlong(draft, level, source, axis, at, args.thickness, 'add-room')
+    settleCut(draft, level, source, args.name, args.material, axis, at, fromLow)
   },
 })
+
+/**
+ * After a cut right across: whatever lies on the near side of the line is the
+ * new room, whatever lies beyond keeps the old name — decided by where each
+ * face is, not by where an old anchor happened to fall. A stepped room can
+ * come apart into more than two faces; the extra ones on the near side are
+ * numbered after the new name.
+ */
+function settleCut(
+  draft: Parameters<typeof roomsOf>[0],
+  level: string,
+  source: Room,
+  name: string,
+  material: string,
+  axis: Axis,
+  at: number,
+  fromLow: boolean,
+): void {
+  const faces = roomsOf(draft, level).filter((face) => !face.id || face.id === source.id)
+  const near = faces.filter((face) => (fromLow ? face.centre[axis] < at : face.centre[axis] > at))
+  const far = faces.filter((face) => !near.includes(face))
+  if (near.length === 0 || far.length === 0) {
+    throw new CommandError(`add-room: the cut left nothing on one side of it`)
+  }
+
+  const inside = (face: Room) =>
+    anchorInside(
+      face.nodes.map((node) => draft.nodes[node]!),
+      face.area,
+    )
+
+  near.forEach((face, index) => {
+    const id = allocateId(draft.rooms, 'r')
+    draft.rooms[id] = {
+      id,
+      level,
+      ...inside(face),
+      name: index === 0 ? name : `${name} ${index + 1}`,
+      floor: material,
+    }
+  })
+
+  const rest = far.reduce((biggest, face) => (face.area > biggest.area ? face : biggest))
+  const previous = source.id ? draft.rooms[source.id] : undefined
+  if (previous) {
+    const anchor = inside(rest)
+    previous.x = anchor.x
+    previous.y = anchor.y
+  }
+  far
+    .filter((face) => face !== rest)
+    .forEach((face, index) => {
+      const id = allocateId(draft.rooms, 'r')
+      draft.rooms[id] = {
+        id,
+        level,
+        ...inside(face),
+        name: `${source.name ?? 'room'} ${index + 2}`,
+        floor: source.floor ?? material,
+      }
+    })
+}
 
 /**
  * Records the room that was cut out and moves the one it came from into what is

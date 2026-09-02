@@ -1,5 +1,5 @@
 import type { HouseDocument, Side } from '@houseit/core/document'
-import { centroidOf } from '@houseit/geometry/centroid'
+import { anchorInside } from '@houseit/geometry/anchor'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { SIDES, sideRun, wallsOnSide } from '@houseit/geometry/sides'
@@ -220,9 +220,9 @@ export function reanchor(
     const record = draft.rooms[id]
     if (!face || !record) continue
     const polygon = face.nodes.map((node) => draft.nodes[node]!)
-    const centre = centroidOf(polygon, face.area)
-    record.x = Math.round(centre.x)
-    record.y = Math.round(centre.y)
+    const anchor = anchorInside(polygon, face.area)
+    record.x = anchor.x
+    record.y = anchor.y
   }
 }
 

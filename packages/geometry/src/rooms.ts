@@ -28,7 +28,7 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
 
   return findFaces(doc, level).map((face) => {
     const polygon = face.nodes.map((id) => doc.nodes[id]!)
-    const found = stored.find((candidate) => contains(polygon, candidate.x, candidate.y))
+    const found = stored.find((candidate) => containsPoint(polygon, candidate.x, candidate.y))
     const room: Room = { ...face, centre: centroidOf(polygon, face.area) }
     return found
       ? { ...room, id: found.id, name: found.name, floor: found.floor, kind: found.kind }
@@ -41,7 +41,7 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
  * taken from a geometry library because a face may repeat a vertex where a wall
  * dangles into the room, which is not a simple polygon.
  */
-function contains(polygon: { x: number; y: number }[], x: number, y: number): boolean {
+export function containsPoint(polygon: { x: number; y: number }[], x: number, y: number): boolean {
   let inside = false
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
     const a = polygon[i]!

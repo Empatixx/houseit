@@ -114,15 +114,20 @@ const lFloor = () => {
   return { doc: runScript(doc, L_FLOOR), level }
 }
 
-test('cutting off a stepped side is refused rather than left with a tail', () => {
-  const { doc } = lFloor()
+test('cutting off a stepped side goes round the step, and the piece may be L-shaped', () => {
+  const { doc, level } = lFloor()
+  const whole = named(doc, level, 'dům')!.area
 
-  expect(() =>
-    runScript(
-      doc,
-      'add-room --material natural-oak --name ložnice --from dům --side north --width 3.4m',
-    ),
-  ).toThrow(/north side of dům/)
+  const next = runScript(
+    doc,
+    'add-room --material natural-oak --name ložnice --from dům --side north --width 3.4m',
+  )
+
+  const rooms = roomsOf(next, level)
+  expect(rooms).toHaveLength(2)
+  expect(rooms.map((room) => room.area).reduce((a, b) => a + b)).toBe(whole)
+  expect(named(next, level, 'ložnice')).toBeDefined()
+  expect(named(next, level, 'dům')).toBeDefined()
 })
 
 test('a straight side of a non-rectangular room can still be cut', () => {
