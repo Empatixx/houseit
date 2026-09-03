@@ -3,9 +3,9 @@ import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry } from 'three'
 import { aimAt, finishDrawing, putDown } from '../edit/draw-commands'
+import { pick } from '../edit/pick'
 import { placeArmed } from '../edit/place-commands'
 import { hoverStore, useHover } from '../store/hover'
-import { selectionStore } from '../store/selection'
 import { useDocument, usePlanDoc } from '../store/store'
 import { toolStore } from '../store/tool'
 import { floorTexture } from './floor-texture'
@@ -93,7 +93,7 @@ export function RoomFloors() {
               }
               return
             }
-            selectionStore.getState().select(floor.id ? { kind: 'room', id: floor.id } : null)
+            pick(floor.id ? { kind: 'room', id: floor.id } : null)
           }}
         >
           {floor.texture ? (
@@ -111,7 +111,7 @@ export function RoomFloors() {
             rotation={[-Math.PI / 2, 0, 0]}
             position={[0, 0.015, 0]}
           >
-            <meshBasicMaterial color="#2f6fed" transparent opacity={0.08} depthWrite={false} />
+            <meshBasicMaterial color="#714cb6" transparent opacity={0.08} depthWrite={false} />
           </mesh>
         ) : null,
       )}

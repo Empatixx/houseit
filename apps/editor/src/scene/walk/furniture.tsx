@@ -5,8 +5,9 @@ import { type Surface, surfaceOf } from '@houseit/core/surfaces'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { footprintOf, type Spot, standingAt } from '@houseit/geometry/standing'
 import { useMemo } from 'react'
+import { pick } from '../../edit/pick'
 import { EMPHASIS } from '../../store/hover'
-import { selectionStore, useSelection } from '../../store/selection'
+import { useSelection } from '../../store/selection'
 import { useDocument, usePlanDoc } from '../../store/store'
 import { dragged } from '../drag'
 import { useSymbol } from '../furniture/use-symbol'
@@ -96,7 +97,7 @@ function Block({ object, spot, surface, symbol, rest }: BlockProps) {
         onClick={(event) => {
           if (dragged(event)) return
           event.stopPropagation()
-          selectionStore.getState().select({ kind: 'object', id: object.id })
+          pick({ kind: 'object', id: object.id })
         }}
       >
         <boxGeometry args={[object.width * MM, height * MM, object.depth * MM]} />

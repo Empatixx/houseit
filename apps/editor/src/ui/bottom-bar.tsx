@@ -46,22 +46,28 @@ import { Separator } from '@/components/ui/separator'
 import { Toggle } from '@/components/ui/toggle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { type Armed, toolStore, useTool } from '../store/tool'
+import { useLeftEdge, useRightEdge } from './edges'
 import { useCover } from './use-cover'
 
 /**
  * The bar along the bottom of the plan: what the next click does. Select is
  * the plain state; Furniture and Structure open upwards, a category to the
  * side, and arm what is chosen — the next click on a room puts it there.
+ * It is centred on the part of the plan nothing stands over, so it moves
+ * across as the rail and the panel come out and fold away.
  */
 export function BottomBar() {
   const armed = useTool((state) => state.armed)
   const label = armedLabel(armed)
   const ref = useCover<HTMLDivElement>('bottom')
+  const left = useLeftEdge()
+  const right = useRightEdge()
 
   return (
     <div
       ref={ref}
-      className="pointer-events-none absolute inset-x-0 bottom-4 flex flex-col items-center gap-2"
+      style={{ left, right }}
+      className="pointer-events-none absolute bottom-4 flex flex-col items-center gap-2 transition-[left,right] duration-200 ease-linear"
     >
       {label ? (
         <Badge variant="secondary" className="pointer-events-auto gap-1 pr-1">
@@ -79,7 +85,7 @@ export function BottomBar() {
           </button>
         </Badge>
       ) : null}
-      <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border bg-card p-1.5 shadow-md">
+      <div className="glass pointer-events-auto flex items-center gap-1 rounded-2xl border p-1.5">
         <FurnitureMenu />
         <StructureMenu />
         <Separator orientation="vertical" className="mx-1 h-6!" />

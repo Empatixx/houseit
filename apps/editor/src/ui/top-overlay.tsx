@@ -2,40 +2,44 @@ import { Maximize2Icon, Redo2Icon, SettingsIcon, Undo2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useMode } from '../store/mode'
 import { selectionStore, useSelection } from '../store/selection'
 import { documentStore, useDocument } from '../store/store'
 import { viewStore } from '../store/view'
-import { INSPECTOR_WIDTH } from './inspector'
+import { usePanelShown, useRightEdge } from './edges'
 import { Minimap } from './minimap'
+import { ModeTabs } from './mode-tabs'
 import { useCover } from './use-cover'
 
 /**
  * What floats over the plan's top right corner: one small card with the two
- * arrows that take an edit back and forward, and another with the gear for
- * what the plan shows and the button for the panel. The panel floats over
- * the same corner, so while it is out the cards stand to the left of it.
- * Walking through the plan, the minimap hangs under them.
+ * arrows that take an edit back and forward, another with the gear for what
+ * the plan shows and the button for the panel, and under them the tabs for
+ * the plan from above or walked through. The panel floats over the same
+ * corner, so while it is out the cards stand to the left of it.
+ * Walking through the plan, the minimap hangs under the tabs.
  */
 export function TopOverlay() {
   const canUndo = useDocument((state) => state.canUndo)
   const canRedo = useDocument((state) => state.canRedo)
   const showAll = useSelection((state) => state.showAll)
   const walking = useMode((state) => state.mode === '3d')
-  const { open } = useSidebar()
+  const edge = useRightEdge()
+  const shown = usePanelShown()
+  const picked = useSelection((state) => state.selected !== null)
   const ref = useCover<HTMLDivElement>('top')
 
   return (
     <div
       ref={ref}
-      style={{ right: open ? `calc(${INSPECTOR_WIDTH} + 1.5rem)` : '0.75rem' }}
+      style={{ right: edge }}
       className="pointer-events-none absolute top-3 flex flex-col items-end gap-2 transition-[right] duration-200 ease-linear"
     >
       <div className="flex items-center gap-2">
-        <div className="pointer-events-auto flex h-10 items-center gap-0.5 rounded-xl border bg-card px-1 shadow-md">
+        <div className="glass pointer-events-auto flex h-10 items-center gap-0.5 rounded-xl border px-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -65,7 +69,7 @@ export function TopOverlay() {
             <TooltipContent>Redo ⇧⌘Z</TooltipContent>
           </Tooltip>
         </div>
-        <div className="pointer-events-auto flex h-10 items-center gap-0.5 rounded-xl border bg-card px-1 shadow-md">
+        <div className="glass pointer-events-auto flex h-10 items-center gap-0.5 rounded-xl border px-1">
           <Popover>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -103,12 +107,13 @@ export function TopOverlay() {
           </Popover>
           <Tooltip>
             <TooltipTrigger asChild>
-              <SidebarTrigger aria-label="Toggle the panel" />
+              <SidebarTrigger aria-label="Toggle the panel" disabled={!shown && !picked} />
             </TooltipTrigger>
             <TooltipContent>Panel</TooltipContent>
           </Tooltip>
         </div>
       </div>
+      <ModeTabs />
       {walking ? <Minimap /> : null}
     </div>
   )

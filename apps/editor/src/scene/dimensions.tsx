@@ -15,8 +15,8 @@ import { useSelection } from '../store/selection'
 import { useDocument, usePlanDoc } from '../store/store'
 import { MM, toWorld } from './plan-coordinates'
 
-/** The blue the reference picks things out in, and the sheet the labels sit on. */
-const INK = '#2f6fed'
+/** The violet the plan picks things out in. */
+const INK = '#714cb6'
 /** Drawn above everything: walls stand 2.8 m tall, and a dimension is read over them. */
 const ABOVE = 3200
 

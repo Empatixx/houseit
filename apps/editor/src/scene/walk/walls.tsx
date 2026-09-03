@@ -1,6 +1,7 @@
 import type { HouseDocument, Opening, Wall } from '@houseit/core/document'
+import { pick } from '../../edit/pick'
 import { EMPHASIS } from '../../store/hover'
-import { selectionStore, useSelection } from '../../store/selection'
+import { useSelection } from '../../store/selection'
 import { useDocument, usePlanDoc } from '../../store/store'
 import { dragged } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
@@ -88,13 +89,11 @@ function StandingWall({ wall, doc, degrees, picked, pickedOpening }: StandingWal
     }
   }
 
-  const pick =
+  const picker =
     (opening: Opening | undefined) => (event: { delta: number; stopPropagation: () => void }) => {
       if (dragged(event)) return
       event.stopPropagation()
-      selectionStore
-        .getState()
-        .select(opening ? { kind: 'opening', id: opening.id } : { kind: 'wall', id: wall.id })
+      pick(opening ? { kind: 'opening', id: opening.id } : { kind: 'wall', id: wall.id })
     }
 
   return (
@@ -106,7 +105,7 @@ function StandingWall({ wall, doc, degrees, picked, pickedOpening }: StandingWal
             key={piece.key}
             position={toWorld(at.x, at.y, wall.baseOffset + piece.base + piece.height / 2)}
             rotation={[0, angle, 0]}
-            onClick={pick(undefined)}
+            onClick={picker(undefined)}
           >
             <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
             <meshLambertMaterial color={picked ? EMPHASIS.picked.fill : PAINT.wall} />
@@ -123,7 +122,7 @@ function StandingWall({ wall, doc, degrees, picked, pickedOpening }: StandingWal
             key={piece.key}
             position={toWorld(at.x, at.y, wall.baseOffset + opening.height / 2)}
             rotation={[0, angle + (piece.turn ?? 0), 0]}
-            onClick={pick(opening)}
+            onClick={picker(opening)}
           >
             <boxGeometry args={[piece.length * MM, opening.height * MM, piece.thickness * MM]} />
             <meshLambertMaterial
@@ -152,7 +151,7 @@ function StandingWall({ wall, doc, degrees, picked, pickedOpening }: StandingWal
                 wall.baseOffset + opening.sillHeight + opening.height / 2,
               )}
               rotation={[0, angle, 0]}
-              onClick={pick(opening)}
+              onClick={picker(opening)}
             >
               <boxGeometry args={[opening.width * MM, opening.height * MM, 0.04]} />
               <meshLambertMaterial

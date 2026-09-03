@@ -2,7 +2,7 @@ import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
 /** What is picked on the plan: a room by its record, a thing standing in one, a door or window, or a wall. */
-type Selection =
+export type Selection =
   | { kind: 'room'; id: string }
   | { kind: 'object'; id: string }
   | { kind: 'opening'; id: string }

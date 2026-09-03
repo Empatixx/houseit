@@ -8,9 +8,10 @@ import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import { aimAt, putDown } from '../../edit/draw-commands'
 import { moveTo, turnTo } from '../../edit/object-commands'
+import { pick } from '../../edit/pick'
 import { placeArmedIn } from '../../edit/place-commands'
 import { EMPHASIS, hoverStore, useHover } from '../../store/hover'
-import { selectionStore, useSelection } from '../../store/selection'
+import { useSelection } from '../../store/selection'
 import { useDocument, usePlanDoc } from '../../store/store'
 import { toolStore } from '../../store/tool'
 import { dragged, pointOnPlan } from '../drag'
@@ -128,7 +129,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
             }
             return
           }
-          selectionStore.getState().select({ kind: 'object', id: object.id })
+          pick({ kind: 'object', id: object.id })
         }}
         onPointerDown={(event) => {
           if (toolStore.getState().armed?.kind === 'wall') return

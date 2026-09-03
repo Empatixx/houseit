@@ -56,38 +56,39 @@ body,
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* Warm paper and ink, and a violet to pick things out in. */
+  --background: #ffffff;
+  --foreground: #292827;
+  --card: #ffffff;
+  --card-foreground: #292827;
+  --popover: #ffffff;
+  --popover-foreground: #292827;
+  --primary: #714cb6;
+  --primary-foreground: #ffffff;
+  --secondary: #e8e0ff;
+  --secondary-foreground: #3b2a6b;
+  --muted: #f2f0eb;
+  --muted-foreground: #6f6a64;
+  --accent: #f0ebfa;
+  --accent-foreground: #292827;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: #dedbd5;
+  --input: #dedbd5;
+  --ring: #a98fe0;
+  --chart-1: #714cb6;
+  --chart-2: #0c4243;
+  --chart-3: #bf6193;
+  --chart-4: #d4c7ff;
+  --chart-5: #292827;
   --radius: 0.625rem;
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #292827;
+  --sidebar-primary: #714cb6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0ebfa;
+  --sidebar-accent-foreground: #292827;
+  --sidebar-border: #dedbd5;
+  --sidebar-ring: #a98fe0;
 }
 
 .dark {
@@ -134,4 +135,19 @@ body,
   html {
     @apply font-sans;
   }
+}
+
+/*
+ * Frosted glass, for everything that floats over the plan: the plan shows
+ * through it, blurred, so a card never quite hides what is under it.
+ */
+@utility glass {
+  border-color: color-mix(in oklab, white 75%, var(--border));
+  background-color: color-mix(in oklab, var(--card) 74%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 0 0 1px rgba(41, 40, 39, 0.05),
+    0 10px 30px -14px rgba(41, 40, 39, 0.3);
 }

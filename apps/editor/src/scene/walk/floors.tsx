@@ -2,7 +2,8 @@ import { floorMaterial } from '@houseit/core/floor-materials'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { Shape, ShapeGeometry } from 'three'
-import { selectionStore, useSelection } from '../../store/selection'
+import { pick } from '../../edit/pick'
+import { useSelection } from '../../store/selection'
 import { useDocument, usePlanDoc } from '../../store/store'
 import { dragged } from '../drag'
 import { floorTexture } from '../floor-texture'
@@ -57,7 +58,7 @@ export function Floors() {
             onClick={(event) => {
               if (dragged(event)) return
               event.stopPropagation()
-              selectionStore.getState().select(floor.id ? { kind: 'room', id: floor.id } : null)
+              pick(floor.id ? { kind: 'room', id: floor.id } : null)
             }}
           >
             {floor.texture ? (

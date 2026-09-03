@@ -4,6 +4,7 @@ import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import { aimAt, putDown } from '../edit/draw-commands'
 import { moveOpeningTo } from '../edit/opening-commands'
+import { pick } from '../edit/pick'
 import { endPreview } from '../edit/preview'
 import {
   moveWallBy,
@@ -14,7 +15,7 @@ import {
 } from '../edit/wall-commands'
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
 import { usePreview } from '../store/preview'
-import { selectionStore, useSelection } from '../store/selection'
+import { useSelection } from '../store/selection'
 import { toolStore } from '../store/tool'
 import { dragged, pointOnPlan } from './drag'
 import { MM, toWorld } from './plan-coordinates'
@@ -148,11 +149,7 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
                 putDown({ x: event.point.x / MM, y: -event.point.z / MM })
                 return
               }
-              selectionStore
-                .getState()
-                .select(
-                  opening ? { kind: 'opening', id: opening.id } : { kind: 'wall', id: wall.id },
-                )
+              pick(opening ? { kind: 'opening', id: opening.id } : { kind: 'wall', id: wall.id })
             }}
             onPointerDown={(event) => {
               if (toolStore.getState().armed?.kind === 'wall') return

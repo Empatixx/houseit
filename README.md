@@ -113,26 +113,32 @@ dragged to where the wardrobe would stop it opening, snaps back with the command
 refusal, every edit undoes, and the agent's `describe` tells it what was done by hand.
 Where there are two of a kind, `--nth 2` says which; `describe` numbers them the same way.
 
-The inspector beside the plan shows what is picked and lets it be changed: a room's name,
+The panel down the plan's right edge shows what is picked and lets it be changed: a room's name,
 kind and floor, a thing's finish, size and turn, a door's kind and width, a window's width,
 height and sill. Each field is one command — `rename-room`, `set-room-kind`, `set-floor`,
 `set-surface`, `resize-object`, `turn-object`, `set-door`, `set-window` — and a field the
 plan refuses goes back to what the plan says, with the refusal as a toast.
 
-What is picked goes blue where it is drawn — a room's walls and floor, a thing's picture,
-a door, a wall — and whatever the pointer is over goes a paler blue first. A picked thing
+What is picked goes violet where it is drawn — a room's walls and floor, a thing's picture,
+a door, a wall — and whatever the pointer is over goes a paler violet first. A picked thing
 has a handle at its front to turn it by; a picked wall stub has one at its free end to pull
 it. A wall carried across the plan takes the rooms with it as it goes — the floors either
 side, the walls that meet it, the labels — because the drawing runs the command the drop
 would run on a copy of the plan and draws that; so does a stub being pulled, and a wall
-being drawn. Two small cards over the plan's top right corner hold undo and redo, and a
-gear for the measurements and for fitting the plan to the window. The inspector floats
-over the plan's right edge rather than beside it, so folding it away — the gear's button,
-⌘B, or a drag on its edge — moves nothing underneath. Fit frames the plan in the part of
-the canvas nothing floats over, and a picture taken for the agent is of that part. The
-editor is built on shadcn/ui, on a paper of dots.
+being drawn. Everything but the plan floats over it in frosted glass, so nothing that
+opens or folds away can move the plan. Down the left edge is the rail: the mark at its
+head and a column of tabs under it — Rooms, Levels, Issues, Catalogue, with nothing behind
+them yet — folded to its icons or pulled out to their names by a drag on its edge. Two
+small cards over the top right corner hold undo and redo, and a gear for the measurements
+and for fitting the plan to the window; under them are the tabs for 2D and 3D. The panel
+comes out when something is clicked and goes when the pick is cleared; the gear's button,
+⌘B, or a drag on its edge folds it away until the next click. The bar along the foot is
+centred on the part of the plan nothing stands over, and moves across as the rail and the
+panel come and go. Fit frames the plan in that part too, and a picture taken for the agent
+is of it. The editor is built on shadcn/ui in the colours of warm paper, ink and violet,
+on a paper of dots.
 
-The tabs at the top left switch to 3D: the same plan walked through at eye height. Walls
+The 3D tab switches to the same plan walked through at eye height. Walls
 stand at their real height with a sill under every window and a head over every opening,
 the glass in the windows, and doors standing open the way the plan draws them. The
 furniture is modelled, type by type, from slabs, drums and balls in the thing's own frame
@@ -145,8 +151,8 @@ colour (`scene/walk/finish.ts`). A type without a model yet is the box it takes 
 plan symbol on top. Every model was built and then looked at, from a couple of metres off in
 the walk, before the next. W, A, S, D walk and
 sidestep, the arrows walk and turn, shift runs, a drag turns the head, and a click picks
-whatever is clicked, for the inspector. A minimap under the undo card shows the plan with
-a blue dot where you stand and a wedge as wide as what you see; a click on it moves you
+whatever is clicked, for the panel. A minimap under the tabs shows the plan with a violet
+dot where you stand and a wedge as wide as what you see; a click on it moves you
 there. Nothing is dragged in 3D — it is a way of looking, not a second way of editing —
 and a picture asked for over MCP always comes as a plan.
 

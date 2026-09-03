@@ -10,8 +10,8 @@ import { Walls } from '../scene/walls'
 import { useDocument, usePlanDoc } from '../store/store'
 import { useWalk, walkStore } from '../store/walk'
 
-/** The blue the plan picks things out in; the walker is drawn in it. */
-const BLUE = '#2f6fed'
+/** The violet the plan picks things out in; the walker is drawn in it. */
+const VIOLET = '#714cb6'
 /** Room left round the plan in the minimap, in millimetres. */
 const MARGIN = 600
 /** How far the wedge of what is seen reaches, in millimetres. */
@@ -56,7 +56,7 @@ export function Minimap() {
   }
 
   return (
-    <div className="pointer-events-auto rounded-xl border bg-card p-1.5 shadow-md">
+    <div className="glass pointer-events-auto rounded-xl border p-1.5">
       <div
         role="button"
         tabIndex={0}
@@ -134,7 +134,7 @@ function Standing() {
     <group position={toWorld(walker.at.x, walker.at.y, OVER)}>
       <mesh rotation={[-Math.PI / 2, 0, -walker.yaw]}>
         <shapeGeometry args={[wedge]} />
-        <meshBasicMaterial color={BLUE} transparent opacity={0.3} depthWrite={false} />
+        <meshBasicMaterial color={VIOLET} transparent opacity={0.3} depthWrite={false} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
         <circleGeometry args={[0.3, 24]} />
@@ -142,7 +142,7 @@ function Standing() {
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
         <circleGeometry args={[0.22, 24]} />
-        <meshBasicMaterial color={BLUE} />
+        <meshBasicMaterial color={VIOLET} />
       </mesh>
     </group>
   )
