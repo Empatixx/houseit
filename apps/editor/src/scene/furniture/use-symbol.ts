@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { Texture } from 'three'
 import { symbolTexture } from './symbol-texture'
 
-/** The rasterised symbol, once it has loaded; nothing until then. */
+/** The rasterised symbol, once it has loaded; nothing until then, and nothing for no symbol. */
 export function useSymbol(
   symbol: string,
   surface: Surface,
@@ -14,6 +14,10 @@ export function useSymbol(
 
   useEffect(() => {
     let live = true
+    if (!symbol) {
+      setTexture(undefined)
+      return
+    }
     symbolTexture(symbol, fill, size)
       .then((loaded) => {
         if (live) setTexture(loaded)

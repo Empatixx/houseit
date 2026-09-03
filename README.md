@@ -134,9 +134,16 @@ editor is built on shadcn/ui, on a paper of dots.
 
 The tabs at the top left switch to 3D: the same plan walked through at eye height. Walls
 stand at their real height with a sill under every window and a head over every opening,
-the glass in the windows, and doors standing open the way the plan draws them; the
-furniture is the box each thing takes up, as tall as its type says (`core/heights.ts`),
-in its finish, with its plan symbol laid on top so it still reads. W, A, S, D walk and
+the glass in the windows, and doors standing open the way the plan draws them. The
+furniture is modelled, type by type, from slabs, drums and balls in the thing's own frame
+(`scene/walk/models.tsx`): a bed is a frame, a mattress, a duvet, pillows and a headboard,
+a kitchen is runs of cabinets under a worktop with handles along the front, a dining table
+has its chairs round it with their backs outward, and a lamp stands on whatever is under
+it. Each is as tall as its type says (`core/heights.ts`) and in its finish — the wood and
+stone finishes borrow the floor photographs for their grain, tinted towards the finish's
+colour (`scene/walk/finish.ts`). A type without a model yet is the box it takes up with its
+plan symbol on top. Every model was built and then looked at, from a couple of metres off in
+the walk, before the next. W, A, S, D walk and
 sidestep, the arrows walk and turn, shift runs, a drag turns the head, and a click picks
 whatever is clicked, for the inspector. A minimap under the undo card shows the plan with
 a blue dot where you stand and a wedge as wide as what you see; a click on it moves you

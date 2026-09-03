@@ -3,7 +3,7 @@ import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
 /** Somebody standing in the plan: where, which way they face, and how far up or down they look. */
-export type Walker = {
+type Walker = {
   /** Where they stand, in plan millimetres. */
   at: Point
   /** Which way they face, in radians clockwise from north. */
