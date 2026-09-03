@@ -1,8 +1,7 @@
 import { FLOOR_MATERIAL_IDS } from '@houseit/core/floor-materials'
-import { roomsOf } from '@houseit/geometry/rooms'
 import { z } from 'zod'
-import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
+import { levelOf, roomNamed } from './resolve'
 
 /**
  * Lays a floor in one room.
@@ -27,16 +26,8 @@ export const setFloor = defineCommand({
     level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = args.level ?? Object.keys(draft.levels)[0]
-    if (!level || !draft.levels[level]) {
-      throw new CommandError(`set-floor: unknown level ${args.level ?? '<none>'}`)
-    }
-
-    const room = roomsOf(draft, level).find((candidate) => candidate.name === args.room)
-    if (!room?.id) {
-      throw new CommandError(`set-floor: there is no room called ${args.room}`)
-    }
-
+    const level = levelOf(draft, args.level, 'set-floor')
+    const room = roomNamed(draft, level, args.room, 'set-floor')
     draft.rooms[room.id]!.floor = args.material
   },
 })

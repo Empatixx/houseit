@@ -1,8 +1,9 @@
 import { layerOf, OBJECT_TYPE_IDS, objectType } from '@houseit/core/object-types'
 import { SURFACE_IDS } from '@houseit/core/surfaces'
+import { sideRun } from '@houseit/geometry/sides'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
-import { type Along, along, alongSide } from './along-schema'
+import { along, alongSide, fractionAcross, fractionOf, windowOf } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
@@ -35,8 +36,8 @@ export const addObject = defineCommand({
      * other place and refused if something is there.
      */
     along: along().optional(),
-    /** Standing free: how far up the room, 0 south and 1 north. Left out, the middle. */
-    across: z.coerce.number().min(0).max(1).optional(),
+    /** Standing free: how far up the room, a fraction (0 south, 1 north) or a length from the south. Left out, the middle. */
+    across: along().optional(),
     width: length().optional(),
     depth: length().optional(),
     surface: z.enum(SURFACE_IDS as [string, ...string[]]).optional(),
@@ -67,6 +68,10 @@ export const addObject = defineCommand({
 
     const shape = { type: type.id, width, depth, turn }
     const taken = takenBy(shape)
+    const across =
+      args.across === undefined ? undefined : fractionAcross(draft, room, args.across, 'add-object')
+    const run = at ? sideRun(draft, level, room, at.side, at.nth) : undefined
+    const window = at && run ? windowOf(run, at, room, 'add-object') : undefined
 
     const layer = layerOf(type.id)
     const abuts = type.abuts ?? false
@@ -77,13 +82,13 @@ export const addObject = defineCommand({
               ...(at !== undefined ? { against: at.side } : {}),
               ...(at?.nth !== undefined ? { againstNth: at.nth } : {}),
               along: at
-                ? alongSide(draft, level, room, at.side, at.nth, args.along, 'add-object')
-                : freeAlong(args.along, freeWidth(draft, room)),
-              ...(args.across !== undefined ? { across: args.across } : {}),
+                ? alongSide(draft, level, room, at, args.along, 'add-object')
+                : fractionOf(args.along, { length: freeWidth(draft, room) }, 'add-object'),
+              ...(across !== undefined ? { across } : {}),
             },
           ]
         : at !== undefined
-          ? placeAgainst(draft, level, room, at.side, taken.width, layer, abuts, at.nth)
+          ? placeAgainst(draft, level, room, at.side, taken.width, layer, abuts, at.nth, window)
           : type.stands === 'wall'
             ? placeSomewhereAgainst(draft, level, room, taken.width, layer, abuts)
             : placeFree(draft, room, taken.width, layer)
@@ -124,15 +129,3 @@ export const addObject = defineCommand({
     }
   },
 })
-
-/** Standing free, an `--along` is across the room's width, west to east. */
-function freeAlong(spec: Along, width: number): number {
-  if ('fraction' in spec) return spec.fraction
-  const from = spec.length < 0 ? width + spec.length : spec.length
-  if (from < 0 || from > width) {
-    throw new CommandError(
-      `add-object: ${Math.abs(spec.length)} mm is beyond the ${width} mm of the room`,
-    )
-  }
-  return width === 0 ? 0 : from / width
-}

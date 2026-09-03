@@ -11,6 +11,7 @@ import { roomsOf } from '@houseit/geometry/rooms'
 import type { createDocumentStore } from '../store/document-store'
 import { modeStore } from '../store/mode'
 import { selectionStore } from '../store/selection'
+import { shellStore } from '../store/shell'
 import { clearOf, viewStore } from '../store/view'
 
 declare global {
@@ -54,8 +55,10 @@ export function installFloorplanBridge(store: ReturnType<typeof createDocumentSt
   const show = (view: ViewRequest): ShowResult => {
     const { doc, level } = store.getState()
     const selection = selectionStore.getState()
-    // A picture for the agent is a plan, whatever the tab was looking at.
+    // A picture for the agent is a plan, whatever the tab was looking at, and
+    // with nothing over it: the panel folds until the next click.
     modeStore.getState().setMode('2d')
+    shellStore.getState().showPanel(false)
 
     if (view.room === undefined) {
       selection.select(null)
@@ -64,7 +67,9 @@ export function installFloorplanBridge(store: ReturnType<typeof createDocumentSt
       return { ok: true, clear: clear() }
     }
 
-    const room = roomsOf(doc, level).find((candidate) => candidate.name === view.room)
+    const room = roomsOf(doc, level).find(
+      (candidate) => candidate.name === view.room || candidate.id === view.room,
+    )
     if (!room?.id) return { ok: false, error: `there is no room called ${view.room}` }
     const roomId = room.id
 

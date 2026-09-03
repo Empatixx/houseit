@@ -258,6 +258,7 @@ function standing(doc: HouseDocument, level: string, rooms: Room[]): Problem[] {
     for (const object of objectsIn(doc, level, room)) {
       const spot = {
         ...(object.against ? { against: object.against } : {}),
+        ...(object.againstNth !== undefined ? { againstNth: object.againstNth } : {}),
         along: object.along,
         ...(object.across !== undefined ? { across: object.across } : {}),
       }

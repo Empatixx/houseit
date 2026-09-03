@@ -1,4 +1,4 @@
-import type { HouseDocument, Side } from '@houseit/core/document'
+import type { HouseDocument } from '@houseit/core/document'
 import { OBJECT_TYPE_IDS, objectType } from '@houseit/core/object-types'
 import {
   interiorSize,
@@ -12,6 +12,7 @@ import { sideFacing, sideRun, sideRuns } from '@houseit/geometry/sides'
 import { freeSpans } from '@houseit/geometry/spans'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { z } from 'zod'
+import { type At, windowOf } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { levelOf, roomNamed, SIDE_NAMES, sideNamed, thingNamed } from './resolve'
@@ -59,8 +60,7 @@ export const measure = defineCommand({
       return measureObject(draft, level, room, thingNamed(draft, level, args, 'measure').object)
     }
     if (args.side !== undefined || args.wall !== undefined) {
-      const at = sideNamed(draft, level, room, args, 'measure')
-      return measureSide(draft, level, room, at.side, at.nth)
+      return measureSide(draft, level, room, sideNamed(draft, level, room, args, 'measure'))
     }
     return measureRoom(draft, level, room)
   },
@@ -95,15 +95,20 @@ function measureRoom(doc: HouseDocument, level: string, room: Room) {
  * west or south end, and the stretches left. The `from` and `to` are the
  * millimetres a `--along` of the length lands on.
  */
-function measureSide(doc: HouseDocument, level: string, room: Room, side: Side, nth?: number) {
-  const run = sideRun(doc, level, room, side, nth)
+function measureSide(doc: HouseDocument, level: string, room: Room, at: At) {
+  const { side } = at
+  const run = sideRun(doc, level, room, side, at.nth)
   if (!run) throw new CommandError(`measure: ${room.name} has no wall facing ${side}`)
+  // One wall named: the tape runs along that wall alone, from its own start.
+  const window = windowOf(run, at, room, 'measure') ?? { from: 0, to: run.length }
   const length = run.length || 1
   const unit = { x: (run.to.x - run.from.x) / length, y: (run.to.y - run.from.y) / length }
   const project = (point: Point) =>
-    (point.x - run.from.x) * unit.x + (point.y - run.from.y) * unit.y
+    (point.x - run.from.x) * unit.x + (point.y - run.from.y) * unit.y - window.from
+  const within = ({ from, to }: { from: number; to: number }) =>
+    to > 0 && from < window.to - window.from
 
-  const walls = new Set(run.walls.map((wall) => wall.wall))
+  const walls = new Set(at.wall === undefined ? run.walls.map((wall) => wall.wall) : [at.wall])
   const openings = Object.values(doc.openings)
     .filter((opening) => walls.has(opening.wall))
     .flatMap((opening) => {
@@ -121,6 +126,7 @@ function measureSide(doc: HouseDocument, level: string, room: Room, side: Side, 
         },
       ]
     })
+    .filter(within)
 
   const longest = sideRun(doc, level, room, side)
   const objects = objectsIn(doc, level, room)
@@ -138,9 +144,10 @@ function measureSide(doc: HouseDocument, level: string, room: Room, side: Side, 
         },
       ]
     })
+    .filter(within)
 
   const taken = [...openings, ...objects].map(({ from, to }) => ({ from, to }))
-  const free = freeSpans(run.length, taken).map((span) => ({
+  const free = freeSpans(window.to - window.from, taken).map((span) => ({
     from: Math.round(span.from),
     to: Math.round(span.to),
   }))
@@ -149,8 +156,8 @@ function measureSide(doc: HouseDocument, level: string, room: Room, side: Side, 
     room: room.name,
     side,
     ...(sideRuns(doc, level, room, side).length > 1 ? { nth: run.nth } : {}),
-    walls: run.walls.map((wall) => wall.wall),
-    length: run.length,
+    walls: [...walls],
+    length: window.to - window.from,
     thickness: run.thickness,
     openings,
     objects,

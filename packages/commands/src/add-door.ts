@@ -60,13 +60,24 @@ export const addDoor = defineCommand({
             room,
             at.side,
             width,
-            alongSide(draft, level, room, at.side, at.nth, args.along, 'add-door'),
+            alongSide(draft, level, room, at, args.along, 'add-door'),
             'add-door',
             swings,
             undefined,
             at.nth,
           )
-        : placeOpening(draft, level, room, at.side, width, 'add-door', swings, undefined, at.nth)
+        : placeOpening(
+            draft,
+            level,
+            room,
+            at.side,
+            width,
+            'add-door',
+            swings,
+            undefined,
+            at.nth,
+            at.wall,
+          )
     const id = allocateId(draft.openings, 'o')
     draft.openings[id] = {
       id,

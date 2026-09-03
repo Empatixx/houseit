@@ -18,7 +18,7 @@ const EXTERIOR_THICKNESS = 300
  */
 export const floorShape = defineCommand({
   name: 'floor-shape',
-  summary: `Draw the outline of a floor, from a standard shape or by walking round it (${FLOOR_MATERIAL_IDS.join(', ')})`,
+  summary: `Draw the outline of a floor: --kind rectangle|l|u|t with --width and --depth (l and u take --notch-width and --notch-depth, t takes --bar-depth and --stem-width), or --walk round it; floors: ${FLOOR_MATERIAL_IDS.join(', ')}`,
   args: z.object({
     kind: z.enum(['rectangle', 'l', 'u', 't']).optional(),
     /** Any shape at all, as legs: "12m e, 8m n, 4m w, 3m n, 8m w". */
@@ -48,11 +48,14 @@ export const floorShape = defineCommand({
       throw new CommandError('floor-shape: this level already has walls')
     }
 
-    if ((args.kind === undefined) === (args.walk === undefined)) {
+    // A width and a depth with no kind said is a rectangle, which is what most floors are.
+    const kind =
+      args.kind ?? (args.walk === undefined && args.width !== undefined ? 'rectangle' : undefined)
+    if ((kind === undefined) === (args.walk === undefined)) {
       throw new CommandError('floor-shape: give either a kind or a walk round the outline')
     }
 
-    const points = args.walk ? walked(args.walk) : outline(args)
+    const points = args.walk ? walked(args.walk) : outline({ ...args, kind })
     const height = draft.levels[level].height
 
     const nodeIds = points.map((point) => {

@@ -38,14 +38,23 @@ export function placeAgainst(
   abuts = false,
   /** Which run of the side, where it has several; left out, the longest. */
   nth?: number,
+  /** Only this stretch of the run, in millimetres from its start: the one wall named. */
+  window?: { from: number; to: number },
 ): Spot[] {
   const run = sideRun(doc, level, room, side, nth)
   if (!run || run.length < width) return []
   // Only a side with more than one run needs saying which; the rest is the longest.
   const several = sideRuns(doc, level, room, side).length > 1
 
+  // What lies outside the one wall named is as taken as what stands there.
+  const outside = window
+    ? [
+        { from: 0, to: window.from },
+        { from: window.to, to: run.length },
+      ].filter((span) => span.to > span.from)
+    : []
   const gaps = wideEnough(
-    freeSpans(run.length, occupied(doc, level, room, side, run, layer)),
+    freeSpans(run.length, [...occupied(doc, level, room, side, run, layer), ...outside]),
     width,
   )
   return gaps.flatMap((gap) =>

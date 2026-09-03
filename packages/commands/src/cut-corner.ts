@@ -1,9 +1,11 @@
 import type { HouseDocument, Side } from '@houseit/core/document'
+import { wallBetween } from '@houseit/geometry/boundary'
 import type { Room } from '@houseit/geometry/rooms'
 import { wallsOnSide } from '@houseit/geometry/sides'
+import type { Draft } from 'immer'
 import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
-import { splitWall } from './split-wall'
+import { nodeAtOrNew, wallUnder } from './partition'
 
 export const CORNERS = {
   'north-west': { west: true, north: true },
@@ -34,7 +36,7 @@ export type Cut = {
  * other three corners of an L are still corners, and taking one is fine.
  */
 export function cutCorner(
-  draft: HouseDocument,
+  draft: Draft<HouseDocument>,
   level: string,
   room: Room,
   corner: Corner,
@@ -96,14 +98,21 @@ export function cutCorner(
     turns,
   ]
 
-  const ends = [
-    splitWall(draft, wallAcross.wall, meets),
-    ...path.slice(1, -1).map((point) => node(draft, point)),
-    splitWall(draft, wallAlong.wall, turns),
-  ]
+  // Every corner of the walk is a node: one already there, or one split out
+  // of the wall under it — the room's own side, or a neighbour's wall the walk
+  // lands on. A stretch that already has a wall along it is that wall, not a
+  // second one drawn over it: a box cut the whole depth of an L's arm has its
+  // far side on the partition that is there already.
+  const ends = path.map((point) => nodeAtOrNew(draft, level, point))
 
   for (let i = 0; i < ends.length - 1; i += 1) {
     if (ends[i] === ends[i + 1]) continue
+    if (wallBetween(draft, level, ends[i]!, ends[i + 1]!)) continue
+    const middle = {
+      x: (path[i]!.x + path[i + 1]!.x) / 2,
+      y: (path[i]!.y + path[i + 1]!.y) / 2,
+    }
+    if (wallUnder(draft, level, middle)) continue
     const id = allocateId(draft.walls, 'w')
     draft.walls[id] = {
       id,
@@ -131,7 +140,7 @@ export function cutCorner(
 
 /** The wall on that side of the room that runs through the point, if any does. */
 function under(
-  draft: HouseDocument,
+  draft: Draft<HouseDocument>,
   level: string,
   room: Room,
   side: Side,
@@ -143,16 +152,4 @@ function under(
   return wallsOnSide(draft, level, room, side).find(
     ({ a, b }) => between(point.x, a.x, b.x) && between(point.y, a.y, b.y),
   )
-}
-
-/** A point on the plan, reused if the walk has already been through it. */
-function node(draft: HouseDocument, point: { x: number; y: number }): string {
-  const already = Object.values(draft.nodes).find(
-    (candidate) => candidate.x === point.x && candidate.y === point.y,
-  )
-  if (already) return already.id
-
-  const id = allocateId(draft.nodes, 'n')
-  draft.nodes[id] = { id, x: point.x, y: point.y }
-  return id
 }

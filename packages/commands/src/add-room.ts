@@ -49,7 +49,7 @@ export const addRoom = defineCommand({
     name: z.string().min(1),
     /** The room it is cut out of. Left out with --points, the room the first corner lies in. */
     from: z.string().min(1).optional(),
-    /** A strip off this side, --width across. */
+    /** A strip off this side, --width (or --depth) across. */
     side: z.enum(SIDE_NAMES).optional(),
     /** A box out of this corner, --width by --depth. */
     corner: z.enum(Object.keys(CORNERS) as [Corner, ...Corner[]]).optional(),
@@ -100,10 +100,11 @@ export const addRoom = defineCommand({
       return
     }
 
-    if (args.width === undefined) {
-      throw new CommandError('add-room: a strip or a box needs a --width')
+    // A strip off the north is naturally said by its depth; either word does.
+    const width = args.width ?? (args.corner === undefined ? args.depth : undefined)
+    if (width === undefined) {
+      throw new CommandError('add-room: a strip needs a --width or a --depth; a box needs both')
     }
-    const width = args.width
 
     if (args.corner) {
       if (args.depth === undefined) {

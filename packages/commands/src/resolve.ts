@@ -61,11 +61,11 @@ export function sideNamed(
   room: Room,
   ref: WallRef,
   what: string,
-): { side: Side; nth?: number } {
+): { side: Side; nth?: number; wall?: string } {
   if (ref.wall !== undefined) {
     const place = runOfWall(doc, level, room, ref.wall)
     if (!place) throw new CommandError(`${what}: ${room.name} has no wall ${ref.wall}`)
-    return { side: place.side, nth: place.nth }
+    return { side: place.side, nth: place.nth, wall: ref.wall }
   }
   if (ref.side !== undefined) return { side: ref.side }
   throw new CommandError(`${what}: say which wall — --side, or --wall with its id from describe`)

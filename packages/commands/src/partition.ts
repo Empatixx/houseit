@@ -188,7 +188,7 @@ export function linkPoints(
 }
 
 /** The node at a point, split out of a wall if one is there, or new if nothing is. */
-function nodeAtOrNew(draft: Draft<HouseDocument>, level: string, point: Point): string {
+export function nodeAtOrNew(draft: Draft<HouseDocument>, level: string, point: Point): string {
   for (const node of Object.values(draft.nodes)) {
     if (node.x === point.x && node.y === point.y) return node.id
   }
@@ -215,7 +215,11 @@ export function nodeAt(
 }
 
 /** The wall a point lies on, if any does. */
-function wallUnder(draft: Draft<HouseDocument>, level: string, point: Point): Wall | undefined {
+export function wallUnder(
+  draft: Draft<HouseDocument>,
+  level: string,
+  point: Point,
+): Wall | undefined {
   return Object.values(draft.walls).find((wall) => {
     if (wall.level !== level) return false
     const a = draft.nodes[wall.a]

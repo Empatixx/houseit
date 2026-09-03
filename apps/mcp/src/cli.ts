@@ -1,18 +1,27 @@
 #!/usr/bin/env node
-import { writeFileSync } from 'node:fs'
-import { quoted } from '@houseit/commands/command-line'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { connectToEditor, execOnPage, pictureOf, readPlan, showOnPage } from './editor-page'
 import { report, toolDescription } from './report'
+import { scriptOf } from './script-of'
 import { viewOf } from './view-of'
 
 /**
  * The same registry the MCP tool uses, reached from a terminal. Useful without an
  * agent, and it keeps the bridge honest — anything the agent can do is reachable
- * here, against the same live tab.
+ * here, against the same live tab. One command as arguments, a whole script as
+ * one argument or on standard input (`-`): the words are the same either way.
  */
+const USAGE = [
+  'Usage:',
+  '  houseit <command> [--option value …]      one command, its words as arguments',
+  "  houseit '<script>'                          a script as written, lines and quotes and all",
+  '  houseit - < script.txt                     the same from standard input',
+  '  houseit [--picture out.jpg] describe …     with a picture of what was described',
+].join('\n')
+
 async function main(argv: string[]): Promise<number> {
   if (argv.length === 0 || argv[0] === '--help' || argv[0] === 'help') {
-    process.stdout.write(`${toolDescription()}\n`)
+    process.stdout.write(`${USAGE}\n\n${toolDescription()}\n`)
     return 0
   }
 
@@ -32,9 +41,8 @@ async function main(argv: string[]): Promise<number> {
     return 0
   }
 
-  // Back into one line the way the shell had it: a room called "master bedroom"
-  // arrives as one argument here and has to be one word in the script too.
-  const source = argv.map(quoted).join(' ')
+  // One command's words back into a line, or a script handed over as written.
+  const source = argv[0] === '-' ? readFileSync(0, 'utf8') : scriptOf(argv)
   const result = await execOnPage(page, source)
   process.stdout.write(`${report(result)}\n`)
 

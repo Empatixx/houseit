@@ -56,7 +56,7 @@ function moveOpening(kind: Opening['kind']) {
               room,
               at.side,
               opening.width,
-              alongSide(draft, level, room, at.side, at.nth, args.along, name),
+              alongSide(draft, level, room, at, args.along, name),
               name,
               swings,
               opening.id,
@@ -72,6 +72,7 @@ function moveOpening(kind: Opening['kind']) {
               swings,
               opening.id,
               at.nth,
+              at.wall,
             )
 
       const target = draft.openings[opening.id]!

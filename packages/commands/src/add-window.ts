@@ -44,7 +44,7 @@ export const addWindow = defineCommand({
             room,
             at.side,
             args.width,
-            alongSide(draft, level, room, at.side, at.nth, args.along, 'add-window'),
+            alongSide(draft, level, room, at, args.along, 'add-window'),
             'add-window',
             false,
             undefined,
@@ -60,6 +60,7 @@ export const addWindow = defineCommand({
             false,
             undefined,
             at.nth,
+            at.wall,
           )
     const id = allocateId(draft.openings, 'o')
     draft.openings[id] = {

@@ -180,6 +180,26 @@ export function wallOnSide(
   return walls.reduce((best, next) => (lengthOf(next) > lengthOf(best) ? next : best))
 }
 
+/**
+ * How far along a run one of its walls reaches, in millimetres from the run's
+ * start: what `--wall` narrows a side down to, when the side is several walls
+ * in line.
+ */
+export function stretchOf(run: SideRun, wallId: string): { from: number; to: number } | undefined {
+  const wall = run.walls.find((it) => it.wall === wallId)
+  if (!wall) return undefined
+  const unit = {
+    x: (run.to.x - run.from.x) / (run.length || 1),
+    y: (run.to.y - run.from.y) / (run.length || 1),
+  }
+  const at = (point: Point) => (point.x - run.from.x) * unit.x + (point.y - run.from.y) * unit.y
+  const ends = [at(wall.a), at(wall.b)]
+  return {
+    from: Math.max(0, Math.round(Math.min(...ends))),
+    to: Math.min(run.length, Math.round(Math.max(...ends))),
+  }
+}
+
 /** Where a wall of a room is, said the way a command takes it: its side, and which run of that side. */
 export type WallPlace = { side: Side; nth: number /** How many runs the side has. */; of: number }
 

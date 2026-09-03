@@ -128,3 +128,94 @@ test('everything has an id, and a thing is reached by it', () => {
   const gone = runScript(next, `remove-object --id ${sofa.id}`)
   expect(report(gone, 'dům').objects).toHaveLength(0)
 })
+
+/** A node sitting inside a wall rather than at its end: a graph gone wrong. */
+function overlapping(doc: HouseDocument): string[] {
+  const bad: string[] = []
+  for (const wall of Object.values(doc.walls)) {
+    const a = doc.nodes[wall.a]!
+    const b = doc.nodes[wall.b]!
+    for (const node of Object.values(doc.nodes)) {
+      if (node.id === wall.a || node.id === wall.b) continue
+      const cross = (b.x - a.x) * (node.y - a.y) - (b.y - a.y) * (node.x - a.x)
+      const dot = (node.x - a.x) * (b.x - a.x) + (node.y - a.y) * (b.y - a.y)
+      const inside = cross === 0 && dot > 0 && dot < (b.x - a.x) ** 2 + (b.y - a.y) ** 2
+      if (inside) bad.push(`${node.id} inside ${wall.id}`)
+    }
+  }
+  return bad
+}
+
+test('a box cut the whole depth of an arm lands on the wall that is there, and draws no second one', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    [RECT, 'add-room --name hall --material tile-white --points "0,0; 8m,0; 8m,3m; 0,3m"'].join(
+      '\n',
+    ),
+  )
+
+  const next = runScript(
+    doc,
+    'add-room --name bed --material natural-oak --from dům --corner north-west --width 3m --depth 6m',
+  )
+
+  expect(overlapping(next)).toEqual([])
+  expect(named(next, 'bed')?.area).toBe(3000 * 6000)
+  expect(named(next, 'hall')?.area).toBe(8000 * 3000)
+  expect(named(next, 'dům')?.area).toBe(12_000 * 9000 - 3000 * 6000 - 8000 * 3000)
+  // The house borders 5 m of the hall's north wall, and that is the wall it lists.
+  const south = report(next, 'dům').walls.filter((wall) => wall.side === 'south')
+  expect(south.map((wall) => wall.length).sort()).toEqual([4000, 5000])
+})
+
+test('a wall named narrows along to that wall, and the tape to it', () => {
+  // The hall's east wall is split by a partition landing on it from the hall's
+  // side, so the house's west side is two walls in line: one run.
+  const doc = runScript(
+    createEmptyDocument(),
+    [
+      RECT,
+      'add-room --name hall --material tile-white --from dům --side west --width 4m',
+      'add-room --name pantry --material tile-white --from hall --side north --width 1.5m',
+    ].join('\n'),
+  )
+  const west = report(doc, 'dům').walls.filter((wall) => wall.side === 'west')
+  expect(west).toHaveLength(2)
+  const upper = west.reduce((best, next) => (next.length < best.length ? next : best))
+
+  const next = runScript(doc, `add-window --room dům --wall ${upper.id} --along 0.5`)
+  const window_ = report(next, 'dům').windows[0]!
+  expect(window_.wall).toBe(upper.id)
+  expect(window_.along).toBeGreaterThan(0.85)
+
+  const tape = askScript(next, `measure --room dům --wall ${upper.id}`)[0] as {
+    length: number
+    walls: string[]
+    openings: { id: string }[]
+  }
+  expect(tape.walls).toEqual([upper.id])
+  expect(tape.length).toBeLessThan(1500)
+  expect(tape.openings.map((it) => it.id)).toEqual([window_.id])
+})
+
+test('check-plan believes a thing on the inner wall of an L', () => {
+  const doc = runScript(createEmptyDocument(), L_FLOOR)
+  const inner = report(doc, 'dům').walls.find(
+    (wall) => wall.nth !== undefined && wall.length === 3000,
+  )!
+  const next = runScript(doc, `add-object --room dům --type bookshelf --wall ${inner.id}`)
+
+  const answer = askScript(next, 'check-plan')[0] as { problems: { code: string }[] }
+  expect(answer.problems.filter((it) => it.code === 'object.misplaced')).toEqual([])
+})
+
+test('a strip off the north is said by its depth, and a floor with a width and a depth is a rectangle', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    [
+      'floor-shape --material natural-oak --width 12m --depth 9m --name dům',
+      'add-room --name hall --material tile-white --from dům --side north --depth 2m',
+    ].join('\n'),
+  )
+  expect(named(doc, 'hall')?.area).toBe(12_000 * 2000)
+})

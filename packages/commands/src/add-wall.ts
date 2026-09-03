@@ -4,7 +4,7 @@ import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { sideRun } from '@houseit/geometry/sides'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
-import { along, fractionOf } from './along-schema'
+import { along, alongSide } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
@@ -49,7 +49,7 @@ export const addWall = defineCommand({
     const at = sideNamed(draft, level, room, args, 'add-wall')
     const run = sideRun(draft, level, room, at.side, at.nth)
     if (!run) throw new CommandError(`add-wall: ${room.name} has no wall facing ${at.side}`)
-    const fraction = fractionOf(args.along, run, 'add-wall')
+    const fraction = alongSide(draft, level, room, at, args.along, 'add-wall')
 
     const from = {
       x: Math.round(run.from.x + (run.to.x - run.from.x) * fraction),

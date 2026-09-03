@@ -1,6 +1,15 @@
 import { layerOf, OBJECT_TYPE_IDS, objectType } from '@houseit/core/object-types'
+import { sideRun } from '@houseit/geometry/sides'
 import { z } from 'zod'
-import { type Along, along, alongSide } from './along-schema'
+import {
+  type Along,
+  type At,
+  along,
+  alongSide,
+  fractionAcross,
+  fractionOf,
+  windowOf,
+} from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { freeWidth, placeAgainst, type Spot } from './place-object'
@@ -33,8 +42,8 @@ export const moveObject = defineCommand({
     wall: z.string().min(1).optional(),
     /** How far along that wall, or across the room: a fraction, or a length from the west or south end. */
     along: along().optional(),
-    /** Out in the room, this far up it: 0 south, 1 north. Takes the thing off any wall. */
-    across: z.coerce.number().min(0).max(1).optional(),
+    /** Out in the room, this far up it: a fraction (0 south, 1 north) or a length from the south. Takes the thing off any wall. */
+    across: along().optional(),
     level: z.string().optional(),
   }),
   run: (draft, args) => {
@@ -53,11 +62,11 @@ export const moveObject = defineCommand({
       ? sideNamed(draft, level, room, { side: args.against, wall: args.wall }, 'move-object')
       : undefined
 
-    const spots = spotsFor(draft, level, room, found, {
-      at,
-      along: args.along,
-      across: args.across,
-    })
+    const across =
+      args.across === undefined
+        ? undefined
+        : fractionAcross(draft, room, args.across, 'move-object')
+    const spots = spotsFor(draft, level, room, found, { at, along: args.along, across })
     let problem: string | undefined
     const spot = spots.find((candidate) => {
       problem ??= standingProblem(draft, level, room, candidate, found, found.id)
@@ -84,7 +93,7 @@ export const moveObject = defineCommand({
   },
 })
 
-type Where = { at?: { side: Spot['against'] & {}; nth?: number }; along?: Along; across?: number }
+type Where = { at?: At; along?: Along; across?: number }
 
 /** The places to try, from what was said and what the thing already had. */
 function spotsFor(
@@ -95,11 +104,7 @@ function spotsFor(
   args: Where,
 ): Spot[] {
   const free = (spec: Along | undefined, had: number) =>
-    spec === undefined
-      ? had
-      : 'fraction' in spec
-        ? spec.fraction
-        : spec.length / freeWidth(draft, room)
+    spec === undefined ? had : fractionOf(spec, { length: freeWidth(draft, room) }, 'move-object')
 
   // Across the room: free-standing, at the place said or the place it had.
   if (args.across !== undefined) {
@@ -123,12 +128,13 @@ function spotsFor(
   const onRun = nth === undefined ? {} : { againstNth: nth }
 
   // A side and a place on it, or a side and the place chosen for it.
+  const at: At = { side, nth, ...(args.at?.wall !== undefined ? { wall: args.at.wall } : {}) }
   if (args.along !== undefined) {
     return [
       {
         against: side,
         ...onRun,
-        along: alongSide(draft, level, room, side, nth, args.along, 'move-object'),
+        along: alongSide(draft, level, room, at, args.along, 'move-object'),
       },
     ]
   }
@@ -136,6 +142,8 @@ function spotsFor(
     return [{ against: side, ...onRun, along: found.along ?? 0.5 }]
   }
   const type = objectType(found.type)
+  const run = sideRun(draft, level, room, side, nth)
+  const window = run ? windowOf(run, at, room, 'move-object') : undefined
   return placeAgainst(
     draft,
     level,
@@ -145,5 +153,6 @@ function spotsFor(
     layerOf(found.type),
     type?.abuts ?? false,
     nth,
+    window,
   )
 }

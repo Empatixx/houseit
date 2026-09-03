@@ -40,14 +40,19 @@ export function placeOpening(
   except?: string,
   /** Which run of the side, where it has several; left out, every wall facing that way is tried. */
   nth?: number,
+  /** The one wall of it, when a wall was named: nothing else is tried. */
+  wall?: string,
 ): Placement {
   // A side can be more than one wall, and the roomiest is only the best guess at
   // which of them to use. Cut a hall out of a living room and its far side is two
   // partitions of the very same length, one with the staircase along the whole of
   // it — so every one of them is tried before the answer is no.
-  const walls = wallsFacing(doc, level, room, side, what, nth).sort(
-    (one, other) => spanOf(other) - spanOf(one),
-  )
+  const walls = wallsFacing(doc, level, room, side, what, nth)
+    .filter((candidate) => wall === undefined || candidate.wall.id === wall)
+    .sort((one, other) => spanOf(other) - spanOf(one))
+  if (walls.length === 0) {
+    throw new CommandError(`${what}: ${wall} is not on the ${side} side of ${room.name}`)
+  }
   const widest = spanOf(walls[0]!)
   if (width > widest) {
     throw new CommandError(
