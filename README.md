@@ -29,7 +29,16 @@ reads back is exactly what you see. Every command returns JSON — the resulting
 any warnings — so the agent works from structured data, never from pixels.
 
 The same command registry also ships as a plain CLI binary. `houseit add-room --name
-kitchen` from your terminal does the identical thing, with no agent involved.
+kitchen` from your terminal does the identical thing, with no agent involved. A whole
+script goes as one argument, lines and quotes and all, or on standard input:
+
+```bash
+node apps/mcp/dist/cli.js add-room --name "master bedroom" --from house --side north --width 4m
+node apps/mcp/dist/cli.js 'add-door --room "master bedroom" --side south
+describe --room "master bedroom"'
+node apps/mcp/dist/cli.js - < plan.txt
+node scripts/reset-plan.mjs        # empties the plan in the tab, for starting over
+```
 
 ## The document model
 
