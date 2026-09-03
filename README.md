@@ -70,11 +70,14 @@ One MCP tool, `floorplan`, taking a command string. It parses like a CLI:
 ```
 floor-shape  --material natural-oak --kind l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name house
 add-room     --material tile-white --name kitchen --from house --side west --width 3.6m
+add-room     --material tile-white --name snug --points "0,0; 5m,0; 5m,3m; 3m,3m; 3m,5m; 0,5m"
+add-room     --material tile-white --name pantry --from house --side north --along 0 --walk "3m s, 4m e, 3m n"
 add-door     --room kitchen --side east --variant pocket
-add-window   --room kitchen --side north --width 1.2m --along 0.3
+add-window   --room kitchen --side north --width 1.2m --along 2.4m
+add-window   --room snug --wall w12
 move-window  --room kitchen --side north --to-side west
 add-object   --room kitchen --type sofa-3 --against south --surface linen
-move-object  --room kitchen --type sofa-3 --against west
+move-object  --id f3 --against west
 turn-object  --room kitchen --type sofa-3 --by 90
 set-surface  --room kitchen --type sofa-3 --surface linen
 rename-room  --room kitchen --name kuchyň
@@ -90,6 +93,16 @@ check-plan
 
 Several commands separated by newlines apply as one transaction — all of them land, or
 none do.
+
+A room is cut out of a room: a strip off a side, a box out of a corner, any shape by
+its corners (`--points`, from the south-west corner of the floor) or by a walk of legs
+from a side (`--walk`). Walls are found by the side of the room they face — and a
+side is every wall facing that way, so an L has two north walls, told apart in
+`describe` by number and by id; `--wall w12` names one where `--side` would name the
+longest. Everything `describe` lists has an id — rooms, walls, doors, windows, things —
+and any command takes `--id f3` where it takes `--room --type --nth`. `--along` is a
+fraction of the wall (0 at its west or south end) or a length from that end: `0.3`,
+`2.4m`, `-1m` for a metre short of the far end.
 
 Two of them only look. `describe` says what is there — every room's clear size, floor,
 neighbours, doors with where they lead, windows, and what stands in it, all in the same
