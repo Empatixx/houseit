@@ -46,6 +46,7 @@ import { Separator } from '@/components/ui/separator'
 import { Toggle } from '@/components/ui/toggle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { type Armed, toolStore, useTool } from '../store/tool'
+import { useCover } from './use-cover'
 
 /**
  * The bar along the bottom of the plan: what the next click does. Select is
@@ -55,9 +56,13 @@ import { type Armed, toolStore, useTool } from '../store/tool'
 export function BottomBar() {
   const armed = useTool((state) => state.armed)
   const label = armedLabel(armed)
+  const ref = useCover<HTMLDivElement>('bottom')
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-4 flex flex-col items-center gap-2">
+    <div
+      ref={ref}
+      className="pointer-events-none absolute inset-x-0 bottom-4 flex flex-col items-center gap-2"
+    >
       {label ? (
         <Badge variant="secondary" className="pointer-events-auto gap-1 pr-1">
           {label}

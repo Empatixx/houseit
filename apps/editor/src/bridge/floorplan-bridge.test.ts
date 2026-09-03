@@ -63,7 +63,7 @@ test('showing a room picks it and frames it, with room to spare round it', () =>
   const bridge = bridgeOn()
   bridge.exec(floor)
 
-  expect(bridge.show({ room: 'dům' })).toEqual({ ok: true })
+  expect(bridge.show({ room: 'dům' })).toMatchObject({ ok: true })
 
   expect(selectionStore.getState().selected).toMatchObject({ kind: 'room' })
   const box = viewStore.getState().box
@@ -76,7 +76,7 @@ test('showing a thing picks the last one of its type in the room', () => {
   const bridge = bridgeOn()
   bridge.exec(`${floor}\nadd-object --room dům --type sofa-3 --against south`)
 
-  expect(bridge.show({ room: 'dům', type: 'sofa-3' })).toEqual({ ok: true })
+  expect(bridge.show({ room: 'dům', type: 'sofa-3' })).toMatchObject({ ok: true })
 
   expect(selectionStore.getState().selected).toMatchObject({ kind: 'object' })
 })
@@ -86,7 +86,7 @@ test('showing the level lets go of whatever was picked and frames the plan', () 
   bridge.exec(floor)
   bridge.show({ room: 'dům' })
 
-  expect(bridge.show({ dimensions: true })).toEqual({ ok: true })
+  expect(bridge.show({ dimensions: true })).toMatchObject({ ok: true })
 
   expect(selectionStore.getState().selected).toBeNull()
   expect(selectionStore.getState().showAll).toBe(true)

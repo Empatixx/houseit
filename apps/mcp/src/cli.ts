@@ -42,7 +42,7 @@ async function main(argv: string[]): Promise<number> {
   if (view && picture) {
     const shown = await showOnPage(page, view)
     if (!shown.ok) throw new Error(shown.error)
-    writeFileSync(picture, await pictureOf(page))
+    writeFileSync(picture, await pictureOf(page, shown.clear))
     process.stderr.write(`picture written to ${picture}\n`)
   }
   return result.ok ? 0 : 1

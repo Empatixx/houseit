@@ -36,7 +36,7 @@ server.registerTool(
       if (view) {
         const shown = await showOnPage(page, view)
         if (shown.ok) {
-          const picture = await pictureOf(page)
+          const picture = await pictureOf(page, shown.clear)
           content.push({ type: 'image', data: picture.toString('base64'), mimeType: PICTURE_TYPE })
         }
       }

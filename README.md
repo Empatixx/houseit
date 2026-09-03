@@ -126,8 +126,11 @@ it. A wall carried across the plan takes the rooms with it as it goes — the fl
 side, the walls that meet it, the labels — because the drawing runs the command the drop
 would run on a copy of the plan and draws that; so does a stub being pulled, and a wall
 being drawn. Two small cards over the plan's top right corner hold undo and redo, and a
-gear for the measurements and for fitting the plan to the window. The editor is built on
-shadcn/ui, on a paper of dots.
+gear for the measurements and for fitting the plan to the window. The inspector floats
+over the plan's right edge rather than beside it, so folding it away — the gear's button,
+⌘B, or a drag on its edge — moves nothing underneath. Fit frames the plan in the part of
+the canvas nothing floats over, and a picture taken for the agent is of that part. The
+editor is built on shadcn/ui, on a paper of dots.
 
 The bar along the bottom of the plan says what the next click does. Furniture opens
 upward — a category to the side, a search at the top — and Structure holds the doors and

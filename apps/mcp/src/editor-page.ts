@@ -1,4 +1,10 @@
-import type { ExecResult, PlanSnapshot, ShowResult, ViewRequest } from '@houseit/bridge/contract'
+import type {
+  Clear,
+  ExecResult,
+  PlanSnapshot,
+  ShowResult,
+  ViewRequest,
+} from '@houseit/bridge/contract'
 import { chromium, type Page } from 'playwright-core'
 
 /** Where Chrome listens when started with `--remote-debugging-port=9222`. */
@@ -76,16 +82,25 @@ const SETTLE_MS = 400
 export const PICTURE_TYPE = 'image/jpeg'
 
 /**
- * A picture of the plan as the tab shows it now.
+ * A picture of the plan as the tab shows it now: the part of the canvas the
+ * framing landed in, without the panel and the cards floating over the rest.
  *
  * Taken at CSS size rather than device pixels, and as JPEG: a drawing of lines
  * and labels over photographed floors reads fine that way, at a tenth of the
  * bytes a retina PNG of the same view comes to — and every byte of it is
  * handed to the agent in the answer.
  */
-export async function pictureOf(page: Page): Promise<Buffer> {
+export async function pictureOf(page: Page, clear?: Clear): Promise<Buffer> {
   // A tab behind another is not painted, and a picture of it is a picture of nothing.
   await page.bringToFront().catch(() => undefined)
   await page.waitForTimeout(SETTLE_MS)
-  return page.locator('canvas').first().screenshot({ type: 'jpeg', quality: 85, scale: 'css' })
+  const canvas = page.locator('canvas').first()
+  const box = clear ? await canvas.boundingBox() : null
+  if (!clear || !box) return canvas.screenshot({ type: 'jpeg', quality: 85, scale: 'css' })
+  return page.screenshot({
+    type: 'jpeg',
+    quality: 85,
+    scale: 'css',
+    clip: { x: box.x + clear.x, y: box.y + clear.y, width: clear.width, height: clear.height },
+  })
 }

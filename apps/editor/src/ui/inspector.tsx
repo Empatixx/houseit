@@ -1,28 +1,47 @@
 import { type PointerEvent as ReactPointerEvent, useRef } from 'react'
-import { Sidebar, SidebarContent, SidebarHeader, useSidebar } from '@/components/ui/sidebar'
+import { useSidebar } from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 import { Logo } from './logo'
 import { PanelContent } from './panel'
+import { useCover } from './use-cover'
+
+/** How wide the panel is; the cards at the top step aside by this much. */
+export const INSPECTOR_WIDTH = '16rem'
 
 /** How far the panel has to be dragged towards the edge before it goes. */
 const LET_GO = 90
 
 /**
- * The panel beside the plan: what is picked, and what can be said about it.
- * A floating card on the right, which the header's button folds away — and
- * which can be pushed away by hand, dragged by its edge off the side.
+ * The panel over the plan: what is picked, and what can be said about it.
+ * A card floating down the right edge, over the plan rather than beside it,
+ * so folding it away moves nothing underneath — the plan stays put and Fit
+ * knows what it is hidden behind. The gear's button folds it away, and so
+ * does a drag on its edge towards the side.
  */
 export function Inspector() {
+  const { open } = useSidebar()
+  const ref = useCover<HTMLElement>('right', open)
+
   return (
-    <Sidebar side="right" variant="floating" collapsible="offcanvas">
+    <aside
+      ref={ref}
+      inert={!open}
+      aria-hidden={!open}
+      style={{ width: INSPECTOR_WIDTH }}
+      className={cn(
+        'absolute inset-y-3 right-3 z-20 flex flex-col overflow-hidden rounded-xl border bg-card shadow-md transition-transform duration-200 ease-linear',
+        open ? '' : 'translate-x-[calc(100%+0.75rem)]',
+      )}
+    >
       <DragEdge />
-      <SidebarHeader className="flex-row items-center gap-2 px-4 pt-4 pb-1">
+      <header className="flex items-center gap-2 px-4 pt-4 pb-1">
         <Logo size={18} />
         <span className="text-sm font-semibold tracking-tight">houseit</span>
-      </SidebarHeader>
-      <SidebarContent className="flex flex-col gap-3 px-4 pb-4 text-sm">
+      </header>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 pb-4 text-sm">
         <PanelContent />
-      </SidebarContent>
-    </Sidebar>
+      </div>
+    </aside>
   )
 }
 
@@ -35,10 +54,7 @@ function DragEdge() {
   const { setOpen } = useSidebar()
   const start = useRef<number | null>(null)
 
-  const container = (event: ReactPointerEvent) =>
-    (event.currentTarget as HTMLElement).closest(
-      '[data-slot="sidebar-container"]',
-    ) as HTMLElement | null
+  const panel = (event: ReactPointerEvent) => event.currentTarget.parentElement
 
   return (
     <div
@@ -50,13 +66,13 @@ function DragEdge() {
         if (event.button !== 0) return
         event.currentTarget.setPointerCapture(event.pointerId)
         start.current = event.clientX
-        const box = container(event)
+        const box = panel(event)
         if (box) box.style.transition = 'none'
       }}
       onPointerMove={(event) => {
         if (start.current === null) return
         const shift = Math.max(0, event.clientX - start.current)
-        const box = container(event)
+        const box = panel(event)
         if (box) box.style.transform = `translateX(${shift}px)`
       }}
       onPointerUp={(event) => {
@@ -64,7 +80,7 @@ function DragEdge() {
         const shift = Math.max(0, event.clientX - start.current)
         start.current = null
         event.currentTarget.releasePointerCapture(event.pointerId)
-        const box = container(event)
+        const box = panel(event)
         if (box) {
           box.style.transform = ''
           box.style.transition = ''

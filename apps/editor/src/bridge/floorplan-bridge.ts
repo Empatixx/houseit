@@ -1,4 +1,5 @@
 import type {
+  Clear,
   FloorplanBridge,
   PlanSnapshot,
   ShowResult,
@@ -9,7 +10,7 @@ import { newest } from '@houseit/commands/resolve'
 import { roomsOf } from '@houseit/geometry/rooms'
 import type { createDocumentStore } from '../store/document-store'
 import { selectionStore } from '../store/selection'
-import { viewStore } from '../store/view'
+import { clearOf, viewStore } from '../store/view'
 
 declare global {
   interface Window {
@@ -37,6 +38,13 @@ export function installFloorplanBridge(store: ReturnType<typeof createDocumentSt
     }
   }
 
+  /** The part of the canvas nothing floats over, where the framing lands. */
+  const clear = (): Clear => {
+    const canvas = document.querySelector('canvas')
+    const size = { width: canvas?.clientWidth ?? 0, height: canvas?.clientHeight ?? 0 }
+    return clearOf(viewStore.getState().covers, size)
+  }
+
   /**
    * Picks and frames what a picture should be of, the way a click and Fit
    * would: a room is highlighted with its dimensions, a thing gets its outline
@@ -50,7 +58,7 @@ export function installFloorplanBridge(store: ReturnType<typeof createDocumentSt
       selection.select(null)
       selection.showDimensions(view.dimensions ?? false)
       viewStore.getState().frame(null)
-      return { ok: true }
+      return { ok: true, clear: clear() }
     }
 
     const room = roomsOf(doc, level).find((candidate) => candidate.name === view.room)
@@ -77,7 +85,7 @@ export function installFloorplanBridge(store: ReturnType<typeof createDocumentSt
       x1: Math.max(...xs) + ROOM_MARGIN,
       y1: Math.max(...ys) + ROOM_MARGIN,
     })
-    return { ok: true }
+    return { ok: true, clear: clear() }
   }
 
   window.floorplan = {

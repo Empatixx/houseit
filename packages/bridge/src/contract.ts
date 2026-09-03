@@ -30,7 +30,15 @@ export type ViewRequest = {
   dimensions?: boolean
 }
 
-export type ShowResult = { ok: true } | { ok: false; error: string }
+/** A part of the canvas, in CSS pixels from its top left corner. */
+export type Clear = { x: number; y: number; width: number; height: number }
+
+/**
+ * Framed, and where on the canvas to look: the part nothing floats over. The
+ * panel down the plan's right side and the cards over its corners hide the
+ * rest, and a picture of the whole canvas would be a picture of them too.
+ */
+export type ShowResult = { ok: true; clear: Clear } | { ok: false; error: string }
 
 /**
  * The contract between the editor tab and whatever drives it. The editor installs

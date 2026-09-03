@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import type { OrthographicCamera, Vector3 } from 'three'
 import { useDocument } from '../store/store'
-import { useView, type ViewBox } from '../store/view'
+import { clearOf, useView, type ViewBox, viewStore } from '../store/view'
 import { MM } from './plan-coordinates'
 
 type Controls = { target: Vector3; update: () => void }
@@ -68,15 +68,28 @@ export function FitToPlan() {
     const width = Math.max(target.x1 - target.x0, 1) * MM
     const height = Math.max(target.y1 - target.y0, 1) * MM
     const padding = box ? BOX_PADDING : PADDING
-    const zoom = padding * Math.min(size.width / width, size.height / height)
 
-    frame(camera as OrthographicCamera, controls, { x: centreX, z: centreZ, zoom })
+    // Into the part of the canvas nothing floats over — the panel down the
+    // right side would otherwise hide a wall or two — read as it is now rather
+    // than watched: the panel folding away is not a reason to move the plan.
+    const clear = clearOf(viewStore.getState().covers, size)
+    const zoom = padding * Math.min(clear.width / width, clear.height / height)
+    // The plan's middle goes to the middle of that part, which is so many
+    // pixels right of and below the middle of the canvas; the camera looks
+    // that far the other way. A pixel is 1/zoom of a metre, and screen down
+    // is +z.
+    const dx = clear.x + clear.width / 2 - size.width / 2
+    const dy = clear.y + clear.height / 2 - size.height / 2
+    const x = centreX - dx / zoom
+    const z = centreZ - dy / zoom
+
+    frame(camera as OrthographicCamera, controls, { x, z, zoom })
     // Held for a moment. On a reload the controls' target went back to the origin
     // after this ran — the camera stayed over the middle of the plan and looked
     // at its corner, which showed the walls from the side — and nothing in this
     // effect's inputs changed to say so. Holding the framing for a few frames
     // puts it right whatever undid it.
-    held.current = { x: centreX, z: centreZ, zoom, until: performance.now() + HOLD }
+    held.current = { x, z, zoom, until: performance.now() + HOLD }
     framed.current = asked
   }, [doc, level, box, camera, controls, size, fitKey])
 
