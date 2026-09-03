@@ -9,6 +9,7 @@ import { describeCommands } from '@houseit/commands/registry'
 import { newest } from '@houseit/commands/resolve'
 import { roomsOf } from '@houseit/geometry/rooms'
 import type { createDocumentStore } from '../store/document-store'
+import { modeStore } from '../store/mode'
 import { selectionStore } from '../store/selection'
 import { clearOf, viewStore } from '../store/view'
 
@@ -53,6 +54,8 @@ export function installFloorplanBridge(store: ReturnType<typeof createDocumentSt
   const show = (view: ViewRequest): ShowResult => {
     const { doc, level } = store.getState()
     const selection = selectionStore.getState()
+    // A picture for the agent is a plan, whatever the tab was looking at.
+    modeStore.getState().setMode('2d')
 
     if (view.room === undefined) {
       selection.select(null)

@@ -5,8 +5,7 @@ import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { type Spot, standingAt, swingOf } from '@houseit/geometry/standing'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Texture } from 'three'
+import { useMemo, useRef, useState } from 'react'
 import { aimAt, putDown } from '../../edit/draw-commands'
 import { moveTo, turnTo } from '../../edit/object-commands'
 import { placeArmedIn } from '../../edit/place-commands'
@@ -17,7 +16,7 @@ import { toolStore } from '../../store/tool'
 import { dragged, pointOnPlan } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
 import { symbolHeight } from './stacking'
-import { symbolTexture } from './symbol-texture'
+import { useSymbol } from './use-symbol'
 
 /**
  * The furniture, drawn from the plan symbols in the catalogue.
@@ -265,26 +264,4 @@ function useDrag(object: HouseObject, spot: Spot) {
   }
 
   return { shift, live: held.current !== null, down, move, up }
-}
-
-/** The rasterised symbol, once it has loaded; nothing until then. */
-function useSymbol(symbol: string, surface: Surface, size: { width: number; depth: number }) {
-  const [texture, setTexture] = useState<Texture | undefined>(undefined)
-  const fill = surface.fill
-
-  useEffect(() => {
-    let live = true
-    symbolTexture(symbol, fill, size)
-      .then((loaded) => {
-        if (live) setTexture(loaded)
-      })
-      .catch(() => {
-        if (live) setTexture(undefined)
-      })
-    return () => {
-      live = false
-    }
-  }, [symbol, fill, size.width, size.depth])
-
-  return texture
 }

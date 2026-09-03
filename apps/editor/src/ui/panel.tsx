@@ -25,6 +25,7 @@ import { type CutRequest, cutRoom, drawFloor, type FloorRequest } from '../edit/
 import { knockThrough, nameWall } from '../edit/wall-commands'
 import { selectionStore, useSelection } from '../store/selection'
 import { useDocument } from '../store/store'
+import { FloorSwatch, KindIcon, SurfaceSwatch } from './avatars'
 
 /**
  * What is picked, and what can be said about it: a room's name, kind and
@@ -111,10 +112,12 @@ function RoomPanel({ room }: { room: Room }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">
+              <KindIcon id={kind?.id} />
               {kind ? `${kind.label} (from the name)` : 'not said'}
             </SelectItem>
             {ROOM_KINDS.map((entry) => (
               <SelectItem key={entry.id} value={entry.id}>
+                <KindIcon id={entry.id} />
                 {entry.label}
               </SelectItem>
             ))}
@@ -127,9 +130,13 @@ function RoomPanel({ room }: { room: Room }) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="bare">bare</SelectItem>
+            <SelectItem value="bare">
+              <FloorSwatch id={undefined} />
+              bare
+            </SelectItem>
             {FLOOR_MATERIALS.map((material) => (
               <SelectItem key={material.id} value={material.id}>
+                <FloorSwatch id={material.id} />
                 {material.label}
               </SelectItem>
             ))}
@@ -275,6 +282,7 @@ function ObjectPanel({ object }: { object: HouseObject }) {
           <SelectContent>
             {surfaces.map((surface) => (
               <SelectItem key={surface.id} value={surface.id}>
+                <SurfaceSwatch id={surface.id} />
                 {surface.label}
               </SelectItem>
             ))}
@@ -452,6 +460,7 @@ function FloorForm() {
           <SelectContent>
             {FLOOR_MATERIALS.map((entry) => (
               <SelectItem key={entry.id} value={entry.id}>
+                <FloorSwatch id={entry.id} />
                 {entry.label}
               </SelectItem>
             ))}

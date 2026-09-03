@@ -1,0 +1,123 @@
+/**
+ * How tall things stand, in millimetres, for the view that walks through the
+ * plan.
+ *
+ * The catalogue came from plan symbols, which are seen from straight above and
+ * carry no height, so the heights live here by type, with a guess for anything
+ * not listed. A thing that hangs on the wall says how far up it starts; one
+ * that is mostly glass says so, and is drawn so the room shows through it.
+ */
+export type Height = {
+  /** From its base to its top. */
+  height: number
+  /** How far above the floor its base is. */
+  base: number
+  /** Mostly glass — a shower screen, a railing — so it is drawn see-through. */
+  glass?: boolean
+}
+
+/** What anything not listed is taken to be: a table, near enough. */
+const DEFAULT = 750
+
+const HEIGHTS: Record<string, Partial<Height>> = {
+  'rug-round': { height: 10 },
+  'rug-rect': { height: 10 },
+  'yoga-mat': { height: 10 },
+  'picture-frame': { height: 600, base: 1200 },
+  'floor-lamp': { height: 1600 },
+  'table-lamp': { height: 500, base: 700 },
+  'potted-plant': { height: 1300 },
+  'potted-plant-m': { height: 900 },
+  'potted-plant-s': { height: 500 },
+  'cal-king-bed': { height: 550 },
+  'king-bed': { height: 550 },
+  'queen-bed': { height: 550 },
+  'full-bed': { height: 550 },
+  'twin-bed': { height: 550 },
+  crib: { height: 900 },
+  nightstand: { height: 550 },
+  dresser: { height: 800 },
+  'toilet-tank': { height: 780 },
+  'vanity-sink': { height: 850 },
+  'vanity-double': { height: 850 },
+  bathtub: { height: 550 },
+  'bathtub-free': { height: 580 },
+  'shower-s': { height: 1900, glass: true },
+  'shower-m': { height: 1900, glass: true },
+  'shower-l': { height: 1900, glass: true },
+  'chair-ottoman': { height: 450 },
+  'club-chair': { height: 800 },
+  'sofa-2': { height: 850 },
+  'sofa-3': { height: 850 },
+  'sofa-l': { height: 850 },
+  'coffee-table': { height: 450 },
+  'media-unit': { height: 500 },
+  'side-table': { height: 550 },
+  bookshelf: { height: 1800 },
+  credenza: { height: 800 },
+  'lounge-chair': { height: 800 },
+  'lounge-chair-s': { height: 800 },
+  bbq: { height: 1000 },
+  'outdoor-dining': { height: 740 },
+  'office-chair': { height: 900 },
+  'office-desk': { height: 740 },
+  'office-desk-l': { height: 740 },
+  'filing-cabinet': { height: 1000 },
+  'console-mirror': { height: 900 },
+  bench: { height: 450 },
+  'coat-stand': { height: 1800 },
+  'washer-dryer-stacked': { height: 1900 },
+  'washer-dryer': { height: 850 },
+  'dining-round-4': { height: 740 },
+  'dining-square-4': { height: 740 },
+  'dining-6': { height: 740 },
+  'dining-square-8': { height: 740 },
+  'dining-8': { height: 740 },
+  'kitchen-i-mini': { height: 900 },
+  'kitchen-l-mini': { height: 900 },
+  'kitchen-i': { height: 900 },
+  'kitchen-l': { height: 900 },
+  'kitchen-u': { height: 900 },
+  'kitchen-u-wall': { height: 900 },
+  'kitchen-l-mini-wall': { height: 900 },
+  'kitchen-i-wall': { height: 900 },
+  'kitchen-i-mini-wall': { height: 900 },
+  'island-2': { height: 900 },
+  'island-4': { height: 900 },
+  'island-2-sink': { height: 900 },
+  'island-4-sink': { height: 900 },
+  'counter-straight': { height: 900 },
+  'counter-l': { height: 900 },
+  'kitchen-sink': { height: 900 },
+  stove: { height: 900 },
+  refrigerator: { height: 1800 },
+  dishwasher: { height: 850 },
+  'water-heater': { height: 1500 },
+  hvac: { height: 1200 },
+  'clothing-rack': { height: 1700 },
+  'built-in-shelf': { height: 2100 },
+  sedan: { height: 1450 },
+  suv: { height: 1700 },
+  'stairs-straight': { height: 1400 },
+  'stairs-u': { height: 1400 },
+  'stairs-l-landing': { height: 1400 },
+  'stairs-l-winder': { height: 1400 },
+  column: { height: 2700 },
+  post: { height: 2700 },
+  railing: { height: 1000, glass: true },
+  box: { height: 600 },
+  'pool-table': { height: 800 },
+  'ping-pong': { height: 760 },
+  bar: { height: 1050 },
+  'bar-island': { height: 1050 },
+  treadmill: { height: 1400 },
+  'exercise-bike': { height: 1200 },
+  'weight-rack': { height: 1500 },
+  'gym-bench': { height: 450 },
+}
+
+/** How tall a thing of this type stands, and how far off the floor it starts. */
+export function heightOf(type: string): Height {
+  const known = HEIGHTS[type]
+  return { height: known?.height ?? DEFAULT, base: known?.base ?? 0, glass: known?.glass }
+}

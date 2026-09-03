@@ -132,6 +132,17 @@ over the plan's right edge rather than beside it, so folding it away — the gea
 the canvas nothing floats over, and a picture taken for the agent is of that part. The
 editor is built on shadcn/ui, on a paper of dots.
 
+The tabs at the top left switch to 3D: the same plan walked through at eye height. Walls
+stand at their real height with a sill under every window and a head over every opening,
+the glass in the windows, and doors standing open the way the plan draws them; the
+furniture is the box each thing takes up, as tall as its type says (`core/heights.ts`),
+in its finish, with its plan symbol laid on top so it still reads. W, A, S, D walk and
+sidestep, the arrows walk and turn, shift runs, a drag turns the head, and a click picks
+whatever is clicked, for the inspector. A minimap under the undo card shows the plan with
+a blue dot where you stand and a wedge as wide as what you see; a click on it moves you
+there. Nothing is dragged in 3D — it is a way of looking, not a second way of editing —
+and a picture asked for over MCP always comes as a plan.
+
 The bar along the bottom of the plan says what the next click does. Furniture opens
 upward — a category to the side, a search at the top — and Structure holds the doors and
 the window. Pick one and the next click on a room puts it there — `add-object` against the

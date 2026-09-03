@@ -1,0 +1,149 @@
+import { planExtent } from '@houseit/geometry/dimensions'
+import { OrthographicCamera } from '@react-three/drei'
+import { Canvas, useThree } from '@react-three/fiber'
+import { useEffect, useMemo } from 'react'
+import { Shape } from 'three'
+import { Furniture } from '../scene/furniture/furniture'
+import { MM, toWorld } from '../scene/plan-coordinates'
+import { RoomFloors } from '../scene/room-floors'
+import { Walls } from '../scene/walls'
+import { useDocument, usePlanDoc } from '../store/store'
+import { useWalk, walkStore } from '../store/walk'
+
+/** The blue the plan picks things out in; the walker is drawn in it. */
+const BLUE = '#2f6fed'
+/** Room left round the plan in the minimap, in millimetres. */
+const MARGIN = 600
+/** How far the wedge of what is seen reaches, in millimetres. */
+const REACH = 3000
+/** Above everything drawn, walls included, so the walker is never under a wall. */
+const OVER = 5000
+
+const WIDTH = 208
+const UP: [number, number, number] = [0, 0, -1]
+
+/** Where the minimap's camera is put: over a point, at a zoom, in world units. */
+type Fit = { x: number; z: number; zoom: number }
+
+/**
+ * The plan in small, the way the plan draws it — the same floors, furniture
+ * and walls, from straight above — with whoever is walking it: a dot where
+ * they stand and a wedge as wide as what they see, pointing where they look.
+ * A click on it moves the walk there. Nothing in it can be dragged: the small
+ * plan is looked at, and the big one is edited.
+ */
+export function Minimap() {
+  const doc = usePlanDoc()
+  const level = useDocument((state) => state.level)
+  const extent = planExtent(doc, level)
+  if (!extent) return null
+
+  const box = {
+    x0: extent.x0 - MARGIN,
+    y0: extent.y0 - MARGIN,
+    x1: extent.x1 + MARGIN,
+    y1: extent.y1 + MARGIN,
+  }
+  const width = WIDTH
+  const height = Math.max(
+    96,
+    Math.min(176, Math.round((width * (box.y1 - box.y0)) / (box.x1 - box.x0))),
+  )
+  const fit: Fit = {
+    x: ((box.x0 + box.x1) / 2) * MM,
+    z: -((box.y0 + box.y1) / 2) * MM,
+    zoom: Math.min(width / ((box.x1 - box.x0) * MM), height / ((box.y1 - box.y0) * MM)),
+  }
+
+  return (
+    <div className="pointer-events-auto rounded-xl border bg-card p-1.5 shadow-md">
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Where you stand on the plan; click to go there"
+        style={{ width, height }}
+        className="relative cursor-crosshair overflow-hidden rounded-md"
+        onClick={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect()
+          // Pixels from the middle of the picture, which is where the camera is
+          // over; a pixel is 1/zoom of a metre, and screen down is +z.
+          const dx = event.clientX - rect.left - width / 2
+          const dy = event.clientY - rect.top - height / 2
+          walkStore.getState().step({
+            x: Math.round((fit.x + dx / fit.zoom) / MM),
+            y: Math.round(-(fit.z + dy / fit.zoom) / MM),
+          })
+        }}
+      >
+        <Canvas flat dpr={[1, 2]} style={{ pointerEvents: 'none' }}>
+          <OrthographicCamera
+            makeDefault
+            position={[fit.x, 40, fit.z]}
+            up={UP}
+            near={0.1}
+            far={200}
+          />
+          <Overhead fit={fit} />
+          <color attach="background" args={['#f4f4f5']} />
+          <RoomFloors />
+          <Furniture />
+          <Walls />
+          <Standing />
+        </Canvas>
+      </div>
+    </div>
+  )
+}
+
+/** Puts the camera straight over the plan, north up, at the zoom that fits it. */
+function Overhead({ fit }: { fit: Fit }) {
+  const camera = useThree((state) => state.camera)
+  useEffect(() => {
+    if (camera.type !== 'OrthographicCamera') return
+    camera.up.set(...UP)
+    camera.position.set(fit.x, 40, fit.z)
+    camera.lookAt(fit.x, 0, fit.z)
+    ;(camera as { zoom: number }).zoom = fit.zoom
+    camera.updateProjectionMatrix()
+  }, [camera, fit])
+  return null
+}
+
+/** The walker on the small plan: a dot, and the wedge of what they see. */
+function Standing() {
+  const walker = useWalk((state) => state.walker)
+  const fov = useWalk((state) => state.fov)
+
+  // The wedge, with ahead as +y: laid flat, +y is north, and it is turned to
+  // the heading from there.
+  const wedge = useMemo(() => {
+    const half = (fov * Math.PI) / 360
+    const shape = new Shape()
+    shape.moveTo(0, 0)
+    const steps = 12
+    for (let i = 0; i <= steps; i += 1) {
+      const angle = -half + (2 * half * i) / steps
+      shape.lineTo(Math.sin(angle) * REACH * MM, Math.cos(angle) * REACH * MM)
+    }
+    shape.closePath()
+    return shape
+  }, [fov])
+
+  if (!walker) return null
+  return (
+    <group position={toWorld(walker.at.x, walker.at.y, OVER)}>
+      <mesh rotation={[-Math.PI / 2, 0, -walker.yaw]}>
+        <shapeGeometry args={[wedge]} />
+        <meshBasicMaterial color={BLUE} transparent opacity={0.3} depthWrite={false} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
+        <circleGeometry args={[0.3, 24]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
+        <circleGeometry args={[0.22, 24]} />
+        <meshBasicMaterial color={BLUE} />
+      </mesh>
+    </group>
+  )
+}
