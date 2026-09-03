@@ -68,6 +68,32 @@ function Slab({ x = 0, z = 0, base = 0, w, h, d, paint, turn = 0 }: SlabProps) {
   )
 }
 
+type LeanProps = {
+  x?: number
+  /** Where its middle line starts and ends, as (z, y) in the thing's frame. */
+  from: [number, number]
+  to: [number, number]
+  w: number
+  thick: number
+  paint: Paint
+}
+
+/** A slab leaning: said by the two points its middle line runs between. */
+function Lean({ x = 0, from, to, w, thick, paint }: LeanProps) {
+  const dz = to[0] - from[0]
+  const dy = to[1] - from[1]
+  const length = Math.hypot(dz, dy)
+  return (
+    <mesh
+      position={[x * MM, ((from[1] + to[1]) / 2) * MM, ((from[0] + to[0]) / 2) * MM]}
+      rotation={[Math.atan2(dz, dy), 0, 0]}
+    >
+      <boxGeometry args={[w * MM, length * MM, thick * MM]} />
+      <Finish paint={paint} />
+    </mesh>
+  )
+}
+
 type DrumProps = {
   x?: number
   z?: number
@@ -186,24 +212,45 @@ function Put({
 
 const bed: Builder = ({ w, d, body, frame }) => {
   const two = w > 1200
+  const pillowLine = d / 2 - 620
   return (
     <>
-      <Slab h={350} w={w} d={d} paint={frame} />
+      <Legs w={w - 40} d={d - 40} h={100} thick={70} inset={0} paint={frame} />
+      <Slab base={100} h={250} w={w} d={d} paint={frame} />
       <Slab base={350} h={200} w={w - 60} d={d - 60} paint={PAINT.porcelain} />
-      <Slab base={550} h={40} w={w - 40} d={d - 640} z={-300} paint={body} />
+      <Slab
+        base={550}
+        h={50}
+        w={w + 30}
+        d={pillowLine + d / 2 - 40}
+        z={(pillowLine - d / 2 + 40) / 2}
+        paint={body}
+      />
+      <Slab base={600} h={60} w={w + 30} d={220} z={pillowLine - 110} paint={lighter(body, 0.12)} />
       {(two ? [-w / 4, w / 4] : [0]).map((x) => (
-        <Slab
-          key={x}
-          x={x}
-          base={550}
-          h={120}
-          w={two ? w / 2 - 160 : w - 200}
-          d={420}
-          z={d / 2 - 330}
-          paint={PAINT.porcelain}
-        />
+        <group key={x}>
+          <Slab
+            x={x}
+            base={550}
+            h={80}
+            w={two ? w / 2 - 160 : w - 200}
+            d={440}
+            z={d / 2 - 330}
+            paint={PAINT.porcelain}
+          />
+          <Slab
+            x={x}
+            base={630}
+            h={70}
+            w={two ? w / 2 - 220 : w - 260}
+            d={400}
+            z={d / 2 - 330}
+            paint={PAINT.porcelain}
+          />
+        </group>
       ))}
-      <Slab base={0} h={1000} w={w + 40} d={60} z={d / 2 - 30} paint={frame} />
+      <Slab h={1050} w={w + 60} d={70} z={d / 2 - 35} paint={frame} />
+      <Slab base={420} h={560} w={w - 20} d={30} z={d / 2 - 85} paint={lighter(body, 0.05)} />
     </>
   )
 }
@@ -362,43 +409,87 @@ const consoleMirror: Builder = ({ w, d, body, frame }) => (
 // ---------------------------------------------------------------------------
 // Living
 
-const sofa: Builder = ({ w, d, body }) => {
-  const back = 220
+/**
+ * A sofa: feet, a base, arms, a back, and on the base as many seat cushions
+ * as it seats, each with a back cushion leaning on the back behind it.
+ */
+const sofa: Builder = ({ w, d, body, frame }) => {
   const arm = Math.min(200, w * 0.12)
+  const back = 200
+  const seats = w > 2000 ? 3 : w > 1300 ? 2 : 1
+  const inner = w - 2 * arm
+  const gap = 20
+  const cushionW = (inner - gap * (seats + 1)) / seats
+  const cushionD = d - back - 60
+  const cushion = lighter(body, 0.08)
   return (
     <>
-      <Slab h={400} w={w} d={d} paint={body} />
-      <Slab
-        base={400}
-        h={130}
-        w={w - 2 * arm - 20}
-        d={d - back - 40}
-        z={-back / 2}
-        paint={lighter(body)}
-      />
-      <Slab h={850} w={w} d={back} z={d / 2 - back / 2} paint={body} />
+      <Legs w={w - 60} d={d - 60} h={90} thick={50} inset={0} paint={frame} />
+      <Slab base={90} h={280} w={w} d={d - back} z={-back / 2} paint={body} />
+      <Slab base={90} h={720} w={w} d={back} z={d / 2 - back / 2} paint={body} />
       {[-(w / 2 - arm / 2), w / 2 - arm / 2].map((x) => (
-        <Slab key={x} x={x} h={620} w={arm} d={d} paint={body} />
+        <Slab key={x} x={x} base={90} h={520} w={arm} d={d - 40} z={-20} paint={body} />
+      ))}
+      {along(seats, (i) => -inner / 2 + gap + cushionW / 2 + i * (cushionW + gap)).map((x) => (
+        <group key={x}>
+          <Slab
+            x={x}
+            base={370}
+            h={150}
+            w={cushionW}
+            d={cushionD}
+            z={-back / 2 - 10}
+            paint={cushion}
+          />
+          <Lean
+            x={x}
+            from={[d / 2 - back - 40, 520]}
+            to={[d / 2 - back + 60, 900]}
+            w={cushionW - 10}
+            thick={140}
+            paint={cushion}
+          />
+        </group>
       ))}
     </>
   )
 }
 
 const sofaL: Builder = (p) => {
-  const { w, d, body } = p
+  const { w, d, body, frame } = p
   const run = Math.min(965, d)
+  const chaise = { x: -(w / 2 - run / 2), z: -run / 2, d: d - run }
   return (
     <>
       <Put z={d / 2 - run / 2}>{sofa({ ...p, d: run })}</Put>
-      <Slab x={-(w / 2 - run / 2)} z={-run / 2} h={400} w={run} d={d - run} paint={body} />
+      <Legs
+        x={chaise.x}
+        z={chaise.z}
+        w={run - 60}
+        d={chaise.d - 60}
+        h={90}
+        thick={50}
+        inset={0}
+        paint={frame}
+      />
+      <Slab x={chaise.x} z={chaise.z} base={90} h={280} w={run} d={chaise.d} paint={body} />
       <Slab
-        x={-(w / 2 - run / 2)}
-        z={-run / 2}
-        base={400}
-        h={130}
+        x={chaise.x}
+        z={chaise.z}
+        base={370}
+        h={150}
         w={run - 40}
-        d={d - run - 40}
-        paint={lighter(body)}
+        d={chaise.d - 20}
+        paint={lighter(body, 0.08)}
+      />
+      <Slab
+        x={chaise.x - run / 2 + 100}
+        z={chaise.z}
+        base={90}
+        h={520}
+        w={200}
+        d={chaise.d}
+        paint={body}
       />
     </>
   )
@@ -443,9 +534,13 @@ const plainTable: Builder = (p) => table(p)
 
 const chair = (body: Paint, frame: Paint): ReactNode => (
   <>
-    <Slab base={420} h={40} w={420} d={420} paint={body} />
-    <Legs w={420} d={420} h={420} thick={30} inset={30} paint={frame} />
-    <Slab base={460} h={440} w={420} d={40} z={190} paint={body} />
+    <Slab base={420} h={40} w={420} d={420} paint={frame} />
+    <Slab base={460} h={30} w={380} d={380} z={-10} paint={body} />
+    <Legs w={420} d={420} h={420} thick={34} inset={24} paint={frame} />
+    {[-185, 185].map((x) => (
+      <Lean key={x} x={x} from={[190, 420]} to={[240, 920]} w={34} thick={34} paint={frame} />
+    ))}
+    <Lean from={[192, 520]} to={[232, 900]} w={340} thick={26} paint={body} />
   </>
 )
 
@@ -530,10 +625,31 @@ const officeDeskL: Builder = (p) => {
 
 const officeChair: Builder = ({ body, frame }) => (
   <>
-    <Drum r={280} h={30} paint={frame} />
+    {along(5, (i) => (i * 2 * Math.PI) / 5).map((turn) => (
+      <Slab
+        key={turn}
+        x={Math.sin(turn) * 150}
+        z={Math.cos(turn) * 150}
+        h={30}
+        w={60}
+        d={300}
+        turn={turn}
+        paint={frame}
+      />
+    ))}
+    {along(5, (i) => (i * 2 * Math.PI) / 5).map((turn) => (
+      <Drum
+        key={turn}
+        x={Math.sin(turn) * 270}
+        z={Math.cos(turn) * 270}
+        r={28}
+        h={40}
+        paint={PAINT.dark}
+      />
+    ))}
     <Drum r={30} base={30} h={400} paint={frame} />
     <Slab base={430} h={90} w={500} d={500} paint={body} />
-    <Slab base={520} h={480} w={460} d={60} z={220} paint={body} />
+    <Lean from={[220, 520]} to={[270, 1000]} w={460} thick={60} paint={body} />
     {[-270, 270].map((x) => (
       <Slab key={x} x={x} base={650} h={30} w={60} d={300} paint={frame} />
     ))}
@@ -888,51 +1004,138 @@ const tableLamp: Builder = ({ h, frame }) => (
   </>
 )
 
-const car: Builder = ({ w, d, body }) => (
-  <>
-    <Slab base={280} h={520} w={w} d={d} paint={body} />
-    <Slab base={800} h={440} w={w - 240} d={d * 0.46} z={d * 0.04} paint={PAINT.tinted} />
-    <Slab base={1240} h={40} w={w - 240} d={d * 0.46} z={d * 0.04} paint={body} />
-    {[-(w / 2 - 80), w / 2 - 80].map((x) =>
-      [-(d / 2 - 900), d / 2 - 900].map((z) => (
-        <Disc
-          key={`${x}:${z}`}
-          x={x}
-          y={330}
-          z={z}
-          r={330}
-          thick={200}
-          facing="side"
-          paint={PAINT.black}
+/**
+ * A car, front at -z: a body to the belt line, a greenhouse on it with the
+ * windscreen and rear window leaning at the car's own angles, pillars, a
+ * roof, wheels showing under the sills, lights and bumpers at both ends.
+ * An SUV is the same, taller and squarer at the back.
+ */
+const car = (suv: boolean): Builder => {
+  return ({ w, d, body }) => {
+    const front = -d / 2
+    const rear = d / 2
+    const floor = 340
+    const belt = suv ? 920 : 800
+    const roof = suv ? 1680 : 1420
+    const screenFoot = front + d * (suv ? 0.3 : 0.34)
+    const screenTop = screenFoot + d * (suv ? 0.13 : 0.16)
+    const rearTop = rear - d * (suv ? 0.07 : 0.3)
+    const rearFoot = rear - d * (suv ? 0.03 : 0.16)
+    const glassW = w - 160
+    const span = rearTop - screenTop
+    return (
+      <>
+        <Slab base={floor} h={belt - floor} w={w} d={d} paint={body} />
+        <Slab
+          base={belt}
+          h={roof - belt - 60}
+          w={glassW}
+          d={span}
+          z={(screenTop + rearTop) / 2}
+          paint={PAINT.tinted}
         />
-      )),
-    )}
-    {[-(w / 2 - 250), w / 2 - 250].map((x) => (
-      <Slab
-        key={`front-${x}`}
-        x={x}
-        z={-d / 2 - 5}
-        base={600}
-        h={120}
-        w={260}
-        d={10}
-        paint={PAINT.lamp}
-      />
-    ))}
-    {[-(w / 2 - 250), w / 2 - 250].map((x) => (
-      <Slab
-        key={`rear-${x}`}
-        x={x}
-        z={d / 2 + 5}
-        base={600}
-        h={120}
-        w={260}
-        d={10}
-        paint={PAINT.red}
-      />
-    ))}
-  </>
-)
+        <Lean
+          from={[screenFoot, belt]}
+          to={[screenTop, roof - 30]}
+          w={glassW + 20}
+          thick={40}
+          paint={PAINT.tinted}
+        />
+        <Lean
+          from={[rearFoot, belt]}
+          to={[rearTop, roof - 30]}
+          w={glassW + 20}
+          thick={40}
+          paint={PAINT.tinted}
+        />
+        <Slab
+          base={roof - 60}
+          h={60}
+          w={glassW + 40}
+          d={span + 80}
+          z={(screenTop + rearTop) / 2}
+          paint={body}
+        />
+        {[-(glassW / 2), glassW / 2].map((x) => (
+          <group key={x}>
+            <Lean
+              x={x}
+              from={[screenFoot, belt]}
+              to={[screenTop, roof - 30]}
+              w={70}
+              thick={90}
+              paint={body}
+            />
+            <Lean
+              x={x}
+              from={[rearFoot, belt]}
+              to={[rearTop, roof - 30]}
+              w={70}
+              thick={90}
+              paint={body}
+            />
+            <Slab
+              x={x}
+              base={belt}
+              h={roof - belt - 60}
+              w={70}
+              d={80}
+              z={(screenTop + rearTop) / 2}
+              paint={body}
+            />
+          </group>
+        ))}
+        {[-(w / 2 - 90), w / 2 - 90].map((x) =>
+          [front + 900, rear - 900].map((z) => (
+            <group key={`${x}:${z}`}>
+              <Disc x={x} y={340} z={z} r={340} thick={230} facing="side" paint={PAINT.black} />
+              <Disc x={x} y={340} z={z} r={150} thick={240} facing="side" paint={PAINT.steel} />
+            </group>
+          )),
+        )}
+        {[-(w / 2 - 240), w / 2 - 240].map((x) => (
+          <Slab
+            key={`front-${x}`}
+            x={x}
+            z={front - 5}
+            base={belt - 250}
+            h={140}
+            w={300}
+            d={12}
+            paint={PAINT.lamp}
+          />
+        ))}
+        {[-(w / 2 - 240), w / 2 - 240].map((x) => (
+          <Slab
+            key={`rear-${x}`}
+            x={x}
+            z={rear + 5}
+            base={belt - 250}
+            h={120}
+            w={300}
+            d={12}
+            paint={PAINT.red}
+          />
+        ))}
+        <Slab z={front - 8} base={floor} h={140} w={w - 60} d={16} paint={PAINT.dark} />
+        <Slab z={rear + 8} base={floor} h={140} w={w - 60} d={16} paint={PAINT.dark} />
+        <Slab z={front - 6} base={belt - 220} h={120} w={w * 0.36} d={12} paint={PAINT.dark} />
+        {[-(w / 2 + 60), w / 2 + 60].map((x) => (
+          <Slab
+            key={`mirror-${x}`}
+            x={x}
+            z={screenFoot + 60}
+            base={belt + 60}
+            h={90}
+            w={120}
+            d={80}
+            paint={body}
+          />
+        ))}
+      </>
+    )
+  }
+}
 
 const stairs: Builder = ({ w, d, h, body }) => {
   const steps = Math.max(3, Math.round(h / 180))
@@ -1123,8 +1326,8 @@ const BUILDERS: Record<string, Builder> = {
   'potted-plant-s': plant,
   'floor-lamp': floorLamp,
   'table-lamp': tableLamp,
-  sedan: car,
-  suv: car,
+  sedan: car(false),
+  suv: car(true),
   'stairs-straight': stairs,
   'stairs-u': stairs,
   'stairs-l-landing': stairs,
