@@ -1,8 +1,12 @@
-import type { HouseDocument, HouseObject } from '@houseit/core/document'
+import type { HouseDocument, HouseObject, Side } from '@houseit/core/document'
 import { objectType } from '@houseit/core/object-types'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { runOfWall } from '@houseit/geometry/sides'
 import type { Draft } from 'immer'
 import { CommandError } from './command-error'
+
+/** The sides a command takes, as the enum a schema wants. */
+export const SIDE_NAMES = ['north', 'south', 'east', 'west'] as const
 
 /**
  * Finding what a command was told about.
@@ -25,16 +29,74 @@ export function levelOf(
   return level
 }
 
-/** The room with that name, with its record — a face nobody has named is not a room to a command. */
+/**
+ * The room with that name, or with that id as `describe` gives it, with its
+ * record — a face nobody has named is not a room to a command.
+ */
 export function roomNamed(
   doc: HouseDocument | Draft<HouseDocument>,
   level: string,
   name: string,
   what: string,
 ): Room & { id: string } {
-  const room = roomsOf(doc, level).find((candidate) => candidate.name === name)
+  const room = roomsOf(doc, level).find(
+    (candidate) => candidate.name === name || (candidate.id !== undefined && candidate.id === name),
+  )
   if (!room?.id) throw new CommandError(`${what}: there is no room called ${name}`)
   return room as Room & { id: string }
+}
+
+/** A wall of a room, said either way: by the side it is on, or by its id from `describe`. */
+export type WallRef = { side?: Side; wall?: string }
+
+/**
+ * The side a command means, and which run of it. Said as a side, it is the
+ * longest run of that side — the only one a rectangle has. Said as a wall
+ * id, it is the run that wall is in, which is how the second north wall of
+ * an L is reached.
+ */
+export function sideNamed(
+  doc: HouseDocument | Draft<HouseDocument>,
+  level: string,
+  room: Room,
+  ref: WallRef,
+  what: string,
+): { side: Side; nth?: number } {
+  if (ref.wall !== undefined) {
+    const place = runOfWall(doc, level, room, ref.wall)
+    if (!place) throw new CommandError(`${what}: ${room.name} has no wall ${ref.wall}`)
+    return { side: place.side, nth: place.nth }
+  }
+  if (ref.side !== undefined) return { side: ref.side }
+  throw new CommandError(`${what}: say which wall — --side, or --wall with its id from describe`)
+}
+
+/** A thing, said either way: by its id from `describe`, or by room, type and which of that type. */
+export type ThingRef = { id?: string; room?: string; type?: string; nth?: number }
+
+/** The thing a command means, and the room it stands in. */
+export function thingNamed(
+  doc: HouseDocument | Draft<HouseDocument>,
+  level: string,
+  ref: ThingRef,
+  what: string,
+): { object: HouseObject; room: Room & { id: string } } {
+  if (ref.id !== undefined) {
+    const object = doc.objects[ref.id]
+    if (!object || object.level !== level) {
+      throw new CommandError(`${what}: there is nothing called ${ref.id}`)
+    }
+    const room = roomsOf(doc, level).find((candidate) => candidate.id === object.room)
+    if (!room?.id) throw new CommandError(`${what}: ${ref.id} stands in no room`)
+    return { object: object as HouseObject, room: room as Room & { id: string } }
+  }
+  if (ref.room === undefined || ref.type === undefined) {
+    throw new CommandError(
+      `${what}: say which thing — --room and --type, or --id with its id from describe`,
+    )
+  }
+  const room = roomNamed(doc, level, ref.room, what)
+  return { object: objectNamed(doc, level, room, ref.type, ref.nth, what), room }
 }
 
 /**

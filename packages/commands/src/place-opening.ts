@@ -1,22 +1,13 @@
-import type { HouseDocument, Opening } from '@houseit/core/document'
-import { boundaryWallsOf } from '@houseit/geometry/boundary'
+import type { HouseDocument, Opening, Side } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
-import { sideRun } from '@houseit/geometry/sides'
+import { wallsFacing as facing, sideRun } from '@houseit/geometry/sides'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { type Box, boxOf, clashes } from './boxes'
 import { CommandError } from './command-error'
 
-export type Side = 'north' | 'south' | 'east' | 'west'
-
-/** The coordinate a wall on that side holds constant, and which end of it to take. */
-const SIDES = {
-  west: { axis: 'x', low: true },
-  east: { axis: 'x', low: false },
-  south: { axis: 'y', low: true },
-  north: { axis: 'y', low: false },
-} as const satisfies Record<Side, { axis: 'x' | 'y'; low: boolean }>
+export type { Side }
 
 export type Placement = {
   wall: string
@@ -47,12 +38,14 @@ export function placeOpening(
   swings = false,
   /** An opening to leave out of the count: the one being moved is not in its own way. */
   except?: string,
+  /** Which run of the side, where it has several; left out, every wall facing that way is tried. */
+  nth?: number,
 ): Placement {
   // A side can be more than one wall, and the roomiest is only the best guess at
   // which of them to use. Cut a hall out of a living room and its far side is two
   // partitions of the very same length, one with the staircase along the whole of
   // it — so every one of them is tried before the answer is no.
-  const walls = wallsFacing(doc, level, room, side, what).sort(
+  const walls = wallsFacing(doc, level, room, side, what, nth).sort(
     (one, other) => spanOf(other) - spanOf(one),
   )
   const widest = spanOf(walls[0]!)
@@ -124,15 +117,16 @@ export function placeOpeningAt(
   what: string,
   swings = false,
   except?: string,
+  nth?: number,
 ): Placement {
-  const run = sideRun(doc, level, room, side)
+  const run = sideRun(doc, level, room, side, nth)
   if (!run) throw new CommandError(`${what}: ${room.name} has no wall facing ${side}`)
   const centre = {
     x: run.from.x + (run.to.x - run.from.x) * along,
     y: run.from.y + (run.to.y - run.from.y) * along,
   }
 
-  const walls = wallsFacing(doc, level, room, side, what)
+  const walls = run.walls.map((wall) => ({ wall: { id: wall.wall }, a: wall.a, b: wall.b }))
   const found = walls
     .map((wall) => {
       const span = spanOf(wall)
@@ -333,12 +327,9 @@ function standingOn(doc: HouseDocument, level: string, chosen: Facing, span: num
 }
 
 /**
- * The walls of a room that face one way, the outermost ones only.
- *
- * A side is not always one wall: cut a room out of a corner and the wall it faces
- * across can end up in two pieces. Everything at the outermost offset counts,
- * because that is what somebody means by "the south wall" — the front of the
- * house, not a partition standing back from it.
+ * The walls of a room that face one way: every one of them, at the room's edge
+ * or where it steps back, or only those of one run of the side when a run is
+ * named. Refused, with the side named, when there are none.
  */
 export function wallsFacing(
   doc: HouseDocument,
@@ -346,19 +337,16 @@ export function wallsFacing(
   room: Room,
   side: Side,
   what: string,
+  nth?: number,
 ): Facing[] {
-  const { axis, low } = SIDES[side]
-  const walls = boundaryWallsOf(doc, level, room)
-    .map((wall) => ({ wall, a: doc.nodes[wall.a]!, b: doc.nodes[wall.b]! }))
-    .filter(({ a, b }) => a && b && a[axis] === b[axis])
-
+  const walls =
+    nth === undefined
+      ? facing(doc, level, room, side)
+      : (sideRun(doc, level, room, side, nth)?.walls ?? [])
   if (walls.length === 0) {
     throw new CommandError(`${what}: ${room.name} has no wall facing ${side}`)
   }
-
-  const offsets = walls.map(({ a }) => a[axis])
-  const outermost = low ? Math.min(...offsets) : Math.max(...offsets)
-  return walls.filter(({ a }) => a[axis] === outermost)
+  return walls.map((wall) => ({ wall: { id: wall.wall }, a: wall.a, b: wall.b }))
 }
 
 type Facing = { wall: { id: string }; a: { x: number; y: number }; b: { x: number; y: number } }

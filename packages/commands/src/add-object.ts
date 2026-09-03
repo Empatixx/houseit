@@ -1,12 +1,13 @@
 import { layerOf, OBJECT_TYPE_IDS, objectType } from '@houseit/core/object-types'
 import { SURFACE_IDS } from '@houseit/core/surfaces'
-import { roomsOf } from '@houseit/geometry/rooms'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
+import { type Along, along, alongSide } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
-import { placeAgainst, placeFree, placeSomewhereAgainst } from './place-object'
+import { freeWidth, placeAgainst, placeFree, placeSomewhereAgainst } from './place-object'
+import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
 import { canStand, standingProblem, takenBy } from './standing-check'
 
 /**
@@ -23,13 +24,17 @@ export const addObject = defineCommand({
   args: z.object({
     room: z.string().min(1),
     type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]),
-    against: z.enum(['north', 'south', 'east', 'west']).optional(),
+    /** The side it backs onto; the longest wall facing that way, if there are several. */
+    against: z.enum(SIDE_NAMES).optional(),
+    /** Or the very wall it backs onto, by its id from describe. */
+    wall: z.string().min(1).optional(),
     /**
-     * Where along that side, or across the room, 0 at one end and 1 at the
-     * other. Left out, the place is chosen — which is nearly always right. Said,
-     * it is checked like any other place and refused if something is there.
+     * Where along that wall, or across the room: a fraction (0 at the west or
+     * south end, 1 at the other) or a length from that end. Left out, the place
+     * is chosen — which is nearly always right. Said, it is checked like any
+     * other place and refused if something is there.
      */
-    along: z.coerce.number().min(0).max(1).optional(),
+    along: along().optional(),
     /** Standing free: how far up the room, 0 south and 1 north. Left out, the middle. */
     across: z.coerce.number().min(0).max(1).optional(),
     width: length().optional(),
@@ -41,15 +46,12 @@ export const addObject = defineCommand({
     level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = args.level ?? Object.keys(draft.levels)[0]
-    if (!level || !draft.levels[level]) {
-      throw new CommandError(`add-object: unknown level ${args.level ?? '<none>'}`)
-    }
-
-    const room = roomsOf(draft, level).find((candidate) => candidate.name === args.room)
-    if (!room?.id) {
-      throw new CommandError(`add-object: there is no room called ${args.room}`)
-    }
+    const level = levelOf(draft, args.level, 'add-object')
+    const room = roomNamed(draft, level, args.room, 'add-object')
+    const at =
+      args.against !== undefined || args.wall !== undefined
+        ? sideNamed(draft, level, room, { side: args.against, wall: args.wall }, 'add-object')
+        : undefined
 
     const type = objectType(args.type)!
     const surface = args.surface ?? type.surfaces[0]!
@@ -72,13 +74,16 @@ export const addObject = defineCommand({
       args.along !== undefined
         ? [
             {
-              ...(args.against !== undefined ? { against: args.against } : {}),
-              along: args.along,
+              ...(at !== undefined ? { against: at.side } : {}),
+              ...(at?.nth !== undefined ? { againstNth: at.nth } : {}),
+              along: at
+                ? alongSide(draft, level, room, at.side, at.nth, args.along, 'add-object')
+                : freeAlong(args.along, freeWidth(draft, room)),
               ...(args.across !== undefined ? { across: args.across } : {}),
             },
           ]
-        : args.against !== undefined
-          ? placeAgainst(draft, level, room, args.against, taken.width, layer, abuts)
+        : at !== undefined
+          ? placeAgainst(draft, level, room, at.side, taken.width, layer, abuts, at.nth)
           : type.stands === 'wall'
             ? placeSomewhereAgainst(draft, level, room, taken.width, layer, abuts)
             : placeFree(draft, room, taken.width, layer)
@@ -94,9 +99,7 @@ export const addObject = defineCommand({
         args.along !== undefined && first
           ? standingProblem(draft, level, room, first, shape)
           : undefined
-      const where = args.against
-        ? `against the ${args.against} side of ${args.room}`
-        : `in ${args.room}`
+      const where = at ? `against the ${at.side} side of ${room.name}` : `in ${room.name}`
       throw new CommandError(
         `add-object: a ${width} by ${depth} mm ${type.label.toLowerCase()} does not fit ${where}${problem ? `: ${problem}` : ''}`,
       )
@@ -110,6 +113,7 @@ export const addObject = defineCommand({
       room: room.id,
       type: type.id,
       ...(spot.against ? { against: spot.against } : {}),
+      ...(spot.againstNth !== undefined ? { againstNth: spot.againstNth } : {}),
       along: spot.along,
       ...(spot.across !== undefined ? { across: spot.across } : {}),
       width,
@@ -120,3 +124,15 @@ export const addObject = defineCommand({
     }
   },
 })
+
+/** Standing free, an `--along` is across the room's width, west to east. */
+function freeAlong(spec: Along, width: number): number {
+  if ('fraction' in spec) return spec.fraction
+  const from = spec.length < 0 ? width + spec.length : spec.length
+  if (from < 0 || from > width) {
+    throw new CommandError(
+      `add-object: ${Math.abs(spec.length)} mm is beyond the ${width} mm of the room`,
+    )
+  }
+  return width === 0 ? 0 : from / width
+}

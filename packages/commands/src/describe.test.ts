@@ -47,8 +47,16 @@ test('doors and windows are told by side, and a door says which room it opens fr
   const kitchen = ask<RoomReport>('describe --room kitchen')
 
   expect(kitchen.doors).toEqual([
-    { side: 'east', along: 0.5, width: 800, variant: 'hinged', to: 'house' },
+    expect.objectContaining({
+      side: 'east',
+      along: 0.5,
+      width: 800,
+      variant: 'hinged',
+      to: 'house',
+    }),
   ])
+  expect(kitchen.doors[0]!.id).toMatch(/^o\d+$/)
+  expect(kitchen.doors[0]!.wall).toMatch(/^w\d+$/)
   // The window was centred on the wall's centre line; the side's run is trimmed
   // by a thick outer wall at one end and a thin partition at the other, so the
   // window sits a hair off the run's middle — and that is what is said.

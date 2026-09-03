@@ -94,7 +94,7 @@ test('apply is checked by the same schema as the words are', () => {
   store.getState().exec(floor)
 
   expect(() =>
-    store.getState().apply(moveObject, { room: 'dům', type: 'sofa-3', along: 7 }),
+    store.getState().apply(moveObject, { room: 'dům', type: 'sofa-3', along: 'far' }),
   ).toThrow(/move-object: along/)
   expect(store.getState().canUndo).toBe(true) // only the floor
   expect(store.getState().past).toHaveLength(1)

@@ -2,7 +2,7 @@ import { OBJECT_TYPE_IDS, objectType } from '@houseit/core/object-types'
 import { z } from 'zod'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
-import { levelOf, objectNamed, roomNamed } from './resolve'
+import { levelOf, thingNamed } from './resolve'
 import { standingProblem } from './standing-check'
 
 /**
@@ -15,8 +15,10 @@ export const turnObject = defineCommand({
   name: 'turn-object',
   summary: 'Turn a thing in its room, in degrees: to a turn, or by one',
   args: z.object({
-    room: z.string().min(1),
-    type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]),
+    /** Its id from describe; or say the room and type. */
+    id: z.string().min(1).optional(),
+    room: z.string().min(1).optional(),
+    type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]).optional(),
     /** Which one, when there are several: 1 for the first put in. Left out, the last. */
     nth: z.coerce.number().int().positive().optional(),
     to: z.coerce.number().int().min(-359).max(359).optional(),
@@ -25,8 +27,7 @@ export const turnObject = defineCommand({
   }),
   run: (draft, args) => {
     const level = levelOf(draft, args.level, 'turn-object')
-    const room = roomNamed(draft, level, args.room, 'turn-object')
-    const found = objectNamed(draft, level, room, args.type, args.nth, 'turn-object')
+    const { object: found, room } = thingNamed(draft, level, args, 'turn-object')
     const label = objectType(found.type)?.label.toLowerCase() ?? found.type
 
     if ((args.to === undefined) === (args.by === undefined)) {
@@ -36,6 +37,7 @@ export const turnObject = defineCommand({
 
     const spot = {
       ...(found.against ? { against: found.against } : {}),
+      ...(found.againstNth !== undefined ? { againstNth: found.againstNth } : {}),
       along: found.along,
       ...(found.across !== undefined ? { across: found.across } : {}),
     }

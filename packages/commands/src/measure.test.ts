@@ -34,7 +34,7 @@ test('one side of a room says what is on it and what is still free', () => {
   const south = ask('measure --room kitchen --side south')
 
   expect(south.objects).toEqual([
-    { type: 'sofa-3', from: expect.any(Number), to: expect.any(Number) },
+    { id: 'f1', type: 'sofa-3', from: expect.any(Number), to: expect.any(Number) },
   ])
   const sofa = south.objects[0]
   expect(sofa.to - sofa.from).toBeGreaterThan(1500)
@@ -48,7 +48,12 @@ test('an opening on a side is a stretch of it too', () => {
   const north = ask('measure --room kitchen --side north')
 
   expect(north.openings).toEqual([
-    { kind: 'window', from: expect.any(Number), to: expect.any(Number) },
+    {
+      id: expect.stringMatching(/^o\d+$/),
+      kind: 'window',
+      from: expect.any(Number),
+      to: expect.any(Number),
+    },
   ])
   expect(north.openings[0].to - north.openings[0].from).toBe(1200)
 })

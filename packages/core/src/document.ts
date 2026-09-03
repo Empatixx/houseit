@@ -104,6 +104,12 @@ export const ObjectSchema = z.object({
   type: z.string().min(1),
   /** The side it backs onto. Absent means it stands out in the room. */
   against: SideSchema.optional(),
+  /**
+   * Which run of that side, counting from one west to east or south to north,
+   * where the side has more than one — an L steps back to a second north wall.
+   * Absent means the longest run, which is the only one a rectangle has.
+   */
+  againstNth: z.number().int().positive().optional(),
   /** Where along that side, 0 at one end and 1 at the other. */
   along: z.number().min(0).max(1).default(0.5),
   /**

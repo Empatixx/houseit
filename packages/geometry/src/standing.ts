@@ -6,6 +6,8 @@ import { sideRun } from './sides'
 /** Where a thing was put: against a side of its room and how far along, or free. */
 export type Standing = {
   against?: Side
+  /** Which run of that side, where it has several; absent is the longest. */
+  againstNth?: number
   /** 0 at one end of that side, 1 at the other. */
   along: number
   /** Standing free: how far up the room, 0 south and 1 north. Absent is the middle. */
@@ -66,7 +68,7 @@ export function standingAt(
     }
   }
 
-  const run = sideRun(doc, level, room, thing.against)
+  const run = sideRun(doc, level, room, thing.against, thing.againstNth)
   if (!run) return undefined
 
   const unit = {

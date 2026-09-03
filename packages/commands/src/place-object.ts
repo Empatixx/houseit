@@ -1,11 +1,11 @@
 import type { HouseDocument, Side } from '@houseit/core/document'
 import { type Layer, layerOf } from '@houseit/core/object-types'
 import type { Room } from '@houseit/geometry/rooms'
-import { type SideRun, sideRun } from '@houseit/geometry/sides'
+import { type SideRun, sideRun, sideRuns } from '@houseit/geometry/sides'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 import { reachOf } from '@houseit/geometry/standing'
 
-export type Spot = { against?: Side; along: number; across?: number }
+export type Spot = { against?: Side; againstNth?: number; along: number; across?: number }
 
 /**
  * How far up the room a free-standing thing is tried, in turn: the middle of
@@ -36,9 +36,13 @@ export function placeAgainst(
   width: number,
   layer: Layer = 'floor',
   abuts = false,
+  /** Which run of the side, where it has several; left out, the longest. */
+  nth?: number,
 ): Spot[] {
-  const run = sideRun(doc, level, room, side)
+  const run = sideRun(doc, level, room, side, nth)
   if (!run || run.length < width) return []
+  // Only a side with more than one run needs saying which; the rest is the longest.
+  const several = sideRuns(doc, level, room, side).length > 1
 
   const gaps = wideEnough(
     freeSpans(run.length, occupied(doc, level, room, side, run, layer)),
@@ -47,6 +51,7 @@ export function placeAgainst(
   return gaps.flatMap((gap) =>
     alongOf(gap, width, run.length, abuts).map((at) => ({
       against: side,
+      ...(several ? { againstNth: run.nth } : {}),
       along: at / run.length,
     })),
   )
@@ -87,7 +92,11 @@ export function placeSomewhereAgainst(
   layer: Layer = 'floor',
   abuts = false,
 ): Spot[] {
-  return SIDES.flatMap((side) => placeAgainst(doc, level, room, side, width, layer, abuts))
+  return SIDES.flatMap((side) =>
+    sideRuns(doc, level, room, side).flatMap((run) =>
+      placeAgainst(doc, level, room, side, width, layer, abuts, run.nth),
+    ),
+  )
 }
 
 /**
@@ -164,11 +173,17 @@ function occupied(
   layer: Layer,
 ): Span[] {
   // Same layer only, so a television and the console under it take the same
-  // stretch of wall instead of standing side by side along it.
+  // stretch of wall instead of standing side by side along it. And this run
+  // only: a thing along the far north wall of an L is not in the way at the
+  // near one. A thing that says no run is on the longest.
+  const longest = sideRun(doc, level, room, side)
   const objects = Object.values(doc.objects)
     .filter(
       (object) =>
-        object.room === room.id && object.against === side && layerOf(object.type) === layer,
+        object.room === room.id &&
+        object.against === side &&
+        (object.againstNth ?? longest?.nth) === run.nth &&
+        layerOf(object.type) === layer,
     )
     .map((object) => spanAround(object.along * run.length, reachOf(object).across))
 

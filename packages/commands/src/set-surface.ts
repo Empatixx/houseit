@@ -3,7 +3,7 @@ import { SURFACE_IDS } from '@houseit/core/surfaces'
 import { z } from 'zod'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
-import { levelOf, objectNamed, roomNamed } from './resolve'
+import { levelOf, thingNamed } from './resolve'
 
 /**
  * Gives a thing another finish: the same bed in linen instead of white. Only
@@ -13,8 +13,10 @@ export const setSurface = defineCommand({
   name: 'set-surface',
   summary: 'Give a thing another finish',
   args: z.object({
-    room: z.string().min(1),
-    type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]),
+    /** Its id from describe; or say the room and type. */
+    id: z.string().min(1).optional(),
+    room: z.string().min(1).optional(),
+    type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]).optional(),
     /** Which one, when there are several: 1 for the first put in. Left out, the last. */
     nth: z.coerce.number().int().positive().optional(),
     surface: z.enum(SURFACE_IDS as [string, ...string[]]),
@@ -22,8 +24,7 @@ export const setSurface = defineCommand({
   }),
   run: (draft, args) => {
     const level = levelOf(draft, args.level, 'set-surface')
-    const room = roomNamed(draft, level, args.room, 'set-surface')
-    const found = objectNamed(draft, level, room, args.type, args.nth, 'set-surface')
+    const { object: found } = thingNamed(draft, level, args, 'set-surface')
     const type = objectType(found.type)
     if (type && !type.surfaces.includes(args.surface)) {
       throw new CommandError(

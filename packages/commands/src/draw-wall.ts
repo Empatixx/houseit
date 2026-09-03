@@ -1,3 +1,4 @@
+import type { Side } from '@houseit/core/document'
 import { FLOOR_MATERIAL_IDS } from '@houseit/core/floor-materials'
 import { anchorInside } from '@houseit/geometry/anchor'
 import type { Point } from '@houseit/geometry/outlines'
@@ -5,13 +6,14 @@ import { containsPoint, type Room, roomsOf } from '@houseit/geometry/rooms'
 import { sideRun } from '@houseit/geometry/sides'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
+import { type Along, along, fractionOf } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { parseLength } from './length'
 import { length } from './length-schema'
 import { parseWalk } from './parse-walk'
 import { linkPoints, nearWall } from './partition'
-import { levelOf, roomNamed } from './resolve'
+import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
 
 const PARTITION_THICKNESS = 150
 
@@ -35,9 +37,11 @@ export const drawWall = defineCommand({
     /** Legs, each a length and a heading: "3m s, 4m e". */
     walk: z.string().min(1),
     room: z.string().min(1).optional(),
-    side: z.enum(['north', 'south', 'east', 'west']).optional(),
-    /** Where along that side the walk starts, 0 west or south and 1 the other end. */
-    along: z.coerce.number().min(0).max(1).optional(),
+    /** The side of that room it starts from; or the very wall by its id from describe. */
+    side: z.enum(SIDE_NAMES).optional(),
+    wall: z.string().min(1).optional(),
+    /** Where along that side the walk starts: a fraction (0 west or south, 1 the other end) or a length from that end. */
+    along: along().optional(),
     /** Or a place on the paper: "x,y" in millimetres, or with units — "0,0", "3m,4.5m". */
     at: z.string().optional(),
     name: z.string().min(1).optional(),
@@ -84,24 +88,26 @@ export const drawWall = defineCommand({
 function startOf(
   draft: Parameters<typeof roomsOf>[0],
   level: string,
-  args: { room?: string; side?: 'north' | 'south' | 'east' | 'west'; along?: number; at?: string },
+  args: { room?: string; side?: Side; wall?: string; along?: Along; at?: string },
 ): Point {
   if (args.at !== undefined) {
     const parts = args.at.split(',').map((part) => part.trim())
     if (parts.length !== 2) throw new CommandError('draw-wall: --at wants "x,y"')
     return { x: parseLength(parts[0]!), y: parseLength(parts[1]!) }
   }
-  if (args.room === undefined || args.side === undefined || args.along === undefined) {
+  if (args.room === undefined || args.along === undefined) {
     throw new CommandError(
-      'draw-wall: say where to start — --at x,y, or --room, --side and --along',
+      'draw-wall: say where to start — --at x,y, or --room, --side or --wall, and --along',
     )
   }
   const room = roomNamed(draft, level, args.room, 'draw-wall')
-  const run = sideRun(draft, level, room, args.side)
-  if (!run) throw new CommandError(`draw-wall: ${room.name} has no wall facing ${args.side}`)
+  const at = sideNamed(draft, level, room, args, 'draw-wall')
+  const run = sideRun(draft, level, room, at.side, at.nth)
+  if (!run) throw new CommandError(`draw-wall: ${room.name} has no wall facing ${at.side}`)
+  const fraction = fractionOf(args.along, run, 'draw-wall')
   return {
-    x: Math.round(run.from.x + (run.to.x - run.from.x) * args.along),
-    y: Math.round(run.from.y + (run.to.y - run.from.y) * args.along),
+    x: Math.round(run.from.x + (run.to.x - run.from.x) * fraction),
+    y: Math.round(run.from.y + (run.to.y - run.from.y) * fraction),
   }
 }
 

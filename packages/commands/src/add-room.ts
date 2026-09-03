@@ -1,14 +1,20 @@
 import { FLOOR_MATERIAL_IDS } from '@houseit/core/floor-materials'
 import { anchorInside } from '@houseit/geometry/anchor'
 import type { Axis } from '@houseit/geometry/cut'
-import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import type { Point } from '@houseit/geometry/outlines'
+import { containsPoint, type Room, roomsOf } from '@houseit/geometry/rooms'
+import { sideRun } from '@houseit/geometry/sides'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
+import { type Along, along, fractionOf } from './along-schema'
 import { CommandError } from './command-error'
 import { CORNERS, type Corner, cutCorner } from './cut-corner'
 import { defineCommand } from './define-command'
+import { parseLength } from './length'
 import { length } from './length-schema'
-import { partitionAlong } from './partition'
+import { parseWalk } from './parse-walk'
+import { linkPoints, nearWall, partitionAlong } from './partition'
+import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
 
 const PARTITION_THICKNESS = 150
 
@@ -20,26 +26,34 @@ const SIDES = {
   north: { axis: 'y', fromLow: false },
 } as const satisfies Record<string, { axis: Axis; fromLow: boolean }>
 
+const HEADINGS = { n: { x: 0, y: 1 }, s: { x: 0, y: -1 }, e: { x: 1, y: 0 }, w: { x: -1, y: 0 } }
+
 /**
- * A room is cut out of another room, never placed at coordinates. Nobody knows
- * that the kitchen starts at 4500 — that number is an outcome of the design, not
- * an input to it. What you know is that the kitchen is west of the living room and
- * three and a half metres wide.
+ * A room is cut out of another room, never placed beside one. Cutting settles
+ * the shared partition for free: the wall goes in between two nodes split out of
+ * the walls it meets, so both rooms are bounded by the one wall. Placing rooms
+ * side by side instead would leave two parallel walls with a gap between them.
  *
- * Cutting also settles the shared partition for free: the wall goes in between two
- * nodes split out of the walls it meets, so both rooms are bounded by the one
- * wall. Placing rooms side by side instead would leave two parallel walls with a
- * gap between them.
+ * Four ways to say the shape. A strip off a side, the whole way across; a box
+ * out of a corner, with a notch out of its inner corner for an L; any shape at
+ * all as its corners, `--points "0,0; 4m,0; 4m,3m; 2m,3m; 2m,5m; 0,5m"`, in
+ * millimetres or metres from the plan's origin — the south-west corner of a
+ * floor drawn from a standard shape; or as a walk of legs from a point on a
+ * side of the room it comes out of, `--walk "3m s, 4m e"`, which closes on
+ * whatever wall it reaches. The walls drawn are joined to every wall they cross.
  */
 export const addRoom = defineCommand({
   name: 'add-room',
-  summary: `Cut a new room off a side, or out of a corner, of an existing room (${FLOOR_MATERIAL_IDS.join(', ')})`,
+  summary: `Cut a new room out of a room: a strip off a side, a box out of a corner, any shape by its corners or by a walk of legs (${FLOOR_MATERIAL_IDS.join(', ')})`,
   args: z.object({
     name: z.string().min(1),
-    from: z.string().min(1),
-    side: z.enum(['north', 'south', 'east', 'west']).optional(),
+    /** The room it is cut out of. Left out with --points, the room the first corner lies in. */
+    from: z.string().min(1).optional(),
+    /** A strip off this side, --width across. */
+    side: z.enum(SIDE_NAMES).optional(),
+    /** A box out of this corner, --width by --depth. */
     corner: z.enum(Object.keys(CORNERS) as [Corner, ...Corner[]]).optional(),
-    width: length(),
+    width: length().optional(),
     /** Only a corner cut needs one: a side cut runs the whole way across. */
     depth: length().optional(),
     /**
@@ -47,26 +61,49 @@ export const addRoom = defineCommand({
      * a room somebody has to come back to, and nobody comes back.
      */
     material: z.enum(FLOOR_MATERIAL_IDS as [string, ...string[]]),
-    /** A bite out of the new room's inner corner, which makes it L-shaped. */
+    /** A bite out of a corner room's inner corner, which makes it L-shaped. */
     notchWidth: length().optional(),
     notchDepth: length().optional(),
+    /** Any shape, as its corners: "x,y; x,y; …" from the plan's origin, in millimetres or with units. */
+    points: z.string().min(1).optional(),
+    /** Any shape, as a walk of legs from a point on --side of --from, --along it: "3m s, 4m e". */
+    walk: z.string().min(1).optional(),
+    /** With --walk: where along that side it starts, a fraction or a length from the west or south end. */
+    along: along().optional(),
     thickness: length().default(PARTITION_THICKNESS),
     level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = args.level ?? Object.keys(draft.levels)[0]
-    if (!level || !draft.levels[level]) {
-      throw new CommandError(`add-room: unknown level ${args.level ?? '<none>'}`)
+    const level = levelOf(draft, args.level, 'add-room')
+    const ways = [args.side, args.corner, args.points, args.walk].filter((way) => way !== undefined)
+    if (
+      ways.length !== 1 &&
+      !(args.walk !== undefined && ways.length === 2 && args.side !== undefined)
+    ) {
+      throw new CommandError(
+        'add-room: say one shape — a --side to cut a strip off, a --corner to take a box out of, --points round it, or a --walk from a side',
+      )
     }
 
-    if ((args.side === undefined) === (args.corner === undefined)) {
-      throw new CommandError('add-room: give either a side to cut off or a corner to take out')
+    if (args.points !== undefined) {
+      cutByPoints(draft, level, args, parsePoints(args.points))
+      return
     }
 
-    const source = roomsOf(draft, level).find((room) => room.name === args.from)
-    if (!source) {
-      throw new CommandError(`add-room: there is no room called ${args.from}`)
+    if (args.from === undefined) {
+      throw new CommandError('add-room: say which room it comes out of, with --from')
     }
+    const source = roomNamed(draft, level, args.from, 'add-room')
+
+    if (args.walk !== undefined) {
+      cutByWalk(draft, level, source, args)
+      return
+    }
+
+    if (args.width === undefined) {
+      throw new CommandError('add-room: a strip or a box needs a --width')
+    }
+    const width = args.width
 
     if (args.corner) {
       if (args.depth === undefined) {
@@ -76,7 +113,7 @@ export const addRoom = defineCommand({
         throw new CommandError('add-room: a notch needs both --notch-width and --notch-depth')
       }
       const corner = cutCorner(draft, level, source, args.corner, {
-        width: args.width,
+        width,
         depth: args.depth,
         thickness: args.thickness,
         ...(args.notchWidth !== undefined && args.notchDepth !== undefined
@@ -92,12 +129,12 @@ export const addRoom = defineCommand({
     const low = Math.min(...points.map((point) => point[axis]))
     const high = Math.max(...points.map((point) => point[axis]))
 
-    if (args.width >= high - low) {
+    if (width >= high - low) {
       throw new CommandError(
         `add-room: ${args.name} is wider than ${args.from}, which is only ${high - low} mm across`,
       )
     }
-    const at = fromLow ? low + args.width : high - args.width
+    const at = fromLow ? low + width : high - width
 
     // The cut runs right across, going round any step in the room: a room that
     // is not a rectangle comes apart along the line all the same, and what is
@@ -107,6 +144,193 @@ export const addRoom = defineCommand({
   },
 })
 
+type Draft = Parameters<typeof roomsOf>[0]
+
+/** Corners as written: "x,y; x,y; …", each in millimetres or with a unit. At least three. */
+function parsePoints(source: string): Point[] {
+  const points = source
+    .split(/[;\n]+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+    .map((part) => {
+      const pair = part.split(',').map((it) => it.trim())
+      if (pair.length !== 2) throw new CommandError(`add-room: "${part}" is not an x,y corner`)
+      return { x: parseLength(pair[0]!), y: parseLength(pair[1]!) }
+    })
+  if (points.length < 3) throw new CommandError('add-room: --points needs at least three corners')
+  return points
+}
+
+/**
+ * Walls round the corners given, each joined to whatever it crosses, and the
+ * face they close is the room. Corners near a wall land on it, so "4m,3m"
+ * meets a wall drawn at 3 m rather than standing 20 mm off it.
+ */
+function cutByPoints(
+  draft: Draft,
+  level: string,
+  args: { name: string; from?: string; material: string; thickness: number },
+  corners: Point[],
+): void {
+  const polygon = corners.map((corner) => nearWall(draft, level, corner) ?? corner)
+  const source =
+    args.from !== undefined
+      ? roomNamed(draft, level, args.from, 'add-room')
+      : roomsOf(draft, level).find((room) =>
+          containsPoint(
+            room.nodes.map((id) => draft.nodes[id]!),
+            polygon[0]!.x,
+            polygon[0]!.y,
+          ),
+        )
+  if (!source?.id) {
+    throw new CommandError(
+      'add-room: the first corner lies in no room — say --from, or draw the floor first',
+    )
+  }
+  const outline = source.nodes.map((id) => draft.nodes[id]!)
+
+  let drew = false
+  polygon.forEach((from, index) => {
+    const to = polygon[(index + 1) % polygon.length]!
+    try {
+      linkPoints(draft, level, from, to, args.thickness, 'add-room')
+      drew = true
+    } catch (error) {
+      if (!(error instanceof CommandError)) throw error
+    }
+  })
+  if (!drew) throw new CommandError('add-room: there are walls there already')
+
+  settlePieces(
+    draft,
+    level,
+    source as Room & { id: string },
+    outline,
+    args.name,
+    args.material,
+    (face) => containsPoint(polygon, face.x, face.y),
+  )
+}
+
+/**
+ * A walk of legs from a point on a side of the room, each a wall, the last
+ * one let go on whatever wall it reaches. The smaller of what it leaves
+ * either side of it is the new room.
+ */
+function cutByWalk(
+  draft: Draft,
+  level: string,
+  source: Room & { id: string },
+  args: {
+    name: string
+    material: string
+    thickness: number
+    side?: string
+    wall?: string
+    along?: Along
+    walk?: string
+  },
+): void {
+  const at = sideNamed(
+    draft,
+    level,
+    source,
+    { side: args.side as never, wall: args.wall },
+    'add-room',
+  )
+  const run = sideRun(draft, level, source, at.side, at.nth)
+  if (!run) throw new CommandError(`add-room: ${source.name} has no wall facing ${at.side}`)
+  const fraction = fractionOf(args.along ?? { fraction: 0.5 }, run, 'add-room')
+  const outline = source.nodes.map((id) => draft.nodes[id]!)
+
+  const start = {
+    x: Math.round(run.from.x + (run.to.x - run.from.x) * fraction),
+    y: Math.round(run.from.y + (run.to.y - run.from.y) * fraction),
+  }
+  // A run stops at the faces of the walls at its ends; a walk from its very
+  // end starts at the corner itself.
+  let from = nearWall(draft, level, start) ?? start
+  let drew = false
+  for (const leg of parseWalk(args.walk ?? '')) {
+    const step = HEADINGS[leg.heading]
+    let to = { x: from.x + step.x * leg.length, y: from.y + step.y * leg.length }
+    to = nearWall(draft, level, to) ?? to
+    try {
+      linkPoints(draft, level, from, to, args.thickness, 'add-room')
+      drew = true
+    } catch (error) {
+      if (!(error instanceof CommandError)) throw error
+    }
+    from = to
+  }
+  if (!drew) throw new CommandError('add-room: there are walls there already')
+
+  settlePieces(draft, level, source, outline, args.name, args.material, undefined)
+}
+
+/**
+ * After walls have been drawn through a room: which of the pieces it came
+ * apart into is the new room, and which keeps the old name. Told by a test on
+ * a piece's anchor — inside the corners drawn — or, for a walk, the smaller
+ * piece. The old record moves into the biggest of the rest, and any further
+ * pieces are numbered after whichever name they belong to.
+ */
+function settlePieces(
+  draft: Draft,
+  level: string,
+  source: Room & { id: string },
+  outline: Point[],
+  name: string,
+  material: string,
+  isNew: ((anchor: Point) => boolean) | undefined,
+): void {
+  const pieces = roomsOf(draft, level)
+    .map((face) => ({
+      face,
+      anchor: anchorInside(
+        face.nodes.map((node) => draft.nodes[node]!),
+        face.area,
+      ),
+    }))
+    .filter(({ anchor }) => containsPoint(outline, anchor.x, anchor.y))
+  if (pieces.length < 2) throw new CommandError('add-room: the walls closed no room off')
+
+  const smallest = pieces.reduce((best, next) => (next.face.area < best.face.area ? next : best))
+  const taken = pieces.filter(({ anchor }) => (isNew ? isNew(anchor) : false))
+  const fresh = taken.length > 0 ? taken : [smallest]
+  const rest = pieces.filter((piece) => !fresh.includes(piece))
+  if (rest.length === 0) throw new CommandError('add-room: nothing of the old room would be left')
+
+  const biggest = rest.reduce((best, next) => (next.face.area > best.face.area ? next : best))
+  const record = draft.rooms[source.id]!
+  record.x = biggest.anchor.x
+  record.y = biggest.anchor.y
+
+  fresh.forEach(({ anchor }, index) => {
+    const id = allocateId(draft.rooms, 'r')
+    draft.rooms[id] = {
+      id,
+      level,
+      ...anchor,
+      name: index === 0 ? name : `${name} ${index + 1}`,
+      floor: material,
+    }
+  })
+  rest
+    .filter((piece) => piece !== biggest)
+    .forEach(({ anchor }, index) => {
+      const id = allocateId(draft.rooms, 'r')
+      draft.rooms[id] = {
+        id,
+        level,
+        ...anchor,
+        name: `${source.name ?? 'room'} ${index + 2}`,
+        floor: source.floor ?? material,
+      }
+    })
+}
+
 /**
  * After a cut right across: whatever lies on the near side of the line is the
  * new room, whatever lies beyond keeps the old name — decided by where each
@@ -115,7 +339,7 @@ export const addRoom = defineCommand({
  * numbered after the new name.
  */
 function settleCut(
-  draft: Parameters<typeof roomsOf>[0],
+  draft: Draft,
   level: string,
   source: Room,
   name: string,
@@ -174,7 +398,7 @@ function settleCut(
  * left, rather than letting an old anchor decide which half keeps the name.
  */
 function settle(
-  draft: Parameters<typeof roomsOf>[0],
+  draft: Draft,
   level: string,
   source: { id?: string },
   name: string,

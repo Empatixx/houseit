@@ -1,9 +1,9 @@
 import type { HouseDocument, HouseObject, Opening, Side, Wall } from '@houseit/core/document'
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
-import { interiorSize, planExtent, roomDimensions } from '@houseit/geometry/dimensions'
+import { interiorSize, planExtent } from '@houseit/geometry/dimensions'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
-import { sideFacing, sideOfWall, sideRun, wallsOnSide } from '@houseit/geometry/sides'
+import { runOfWall, sideOfWall, sideRun, wallsOnSide } from '@houseit/geometry/sides'
 import { standingAt } from '@houseit/geometry/standing'
 import { order } from './resolve'
 
@@ -22,9 +22,20 @@ import { order } from './resolve'
  * that is the unit anybody thinks of a room in.
  */
 
-export type WallReport = { side: Side; length: number }
+export type WallReport = {
+  /** Its id, which every command takes as --wall. */
+  id: string
+  side: Side
+  /** Which run of that side, west to east or south to north — only where the side has several. */
+  nth?: number
+  length: number
+}
 
 export type DoorReport = {
+  /** Its id, which every command takes as --id. */
+  id: string
+  /** The wall it is in. */
+  wall: string
   side: Side
   /** Which of the doors in that wall, counting from one — only when there are several. */
   nth?: number
@@ -36,13 +47,24 @@ export type DoorReport = {
   to: string
 }
 
-export type WindowReport = { side: Side; nth?: number; along: number; width: number }
+export type WindowReport = {
+  id: string
+  wall: string
+  side: Side
+  nth?: number
+  along: number
+  width: number
+}
 
 export type ObjectReport = {
+  /** Its id, which every command takes as --id. */
+  id: string
   type: string
   /** Which of its type in the room, counting from one — only when there are several. */
   nth?: number
   against?: Side
+  /** The wall it backs onto, for --wall. */
+  wall?: string
   along: number
   across?: number
   turn?: number
@@ -55,6 +77,8 @@ export type ObjectReport = {
 }
 
 export type RoomReport = {
+  /** Its id, which every command takes in place of the name. */
+  id?: string
   name?: string
   /** What sort of room it was told it is; left out, read from the name. */
   kind?: string
@@ -118,6 +142,8 @@ export function surveyRoom(
     if (opening.kind === 'door') {
       const across = rooms.find((other) => !sameFace(other, room) && walks(other, wall))
       doors.push({
+        id: opening.id,
+        wall: opening.wall,
         side,
         along,
         width: opening.width,
@@ -125,7 +151,7 @@ export function surveyRoom(
         to: across ? (across.name ?? '(unnamed)') : 'outside',
       })
     } else {
-      windows.push({ side, along, width: opening.width })
+      windows.push({ id: opening.id, wall: opening.wall, side, along, width: opening.width })
     }
   }
 
@@ -147,6 +173,7 @@ export function surveyRoom(
     .filter((name) => name !== undefined)
 
   return {
+    ...(room.id === undefined ? {} : { id: room.id }),
     ...(room.name === undefined ? {} : { name: room.name }),
     ...(room.kind === undefined ? {} : { kind: room.kind }),
     areaM2: Math.round(room.area / 10_000) / 100,
@@ -154,10 +181,20 @@ export function surveyRoom(
     box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) },
     ...(room.floor === undefined ? {} : { floor: room.floor }),
     neighbours,
-    walls: roomDimensions(doc, level, room).map((dimension) => ({
-      side: sideFacing(dimension.offset),
-      length: dimension.length,
-    })),
+    walls: walls.flatMap((wall) => {
+      const place = runOfWall(doc, level, room, wall.id)
+      const a = doc.nodes[wall.a]
+      const b = doc.nodes[wall.b]
+      if (!place || !a || !b) return []
+      return [
+        {
+          id: wall.id,
+          side: place.side,
+          ...(place.of > 1 ? { nth: place.nth } : {}),
+          length: Math.round(Math.hypot(b.x - a.x, b.y - a.y)),
+        },
+      ]
+    }),
     doors,
     windows,
     objects: objectsIn(doc, level, room).map((object, _, all) =>
@@ -183,10 +220,21 @@ export function surveyObject(
   const spot = standingAt(doc, level, room, object)
   const ofType = among.filter((other) => other.type === object.type)
   const nth = ofType.length > 1 ? ofType.indexOf(object) + 1 : undefined
+  const run = object.against
+    ? sideRun(doc, level, room, object.against, object.againstNth)
+    : undefined
+  const backing = run?.walls.reduce((best, next) =>
+    Math.hypot(next.b.x - next.a.x, next.b.y - next.a.y) >
+    Math.hypot(best.b.x - best.a.x, best.b.y - best.a.y)
+      ? next
+      : best,
+  )
   return {
+    id: object.id,
     type: object.type,
     ...(nth === undefined ? {} : { nth }),
     ...(object.against === undefined ? {} : { against: object.against }),
+    ...(backing === undefined ? {} : { wall: backing.wall }),
     along: object.along,
     ...(object.across === undefined ? {} : { across: object.across }),
     ...(object.turn === undefined ? {} : { turn: object.turn }),

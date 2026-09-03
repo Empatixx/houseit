@@ -10,7 +10,7 @@ import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { wallsAt } from './graph'
 import { length } from './length-schema'
-import { levelOf, roomNamed } from './resolve'
+import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
 import { standingProblem } from './standing-check'
 
 /** A wall shorter than this is not a wall anybody can build. */
@@ -32,7 +32,9 @@ export const moveWall = defineCommand({
   summary: 'Move the wall on one side of a room, outward by a length or inward by a minus one',
   args: z.object({
     room: z.string().min(1),
-    side: z.enum(['north', 'south', 'east', 'west']),
+    /** The side to move; or the very wall by its id from describe, for an L's second wall on a side. */
+    side: z.enum(SIDE_NAMES).optional(),
+    wall: z.string().min(1).optional(),
     /** How far, outward; a minus is inward. `-300`, `0.5m`. */
     by: length(),
     level: z.string().optional(),
@@ -42,11 +44,12 @@ export const moveWall = defineCommand({
     const room = roomNamed(draft, level, args.room, 'move-wall')
     if (args.by === 0) return
 
-    const walls = wallsOnSide(draft, level, room, args.side)
+    const at = sideNamed(draft, level, room, args, 'move-wall')
+    const walls = wallsOnSide(draft, level, room, at.side, at.nth)
     if (walls.length === 0) {
-      throw new CommandError(`move-wall: ${room.name} has no wall facing ${args.side}`)
+      throw new CommandError(`move-wall: ${room.name} has no wall facing ${at.side}`)
     }
-    const { axis, low } = SIDES[args.side]
+    const { axis, low } = SIDES[at.side]
     const across = axis === 'x' ? 'y' : 'x'
     const outward = low ? -1 : 1
     const shift = args.by * outward
@@ -79,7 +82,7 @@ export const moveWall = defineCommand({
       const after = before + shift
       if (Math.sign(after) !== Math.sign(before) || Math.abs(after) < LEAST) {
         throw new CommandError(
-          `move-wall: ${Math.abs(args.by)} mm ${args.by > 0 ? 'outward' : 'inward'} would leave the wall at ${fixed[across]} on the ${args.side} side ${Math.abs(after)} mm long`,
+          `move-wall: ${Math.abs(args.by)} mm ${args.by > 0 ? 'outward' : 'inward'} would leave the wall at ${fixed[across]} on the ${at.side} side ${Math.abs(after)} mm long`,
         )
       }
     }

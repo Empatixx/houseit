@@ -4,11 +4,12 @@ import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { sideRun } from '@houseit/geometry/sides'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
+import { along, fractionOf } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
 import { wallInto } from './partition'
-import { levelOf, roomNamed } from './resolve'
+import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
 
 const PARTITION_THICKNESS = 150
 
@@ -29,9 +30,11 @@ export const addWall = defineCommand({
   summary: 'Put a wall into a room from one side: right across, or a stub of a length',
   args: z.object({
     room: z.string().min(1),
-    side: z.enum(['north', 'south', 'east', 'west']),
-    /** Where along that side it starts, 0 west or south and 1 the other end. */
-    along: z.coerce.number().min(0).max(1),
+    /** The side it starts from; or the very wall by its id from describe. */
+    side: z.enum(SIDE_NAMES).optional(),
+    wall: z.string().min(1).optional(),
+    /** Where along that side it starts: a fraction (0 west or south, 1 the other end) or a length from that end. */
+    along: along(),
     /** How far into the room; left out, it goes to the far wall. */
     length: length().optional(),
     /** What to call a room the wall closes off. Left out, the old name numbered. */
@@ -43,12 +46,14 @@ export const addWall = defineCommand({
   run: (draft, args) => {
     const level = levelOf(draft, args.level, 'add-wall')
     const room = roomNamed(draft, level, args.room, 'add-wall')
-    const run = sideRun(draft, level, room, args.side)
-    if (!run) throw new CommandError(`add-wall: ${room.name} has no wall facing ${args.side}`)
+    const at = sideNamed(draft, level, room, args, 'add-wall')
+    const run = sideRun(draft, level, room, at.side, at.nth)
+    if (!run) throw new CommandError(`add-wall: ${room.name} has no wall facing ${at.side}`)
+    const fraction = fractionOf(args.along, run, 'add-wall')
 
     const from = {
-      x: Math.round(run.from.x + (run.to.x - run.from.x) * args.along),
-      y: Math.round(run.from.y + (run.to.y - run.from.y) * args.along),
+      x: Math.round(run.from.x + (run.to.x - run.from.x) * fraction),
+      y: Math.round(run.from.y + (run.to.y - run.from.y) * fraction),
     }
     const before = new Set(roomsOf(draft, level).map(keyOf))
     wallInto(draft, level, room, from, run.inward, args.length, args.thickness, 'add-wall')
