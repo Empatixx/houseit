@@ -1,10 +1,10 @@
 import { createEmptyDocument, DOCUMENT_VERSION } from '@houseit/core/document'
-import FDBFactory from 'fake-indexeddb/lib/FDBFactory'
+import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
 import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
 
 /** A database of its own for each test, so nothing one leaves behind reaches the next. */
-const fresh = () => openProjects(new FDBFactory() as unknown as IDBFactory)
+const fresh = () => openProjects(new FakeIndexedDb())
 
 const meta = (id: string, updatedAt = 1): ProjectMeta => ({
   id,

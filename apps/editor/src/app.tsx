@@ -1,5 +1,4 @@
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useEditKeys } from './edit/use-edit-keys'
 import { PlanScene } from './scene/plan-scene'
@@ -9,6 +8,7 @@ import { shellStore } from './store/shell'
 import { BottomBar } from './ui/bottom-bar'
 import { usePanelShown } from './ui/edges'
 import { Inspector } from './ui/inspector'
+import { ProjectChip } from './ui/project-chip'
 import { Rail } from './ui/rail'
 import { TopOverlay } from './ui/top-overlay'
 import { WalkHint } from './ui/walk-hint'
@@ -16,8 +16,8 @@ import { WalkHint } from './ui/walk-hint'
 /**
  * The shell: the plan as one card, white on warm paper, and everything else
  * floating over it in glass — the rail down its left edge with the mark at
- * its head, the cards at its top right, the bar along its foot, the panel
- * down its right edge. Nothing sits beside the plan, so nothing that opens
+ * its head, the project's name beside it, the cards at its top right, the bar
+ * along its foot, the panel down its right edge. Nothing sits beside the plan, so nothing that opens
  * or folds away can move it. Walked through, the plan is the same card with
  * another camera in it, and the palette gives way to the keys that walk.
  */
@@ -39,9 +39,9 @@ export function App() {
           {mode === '2d' ? <BottomBar /> : <WalkHint />}
           <Inspector />
           <Rail />
+          <ProjectChip />
         </SidebarInset>
       </SidebarProvider>
-      <Toaster position="bottom-right" />
     </TooltipProvider>
   )
 }

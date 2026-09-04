@@ -1,10 +1,10 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
-import FDBFactory from 'fake-indexeddb/lib/FDBFactory'
+import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
 import { createWriter, WRITE_DELAY } from './autosave'
 import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
 
-const fresh = () => openProjects(new FDBFactory() as unknown as IDBFactory)
+const fresh = () => openProjects(new FakeIndexedDb())
 const meta: ProjectMeta = { id: 'byt', name: 'Byt', createdAt: 1, updatedAt: 1 }
 
 /** A plan with one wall in it, so there is an outline to find. */

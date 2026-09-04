@@ -1,4 +1,4 @@
-import FDBFactory from 'fake-indexeddb/lib/FDBFactory'
+import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
 import { createDocumentStore } from '../document-store'
 import { WRITE_DELAY } from './autosave'
@@ -8,7 +8,7 @@ import { createProjectsStore } from './projects'
 /** A store on a database of its own, with a document store of its own under it. */
 function fresh() {
   const docs = createDocumentStore()
-  const store = createProjectsStore(openProjects(new FDBFactory() as unknown as IDBFactory), docs)
+  const store = createProjectsStore(openProjects(new FakeIndexedDb()), docs)
   return { docs, store, at: store.getState }
 }
 
@@ -120,7 +120,8 @@ test('a project cannot be renamed to nothing', async () => {
 
   await at().rename(meta.id, '  ')
 
-  expect((await at().refresh(), at().list?.[0]?.name)).toBe('Byt')
+  await at().refresh()
+  expect(at().list?.[0]?.name).toBe('Byt')
 })
 
 test('removing gives back what was removed, and restoring puts it back', async () => {

@@ -5,6 +5,7 @@ import type { DocumentState } from '../document-store'
 import { documentStore } from '../store'
 import { createWriter } from './autosave'
 import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
+import { importLocalPlan } from './import-local'
 import { slugOf } from './slug'
 
 /** What a project is called when it is not called anything. */
@@ -136,8 +137,19 @@ export function createProjectsStore(
   return store
 }
 
-/** The editor's projects. Tests build their own with `createProjectsStore`. */
-export const projectsStore = createProjectsStore(openProjects())
+/**
+ * The editor's projects. Tests build their own with `createProjectsStore`.
+ *
+ * The plan that used to live in localStorage is lifted into the database as
+ * part of opening it, so nothing can read the projects before it is one of
+ * them.
+ */
+export const projectsStore = createProjectsStore(
+  openProjects().then(async (db) => {
+    await importLocalPlan(db)
+    return db
+  }),
+)
 
 export function useProjects<T>(selector: (state: ProjectsState) => T): T {
   return useStore(projectsStore, selector)

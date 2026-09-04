@@ -1,10 +1,10 @@
 import { createEmptyDocument } from '@houseit/core/document'
-import FDBFactory from 'fake-indexeddb/lib/FDBFactory'
+import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
 import { openProjects } from './db'
 import { importLocalPlan, LEGACY_KEY } from './import-local'
 
-const fresh = () => openProjects(new FDBFactory() as unknown as IDBFactory)
+const fresh = () => openProjects(new FakeIndexedDb())
 
 /** Enough of the Storage interface to stand in for localStorage, plus a sealed one. */
 const fake = (): Storage => {
