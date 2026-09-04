@@ -35,6 +35,11 @@ export type DocumentState = {
   apply: <C extends TypedCommand>(command: C, args: ArgsOf<C>) => Output[]
   undo: () => void
   redo: () => void
+  /**
+   * Puts a stored plan in place with no history behind it. Opening a project
+   * is not an edit, and undo belongs to a sitting rather than to a plan.
+   */
+  load: (doc: HouseDocument) => void
   /** Starts again from nothing, history and all. */
   reset: () => void
 }
@@ -88,17 +93,17 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
         })
       },
 
-      reset: () => {
-        const empty = createEmptyDocument()
+      load: (doc) =>
         set({
-          doc: empty,
-          level: Object.keys(empty.levels)[0]!,
+          doc,
+          level: Object.keys(doc.levels)[0]!,
           past: [],
           future: [],
           canUndo: false,
           canRedo: false,
-        })
-      },
+        }),
+
+      reset: () => get().load(createEmptyDocument()),
 
       redo: () => {
         const { doc, past, future } = get()

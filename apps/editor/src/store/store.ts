@@ -1,17 +1,14 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { useStore } from 'zustand'
 import { createDocumentStore, type DocumentState } from './document-store'
-import { loadDocument, saveDocument } from './persistence'
 import { usePreview } from './preview'
 
-/** The editor's single document. Tests build their own with `createDocumentStore`. */
-export const documentStore = createDocumentStore(loadDocument())
-
-// Written back on every change, so a reload picks up where the plan was left. The
-// history is deliberately not stored: undo belongs to a sitting, not to a plan.
-documentStore.subscribe((state, previous) => {
-  if (state.doc !== previous.doc) saveDocument(state.doc)
-})
+/**
+ * The editor's single document: whichever project is open is loaded into it,
+ * and written back from it by `store/projects`. Tests build their own with
+ * `createDocumentStore`.
+ */
+export const documentStore = createDocumentStore()
 
 export function useDocument<T>(selector: (state: DocumentState) => T): T {
   return useStore(documentStore, selector)
