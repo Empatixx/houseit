@@ -10,6 +10,7 @@ import { newest } from '@houseit/commands/resolve'
 import { roomsOf } from '@houseit/geometry/rooms'
 import type { createDocumentStore } from '../store/document-store'
 import { modeStore } from '../store/mode'
+import { projectsStore as theProjects } from '../store/projects/projects'
 import { selectionStore } from '../store/selection'
 import { shellStore } from '../store/shell'
 import { clearOf, viewStore } from '../store/view'
@@ -31,13 +32,32 @@ const ROOM_MARGIN = 1200
  * server reaches this through `page.evaluate`, where a thrown error arrives as an
  * opaque string — the agent needs the message the command actually produced.
  */
-export function installFloorplanBridge(store: ReturnType<typeof createDocumentStore>): void {
+export function installFloorplanBridge(
+  store: ReturnType<typeof createDocumentStore>,
+  projects: typeof theProjects = theProjects,
+): void {
   const snapshot = (): PlanSnapshot => {
     const { doc, level } = store.getState()
+    const open = projects.getState().open
     return {
       document: doc,
       rooms: roomsOf(doc, level).map((room) => ({ name: room.name, area: room.area })),
+      project: open ? { id: open.id, name: open.name } : undefined,
     }
+  }
+
+  /**
+   * Nothing is worked on until a project is open, and the agent cannot open one
+   * — projects belong to the editor, not to the commands. So the refusal says
+   * what there is and where to open it, rather than only that it will not.
+   */
+  const noProject = (): string => {
+    const { list, refresh } = projects.getState()
+    // Asked for, so that a second attempt can name them even if this one could not.
+    if (!list) void refresh()
+    const ids = list?.map((project) => project.id) ?? []
+    const where = ids.length > 0 ? `projects: ${ids.join(', ')} (open one at /p/<id>)` : 'make one on the home screen'
+    return `no project open — ${where}`
   }
 
   /** The part of the canvas nothing floats over, where the framing lands. */
@@ -98,6 +118,7 @@ export function installFloorplanBridge(store: ReturnType<typeof createDocumentSt
 
   window.floorplan = {
     exec: (source) => {
+      if (!projects.getState().open) return { ok: false, error: noProject() }
       try {
         const output = store.getState().exec(source)
         return { ok: true, output, ...snapshot() }
@@ -108,6 +129,7 @@ export function installFloorplanBridge(store: ReturnType<typeof createDocumentSt
     getPlan: snapshot,
     help: describeCommands,
     show: (view) => {
+      if (!projects.getState().open) return { ok: false, error: noProject() }
       try {
         return show(view)
       } catch (error) {

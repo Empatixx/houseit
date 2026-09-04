@@ -3,7 +3,14 @@ import type { HouseDocument } from '@houseit/core/document'
 /** What the agent sees of a room: enough to reason about, not the raw face. */
 export type RoomSummary = { name?: string; area: number }
 
-export type PlanSnapshot = { document: HouseDocument; rooms: RoomSummary[] }
+/** Which project the plan belongs to. Absent when none is open. */
+export type ProjectSummary = { id: string; name: string }
+
+export type PlanSnapshot = {
+  document: HouseDocument
+  rooms: RoomSummary[]
+  project?: ProjectSummary
+}
 
 /**
  * What a command that only looks has to say: `describe` and `measure` answer

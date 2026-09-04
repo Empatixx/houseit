@@ -21,11 +21,17 @@ export function report(result: ExecResult): string {
     return result.output.map((entry) => compactJson(entry)).join('\n')
   }
 
+  // Which plan this was, since the agent works on whichever project is open and
+  // did not choose it.
+  const plan = result.project?.name ?? 'The plan'
+
   if (result.rooms.length === 0) {
-    return 'Done. The plan has no rooms yet — walls must close before a room exists.'
+    return `Done. ${plan} has no rooms yet — walls must close before a room exists.`
   }
 
-  return [`Done. ${result.rooms.length} room(s):`, ...result.rooms.map(roomLine)].join('\n')
+  return [`Done. ${plan} has ${result.rooms.length} room(s):`, ...result.rooms.map(roomLine)].join(
+    '\n',
+  )
 }
 
 /** How wide a line of the answer may be before its object is spread over several. */

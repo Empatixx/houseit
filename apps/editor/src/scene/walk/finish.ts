@@ -23,7 +23,7 @@ const photos = new Map<string, Texture>()
 function photoOf(name: string): Texture {
   const cached = photos.get(name)
   if (cached) return cached
-  const texture = loader.load(`textures/surfaces/${name}.jpg`)
+  const texture = loader.load(`/textures/surfaces/${name}.jpg`)
   texture.wrapS = RepeatWrapping
   texture.wrapT = RepeatWrapping
   texture.colorSpace = SRGBColorSpace

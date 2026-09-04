@@ -15,7 +15,7 @@ export function NewProjectCard() {
   const navigate = useNavigate()
 
   const frame =
-    'flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed bg-transparent p-4 text-muted-foreground'
+    'flex h-full min-h-[13rem] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed bg-transparent p-4 text-muted-foreground'
 
   if (!naming) {
     return (

@@ -43,11 +43,11 @@ export function ProjectCard({ project }: { project: ProjectMeta }) {
         </div>
       </button>
       <Button
-        variant="secondary"
+        variant="ghost"
         size="icon"
         aria-label={`Delete ${project.name}`}
         onClick={forget}
-        className="glass absolute top-2 right-2 size-7 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+        className="glass absolute top-2 right-2 size-7 rounded-lg text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
       >
         <XIcon />
       </Button>

@@ -99,12 +99,12 @@ async function projectOf(name: string) {
 /**
  * A plan named in the address is drawn in place of whatever the project held.
  *
- * `?plan=house` fetches `plans/house.txt` — a command script, the same lines the
+ * `?plan=house` fetches `/plans/house.txt` — a command script, the same lines the
  * agent would send — wipes the plan and runs it. That is what makes a plan a
  * thing with an address that can be handed to somebody.
  */
 function drawNamedPlan(name: string): void {
-  fetch(`plans/${encodeURIComponent(name)}.txt`)
+  fetch(`/plans/${encodeURIComponent(name)}.txt`)
     .then((response) => (response.ok ? response.text() : Promise.reject(response.status)))
     .then((script) => {
       documentStore.getState().reset()

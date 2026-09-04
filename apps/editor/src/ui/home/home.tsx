@@ -26,7 +26,7 @@ export function Home() {
       </header>
       <main className="mx-auto max-w-5xl px-6 pt-10 pb-16">
         <h1 className="mb-6 text-2xl font-semibold tracking-tight">Projects</h1>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] items-start gap-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-4">
           {list?.map((project) => (
             <ProjectCard key={project.id} project={project} />
           ))}

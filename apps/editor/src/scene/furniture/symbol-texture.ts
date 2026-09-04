@@ -23,7 +23,7 @@ const sources = new Map<string, Promise<string>>()
 function sourceOf(file: string): Promise<string> {
   const cached = sources.get(file)
   if (cached) return cached
-  const loading = fetch(`symbols/${file}`).then((response) => {
+  const loading = fetch(`/symbols/${file}`).then((response) => {
     if (!response.ok) throw new Error(`no symbol at symbols/${file}`)
     return response.text()
   })

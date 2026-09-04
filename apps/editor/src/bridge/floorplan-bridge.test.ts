@@ -1,5 +1,8 @@
+import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
 import { createDocumentStore } from '../store/document-store'
+import { openProjects } from '../store/projects/db'
+import { createProjectsStore } from '../store/projects/projects'
 import { selectionStore } from '../store/selection'
 import { viewStore } from '../store/view'
 import { installFloorplanBridge } from './floorplan-bridge'
@@ -7,31 +10,45 @@ import { installFloorplanBridge } from './floorplan-bridge'
 const floor =
   'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name dům'
 
-const bridgeOn = (store = createDocumentStore()) => {
-  installFloorplanBridge(store)
+/** The bridge with a project open, which is the only state it does anything in. */
+async function bridgeOn(store = createDocumentStore()) {
+  const projects = createProjectsStore(openProjects(new FakeIndexedDb()), store)
+  installFloorplanBridge(store, projects)
+  const meta = await projects.getState().create('Byt')
+  await projects.getState().openProject(meta.id)
   return window.floorplan
 }
 
-test('installs itself on window so the MCP server can find it', () => {
-  expect(typeof bridgeOn().exec).toBe('function')
+/** The bridge with nothing open, which is what the home screen is. */
+async function bridgeWithNothingOpen() {
+  const store = createDocumentStore()
+  const projects = createProjectsStore(openProjects(new FakeIndexedDb()), store)
+  await projects.getState().create('Byt')
+  await projects.getState().refresh()
+  installFloorplanBridge(store, projects)
+  return window.floorplan
+}
+
+test('installs itself on window so the MCP server can find it', async () => {
+  expect(typeof (await bridgeOn()).exec).toBe('function')
 })
 
-test('exec reports the rooms the command produced', () => {
-  const result = bridgeOn().exec(floor)
+test('exec reports the rooms the command produced', async () => {
+  const result = (await bridgeOn()).exec(floor)
 
   expect(result.ok).toBe(true)
   expect(result.ok && result.rooms).toEqual([{ name: 'dům', area: 12_000 * 9000 }])
 })
 
-test('exec returns the failure as data rather than throwing across the boundary', () => {
-  const result = bridgeOn().exec('no-such-command')
+test('exec returns the failure as data rather than throwing across the boundary', async () => {
+  const result = (await bridgeOn()).exec('no-such-command')
 
   expect(result.ok).toBe(false)
   expect(result.ok === false && result.error).toMatch(/no-such-command/)
 })
 
-test('a failed exec leaves the plan alone', () => {
-  const bridge = bridgeOn()
+test('a failed exec leaves the plan alone', async () => {
+  const bridge = await bridgeOn()
   bridge.exec(floor)
 
   bridge.exec('no-such-command')
@@ -39,8 +56,8 @@ test('a failed exec leaves the plan alone', () => {
   expect(bridge.getPlan().rooms).toHaveLength(1)
 })
 
-test('getPlan reports the document and its derived rooms', () => {
-  const bridge = bridgeOn()
+test('getPlan reports the document and its derived rooms', async () => {
+  const bridge = await bridgeOn()
   bridge.exec(floor)
 
   const plan = bridge.getPlan()
@@ -49,8 +66,8 @@ test('getPlan reports the document and its derived rooms', () => {
   expect(Object.keys(plan.document.walls)).toHaveLength(4)
 })
 
-test('exec hands back what describe and measure said', () => {
-  const bridge = bridgeOn()
+test('exec hands back what describe and measure said', async () => {
+  const bridge = await bridgeOn()
   bridge.exec(floor)
 
   const result = bridge.exec('describe --room dům')
@@ -59,8 +76,8 @@ test('exec hands back what describe and measure said', () => {
   expect(result.ok && result.output[0]).toMatchObject({ name: 'dům' })
 })
 
-test('showing a room picks it and frames it, with room to spare round it', () => {
-  const bridge = bridgeOn()
+test('showing a room picks it and frames it, with room to spare round it', async () => {
+  const bridge = await bridgeOn()
   bridge.exec(floor)
 
   expect(bridge.show({ room: 'dům' })).toMatchObject({ ok: true })
@@ -72,8 +89,8 @@ test('showing a room picks it and frames it, with room to spare round it', () =>
   expect(box!.x1).toBeGreaterThan(12_000)
 })
 
-test('showing a thing picks the last one of its type in the room', () => {
-  const bridge = bridgeOn()
+test('showing a thing picks the last one of its type in the room', async () => {
+  const bridge = await bridgeOn()
   bridge.exec(`${floor}\nadd-object --room dům --type sofa-3 --against south`)
 
   expect(bridge.show({ room: 'dům', type: 'sofa-3' })).toMatchObject({ ok: true })
@@ -81,8 +98,8 @@ test('showing a thing picks the last one of its type in the room', () => {
   expect(selectionStore.getState().selected).toMatchObject({ kind: 'object' })
 })
 
-test('showing the level lets go of whatever was picked and frames the plan', () => {
-  const bridge = bridgeOn()
+test('showing the level lets go of whatever was picked and frames the plan', async () => {
+  const bridge = await bridgeOn()
   bridge.exec(floor)
   bridge.show({ room: 'dům' })
 
@@ -93,8 +110,8 @@ test('showing the level lets go of whatever was picked and frames the plan', () 
   expect(viewStore.getState().box).toBeNull()
 })
 
-test('showing what is not there is refused by name, not thrown', () => {
-  const bridge = bridgeOn()
+test('showing what is not there is refused by name, not thrown', async () => {
+  const bridge = await bridgeOn()
   bridge.exec(floor)
 
   expect(bridge.show({ room: 'attic' })).toEqual({
@@ -104,6 +121,29 @@ test('showing what is not there is refused by name, not thrown', () => {
   expect(bridge.show({ room: 'dům', type: 'sofa-3' })).toMatchObject({ ok: false })
 })
 
-test('help lists the commands an agent may use', () => {
-  expect(bridgeOn().help()).toMatch(/floor-shape/)
+test('help lists the commands an agent may use', async () => {
+  expect((await bridgeOn()).help()).toMatch(/floor-shape/)
+})
+
+test('with no project open there is nothing to work on, and it says which there are', async () => {
+  const bridge = await bridgeWithNothingOpen()
+
+  const result = bridge.exec(floor)
+
+  expect(result.ok).toBe(false)
+  expect(result.ok === false && result.error).toMatch(/no project open/)
+  expect(result.ok === false && result.error).toMatch(/byt/)
+})
+
+test('with no project open nothing is framed either', async () => {
+  const bridge = await bridgeWithNothingOpen()
+
+  expect(bridge.show({})).toMatchObject({ ok: false })
+})
+
+test('the snapshot says which project the plan belongs to', async () => {
+  const bridge = await bridgeOn()
+
+  expect(bridge.getPlan().project).toEqual({ id: 'byt', name: 'Byt' })
+  expect(bridge.exec(floor)).toMatchObject({ project: { name: 'Byt' } })
 })

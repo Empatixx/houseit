@@ -17,7 +17,11 @@ export function floorTexture(material: FloorMaterial): Texture {
   const cached = cache.get(material.id)
   if (cached) return cached
 
-  const texture = loader.load(`textures/${material.texture}`)
+  // From the site root, not from where the address happens to be: a project is
+  // at /p/<id>, and a relative path there asks for /p/textures/… — which the dev
+  // server answers with index.html at status 200, and a floor whose texture is a
+  // web page renders black.
+  const texture = loader.load(`/textures/${material.texture}`)
   texture.wrapS = RepeatWrapping
   texture.wrapT = RepeatWrapping
   texture.colorSpace = SRGBColorSpace
