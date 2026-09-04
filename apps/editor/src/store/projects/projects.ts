@@ -12,7 +12,7 @@ import { slugOf } from './slug'
 const UNTITLED = 'Untitled'
 
 /** A project and its plan, held on to for as long as it can be put back. */
-export type Removed = { meta: ProjectMeta; doc: HouseDocument | undefined }
+type Removed = { meta: ProjectMeta; doc: HouseDocument | undefined }
 
 export type ProjectsState = {
   /** Every project, most recently touched first. Undefined until they have been read. */

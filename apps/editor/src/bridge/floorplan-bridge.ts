@@ -56,7 +56,10 @@ export function installFloorplanBridge(
     // Asked for, so that a second attempt can name them even if this one could not.
     if (!list) void refresh()
     const ids = list?.map((project) => project.id) ?? []
-    const where = ids.length > 0 ? `projects: ${ids.join(', ')} (open one at /p/<id>)` : 'make one on the home screen'
+    const where =
+      ids.length > 0
+        ? `projects: ${ids.join(', ')} (open one at /p/<id>)`
+        : 'make one on the home screen'
     return `no project open — ${where}`
   }
 

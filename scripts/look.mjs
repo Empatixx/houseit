@@ -9,7 +9,9 @@
  * else in it — frames it, and saves a picture big enough to see what is actually
  * drawn.
  *
- * The plan you were working on is put back afterwards, whatever happens.
+ * It works in a project of its own called `look`, made for the occasion and taken
+ * away afterwards, and puts you back in whichever project you were in. The plan
+ * you were working on is never touched.
  *
  *   node scripts/look.mjs --type media-unit --surface walnut --out /tmp/tv.png
  *   node scripts/look.mjs --type sofa-3 --surface grey --against north
@@ -19,7 +21,9 @@ import { createRequire } from 'node:module'
 const require = createRequire(new URL('../apps/mcp/', import.meta.url))
 const { chromium } = require('playwright-core')
 
-const STORAGE_KEY = 'houseit.document'
+const EDITOR = (process.env.HOUSEIT_EDITOR_URL ?? 'http://localhost:5173').replace(/\/$/, '')
+/** The throwaway project this works in. */
+const LOOK = 'look'
 /** Floor left round the object, so it is framed and not cropped. */
 const MARGIN = 700
 /** Options handed straight on to `add-object`. */
@@ -39,7 +43,7 @@ if (!page) {
   process.exit(1)
 }
 
-const kept = await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)
+const kept = await page.evaluate(() => window.__houseit?.projectsStore.getState().open?.id ?? null)
 try {
   // A generous room first, only to be told how big the thing turns out to be, then
   // the same thing again in a room cut to fit it. The size comes from the plan
@@ -51,27 +55,37 @@ try {
   }
   await build(page, room.width, room.depth, args)
 
-  await page.getByText('Fit', { exact: true }).click()
+  await page.evaluate(() => window.floorplan.show({}))
   await page.waitForTimeout(2500)
   const out = args.out ?? `${args.type}.png`
   await page.screenshot({ path: out })
   console.log(`${args.type}: ${measured.width} by ${measured.depth} mm — ${out}`)
 } finally {
-  await page.evaluate(
-    ([key, value]) => (value ? localStorage.setItem(key, value) : localStorage.removeItem(key)),
-    [STORAGE_KEY, kept],
-  )
-  await page.reload()
+  // Back where you were first, then the throwaway project away.
+  await page.goto(kept ? `${EDITOR}/p/${kept}` : EDITOR)
+  await page.evaluate((id) => window.__houseit.projectsStore.getState().remove(id), LOOK)
   await browser.close()
 }
 
-/** Wipes the plan and draws a room with the one thing in it, through the CLI. */
+/** Makes the throwaway project afresh and draws a room with the one thing in it, through the CLI. */
 async function build(page, width, depth, args) {
-  await page.evaluate((key) => localStorage.removeItem(key), STORAGE_KEY)
-  await page.reload()
-  await page.waitForFunction(() => typeof window.floorplan?.exec === 'function')
+  // From the home screen, where nothing is open and nothing can be written to.
+  await page.goto(EDITOR)
+  await page.waitForFunction(() => typeof window.__houseit?.projectsStore?.getState === 'function')
+  const id = await page.evaluate(async (name) => {
+    const projects = window.__houseit.projectsStore
+    await projects.getState().refresh()
+    await projects.getState().remove(name)
+    return (await projects.getState().create(name)).id
+  }, LOOK)
+
+  await page.goto(`${EDITOR}/p/${id}`)
+  await page.waitForFunction(
+    (open) => window.__houseit?.projectsStore.getState().open?.id === open,
+    id,
+  )
   await page.bringToFront()
-  await page.waitForTimeout(1500)
+  await page.waitForTimeout(1200)
 
   const script = [
     `floor-shape --material tile-white --kind rectangle --width ${Math.round(width)} --depth ${Math.round(depth)} --name look`,

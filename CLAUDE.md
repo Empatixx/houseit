@@ -46,6 +46,29 @@ the editor nor the logic under it ever builds a line of text for the parser to
 read back. If a hand edit needs something a command cannot say, the command
 grows — the drag never writes to the document itself.
 
+## A plan belongs to a project
+
+The editor opens on a home screen of cards, one to a plan, and a plan is worked on
+at an address of its own — `/p/byt-praha`. So the commands work on whichever
+project the tab has open: with none open, `exec` refuses and names what there is
+to open. Projects are not commands and the agent cannot make one; they belong to
+the editor, the way the camera does.
+
+They live in IndexedDB (`apps/editor/src/store/projects`), on two shelves — the
+names, dates and thumbnails the home screen lists, and the documents behind them.
+The plan is written back a quarter of a second after it stops changing, and once
+more on the way out of a project. The single localStorage key this replaced is
+lifted into a project called `My plan` the first time the editor starts.
+
+Anything out of `public/` is asked for from the site root — `/textures/…`,
+`/symbols/…`, `/plans/…`. A relative path resolves under `/p/<id>`, which the dev
+server answers with index.html at status 200: no error anywhere, and a floor whose
+texture is a web page renders black.
+
+`scripts/look.mjs` works in a project of its own called `look` and takes it away
+afterwards, so the plan you were working on is never touched at all.
+`scripts/reset-plan.mjs` empties whichever project is open.
+
 ## Look at one object at a time
 
 Furniture is judged by eye, and it cannot be judged in a furnished plan: the thing

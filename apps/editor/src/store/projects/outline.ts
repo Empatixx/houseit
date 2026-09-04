@@ -1,7 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 
 /** A wall, end to end: `[x0, y0, x1, y1]` in millimetres. */
-export type Segment = [number, number, number, number]
+type Segment = [number, number, number, number]
 
 /**
  * A plan small enough to keep beside a project's name: its walls as centre

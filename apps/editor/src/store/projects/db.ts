@@ -3,7 +3,7 @@ import { migrateDocument } from '@houseit/core/migrate'
 import type { Outline } from './outline'
 
 /** The database every project lives in, and the two shelves inside it. */
-export const DB_NAME = 'houseit'
+const DB_NAME = 'houseit'
 const VERSION = 1
 const PROJECTS = 'projects'
 const DOCUMENTS = 'documents'
