@@ -52,6 +52,7 @@ export function applyWithPatches<C extends TypedCommand>(
       changed: said?.changed ?? [],
       shown: said?.shown ?? [],
       ...(said?.at === undefined ? {} : { at: said.at }),
+      ...(said?.notes === undefined ? {} : { notes: said.notes }),
     }
   })
   return { doc: next, patches, inversePatches, touched }

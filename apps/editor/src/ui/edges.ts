@@ -1,6 +1,5 @@
 import { useSelection } from '../store/selection'
 import { useShell } from '../store/shell'
-import { useDocument } from '../store/store'
 
 /** Between the plan's edge and a card, and between one card and the next, in CSS pixels. */
 export const GAP = 12
@@ -18,10 +17,10 @@ export const RAIL_OPEN_WIDTH = 208
 export function usePanelShown(): boolean {
   const wanted = useShell((state) => state.panel)
   const picked = useSelection((state) => state.selected !== null)
-  const empty = useDocument(
-    (state) => !Object.values(state.doc.walls).some((wall) => wall.level === state.level),
-  )
-  return wanted && (picked || empty)
+  // Only what is picked. A storey with nothing on it used to force the panel
+  // out as well, to put the outline form in front of you; the form is gone, and
+  // being handed an empty panel every time a storey is added is not a welcome.
+  return wanted && picked
 }
 
 /** How far in from the plan's left edge the rail reaches, its gap included. */

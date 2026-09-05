@@ -2,8 +2,8 @@ import type { HouseDocument } from '@houseit/core/document'
 import { layerOf, objectType } from '@houseit/core/object-types'
 import { fitsInside } from '@houseit/geometry/fits'
 import type { Room } from '@houseit/geometry/rooms'
-import { footprintOf, reachOf, standingAt, swingOf } from '@houseit/geometry/standing'
-import { boxOf, clashes, INSIDE_A_WALL, wallBox } from './boxes'
+import { footprintOf, piecesOf, reachOf, standingAt, swingOf } from '@houseit/geometry/standing'
+import { boxOf, clashesAny, INSIDE_A_WALL, wallBox } from './boxes'
 import type { Spot } from './place-object'
 
 /** What a thing is and how big, which is all a check on where it stands needs. */
@@ -20,6 +20,18 @@ export function takenBy(shape: Shape): { width: number; depth: number } {
   return { width: reach.across + spread * 2, depth: reach.into + spread * 2 }
 }
 
+/**
+ * How much of a thing has to be inside the room it belongs to.
+ *
+ * All of it, when it is being put down: something new that hangs out of the
+ * room it was asked for is a mistake, and saying so is the whole use of the
+ * check. Not when it is being carried: a chest slid towards the door reaches
+ * over the threshold long before it has gone anywhere, and refusing that is
+ * refusing to move it at all. What it may never do either way is stand in a
+ * wall, and that is a separate question with its own answer.
+ */
+export type Standing = { overhang?: boolean }
+
 /** Whether a thing can stand at a spot in a room; see `standingProblem` for why not. */
 export function canStand(
   doc: HouseDocument,
@@ -28,8 +40,9 @@ export function canStand(
   spot: Spot,
   shape: Shape,
   except?: string,
+  how: Standing = {},
 ): boolean {
-  return standingProblem(doc, level, room, spot, shape, except) === undefined
+  return standingProblem(doc, level, room, spot, shape, except, how) === undefined
 }
 
 /**
@@ -50,6 +63,7 @@ export function standingProblem(
   spot: Spot,
   shape: Shape,
   except?: string,
+  how: Standing = {},
 ): string | undefined {
   const { width, depth, rotation } = shape
   const at = standingAt(doc, level, room, { ...spot, width, depth, rotation })
@@ -74,14 +88,18 @@ export function standingProblem(
     // turned shape fills, so turning that box again counts the turn twice.
     turn: at.turn - swingOf({ rotation }),
   }
-  if (!fitsInside(doc, room, footprintOf(middle, needs))) {
+  if (!how.overhang && !fitsInside(doc, room, footprintOf(middle, needs))) {
     return `it would reach outside ${room.name ?? 'the room'}`
   }
 
   // And clear of the walls themselves. A room is drawn on their centre lines,
   // so a thing can sit inside the room and inside half a wall at the same
   // time — which is exactly what the bedside table did.
-  const box = boxOf(footprintOf(at, { width, depth }))
+  //
+  // Every box the thing really fills, not the one box it is cut from: the
+  // corner an L-shaped kitchen wraps round is floor, and a box that takes it in
+  // refuses the emptiest spot in the room.
+  const boxes = piecesOf(at, { type: shape.type, width, depth }).map(boxOf)
   const buried = Object.values(doc.walls)
     .filter((wall) => wall.level === level)
     .some((wall) => {
@@ -90,7 +108,7 @@ export function standingProblem(
       return (
         from !== undefined &&
         to !== undefined &&
-        clashes(box, wallBox(from, to, wall.thickness), INSIDE_A_WALL)
+        clashesAny(boxes, [wallBox(from, to, wall.thickness)], INSIDE_A_WALL)
       )
     })
   if (buried) return 'it would stand in a wall'
@@ -110,7 +128,7 @@ export function standingProblem(
     )
     .find((other) => {
       const stood = standingAt(doc, level, room, other)
-      return stood !== undefined && clashes(box, boxOf(footprintOf(stood, other)))
+      return stood !== undefined && clashesAny(boxes, piecesOf(stood, other).map(boxOf))
     })
   if (inTheWay) {
     return `it would stand in the ${objectType(inTheWay.type)?.label.toLowerCase() ?? inTheWay.type}`

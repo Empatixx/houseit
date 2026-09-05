@@ -16,7 +16,7 @@ import { parseArgv } from './parse-argv'
  * and you are told anyway.
  */
 /** What a whole script touched, gathered from every command in it. */
-export type Touched = { changed: string[]; shown: string[]; at?: string }
+export type Touched = { changed: string[]; shown: string[]; at?: string; notes?: string[] }
 
 export type Change = {
   /** Ids of what it made or changed. */
@@ -29,6 +29,12 @@ export type Change = {
    * say it from, and is still about the loft.
    */
   at?: string
+  /**
+   * Something the command did that nobody asked for and everybody should be
+   * told: a thing carried past a wall and rehoused in the room it landed in.
+   * Not a fault, so not a problem — but not silent either.
+   */
+  notes?: string[]
 }
 
 /**

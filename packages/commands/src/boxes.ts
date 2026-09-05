@@ -28,6 +28,17 @@ export const clashes = (one: Box, other: Box, slack = SLACK) =>
   other.y0 + slack < one.y1
 
 /**
+ * Whether any part of one thing is in the same place as any part of another.
+ *
+ * Things that are not the rectangle they are cut from come as several boxes,
+ * and two of those clash only where two of their parts do — the empty corner an
+ * L wraps round is floor, and the whole point of having the parts is that
+ * something may stand in it.
+ */
+export const clashesAny = (one: Box[], other: Box[], slack = SLACK) =>
+  one.some((a) => other.some((b) => clashes(a, b, slack)))
+
+/**
  * The box a wall fills: its centre line, out to its faces either side.
  *
  * Walls get one too. A room is drawn on the centre lines of the walls round it,

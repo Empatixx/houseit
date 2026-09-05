@@ -107,6 +107,23 @@ of them, so an agent always knows where it is standing. A room named is still
 looked for on every storey — which floor the bedroom is on is the plan's
 business, not the caller's.
 
+**A thing is not always the rectangle it was cut from.** An L-shaped kitchen's
+box takes in the corner it wraps round, which is the emptiest floor in the room
+and the obvious place for whatever the box then refuses. So a type may declare
+the boxes it really fills — `footprint.ts`, in fractions of its own size — and
+every clash is asked of those. The fractions were read off the symbols rather
+than guessed at: each drawn onto a sixteen-by-sixteen grid and the inked cells
+written down. A U-shaped staircase is deliberately not among them; its flights
+and landing fill the whole rectangle however much it looks like a U.
+
+**A room is where a thing stands, not a label it was given once.** Carried over
+a threshold, a thing is rehoused in the room it came down in, and the answer
+carries a `note` saying so — not a problem, since nothing is wrong, but not
+silent either. Reaching over the edge of a room is allowed while a thing is
+being carried and refused while one is being put down: something new that hangs
+out of the room it was asked for is a mistake. Standing in a wall is refused
+either way.
+
 **A node carries no storey; walls do.** So a house of two floors on the same
 footprint has two nodes at every corner, and anything looking a node up by
 coordinate has to want one this storey's walls hang off — `nodeHere` in

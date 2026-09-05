@@ -54,6 +54,12 @@ export type Answer = {
   rooms: RoomReport[]
   /** Everything wrong with the level, not only with what changed. */
   problems: Problem[]
+  /**
+   * What the commands did beyond what they were asked. Nothing wrong — a thing
+   * carried past a wall and rehoused in the room it landed in is the command
+   * doing the obvious thing, and saying so is how it stays obvious.
+   */
+  notes?: string[]
 }
 
 export function answerFor(
@@ -63,6 +69,8 @@ export function answerFor(
   shown: string[] = [],
   /** The storey a command said it was about, where it said so outright. */
   about?: string,
+  /** What the commands did beyond what they were asked. */
+  notes?: string[],
 ): Answer {
   // Each id is looked for on the storey it belongs to, not on the one the tab
   // has open. A script that builds the first floor while you stand on the
@@ -97,6 +105,7 @@ export function answerFor(
     changed,
     rooms: touched.map((it) => surveyRoom(doc, it.level, it.room, roomsOf(doc, it.level))),
     problems: checkLevel(doc, level),
+    ...(notes === undefined || notes.length === 0 ? {} : { notes }),
   }
 }
 

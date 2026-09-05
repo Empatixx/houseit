@@ -28,7 +28,14 @@ export function askPlan(doc: HouseDocument, source: string, open?: string): Answ
   const next = produce(doc, (draft) => {
     touched = applyScript(draft, source, open)
   })
-  return answerFor(next, open ?? levelsOf(next)[0]!.id, touched.changed, touched.shown, touched.at)
+  return answerFor(
+    next,
+    open ?? levelsOf(next)[0]!.id,
+    touched.changed,
+    touched.shown,
+    touched.at,
+    touched.notes,
+  )
 }
 
 /** Runs one command on typed arguments and returns the document after it. */

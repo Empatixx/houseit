@@ -3,8 +3,8 @@ import { type Layer, layerOf, symbolOf } from '@houseit/core/object-types'
 import { stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
 import { type Surface, surfaceOf } from '@houseit/core/surfaces'
 import type { Point } from '@houseit/geometry/outlines'
-import { roomsOf } from '@houseit/geometry/rooms'
-import { type Spot, standingAt, swingOf } from '@houseit/geometry/standing'
+import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
+import { piecesOf, type Spot, standingAt, swingOf } from '@houseit/geometry/standing'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import { aimAt, putDown } from '../../edit/draw-commands'
@@ -122,6 +122,18 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   const reach = object.depth / 2 + 350
   const handle = { x: at.x - Math.sin(turn) * reach, y: at.y + Math.cos(turn) * reach }
 
+  /**
+   * Whether a pointer at this place is on the thing, or on the floor its box
+   * merely takes in. A plane is a rectangle whatever the thing is, so a click
+   * in the corner an L-shaped kitchen wraps round lands on the kitchen — and
+   * picks it, hovers it and starts dragging it, none of which anybody meant.
+   * Missing it is left to fall through to whatever is underneath.
+   */
+  const on = (event: ThreeEvent<PointerEvent | MouseEvent>) => {
+    const where = { x: event.point.x / MM, y: -event.point.z / MM }
+    return piecesOf({ at, turn }, object).some((piece) => containsPoint(piece, where.x, where.y))
+  }
+
   return (
     <>
       <mesh
@@ -131,12 +143,13 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
         // turned half round to put the symbol's top at the back.
         rotation={[-Math.PI / 2, 0, turn + Math.PI]}
         onPointerOver={(event) => {
+          if (!on(event)) return
           event.stopPropagation()
           hoverStore.getState().hover({ kind: 'object', id: object.id })
         }}
         onPointerOut={() => hoverStore.getState().hover(null)}
         onClick={(event) => {
-          if (dragged(event)) return
+          if (dragged(event) || !on(event)) return
           event.stopPropagation()
           // Something armed from the palette lands here too — a click on the rug
           // means the floor under it, not the rug.
@@ -155,7 +168,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
           pick({ kind: 'object', id: object.id })
         }}
         onPointerDown={(event) => {
-          if (toolStore.getState().armed?.kind === 'wall') return
+          if (toolStore.getState().armed?.kind === 'wall' || !on(event)) return
           drag.down(event)
         }}
         onPointerMove={(event) => {

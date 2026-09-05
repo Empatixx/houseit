@@ -1,7 +1,10 @@
+import type { HouseDocument } from '@houseit/core/document'
 import { layerOf, objectType } from '@houseit/core/object-types'
 import { flightWidthOf, stairKind, stairShape } from '@houseit/core/stairs'
 import { SURFACE_IDS } from '@houseit/core/surfaces'
+import { containsPoint, type Room, roomsOf } from '@houseit/geometry/rooms'
 import { sideRun } from '@houseit/geometry/sides'
+import { standingAt } from '@houseit/geometry/standing'
 import { z } from 'zod'
 import {
   type Along,
@@ -119,10 +122,14 @@ export const updateObject = defineCommand({
       ? spotsFor(draft, level, room, shape, { at, along: args.along, across })
       : [standsAt(found)]
 
+    // Carried, it may reach over the threshold: a chest slid towards the door
+    // is over it long before it has gone anywhere, and refusing that is
+    // refusing to move it. Standing in a wall is still standing in a wall.
+    const how = { overhang: moving }
     let problem: string | undefined
     const spot = spots.find((candidate) => {
-      problem ??= standingProblem(draft, level, room, candidate, shape, found.id)
-      return canStand(draft, level, room, candidate, shape, found.id)
+      problem ??= standingProblem(draft, level, room, candidate, shape, found.id, how)
+      return canStand(draft, level, room, candidate, shape, found.id, how)
     })
     if (!spot) {
       const why = problem ? `: ${problem}` : ''
@@ -133,6 +140,32 @@ export const updateObject = defineCommand({
             : `update-object: the ${label} cannot go against the ${at?.side ?? found.against} side of ${room.name}${why}`
           : `update-object: a ${shape.width} by ${shape.depth} mm ${label} does not fit where it stands in ${room.name}${why}`,
       )
+    }
+
+    // A room is where a thing stands, not a label it was given once. Carried
+    // over a threshold, it belongs to the room it came down in — and the answer
+    // says so, because a thing that changes rooms quietly is one you go looking
+    // for later.
+    const landed = whereItCameDown(draft, level, room, spot, shape)
+    if (landed) {
+      const why = standingProblem(draft, level, landed.room, landed.spot, shape, found.id, {
+        overhang: true,
+      })
+      if (why) {
+        throw new CommandError(
+          `update-object: the ${label} cannot go into ${landed.room.name ?? 'the room next door'}: ${why}`,
+        )
+      }
+      settle(draft.objects[found.id]!, landed.spot, shape)
+      draft.objects[found.id]!.room = landed.room.id
+      if (args.surface !== undefined) draft.objects[found.id]!.surface = args.surface
+      if (args.seats !== undefined) draft.objects[found.id]!.seats = args.seats
+      return {
+        changed: [found.id, room.id, landed.room.id],
+        notes: [
+          `the ${label} went from ${room.name ?? 'a room'} into ${landed.room.name ?? 'the room next door'}`,
+        ],
+      }
     }
 
     const target = draft.objects[found.id]!
@@ -152,6 +185,82 @@ export const updateObject = defineCommand({
     return { changed: [found.id] }
   },
 })
+
+/**
+ * The room a thing has actually come down in, when that is not the one it
+ * belongs to — its middle inside another room on the same storey — with the
+ * spot said in that room's words. Nothing at all while it is still at home.
+ */
+function whereItCameDown(
+  draft: Parameters<typeof canStand>[0],
+  level: string,
+  room: ReturnType<typeof thingById>['room'],
+  spot: Spot,
+  shape: { width: number; depth: number; rotation?: number },
+): { room: Room & { id: string }; spot: Spot } | undefined {
+  // Built out rather than spread: `shape` carries the thing's old `against`,
+  // and spreading it over the spot puts the thing back on the wall it is being
+  // carried off — which is a point somewhere else entirely.
+  const at = standingAt(draft as HouseDocument, level, room, {
+    width: shape.width,
+    depth: shape.depth,
+    ...(shape.rotation === undefined ? {} : { rotation: shape.rotation }),
+    along: spot.along,
+    ...(spot.against ? { against: spot.against } : {}),
+    ...(spot.againstNth === undefined ? {} : { againstNth: spot.againstNth }),
+    ...(spot.across === undefined ? {} : { across: spot.across }),
+  })
+  if (!at) return undefined
+
+  const landed = roomsOf(draft, level).find((candidate) => {
+    if (candidate.id === undefined || candidate.id === room.id) return false
+    const outline = candidate.nodes
+      .map((id) => draft.nodes[id])
+      .filter((node) => node !== undefined)
+    return containsPoint(outline, at.at.x, at.at.y)
+  })
+  if (!landed?.id) return undefined
+
+  // Said again in the new room's words: how far along it and how far up it. It
+  // comes off whatever wall it was against — carried across a room, a thing is
+  // free-standing until somebody backs it onto something.
+  const corners = landed.nodes.map((id) => draft.nodes[id]!)
+  const xs = corners.map((corner) => corner.x)
+  const ys = corners.map((corner) => corner.y)
+  return {
+    room: landed as Room & { id: string },
+    spot: {
+      along: round((at.at.x - Math.min(...xs)) / Math.max(1, Math.max(...xs) - Math.min(...xs))),
+      across: round((at.at.y - Math.min(...ys)) / Math.max(1, Math.max(...ys) - Math.min(...ys))),
+    },
+  }
+}
+
+/** Where a thing stands and how big it is, written onto the record. */
+function settle(
+  target: {
+    along: number
+    across?: number
+    against?: unknown
+    againstNth?: unknown
+    width: number
+    depth: number
+    rotation?: number
+  },
+  spot: Spot,
+  shape: { width: number; depth: number; rotation?: number },
+): void {
+  delete target.against
+  delete target.againstNth
+  target.along = spot.along
+  if (spot.across !== undefined) target.across = spot.across
+  target.width = shape.width
+  target.depth = shape.depth
+  if (shape.rotation === undefined) delete target.rotation
+  else target.rotation = shape.rotation
+}
+
+const round = (fraction: number) => Math.round(Math.min(1, Math.max(0, fraction)) * 1000) / 1000
 
 /** Where a thing stands now, in the words a placing is said in. */
 const standsAt = (object: Spot & { across?: number }): Spot => ({

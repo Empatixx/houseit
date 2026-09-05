@@ -2,7 +2,7 @@ import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
 /** What the rail down the right edge shows when it is pulled out. */
-export type RailTab = 'rooms' | 'levels' | 'issues' | 'catalogue'
+export type RailTab = 'rooms' | 'issues' | 'catalogue'
 
 type ShellState = {
   /** Whether the panel is wanted out; it shows only while there is something to show. */

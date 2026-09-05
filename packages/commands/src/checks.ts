@@ -3,9 +3,9 @@ import { levelAbove, levelBelow } from '@houseit/core/levels'
 import { layerOf, objectType } from '@houseit/core/object-types'
 import { roomKindOf } from '@houseit/core/room-kinds'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
-import { footprintOf, standingAt } from '@houseit/geometry/standing'
+import { piecesOf, standingAt } from '@houseit/geometry/standing'
 import { stairwaysOn, type Well } from '@houseit/geometry/wells'
-import { type Box, boxOf, clashes, wallBox } from './boxes'
+import { type Box, boxOf, clashes, clashesAny, wallBox } from './boxes'
 import { swingOf } from './place-opening'
 import { standingProblem } from './standing-check'
 import { type OpeningReport, objectsIn, type RoomReport, surveyLevel } from './survey'
@@ -228,7 +228,7 @@ function doors(doc: HouseDocument, level: string, rooms: Room[]): Problem[] {
     .flatMap((object) => {
       const room = byId.get(object.room)
       const spot = room && standingAt(doc, level, room, object)
-      return spot ? [{ object, room, box: boxOf(footprintOf(spot, object)) }] : []
+      return spot ? [{ object, room, boxes: piecesOf(spot, object).map(boxOf) }] : []
     })
   const swings = Object.values(doc.openings)
     .filter((opening) => opening.kind === 'door' && doc.walls[opening.wall]?.level === level)
@@ -240,7 +240,7 @@ function doors(doc: HouseDocument, level: string, rooms: Room[]): Problem[] {
   for (const { opening, box } of swings) {
     const into = roomOfSwing(doc, rooms, box)
     const where = into?.name ? ` in ${into.name}` : ''
-    const blocked = standing.find((thing) => clashes(box, thing.box))
+    const blocked = standing.find((thing) => clashesAny([box], thing.boxes))
     if (blocked) {
       problems.push({
         code: 'door.blocked',
@@ -327,7 +327,7 @@ function blocked(doc: HouseDocument, well: Well, into: string): Problem[] {
     if (other.level !== into || layerOf(other.type) !== 'floor') return false
     const room = rooms.find((candidate) => candidate.id === other.room)
     const spot = room && standingAt(doc, into, room, other)
-    return spot !== undefined && clashes(hole, boxOf(footprintOf(spot, other)), 0)
+    return spot !== undefined && clashesAny([hole], piecesOf(spot, other).map(boxOf), 0)
   })
   if (standing) {
     problems.push({

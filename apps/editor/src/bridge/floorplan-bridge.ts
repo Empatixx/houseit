@@ -143,7 +143,14 @@ export function installFloorplanBridge(
         // Built after the transaction, off the plan as it now stands: what the
         // agent is told is read from the same document the tab is drawing.
         const { doc, level } = store.getState()
-        const answer = answerFor(doc, level, touched.changed, touched.shown, touched.at)
+        const answer = answerFor(
+          doc,
+          level,
+          touched.changed,
+          touched.shown,
+          touched.at,
+          touched.notes,
+        )
         // And the tab goes where the command went. A command that drew on the
         // first floor and left you looking at the ground floor would be an
         // agent working somewhere you cannot see.

@@ -1,4 +1,5 @@
 import type { HouseDocument, Side } from '@houseit/core/document'
+import { partsOf } from '@houseit/core/footprint'
 import type { Point } from './outlines'
 import type { Room } from './rooms'
 import { sideRun } from './sides'
@@ -110,6 +111,38 @@ export function reachOf(thing: { width: number; depth: number; rotation?: number
     across: thing.width * square + thing.depth * skew,
     into: thing.depth * square + thing.width * skew,
   }
+}
+
+/**
+ * The boxes a thing really stands on, in plan millimetres.
+ *
+ * One for almost everything, and that one is its footprint. For a shape whose
+ * box lies about where the floor is free — an L-shaped kitchen, a U-shaped run
+ * — the parts its type declares, each turned and put where the thing is. What
+ * is between them is floor, and something may stand there.
+ */
+export function piecesOf(
+  spot: Spot,
+  thing: { type: string; width: number; depth: number },
+): Point[][] {
+  const parts = partsOf(thing.type)
+  if (parts.length === 1) return [footprintOf(spot, thing)]
+
+  const cos = Math.cos(spot.turn)
+  const sin = Math.sin(spot.turn)
+  const place = (x: number, y: number) => ({
+    x: spot.at.x + x * cos - y * sin,
+    y: spot.at.y + x * sin + y * cos,
+  })
+  return parts.map((part) => {
+    // The parts are fractions from the back-left of the thing; the footprint is
+    // measured out from its middle, which is where it is put.
+    const x0 = (part.x0 - 0.5) * thing.width
+    const x1 = (part.x1 - 0.5) * thing.width
+    const y0 = (part.y0 - 0.5) * thing.depth
+    const y1 = (part.y1 - 0.5) * thing.depth
+    return [place(x0, y0), place(x1, y0), place(x1, y1), place(x0, y1)]
+  })
 }
 
 /** The four corners a thing takes up on the floor, in plan millimetres. */

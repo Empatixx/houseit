@@ -38,16 +38,13 @@ export function PanelContent() {
   const level = useDocument((state) => state.level)
   const selected = useSelection((state) => state.selected)
 
+  // The panel is out only while something is picked, so this is what is left
+  // when the last thing is let go of, on the way to it folding away.
   if (!selected) {
-    // A storey with nothing on it has nothing to show. It is drawn with the
-    // pencil along the foot, or said to the agent — and a form standing in
-    // front of both of those is in the way rather than in hand.
-    const bare = !Object.values(doc.walls).some((wall) => wall.level === level)
     return (
       <p className="text-xs leading-5 text-muted-foreground">
-        {bare
-          ? 'Nothing on this storey yet. Draw wall traces the outline; a click on the last corner closes it.'
-          : 'Pick a room, a thing, a door or a wall to see it here. Drag things and openings to move them, drag a wall across itself; R turns, Delete removes, ⌘Z undoes.'}
+        Pick a room, a thing, a door or a wall to see it here. Drag things and openings to move
+        them, drag a wall across itself; R turns, Delete removes, ⌘Z undoes.
       </p>
     )
   }
