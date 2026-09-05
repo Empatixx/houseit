@@ -283,6 +283,11 @@ type's size, with its white swapped for the surface it was given. `--help` on
 
 ## Storeys and stairs
 
+A command that names no storey means the one being looked at, and the editor
+follows the command: `get-plan --level "1. patro"` steps upstairs, and so does
+the plan on screen. Every answer lists the storeys with `open` on one of them,
+so the agent always knows which floor it is standing on.
+
 `add-level` builds upwards and `--below` builds a cellar. The editor stacks the
 storeys at the foot of the plan's right edge, one round button each, the top floor
 at the top and the one you are drawing filled in: a click steps onto a storey, a

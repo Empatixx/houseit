@@ -174,3 +174,47 @@ test('there is no storey past the top of the house to move one to', () => {
 
   expect(() => runScript(doc, 'update-level --storey 5')).toThrow(/2 storey\(s\)/)
 })
+
+test('with no storey said, a command means the one being looked at', () => {
+  const doc = runScript(
+    house(),
+    [
+      'add-level --name "1. patro"',
+      'add-room --shape rectangle --width 6m --depth 4m --material white-oak --name ložnice --level "1. patro"',
+    ].join('\n'),
+  )
+  const [ground, upper] = levelsOf(doc)
+
+  // Standing on the ground floor, `get-plan` is about the ground floor.
+  expect(askPlan(doc, 'get-plan', ground!.id).rooms.map((it) => it.name)).toEqual(['obývák'])
+  // Standing upstairs, the very same words are about upstairs.
+  expect(askPlan(doc, 'get-plan', upper!.id).rooms.map((it) => it.name)).toEqual(['ložnice'])
+})
+
+test('every answer says which storey it is about and which one is open', () => {
+  const doc = runScript(house(), 'add-level --name "1. patro"')
+  const [ground, upper] = levelsOf(doc)
+
+  const here = askPlan(doc, 'get-plan', ground!.id)
+  expect(here.level).toBe(ground!.id)
+  expect(here.levels.find((it) => it.open)?.name).toBe('Ground floor')
+
+  // A storey named takes the answer with it, even one nobody has drawn on.
+  const there = askPlan(doc, 'get-plan --level "1. patro"', ground!.id)
+  expect(there.level).toBe(upper!.id)
+  expect(there.rooms).toEqual([])
+})
+
+test('a bare storey drawn on is the one being looked at, not the lowest', () => {
+  const doc = runScript(house(), 'add-level --name "1. patro"')
+  const upper = levelsOf(doc)[1]!
+
+  const built = runScript(
+    doc,
+    'add-room --shape rectangle --width 6m --depth 4m --material white-oak --name podkroví',
+    upper.id,
+  )
+
+  expect(roomsOf(built, upper.id).map((it) => it.name)).toEqual(['podkroví'])
+  expect(roomsOf(built, levelsOf(built)[0]!.id).map((it) => it.name)).toEqual(['obývák'])
+})

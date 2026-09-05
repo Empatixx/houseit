@@ -24,14 +24,19 @@ export const getPlan = defineCommand({
     room: z.string().min(1).optional(),
     level: z.string().optional(),
   }),
-  run: (draft, args) => {
+  run: (draft, args, open) => {
     // A room named is looked for on every storey, so `--room ložnice` finds the
     // bedroom wherever it is; a storey named is the storey meant.
     if (args.room !== undefined) {
-      return { shown: [whereRoom(draft, args.level, args.room, 'get-plan').room.id] }
+      const { room, level } = whereRoom(draft, args.level, args.room, 'get-plan')
+      return { shown: [room.id], at: level }
     }
-    const level = levelOf(draft, args.level, 'get-plan')
+    // Nothing said at all is the storey being looked at, not the lowest one:
+    // asked from a first floor, "what is here" means the first floor. And it is
+    // said back, so a storey nobody has drawn on yet still answers as itself.
+    const level = levelOf(draft, args.level ?? open, 'get-plan')
     return {
+      at: level,
       shown: roomsOf(draft, level)
         .map((room) => room.id)
         .filter((id) => id !== undefined),

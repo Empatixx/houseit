@@ -61,6 +61,8 @@ export function answerFor(
   open: string,
   changed: string[],
   shown: string[] = [],
+  /** The storey a command said it was about, where it said so outright. */
+  about?: string,
 ): Answer {
   // Each id is looked for on the storey it belongs to, not on the one the tab
   // has open. A script that builds the first floor while you stand on the
@@ -72,8 +74,10 @@ export function answerFor(
   }
 
   // The answer is about the storey it worked on, which is not always the one
-  // being looked at — and that is what the checks are run for as well.
-  const level = touched[0]?.level ?? open
+  // being looked at — and that is what the checks are run for as well. A storey
+  // named outright wins: `get-plan --level půda` is about the loft even when
+  // nobody has drawn a room on it to say so.
+  const level = about ?? touched[0]?.level ?? open
   const extent = planExtent(doc, level)
   return {
     level,

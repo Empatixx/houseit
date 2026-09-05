@@ -83,8 +83,8 @@ export const updateLevel = defineCommand({
     /** Where in the house it stands, counting the lowest as the first. */
     storey: z.coerce.number().int().positive().optional(),
   }),
-  run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'update-level')
+  run: (draft, args, open) => {
+    const level = levelOf(draft, args.level ?? open, 'update-level')
     if (args.name === undefined && args.height === undefined && args.storey === undefined) {
       throw new CommandError('update-level: say what to change — --name, --height or --storey')
     }
@@ -141,8 +141,8 @@ export const removeLevel = defineCommand({
   args: z.object({
     level: z.string().optional(),
   }),
-  run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'remove-level')
+  run: (draft, args, open) => {
+    const level = levelOf(draft, args.level ?? open, 'remove-level')
     const record = draft.levels[level]!
     if (levelsOf(draft).length === 1) {
       throw new CommandError('remove-level: a house stands on at least one storey')

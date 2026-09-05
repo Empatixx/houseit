@@ -94,7 +94,7 @@ export const addRoom = defineCommand({
     thickness: length().optional(),
     level: z.string().optional(),
   }),
-  run: (draft, args) => {
+  run: (draft, args, open) => {
     const cutting =
       args.from !== undefined ||
       args.side !== undefined ||
@@ -103,7 +103,7 @@ export const addRoom = defineCommand({
 
     // Nothing to come out of: this is the floor itself, and the one room on it.
     if (!cutting) {
-      const made = drawOutline(draft, levelOf(draft, args.level, 'add-room'), {
+      const made = drawOutline(draft, levelOf(draft, args.level ?? open, 'add-room'), {
         ...args,
         thickness: args.thickness ?? EXTERIOR_THICKNESS,
       })
@@ -132,7 +132,7 @@ export const addRoom = defineCommand({
     if (args.points !== undefined) {
       const level =
         cut.from === undefined
-          ? levelOf(draft, args.level, 'add-room')
+          ? levelOf(draft, args.level ?? open, 'add-room')
           : whereRoom(draft, args.level, cut.from, 'add-room').level
       return named(draft, cutByPoints(draft, level, cut, parsePoints(args.points)), args.kind)
     }

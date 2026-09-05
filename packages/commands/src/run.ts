@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { levelsOf } from '@houseit/core/levels'
 import { produce } from 'immer'
 import { type Answer, answerFor } from './answer'
 import { applyScript } from './apply-script'
@@ -8,9 +9,9 @@ import type { ArgsOf, Touched, TypedCommand } from './define-command'
  * Runs one or more commands against a document and returns the result. Use
  * `runScriptWithPatches` where undo history is needed.
  */
-export function runScript(doc: HouseDocument, source: string): HouseDocument {
+export function runScript(doc: HouseDocument, source: string, open?: string): HouseDocument {
   return produce(doc, (draft) => {
-    applyScript(draft, source)
+    applyScript(draft, source, open)
   })
 }
 
@@ -22,12 +23,12 @@ export function runScript(doc: HouseDocument, source: string): HouseDocument {
  * reads a room reads what the agent would have been told, and not a second
  * opinion assembled for the occasion.
  */
-export function askPlan(doc: HouseDocument, source: string, level?: string): Answer {
+export function askPlan(doc: HouseDocument, source: string, open?: string): Answer {
   let touched: Touched = { changed: [], shown: [] }
   const next = produce(doc, (draft) => {
-    touched = applyScript(draft, source)
+    touched = applyScript(draft, source, open)
   })
-  return answerFor(next, level ?? Object.keys(next.levels)[0]!, touched.changed, touched.shown)
+  return answerFor(next, open ?? levelsOf(next)[0]!.id, touched.changed, touched.shown, touched.at)
 }
 
 /** Runs one command on typed arguments and returns the document after it. */

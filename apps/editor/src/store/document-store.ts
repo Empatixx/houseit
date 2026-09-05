@@ -77,7 +77,9 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
       canUndo: false,
       canRedo: false,
 
-      exec: (source) => commit(runScriptWithPatches(get().doc, source)),
+      // The storey being looked at goes in with the script: a command that
+      // names none means this one, the way a person drawing on a plan does.
+      exec: (source) => commit(runScriptWithPatches(get().doc, source, get().level)),
 
       // Going up a storey changes nothing about the plan, so it makes no
       // history entry: undo takes back an edit, not a look.
@@ -85,7 +87,7 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
         if (get().doc.levels[level]) set({ level })
       },
 
-      apply: (command, args) => commit(applyWithPatches(get().doc, command, args)),
+      apply: (command, args) => commit(applyWithPatches(get().doc, command, args, get().level)),
 
       undo: () => {
         const { doc, past, future } = get()

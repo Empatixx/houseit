@@ -21,10 +21,14 @@ export type ScriptResult = {
  * Undo history is built from these rather than from document snapshots: a patch
  * pair is a fraction of the size and cannot drift from what actually happened.
  */
-export function runScriptWithPatches(doc: HouseDocument, source: string): ScriptResult {
+export function runScriptWithPatches(
+  doc: HouseDocument,
+  source: string,
+  open?: string,
+): ScriptResult {
   let touched: Touched = { changed: [], shown: [] }
   const [next, patches, inversePatches] = produceWithPatches(doc, (draft) => {
-    touched = applyScript(draft, source)
+    touched = applyScript(draft, source, open)
   })
   return { doc: next, patches, inversePatches, touched }
 }
@@ -39,11 +43,16 @@ export function applyWithPatches<C extends TypedCommand>(
   doc: HouseDocument,
   command: C,
   args: ArgsOf<C>,
+  open?: string,
 ): ScriptResult {
   let touched: Touched = { changed: [], shown: [] }
   const [next, patches, inversePatches] = produceWithPatches(doc, (draft) => {
-    const said = command.apply(draft, args)
-    touched = { changed: said?.changed ?? [], shown: said?.shown ?? [] }
+    const said = command.apply(draft, args, open)
+    touched = {
+      changed: said?.changed ?? [],
+      shown: said?.shown ?? [],
+      ...(said?.at === undefined ? {} : { at: said.at }),
+    }
   })
   return { doc: next, patches, inversePatches, touched }
 }

@@ -16,13 +16,19 @@ import { parseArgv } from './parse-argv'
  * and you are told anyway.
  */
 /** What a whole script touched, gathered from every command in it. */
-export type Touched = { changed: string[]; shown: string[] }
+export type Touched = { changed: string[]; shown: string[]; at?: string }
 
 export type Change = {
   /** Ids of what it made or changed. */
   changed?: string[]
   /** Ids it changed nothing about but wants the answer to cover: `get-plan`. */
   shown?: string[]
+  /**
+   * The storey it was about, where that is not simply where its rooms are —
+   * `get-plan --level půda` on a storey nobody has drawn on yet has no rooms to
+   * say it from, and is still about the loft.
+   */
+  at?: string
 }
 
 /**
@@ -33,8 +39,12 @@ export type AnyCommand = {
   name: string
   summary: string
   options: OptionSpec[]
-  /** Runs the command from its words on a line, as the terminal and the MCP tool do. */
-  execute: (draft: Draft<HouseDocument>, argv: string[]) => Change | undefined
+  /**
+   * Runs the command from its words on a line, as the terminal and the MCP tool
+   * do. `open` is the storey the plan is being looked at, which is what a
+   * command means when it names no storey of its own.
+   */
+  execute: (draft: Draft<HouseDocument>, argv: string[], open?: string) => Change | undefined
 }
 
 /**
@@ -45,7 +55,7 @@ export type AnyCommand = {
 export type Command<Args extends z.ZodObject> = AnyCommand & {
   args: Args
   /** Runs the command on typed arguments. Checked by the same schema as the words are. */
-  apply(draft: Draft<HouseDocument>, args: z.input<Args>): Change | undefined
+  apply(draft: Draft<HouseDocument>, args: z.input<Args>, open?: string): Change | undefined
 }
 
 /** Any typed command, whatever it takes — for code that is handed commands as values. */
@@ -58,9 +68,12 @@ type Definition<Args extends z.ZodObject> = {
   name: string
   summary: string
   args: Args
-  /** Does the work, and says what it touched. */
+  /**
+   * Does the work, and says what it touched. `open` is the storey being looked
+   * at — what a command that names no storey is talking about.
+   */
   // biome-ignore lint/suspicious/noConfusingVoidType: a command may touch nothing nameable
-  run: (draft: Draft<HouseDocument>, args: z.infer<Args>) => Change | void
+  run: (draft: Draft<HouseDocument>, args: z.infer<Args>, open?: string) => Change | void
 }
 
 /** Unwraps optional/default/nullable wrappers to reach the value type underneath. */
@@ -99,7 +112,11 @@ export function defineCommand<Args extends z.ZodObject>(
 ): Command<Args> {
   const options = optionsOf(definition.args)
 
-  const apply = (draft: Draft<HouseDocument>, args: z.input<Args>): Change | undefined => {
+  const apply = (
+    draft: Draft<HouseDocument>,
+    args: z.input<Args>,
+    open?: string,
+  ): Change | undefined => {
     const result = definition.args.safeParse(args)
     if (!result.success) {
       const detail = result.error.issues
@@ -107,7 +124,7 @@ export function defineCommand<Args extends z.ZodObject>(
         .join('; ')
       throw new CommandError(`${definition.name}: ${detail}`)
     }
-    return definition.run(draft, result.data as z.infer<Args>) as Change | undefined
+    return definition.run(draft, result.data as z.infer<Args>, open) as Change | undefined
   }
 
   return {
@@ -116,7 +133,7 @@ export function defineCommand<Args extends z.ZodObject>(
     options,
     args: definition.args,
     apply,
-    execute: (draft, argv) =>
-      apply(draft, parseArgv(definition.name, options, argv) as z.input<Args>),
+    execute: (draft, argv, open) =>
+      apply(draft, parseArgv(definition.name, options, argv) as z.input<Args>, open),
   }
 }

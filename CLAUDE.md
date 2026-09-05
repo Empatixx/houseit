@@ -98,6 +98,15 @@ decoration: the stairs really are there, a storey down, and the floor really is
 missing over them. Without it an upper floor has an empty hole in it and no way
 of telling that the hole is the way down.
 
+**The storey being looked at is what a command means.** A command that names no
+storey works on the one the tab has open, and the tab then follows the command:
+`get-plan --level "1. patro"` steps upstairs and everything after it is about
+upstairs, and a script that furnishes a bedroom on the first floor leaves you
+looking at the first floor. Every answer carries the storeys with `open` on one
+of them, so an agent always knows where it is standing. A room named is still
+looked for on every storey — which floor the bedroom is on is the plan's
+business, not the caller's.
+
 **A node carries no storey; walls do.** So a house of two floors on the same
 footprint has two nodes at every corner, and anything looking a node up by
 coordinate has to want one this storey's walls hang off — `nodeHere` in
