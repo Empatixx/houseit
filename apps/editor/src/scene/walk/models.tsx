@@ -1,3 +1,4 @@
+import { flightWidthOf, type StairKind, stairShape, treadsOf } from '@houseit/core/stairs'
 import type { ReactNode } from 'react'
 import { MM } from '../plan-coordinates'
 import { lighter, PAINT, type Paint } from './finish'
@@ -1137,26 +1138,50 @@ const car = (suv: boolean): Builder => {
   }
 }
 
-const stairs: Builder = ({ w, d, h, body }) => {
-  const steps = Math.max(3, Math.round(h / 180))
-  const rise = h / steps
-  const tread = d / steps
-  return (
-    <>
-      {along(steps, (i) => i * rise).map((base) => (
-        <Slab
-          key={base}
-          base={base}
-          h={rise}
-          w={w}
-          d={tread}
-          z={-d / 2 + (base / rise + 0.5) * tread}
-          paint={body}
-        />
-      ))}
-    </>
-  )
-}
+/**
+ * A flight, built from the treads the plan draws.
+ *
+ * Not a straight run of slabs whatever the kind, which is what it was: a winder
+ * came out as a ramp through its own wall, and a spiral as a box. The treads are
+ * `treadsOf`, so the flight climbed here is the flight drawn from above, right
+ * down to how many steps it takes.
+ *
+ * `h` is the storey it climbs — the walk hands a staircase its floor-to-floor
+ * height, not the catalogue's — so the last tread is one riser under the floor
+ * above and the floor above is the step onto it.
+ */
+const staircase =
+  (kind: StairKind): Builder =>
+  ({ w, h, body, frame }) => {
+    const shape = stairShape(kind, h, flightWidthOf(kind, w, h))
+    const rise = h / shape.risers
+    const treads = treadsOf(shape)
+
+    return (
+      <>
+        {/* Each tread solid to the floor, which is how a stair in a house is
+            built and what makes it read as one from underneath, through the well. */}
+        {treads.map((tread) => (
+          <Slab
+            key={tread.step}
+            base={0}
+            h={tread.step * rise}
+            w={tread.width}
+            d={tread.depth}
+            // The symbol's y runs back to front and its top edge is the thing's
+            // back, which is +z here.
+            x={tread.cx - shape.size.width / 2}
+            z={shape.size.depth / 2 - tread.cy}
+            turn={tread.turn}
+            paint={body}
+          />
+        ))}
+        {kind === 'spiral' ? (
+          <Drum r={Math.max(60, (shape.flight / 2) * 0.16)} h={h} paint={frame} />
+        ) : null}
+      </>
+    )
+  }
 
 const column: Builder = ({ w, d, h }) => <Slab h={h} w={w} d={d} paint={PAINT.wall} />
 
@@ -1328,10 +1353,11 @@ const BUILDERS: Record<string, Builder> = {
   'table-lamp': tableLamp,
   sedan: car(false),
   suv: car(true),
-  'stairs-straight': stairs,
-  'stairs-u': stairs,
-  'stairs-l-landing': stairs,
-  'stairs-l-winder': stairs,
+  'stairs-straight': staircase('straight'),
+  'stairs-u': staircase('u'),
+  'stairs-l-landing': staircase('l-landing'),
+  'stairs-l-winder': staircase('l-winder'),
+  'stairs-spiral': staircase('spiral'),
   column,
   post: column,
   railing,

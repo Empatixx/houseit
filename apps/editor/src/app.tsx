@@ -20,7 +20,9 @@ import { WalkHint } from './ui/walk-hint'
  * its head, the project's name beside it, the cards at its top right, the bar
  * along its foot, the panel down its right edge. Nothing sits beside the plan, so nothing that opens
  * or folds away can move it. Walked through, the plan is the same card with
- * another camera in it, and the palette gives way to the keys that walk.
+ * another camera in it, the palette gives way to the keys that walk, and the
+ * storey cards stay: which floor you are standing on is a thing you choose
+ * either way.
  */
 export function App() {
   useEditKeys()
@@ -41,7 +43,7 @@ export function App() {
           <Inspector />
           <Rail />
           <ProjectChip />
-          {mode === '2d' ? <StoreyStack /> : null}
+          <StoreyStack />
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

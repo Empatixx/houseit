@@ -87,16 +87,29 @@ the stack moves that storey in the house and everything on it comes along —
 the height. Hovering one opens its name, its floor-to-floor height and the way
 to rename or take it out, beside the button rather than over the plan.
 
-It is drawn one storey at a time — that is what a floor plan is — with the
+The plan is drawn one storey at a time — that is what a floor plan is — with the
 storey underneath showing faintly through, because an upper floor is drawn on
 top of the one below and without that there is nothing to line a wall up
-against.
+against. The flight from the storey below is drawn under this storey's floors,
+so what shows of it is exactly what the well leaves showing. Not a ghost and not
+a decoration: the stairs really are there, a storey down, and the floor really
+is missing over them. Without it an upper floor has an empty hole in it and no
+way of telling that the hole is the way down.
 
-The flight from the storey below is drawn under this storey's floors, so what
-shows of it is exactly what the well leaves showing. Not a ghost and not a
-decoration: the stairs really are there, a storey down, and the floor really is
-missing over them. Without it an upper floor has an empty hole in it and no way
-of telling that the hole is the way down.
+**Walked through, it is the whole house.** Every storey at the height it really
+stands at, one model of one building, because inside it a house is not one floor
+at a time: the stairs out of the hall have to arrive somewhere, the hole they
+come up through has to show the room above, and a room with no ceiling is a room
+in a house with no upstairs. Which floor you are standing on is the floor the
+plan has open, so the storey cards move the walk as well as the drawing, and the
+walk starts again on each — where you stood downstairs is as likely as not
+inside a wall up here.
+
+A walk opens on clear floor in the biggest room, looking in towards the middle
+of it. The room's anchor is where its label hangs, which is under the table as
+often as not; opening there put you inside the kitchen run with a wall filling
+the view, which reads as the 3D being broken rather than as standing somewhere
+silly.
 
 **The storey being looked at is what a command means.** A command that names no
 storey works on the one the tab has open, and the tab then follows the command:
@@ -139,6 +152,16 @@ the tread count the storey calls for, in the same language the catalogue's own
 symbols are written in, and `--depth` on a staircase is refused rather than
 obeyed. `--width` is the clear width of the flight, which for a U comes out
 twice as wide on the floor.
+
+`treadsOf` is the one description of what a flight is made of, and both the
+symbol and the model in the walk are built from it — the staircase looked down
+on and the staircase climbed cannot be two different staircases. They were: one
+drawn at the storey's tread count, the other a straight run of slabs 1400 tall
+whatever the kind, so a winder came out as a ramp through its own wall and a
+spiral as a box. A staircase in the walk is as tall as its storey, because the
+one number a flight cannot be given in advance is the one that says where its
+top step is. It also has no symbol to stamp, and asking every thing in the walk
+for one dropped every flight in the house out of the 3D.
 
 **The well is the staircase, seen from above.** The hole in the floor overhead
 is not a thing anybody draws or stores — `wells.ts` derives it from the flight

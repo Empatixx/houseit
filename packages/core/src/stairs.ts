@@ -120,95 +120,183 @@ function sizeOf(
   return { width: along * going + width, depth: Math.ceil(arms / 2) * going + width }
 }
 
-/** A rectangle in the symbol's own coordinates, which are millimetres here. */
-const box = (x: number, y: number, width: number, depth: number) =>
-  `<rect x="${round(x)}" y="${round(y)}" width="${round(width)}" height="${round(depth)}" fill="#ffffff" stroke="${LINE}" stroke-width="14"/>`
-
-const round = (value: number) => Math.round(value * 10) / 10
+/**
+ * One tread of a flight, in the footprint's own millimetres: x across from the
+ * left, y down from the back, the foot of the flight at the bottom.
+ *
+ * A tread is a rectangle round its own middle, turned about that middle — which
+ * is only ever anything but square for a spiral, whose treads fan round a newel.
+ */
+export type Tread = {
+  /** Which riser it sits on, counting one from the foot. The floor above is the last. */
+  step: number
+  /** The middle of the tread. */
+  cx: number
+  cy: number
+  width: number
+  depth: number
+  /** How far it is turned about its own middle. */
+  turn: number
+}
 
 /**
- * The staircase as a plan symbol.
+ * Every tread of a flight, in the order they are climbed.
  *
- * Drawn head to foot the way it is walked: the bottom of the flight at the foot
- * of the drawing, so a thing standing against a wall climbs away from it. The
- * treads are the lines across; the body round them is the flight itself.
+ * The one description of what a staircase is made of. The plan symbol draws
+ * them and the walk builds them, so the flight you look down on and the flight
+ * you climb cannot be two different staircases — which they were: one drawn at
+ * the storey's own tread count and the other a straight run of slabs 1400 tall,
+ * whatever the kind and whatever the storey.
  */
-export function stairSymbol(shape: StairShape): string {
-  const { width, depth } = shape.size
-  const inner =
-    shape.kind === 'spiral'
-      ? spiral(shape)
-      : shape.kind === 'straight'
-        ? straight(shape)
-        : shape.kind === 'u'
-          ? uShaped(shape)
-          : ell(shape)
-
-  return [
-    `<svg width="${round(width)}" height="${round(depth)}" viewBox="0 0 ${round(width)} ${round(depth)}" fill="none" xmlns="http://www.w3.org/2000/svg">`,
-    `<g>`,
-    inner,
-    '</g></svg>',
-  ].join('')
+export function treadsOf(shape: StairShape): Tread[] {
+  if (shape.kind === 'spiral') return spiralTreads(shape)
+  if (shape.kind === 'straight') return straightTreads(shape)
+  if (shape.kind === 'u') return uTreads(shape)
+  return ellTreads(shape)
 }
 
-/** One flight, foot at the bottom, every tread a line across it. */
-function straight(shape: StairShape): string {
+/** A rectangle square to the footprint, given by its edges. */
+const flat = (step: number, x: number, y: number, width: number, depth: number): Tread => ({
+  step,
+  cx: x + width / 2,
+  cy: y + depth / 2,
+  width,
+  depth,
+  turn: 0,
+})
+
+/** One flight, foot at the bottom. */
+function straightTreads(shape: StairShape): Tread[] {
   const { width, depth } = shape.size
-  const treads = Math.max(1, Math.round(depth / shape.going))
-  return Array.from({ length: treads }, (_, index) =>
-    box(0, depth - (index + 1) * shape.going, width, shape.going),
-  ).join('')
+  const count = Math.max(1, Math.round(depth / shape.going))
+  return Array.from({ length: count }, (_, index) =>
+    flat(index + 1, 0, depth - (index + 1) * shape.going, width, shape.going),
+  )
 }
 
-/** Two flights side by side, and the half landing they turn on across their heads. */
-function uShaped(shape: StairShape): string {
+/** Up the right-hand flight, across the half landing, and down the left: that is a U. */
+function uTreads(shape: StairShape): Tread[] {
   const { width, depth } = shape.size
   const landing = shape.flight
-  const treads = Math.max(1, Math.round((depth - landing) / shape.going))
-  const parts = [box(0, 0, width, landing)]
-  for (let index = 0; index < treads; index += 1) {
-    const y = depth - (index + 1) * shape.going
-    // Up the right-hand flight and down the left, which is what a U is.
-    parts.push(box(shape.flight, y, shape.flight, shape.going))
-    parts.push(box(0, landing + index * shape.going, shape.flight, shape.going))
-  }
-  return parts.join('')
+  const count = Math.max(1, Math.round((depth - landing) / shape.going))
+
+  const rising = Array.from({ length: count }, (_, index) =>
+    flat(index + 1, shape.flight, depth - (index + 1) * shape.going, shape.flight, shape.going),
+  )
+  const turn = flat(count + 1, 0, 0, width, landing)
+  const falling = Array.from({ length: count }, (_, index) =>
+    flat(count + 2 + index, 0, landing + index * shape.going, shape.flight, shape.going),
+  )
+  return [...rising, turn, ...falling]
 }
 
-/**
- * A right angle: up from the foot on the left, a corner at the top of it, then
- * away to the right along the head of the drawing.
- *
- * The corner is the flight's own width square. A landing stair leaves it plain
- * — it is a place to stand — and a winder cuts it into three tapered treads,
- * which is what buys the two shorter arms.
- */
-function ell(shape: StairShape): string {
+/** Up the left-hand arm, round the corner, and away along the head of the drawing. */
+function ellTreads(shape: StairShape): Tread[] {
   const { width, depth } = shape.size
   const corner = shape.flight
   const rising = Math.max(1, Math.round((depth - corner) / shape.going))
   const across = Math.max(1, Math.round((width - corner) / shape.going))
 
-  const parts = [box(0, 0, corner, corner)]
-  for (let index = 0; index < rising; index += 1) {
-    parts.push(box(0, depth - (index + 1) * shape.going, corner, shape.going))
-  }
-  for (let index = 0; index < across; index += 1) {
-    parts.push(box(corner + index * shape.going, 0, shape.going, corner))
-  }
+  const up = Array.from({ length: rising }, (_, index) =>
+    flat(index + 1, 0, depth - (index + 1) * shape.going, corner, shape.going),
+  )
+  const turn = flat(rising + 1, 0, 0, corner, corner)
+  const away = Array.from({ length: across }, (_, index) =>
+    flat(rising + 2 + index, corner + index * shape.going, 0, shape.going, corner),
+  )
+  return [...up, turn, ...away]
+}
 
-  if (shape.kind === 'l-winder') {
-    // Three treads fanning from the inside corner, which is the one point they
-    // all meet at. The inside corner is the bottom right of the square.
-    const pivot = { x: corner, y: corner }
-    for (let index = 1; index < 3; index += 1) {
-      const angle = (Math.PI / 2) * (index / 3)
-      const to = { x: corner - Math.sin(angle) * corner, y: corner - Math.cos(angle) * corner }
-      parts.push(
-        `<path d="M ${round(pivot.x)} ${round(pivot.y)} L ${round(to.x)} ${round(to.y)}" stroke="${LINE}" stroke-width="14" fill="none"/>`,
-      )
+/**
+ * The numbers a spiral is drawn from: how far out it reaches, the newel it
+ * turns about, and how far round each tread carries you.
+ */
+function spiralOf(shape: StairShape) {
+  const radius = shape.flight / 2
+  const newel = Math.max(60, radius * 0.16)
+  const count = shape.risers - 1
+  // A full turn and a bit is what a spiral in a house does; more than that and
+  // the treads are too narrow to stand on.
+  const sweep = Math.min(Math.PI * 2.2, (Math.PI * 2 * count) / 13)
+  return { radius, newel, count, sweep, each: sweep / count }
+}
+
+/**
+ * Wedges round the newel, taken as the rectangles that fill them.
+ *
+ * As wide across as the wedge is at its outer corners, which is what puts those
+ * corners on the circle the spiral is drawn in rather than a finger's breadth
+ * outside it — a tread that reaches past its own well is a tread the floor
+ * above lands on.
+ */
+function spiralTreads(shape: StairShape): Tread[] {
+  const { radius, newel, count, each } = spiralOf(shape)
+  const across = 2 * radius * Math.sin(each / 2)
+  const outer = radius * Math.cos(each / 2)
+  const reach = outer - newel
+  return Array.from({ length: count }, (_, index) => {
+    // From the foot, which is at the bottom the way every other flight's is,
+    // and turned half a tread on so the tread fills the wedge rather than
+    // straddling the nosing drawn between two of them.
+    const angle = Math.PI / 2 + (index + 0.5) * each
+    const middle = newel + reach / 2
+    return {
+      step: index + 1,
+      cx: radius + Math.cos(angle) * middle,
+      cy: radius + Math.sin(angle) * middle,
+      width: reach,
+      depth: across,
+      turn: angle,
     }
+  })
+}
+
+/** A tread as the plan draws it: a white body with a line round it. */
+function drawn(tread: Tread): string {
+  const { cx, cy, width, depth, turn } = tread
+  const body = `<rect x="${round(cx - width / 2)}" y="${round(cy - depth / 2)}" width="${round(width)}" height="${round(depth)}" fill="#ffffff" stroke="${LINE}" stroke-width="14"/>`
+  if (turn === 0) return body
+  return `<g transform="rotate(${round((turn * 180) / Math.PI)} ${round(cx)} ${round(cy)})">${body}</g>`
+}
+
+const round = (value: number) => Math.round(value * 10) / 10
+
+/**
+ * The staircase as a plan symbol: the same treads the walk is built from, drawn
+ * from above.
+ *
+ * Head to foot the way it is walked, with the bottom of the flight at the foot
+ * of the drawing, so a thing standing against a wall climbs away from it. A
+ * winder and a spiral get the lines a plan draws them with on top — the fan out
+ * of the inside corner, the newel and the nosings round it — because those are
+ * conventions of the drawing rather than anything you could stand on.
+ */
+export function stairSymbol(shape: StairShape): string {
+  const { width, depth } = shape.size
+  const parts = treadsOf(shape).map(drawn)
+
+  return [
+    `<svg width="${round(width)}" height="${round(depth)}" viewBox="0 0 ${round(width)} ${round(depth)}" fill="none" xmlns="http://www.w3.org/2000/svg">`,
+    `<g>`,
+    shape.kind === 'spiral' ? spiral(shape) : parts.join(''),
+    shape.kind === 'l-winder' ? winder(shape) : '',
+    '</g></svg>',
+  ].join('')
+}
+
+/**
+ * Three treads fanning from the inside corner of an L, which is the one point
+ * they all meet at: the bottom right of the corner square.
+ */
+function winder(shape: StairShape): string {
+  const corner = shape.flight
+  const parts: string[] = []
+  for (let index = 1; index < 3; index += 1) {
+    const angle = (Math.PI / 2) * (index / 3)
+    const to = { x: corner - Math.sin(angle) * corner, y: corner - Math.cos(angle) * corner }
+    parts.push(
+      `<path d="M ${round(corner)} ${round(corner)} L ${round(to.x)} ${round(to.y)}" stroke="${LINE}" stroke-width="14" fill="none"/>`,
+    )
   }
   return parts.join('')
 }
@@ -217,34 +305,21 @@ function ell(shape: StairShape): string {
  * A spiral: a newel in the middle and the treads round it, each a wedge.
  *
  * The reference has no spiral, so this is drawn from scratch — which is the whole point
- * of the staircase being generated. The tread count is the storey's, so a tall
- * storey turns further round than a low one.
+ * of the staircase being generated. Drawn as the circle it stands in with a
+ * nosing to each tread rather than as the rectangles the walk builds, because
+ * from above a spiral is a circle and a ring of lines, and boxes fanned round a
+ * newel read as a pinwheel.
  */
 function spiral(shape: StairShape): string {
-  const radius = shape.flight / 2
-  const newel = Math.max(60, radius * 0.16)
-  const treads = shape.risers - 1
-  // A full turn and a bit is what a spiral in a house does; more than that and
-  // the treads are too narrow to stand on.
-  const sweep = Math.min(Math.PI * 2.2, (Math.PI * 2 * treads) / 13)
-  const each = sweep / treads
-
+  const { radius, newel, count, each } = spiralOf(shape)
   const parts = [
     `<circle cx="${round(radius)}" cy="${round(radius)}" r="${round(radius - 7)}" fill="#ffffff" stroke="${LINE}" stroke-width="14"/>`,
   ]
-  for (let index = 0; index <= treads; index += 1) {
+  for (let index = 0; index <= count; index += 1) {
     // From the foot, which is drawn at the bottom the way every other flight is.
     const angle = Math.PI / 2 + index * each
-    const from = {
-      x: radius + Math.cos(angle) * newel,
-      y: radius + Math.sin(angle) * newel,
-    }
-    const to = {
-      x: radius + Math.cos(angle) * (radius - 7),
-      y: radius + Math.sin(angle) * (radius - 7),
-    }
     parts.push(
-      `<path d="M ${round(from.x)} ${round(from.y)} L ${round(to.x)} ${round(to.y)}" stroke="${LINE}" stroke-width="14" fill="none"/>`,
+      `<path d="M ${round(radius + Math.cos(angle) * newel)} ${round(radius + Math.sin(angle) * newel)} L ${round(radius + Math.cos(angle) * (radius - 7))} ${round(radius + Math.sin(angle) * (radius - 7))}" stroke="${LINE}" stroke-width="14" fill="none"/>`,
     )
   }
   parts.push(

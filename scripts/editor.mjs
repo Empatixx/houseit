@@ -6,6 +6,7 @@
  * script needs nothing but `bun run dev`, and nothing pops up in front of you
  * while it works.
  */
+import { rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
 const require = createRequire(new URL('../apps/mcp/', import.meta.url))
@@ -42,12 +43,7 @@ export async function openEditor({ viewport = { width: 1440, height: 900 } } = {
     }
   }
 
-  const context = await chromium.launchPersistentContext(PROFILE, {
-    headless: true,
-    channel: 'chrome',
-    args: HEADLESS,
-    viewport,
-  })
+  const context = await launch(viewport)
   const page = (await bridged(context.pages())) ?? context.pages()[0] ?? (await context.newPage())
   await noCache(page)
   return {
@@ -56,6 +52,35 @@ export async function openEditor({ viewport = { width: 1440, height: 900 } } = {
       await page.evaluate(() => window.floorplan?.save()).catch(() => undefined)
       await context.close().catch(() => undefined)
     },
+  }
+}
+
+/**
+ * The profile, opened — and opened again with the lock cleared if the last
+ * Chrome on it was killed rather than closed.
+ *
+ * Chrome leaves a `SingletonLock` behind when it dies hard, and every run after
+ * that aborts rather than risk two browsers on one profile. Nothing was
+ * answering on the debugging port a moment ago, so there is no such browser:
+ * the lock is a leftover, and a leftover lock must not cost anybody an
+ * afternoon.
+ */
+async function launch(viewport) {
+  const open = () =>
+    chromium.launchPersistentContext(PROFILE, {
+      headless: true,
+      channel: 'chrome',
+      args: HEADLESS,
+      viewport,
+    })
+  try {
+    return await open()
+  } catch (error) {
+    if (!/ProcessSingleton/.test(String(error))) throw error
+    for (const name of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
+      rmSync(`${PROFILE}/${name}`, { force: true })
+    }
+    return await open()
   }
 }
 

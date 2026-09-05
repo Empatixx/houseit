@@ -2,7 +2,7 @@ import type { HouseDocument, Opening, Wall } from '@houseit/core/document'
 import { pick } from '../../edit/pick'
 import { EMPHASIS } from '../../store/hover'
 import { useSelection } from '../../store/selection'
-import { useDocument, usePlanDoc } from '../../store/store'
+import { usePlanDoc } from '../../store/store'
 import { dragged } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
 import { planPieces, solidPieces, type WallPiece } from '../wall-pieces'
@@ -24,9 +24,8 @@ const STANDS_IN_OPENING = /-(leaf|near|far|panel)$/
  * the door standing open the way the plan draws it. A click picks the wall,
  * or the door or window clicked.
  */
-export function Walls() {
+export function Walls({ level }: { level: string }) {
   const doc = usePlanDoc()
-  const level = useDocument((state) => state.level)
   const selected = useSelection((state) => state.selected)
 
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
@@ -124,7 +123,7 @@ function StandingWall({ wall, doc, degrees, picked, pickedOpening }: StandingWal
             rotation={[0, angle + (piece.turn ?? 0), 0]}
             onClick={picker(opening)}
           >
-            <boxGeometry args={[piece.length * MM, opening.height * MM, piece.thickness * MM]} />
+            <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
             <meshLambertMaterial
               color={
                 chosen

@@ -1,6 +1,7 @@
 import type { HouseObject } from '@houseit/core/document'
 import { heightOf } from '@houseit/core/heights'
 import { layerOf, symbolOf } from '@houseit/core/object-types'
+import { isStaircase } from '@houseit/core/stairs'
 import { type Surface, surfaceOf } from '@houseit/core/surfaces'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { footprintOf, type Spot, standingAt } from '@houseit/geometry/standing'
@@ -8,7 +9,7 @@ import { useMemo } from 'react'
 import { pick } from '../../edit/pick'
 import { EMPHASIS } from '../../store/hover'
 import { useSelection } from '../../store/selection'
-import { useDocument, usePlanDoc } from '../../store/store'
+import { usePlanDoc } from '../../store/store'
 import { dragged } from '../drag'
 import { useSymbol } from '../furniture/use-symbol'
 import { MM, toWorld } from '../plan-coordinates'
@@ -23,9 +24,8 @@ import { Model, modelled } from './models'
  * its plan symbol laid on top so it still reads. Where a thing stands and
  * which way it faces are exactly the plan's, from the same `standingAt`.
  */
-export function Furniture() {
+export function Furniture({ level }: { level: string }) {
   const doc = usePlanDoc()
-  const level = useDocument((state) => state.level)
 
   const drawn = useMemo(() => {
     const rooms = new Map(
@@ -39,8 +39,13 @@ export function Furniture() {
         const room = rooms.get(object.room)
         const spot = room ? standingAt(doc, level, room, object) : undefined
         const surface = surfaceOf(object.surface)
-        const symbol = symbolOf(object.type)
-        if (!spot || !surface || !symbol) return []
+        if (!spot || !surface) return []
+        // A staircase has no symbol to stamp — it is drawn, and here it is
+        // built. Asking for one dropped every flight in the house out of the
+        // 3D, which is why an upper storey had a hole in it and nothing coming
+        // up through the hole.
+        const symbol = symbolOf(object.type) ?? ''
+        if (!symbol && !modelled(object.type)) return []
         return [{ object, spot, surface, symbol }]
       })
     // A lamp on a table stands on the table: what is on the layer above the
@@ -48,17 +53,23 @@ export function Furniture() {
     return standing.map((entry) => ({ ...entry, rest: restOf(entry, standing) }))
   }, [doc, level])
 
+  const storey = doc.levels[level]
+
   return (
     <>
       {drawn.map((entry) => (
-        <Block key={entry.object.id} {...entry} />
+        <Block
+          key={entry.object.id}
+          {...entry}
+          climb={isStaircase(entry.object.type) ? storey?.height : undefined}
+        />
       ))}
     </>
   )
 }
 
 type Standing = { object: HouseObject; spot: Spot; surface: Surface; symbol: string }
-type BlockProps = Standing & { rest: number }
+type BlockProps = Standing & { rest: number; climb?: number }
 
 /** How high a thing on the layer above the furniture rests: the top of what is under it, or the floor. */
 function restOf(thing: Standing, all: Standing[]): number {
@@ -75,14 +86,19 @@ function restOf(thing: Standing, all: Standing[]): number {
   return top
 }
 
-function Block({ object, spot, surface, symbol, rest }: BlockProps) {
+function Block({ object, spot, surface, symbol, rest, climb }: BlockProps) {
   const has = modelled(object.type)
   const texture = useSymbol(has ? '' : symbol, surface, object)
   const picked = useSelection(
     (state) => state.selected?.kind === 'object' && state.selected.id === object.id,
   )
   const stands = heightOf(object.type)
-  const { height, glass } = stands
+  // A staircase is as tall as the storey it climbs. Everything else is as tall
+  // as the catalogue says, but a flight that stopped at the catalogue's height
+  // would be a flight to nowhere — the one number it cannot be given in advance
+  // is the one that decides where its top step is.
+  const height = climb ?? stands.height
+  const { glass } = stands
   // On what is under it where there is something; otherwise where its type says.
   const base = rest > 0 ? rest : stands.base
   const paints = paintOf(surface)

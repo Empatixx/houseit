@@ -35,12 +35,22 @@ export function Walker() {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
   const pressed = useRef(new Set<string>())
+  /** How far up the storey being walked stands. */
+  const floor = useDocument((state) => state.doc.levels[state.level]?.elevation ?? 0)
+  /** The storey the walk was last started on, so a change of storey starts it again. */
+  const started = useRef<string | undefined>(undefined)
 
-  // The walk starts once, in the biggest room; after that it is wherever it got to.
+  // A walk starts on clear floor in the biggest room, and starts again on every
+  // storey: the floors are not the same shape, so where you were standing
+  // downstairs is as likely as not inside a wall up here, or off the house
+  // altogether. Within a storey the walk stays where it got to, however the plan
+  // is edited underneath it.
   useEffect(() => {
-    if (walkStore.getState().walker) return
+    if (walkStore.getState().walker && started.current === level) return
     const start = startOf(doc, level)
-    if (start) walkStore.getState().place(start)
+    if (!start) return
+    started.current = level
+    walkStore.getState().place(start.at, start.yaw)
   }, [doc, level])
 
   // The wedge on the minimap is as wide as the view really is, side to side.
@@ -147,7 +157,10 @@ export function Walker() {
     }
 
     const now = walkStore.getState().walker ?? walker
-    camera.position.set(now.at.x * MM, EYE * MM, -now.at.y * MM)
+    // Eye height above the floor of the storey being walked, not above the
+    // ground: the house is drawn whole, so standing on the first floor is
+    // standing a storey up.
+    camera.position.set(now.at.x * MM, (floor + EYE) * MM, -now.at.y * MM)
     camera.rotation.order = 'YXZ'
     camera.rotation.set(now.pitch, -now.yaw, 0)
   })

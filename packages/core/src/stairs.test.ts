@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { flightOf } from './levels'
-import { flightWidthOf, STAIR_KINDS, stairShape, stairSymbol } from './stairs'
+import { flightWidthOf, STAIR_KINDS, stairShape, stairSymbol, treadsOf } from './stairs'
 
 const STOREY = 2800
 
@@ -79,4 +79,50 @@ test('a spiral turns round a newel rather than running away in a line', () => {
   // The circle it stands in, the newel in the middle of it, and a line per tread.
   expect(svg.match(/<circle /g)).toHaveLength(2)
   expect((svg.match(/<path /g) ?? []).length).toBeGreaterThan(10)
+})
+
+test('every kind has treads, and they all stay on the footprint they claim', () => {
+  for (const kind of STAIR_KINDS) {
+    const shape = stairShape(kind, STOREY)
+    const treads = treadsOf(shape)
+
+    expect(treads.length, kind).toBeGreaterThan(3)
+    for (const tread of treads) {
+      // The corners of a tread, turned about its own middle as it is drawn.
+      const corners = [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+      ].map(([sx, sy]) => {
+        const x = (sx! * tread.width) / 2
+        const y = (sy! * tread.depth) / 2
+        return {
+          x: tread.cx + x * Math.cos(tread.turn) - y * Math.sin(tread.turn),
+          y: tread.cy + x * Math.sin(tread.turn) + y * Math.cos(tread.turn),
+        }
+      })
+      for (const corner of corners) {
+        expect(corner.x, `${kind} across`).toBeGreaterThanOrEqual(-1)
+        expect(corner.x, `${kind} across`).toBeLessThanOrEqual(shape.size.width + 1)
+        expect(corner.y, `${kind} along`).toBeGreaterThanOrEqual(-1)
+        expect(corner.y, `${kind} along`).toBeLessThanOrEqual(shape.size.depth + 1)
+      }
+    }
+  }
+})
+
+test('the treads are numbered from the foot, each one step above the last', () => {
+  for (const kind of STAIR_KINDS) {
+    const steps = treadsOf(stairShape(kind, STOREY)).map((tread) => tread.step)
+    expect(steps, kind).toEqual(steps.map((_, index) => index + 1))
+  }
+})
+
+test('a taller storey is more treads to climb, whatever the kind', () => {
+  for (const kind of STAIR_KINDS) {
+    expect(treadsOf(stairShape(kind, 3600)).length, kind).toBeGreaterThan(
+      treadsOf(stairShape(kind, 2400)).length,
+    )
+  }
 })
