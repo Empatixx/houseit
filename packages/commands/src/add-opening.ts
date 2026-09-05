@@ -4,7 +4,7 @@ import { along, alongSide } from './along-schema'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
 import { placeOpening, placeOpeningAt } from './place-opening'
-import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
+import { SIDE_NAMES, sideNamed, whereRoom } from './resolve'
 
 const DOOR_HEIGHT = 1970
 const WINDOW = { width: 1200, height: 1500, sill: 900 }
@@ -51,8 +51,7 @@ export const addOpening = defineCommand({
     level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'add-opening')
-    const room = roomNamed(draft, level, args.room, 'add-opening')
+    const { room, level } = whereRoom(draft, args.level, args.room, 'add-opening')
     const at = sideNamed(draft, level, room, args, 'add-opening')
     const door = args.kind === 'door'
 

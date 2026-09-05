@@ -1,4 +1,5 @@
 import { layerOf, OBJECT_TYPE_IDS, objectType } from '@houseit/core/object-types'
+import { stairKind, stairShape } from '@houseit/core/stairs'
 import { SURFACE_IDS } from '@houseit/core/surfaces'
 import { sideRun } from '@houseit/geometry/sides'
 import { z } from 'zod'
@@ -8,7 +9,7 @@ import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
 import { freeWidth, placeAgainst, placeFree, placeSomewhereAgainst } from './place-object'
-import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
+import { SIDE_NAMES, sideNamed, whereRoom } from './resolve'
 import { canStand, standingProblem, takenBy } from './standing-check'
 
 /**
@@ -47,8 +48,7 @@ export const addObject = defineCommand({
     level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'add-object')
-    const room = roomNamed(draft, level, args.room, 'add-object')
+    const { room, level } = whereRoom(draft, args.level, args.room, 'add-object')
     const at =
       args.against !== undefined || args.wall !== undefined
         ? sideNamed(draft, level, room, { side: args.against, wall: args.wall }, 'add-object')
@@ -62,8 +62,22 @@ export const addObject = defineCommand({
       )
     }
 
-    const width = args.width ?? type.size.width
-    const depth = args.depth ?? type.size.depth
+    // A staircase is as long as the storey makes it: the risers come from the
+    // floor-to-floor height and the run from the risers, so its depth is not
+    // something to choose. How wide the flight is still is.
+    const climb = stairKind(type.id)
+    // `--width` on a staircase is the clear width of the flight, not the
+    // footprint: the catalogue's own width is the footprint a 900 mm flight
+    // makes, and handing that back in would build it out of itself.
+    const flight = climb ? stairShape(climb, draft.levels[level]!.height, args.width) : undefined
+    if (flight && args.depth !== undefined) {
+      throw new CommandError(
+        `add-object: a staircase is as long as the storey makes it — ${flight.size.depth} mm for ${flight.risers} risers. Say --width, or build the storey at another height.`,
+      )
+    }
+
+    const width = flight?.size.width ?? args.width ?? type.size.width
+    const depth = flight?.size.depth ?? args.depth ?? type.size.depth
     const rotation = args.rotation
 
     const shape = { type: type.id, width, depth, rotation }

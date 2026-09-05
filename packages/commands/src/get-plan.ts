@@ -1,7 +1,7 @@
 import { roomsOf } from '@houseit/geometry/rooms'
 import { z } from 'zod'
 import { defineCommand } from './define-command'
-import { levelOf, roomNamed } from './resolve'
+import { levelOf, whereRoom } from './resolve'
 
 /**
  * Reads the plan back. The only question there is.
@@ -25,10 +25,12 @@ export const getPlan = defineCommand({
     level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'get-plan')
+    // A room named is looked for on every storey, so `--room ložnice` finds the
+    // bedroom wherever it is; a storey named is the storey meant.
     if (args.room !== undefined) {
-      return { shown: [roomNamed(draft, level, args.room, 'get-plan').id] }
+      return { shown: [whereRoom(draft, args.level, args.room, 'get-plan').room.id] }
     }
+    const level = levelOf(draft, args.level, 'get-plan')
     return {
       shown: roomsOf(draft, level)
         .map((room) => room.id)

@@ -3,13 +3,12 @@
 ## Everything goes through the CLI, and that is the test
 
 An agent gets at this plan through one door: the commands in `packages/commands`,
-reached over MCP. There are ten — `add-room`, `update-room`, `remove-room`,
-`add-opening`, `update-opening`, `remove-opening`, `add-object`, `update-object`,
-`remove-object`, `get-plan` — and every change is made the way an agent would have
-to make it, never by writing to the document. If something cannot be said as a
-command, that is the bug, and it is the bug to fix.
+reached over MCP. There are thirteen — `add`, `update` and `remove` for a level,
+a room, an opening and an object, and `get-plan` — and every change is made the
+way an agent would have to make it, never by writing to the document. If
+something cannot be said as a command, that is the bug, and it is the bug to fix.
 
-Three nouns and one question, and the shape of it is the point:
+Four nouns and one question, and the shape of it is the point:
 
 - **No noun for a wall.** Every wall is the edge of a room, so asking for the rooms
   is asking for the walls. `add-room` draws them; moving the wall between two rooms
@@ -24,7 +23,12 @@ Three nouns and one question, and the shape of it is the point:
   command did not touch.
 - **`update` takes an id.** Every answer names what it changed, so the id of the
   sofa just placed is in the answer to placing it. There is no second way of saying
-  which sofa, and so no way for the two to disagree.
+  which sofa, and so no way for the two to disagree. An id is one thing in the
+  whole house, so it carries its storey with it and `--level` is never needed
+  with one.
+- **A room is looked for on every storey.** `--room ložnice` finds the bedroom
+  wherever it is; `--level` said is `--level` meant. Which floor a room is on is
+  something the plan knows and the person asking should not have to.
 
 Working this way is not ceremony, it is the test. Everything found by hand so far
 was found by driving the real commands and looking at what came out:
@@ -50,10 +54,12 @@ node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg get-plan --room kitchen
 `--project` and `--picture` are the driver's, not the plan's: which plan is being
 worked on and what to do with the picture are no part of any plan.
 
-With Chrome already up on the debugging port, that window is used — driving the one
-somebody is watching is how the agent and the person see the same plan. With no such
-window, one is started **headless** on the same profile, so an agent on its own needs
-nothing but `bun run dev`. `scripts/chrome.sh` is for when you want to watch.
+**Headless by default.** With no Chrome on the debugging port — which is the
+normal state — the CLI, the MCP server and the scripts start one headless on the
+same profile, so nothing pops up in front of you and an agent on its own needs
+nothing but `bun run dev`. `scripts/chrome.sh` is only for when you want to
+watch, and then the agent drives the window you are looking at. `scripts/editor.mjs`
+is the one way in that both cases go through.
 
 An option a plan cannot do without belongs in the schema as required, not as
 something with a default nobody checks.
@@ -67,6 +73,37 @@ terminal and the MCP tool go through the words (`store.exec(line)`). Neither
 the editor nor the logic under it ever builds a line of text for the parser to
 read back. If a hand edit needs something a command cannot say, the command
 grows — the drag never writes to the document itself.
+
+## Storeys, and the stairs between them
+
+A storey is `add-level`, and the editor puts which one you are on in a card at
+the head of the plan. It is drawn one at a time — that is what a floor plan is —
+with the storey underneath showing faintly through, because an upper floor is
+drawn on top of the one below and without that there is nothing to line a wall
+up against.
+
+**A staircase is drawn, not stamped.** It is the only thing in the catalogue
+that is, and the reason is that its size is not its own: the storey's
+floor-to-floor height decides how many risers a flight has, how many risers
+decides how long it is, and a flight drawn with the wrong number of treads is a
+drawing of a staircase nobody could climb. So `stairs.ts` makes the symbol at
+the tread count the storey calls for, in the same language the catalogue's own
+symbols are written in, and `--depth` on a staircase is refused rather than
+obeyed. `--width` is the clear width of the flight, which for a U comes out
+twice as wide on the floor.
+
+**The well is the staircase, seen from above.** The hole in the floor overhead
+is not a thing anybody draws or stores — `wells.ts` derives it from the flight
+below, the way rooms are derived from walls. One record of a hole, so the floor
+drawn with it and the room reporting it can never disagree; `wellsInRoom` is the
+single place that decides which room a well is in, and both the renderer and the
+survey call it. `check-plan` looks both ways, because either half can be the one
+that moved: a wardrobe pushed over a stairwell from upstairs is the same fault
+as a staircase built under a wardrobe from downstairs.
+
+`bun scripts/look-stairs.ts /tmp/stairs.png [height]` draws every kind at a
+storey's height on one page. A generated drawing is code, and the only way to
+know code that draws is right is to look at it.
 
 ## The tool description never changes
 

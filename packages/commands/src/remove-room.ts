@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { deleteWall, straighten } from './graph'
-import { levelOf, roomNamed } from './resolve'
+import { roomNamed, whereRoom } from './resolve'
 import { standingProblem } from './standing-check'
 
 /**
@@ -27,8 +27,9 @@ export const removeRoom = defineCommand({
     level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'remove-room')
-    const room = roomNamed(draft, level, args.room, 'remove-room')
+    const { room, level } = whereRoom(draft, args.level, args.room, 'remove-room')
+    // Knocked through into a neighbour, which is a room on the same storey: a
+    // room above is not next door, it is overhead.
     const into = roomNamed(draft, level, args.into, 'remove-room')
     if (room.id === into.id) {
       throw new CommandError('remove-room: a room cannot be knocked into itself')

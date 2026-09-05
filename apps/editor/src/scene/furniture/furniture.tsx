@@ -1,5 +1,6 @@
 import type { HouseObject } from '@houseit/core/document'
 import { type Layer, layerOf, symbolOf } from '@houseit/core/object-types'
+import { stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
 import { type Surface, surfaceOf } from '@houseit/core/surfaces'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
@@ -18,6 +19,25 @@ import { dragged, pointOnPlan } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
 import { symbolHeight } from './stacking'
 import { useSymbol } from './use-symbol'
+
+/**
+ * The drawing a staircase is made of, or nothing for anything that is not one.
+ *
+ * Keyed by what it is drawn from, so two flights of the same kind climbing the
+ * same storey at the same width share one rasterised picture, and a storey made
+ * taller redraws them all.
+ */
+function drawingOf(
+  doc: Parameters<typeof standingAt>[0],
+  level: string,
+  object: { type: string; width: number },
+): { key: string; svg: string } | undefined {
+  const kind = stairKind(object.type)
+  if (!kind) return undefined
+  const height = doc.levels[level]?.height ?? 2800
+  const shape = stairShape(kind, height, object.width)
+  return { key: `stairs:${kind}:${height}:${object.width}`, svg: stairSymbol(shape) }
+}
 
 /**
  * The furniture, drawn from the plan symbols in the catalogue.
@@ -43,7 +63,9 @@ export function Furniture() {
         const room = rooms.get(object.room)
         const spot = room ? standingAt(doc, level, room, object) : undefined
         const surface = surfaceOf(object.surface)
-        const symbol = symbolOf(object.type)
+        // A staircase is drawn here and now, at the number of treads this
+        // storey's height calls for; everything else is a file in the catalogue.
+        const symbol = drawingOf(doc, level, object) ?? symbolOf(object.type)
         if (!spot || !surface || !symbol) return []
         return [
           { object, spot, surface, symbol, stack: { layer: layerOf(object.type), index: order } },
@@ -64,7 +86,8 @@ type GlyphProps = {
   object: HouseObject
   spot: Spot
   surface: Surface
-  symbol: string
+  /** A file under `symbols/`, or a drawing made on the spot for a staircase. */
+  symbol: string | { key: string; svg: string }
   stack: { layer: Layer; index: number }
 }
 

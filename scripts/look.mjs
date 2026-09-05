@@ -16,12 +16,8 @@
  *   node scripts/look.mjs --type media-unit --surface walnut --out /tmp/tv.png
  *   node scripts/look.mjs --type sofa-3 --surface grey --against north
  */
-import { createRequire } from 'node:module'
+import { EDITOR, openEditor } from './editor.mjs'
 
-const require = createRequire(new URL('../apps/mcp/', import.meta.url))
-const { chromium } = require('playwright-core')
-
-const EDITOR = (process.env.HOUSEIT_EDITOR_URL ?? 'http://localhost:5173').replace(/\/$/, '')
 /** The throwaway project this works in. */
 const LOOK = 'look'
 /** Floor left round the object, so it is framed and not cropped. */
@@ -35,13 +31,7 @@ if (!args.type) {
   process.exit(1)
 }
 
-const port = process.env.HOUSEIT_CDP_PORT ?? '9222'
-const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`)
-const page = await editorPage(browser)
-if (!page) {
-  console.error(`no editor page on port ${port} — run bun run dev and scripts/chrome.sh`)
-  process.exit(1)
-}
+const { page, close } = await openEditor()
 
 const kept = await page.evaluate(() => window.__houseit?.projectsStore.getState().open?.id ?? null)
 try {
@@ -64,7 +54,7 @@ try {
   // Back where you were first, then the throwaway project away.
   await page.goto(kept ? `${EDITOR}/p/${kept}` : EDITOR)
   await page.evaluate((id) => window.__houseit.projectsStore.getState().remove(id), LOOK)
-  await browser.close()
+  await close()
 }
 
 /** Makes the throwaway project afresh and draws a room with the one thing in it, through the CLI. */
@@ -111,16 +101,4 @@ function parse(argv) {
     if (name) args[name] = argv[i + 1]
   }
   return args
-}
-
-async function editorPage(browser) {
-  for (const context of browser.contexts()) {
-    for (const page of context.pages()) {
-      const has = await page
-        .evaluate(() => typeof window.floorplan?.exec === 'function')
-        .catch(() => false)
-      if (has) return page
-    }
-  }
-  return undefined
 }

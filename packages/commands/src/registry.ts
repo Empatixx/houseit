@@ -1,3 +1,4 @@
+import { addLevel, removeLevel, updateLevel } from './add-level'
 import { addObject } from './add-object'
 import { addOpening } from './add-opening'
 import { addRoom } from './add-room'
@@ -10,13 +11,13 @@ import { updateOpening } from './update-opening'
 import { updateRoom } from './update-room'
 
 /**
- * Everything an agent can say, which is three nouns and one question.
+ * Everything an agent can say, which is four nouns and one question.
  *
- * A room, a hole in a wall, a thing in a room — each made, changed and taken
- * out again. There is no noun for a wall: every wall is the edge of a room, and
- * `add-room` draws the ones a room needs. There is no verb for measuring or
- * describing either: every command answers with the rooms it touched and what
- * is now wrong with the plan, so the reading is in the doing.
+ * A storey, a room, a hole in a wall, a thing in a room — each made, changed
+ * and taken out again. There is no noun for a wall: every wall is the edge of a
+ * room, and `add-room` draws the ones a room needs. There is no verb for
+ * measuring or describing either: every command answers with the rooms it
+ * touched and what is now wrong with the plan, so the reading is in the doing.
  *
  * `move-wall` is still a command, and is not here. The editor's wall drag calls
  * it with typed arguments and `update-room --by` calls it too — but an agent
@@ -25,6 +26,9 @@ import { updateRoom } from './update-room'
  */
 const ALL: AnyCommand[] = [
   getPlan,
+  addLevel,
+  updateLevel,
+  removeLevel,
   addRoom,
   updateRoom,
   removeRoom,

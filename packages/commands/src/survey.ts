@@ -15,6 +15,7 @@ import {
 } from '@houseit/geometry/sides'
 import { freeSpans } from '@houseit/geometry/spans'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
+import { wellsInRoom } from '@houseit/geometry/wells'
 import { order } from './resolve'
 
 /**
@@ -133,6 +134,18 @@ export type RoomReport = {
   walls: WallReport[]
   /** Each side of it as a line to place against, with what is free. */
   sides: SideReport[]
+  /**
+   * The holes in its floor: the staircases on the storey below, coming up.
+   *
+   * Not a thing anybody put here — it is the flight downstairs, seen from
+   * above — so it is said out loud, or an agent standing on this floor has no
+   * way of knowing why it may not put a wardrobe there.
+   */
+  wells?: {
+    object: string
+    type: string
+    box: { x0: number; y0: number; x1: number; y1: number }
+  }[]
   openings: OpeningReport[]
   objects: ObjectReport[]
 }
@@ -222,6 +235,7 @@ export function surveyRoom(
         },
       ]
     }),
+    wells: pierced(doc, level, room),
     sides: SIDE_NAMES.flatMap((side) => {
       const runs = sideRuns(doc, level, room, side)
       return runs.map((run) => surveySide(doc, level, room, side, run, runs.length > 1, objects))
@@ -229,6 +243,26 @@ export function surveyRoom(
     openings,
     objects: objects.map((object) => surveyObject(doc, level, room, object)),
   }
+}
+
+/** The stairwells in a room's floor, as boxes — nothing at all where there are none. */
+function pierced(doc: HouseDocument, level: string, room: Room): RoomReport['wells'] {
+  const wells = wellsInRoom(doc, level, room)
+  if (wells.length === 0) return undefined
+  return wells.map((well) => {
+    const xs = well.outline.map((corner) => corner.x)
+    const ys = well.outline.map((corner) => corner.y)
+    return {
+      object: well.object,
+      type: well.type,
+      box: {
+        x0: Math.round(Math.min(...xs)),
+        y0: Math.round(Math.min(...ys)),
+        x1: Math.round(Math.max(...xs)),
+        y1: Math.round(Math.max(...ys)),
+      },
+    }
+  })
 }
 
 /**

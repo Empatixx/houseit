@@ -1,9 +1,11 @@
-import type { HouseDocument, HouseObject } from '@houseit/core/document'
+import type { HouseDocument, HouseObject, Level } from '@houseit/core/document'
+import { levelAbove, levelBelow } from '@houseit/core/levels'
 import { layerOf, objectType } from '@houseit/core/object-types'
 import { roomKindOf } from '@houseit/core/room-kinds'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
-import { type Box, boxOf, clashes } from './boxes'
+import { stairwaysOn, type Well } from '@houseit/geometry/wells'
+import { type Box, boxOf, clashes, wallBox } from './boxes'
 import { swingOf } from './place-opening'
 import { standingProblem } from './standing-check'
 import { type OpeningReport, objectsIn, type RoomReport, surveyLevel } from './survey'
@@ -45,6 +47,7 @@ export function checkLevel(doc: HouseDocument, level: string): Problem[] {
     ...kitchens(doc, level, rooms),
     ...doors(doc, level, rooms),
     ...standing(doc, level, rooms),
+    ...stairs(doc, level),
   ]
   return problems.sort((one, other) => rank(one) - rank(other))
 }
@@ -244,6 +247,86 @@ function doors(doc: HouseDocument, level: string, rooms: Room[]): Problem[] {
   }
   return problems
 }
+
+/**
+ * A staircase has somewhere to go, and something to come up into.
+ *
+ * A flight is only half a thing on its own storey: the other half is the hole
+ * it needs in the floor above. So it is checked against the storey overhead —
+ * against a wall standing where the well is, and against whatever else is
+ * standing there, since a wardrobe over a stairwell is a wardrobe in mid-air.
+ *
+ * Both ways round, because either half can be the one that moved. Standing on
+ * the first floor and pushing a wardrobe over the stairwell is the same fault
+ * as standing on the ground floor and building the stairs under the wardrobe,
+ * and whoever did it last is the one who needs telling.
+ */
+function stairs(doc: HouseDocument, level: string): Problem[] {
+  const above = levelAbove(doc, level)
+  const below = levelBelow(doc, level)
+  return [
+    ...stairwaysOn(doc, level).flatMap((well) => climbing(doc, well, above)),
+    // Only the blocking, for the storey underneath: whether those stairs have
+    // anywhere to go is that storey's own business and is reported there.
+    ...(below ? stairwaysOn(doc, below.id).flatMap((well) => blocked(doc, well, level)) : []),
+  ]
+}
+
+/** What is wrong with a flight leaving this storey, starting with having nowhere to go. */
+function climbing(doc: HouseDocument, well: Well, above: Level | undefined): Problem[] {
+  if (!above) {
+    return [
+      {
+        code: 'stairs.nowhere',
+        severity: 'warning',
+        message: `the ${flightLabel(well)} has nowhere to climb to — there is no storey above this one`,
+      },
+    ]
+  }
+  return blocked(doc, well, above.id)
+}
+
+/** Whether the hole this flight needs is where a wall or a wardrobe already is. */
+function blocked(doc: HouseDocument, well: Well, into: string): Problem[] {
+  const problems: Problem[] = []
+  const storey = doc.levels[into]
+  const hole = boxOf(well.outline)
+
+  const wall = Object.values(doc.walls).find((it) => {
+    if (it.level !== into) return false
+    const from = doc.nodes[it.a]
+    const to = doc.nodes[it.b]
+    return (
+      from !== undefined && to !== undefined && clashes(hole, wallBox(from, to, it.thickness), 0)
+    )
+  })
+  if (wall) {
+    problems.push({
+      code: 'stairs.well-blocked',
+      severity: 'error',
+      message: `the ${flightLabel(well)} comes up into a wall on ${storey?.name ?? into}`,
+    })
+  }
+
+  const rooms = roomsOf(doc, into)
+  const standing = Object.values(doc.objects).find((other) => {
+    if (other.level !== into || layerOf(other.type) !== 'floor') return false
+    const room = rooms.find((candidate) => candidate.id === other.room)
+    const spot = room && standingAt(doc, into, room, other)
+    return spot !== undefined && clashes(hole, boxOf(footprintOf(spot, other)), 0)
+  })
+  if (standing) {
+    problems.push({
+      code: 'stairs.well-blocked',
+      severity: 'error',
+      room: rooms.find((candidate) => candidate.id === standing.room)?.name,
+      message: `the ${label(standing)} on ${storey?.name ?? into} stands over the ${flightLabel(well)} coming up`,
+    })
+  }
+  return problems
+}
+
+const flightLabel = (well: Well) => objectType(well.type)?.label.toLowerCase() ?? well.type
 
 /** Everything stands where a command would let it stand. */
 function standing(doc: HouseDocument, level: string, rooms: Room[]): Problem[] {

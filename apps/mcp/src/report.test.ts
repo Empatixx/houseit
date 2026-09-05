@@ -10,7 +10,7 @@ const ok = (answer: Partial<Answer>, project?: string): ExecResult => ({
   document: createEmptyDocument(),
   rooms: [],
   ...(project === undefined ? {} : { project: { id: project, name: project } }),
-  answer: { level: 'l1', changed: [], rooms: [], problems: [], ...answer } as Answer,
+  answer: { level: 'l1', levels: [], changed: [], rooms: [], problems: [], ...answer } as Answer,
 })
 
 test('the answer comes back as JSON: what changed, the rooms, what is wrong', () => {

@@ -8,7 +8,7 @@ import { defineCommand } from './define-command'
 import { length } from './length-schema'
 import { openingById } from './openings'
 import { checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
-import { levelOf, SIDE_NAMES, sideNamed } from './resolve'
+import { SIDE_NAMES, sideNamed } from './resolve'
 
 /**
  * Changes a door or a window that is already in: wider, higher, a pocket leaf
@@ -25,7 +25,7 @@ export const updateOpening = defineCommand({
   name: 'update-opening',
   summary: 'Change a door or a window: its size, its kind of leaf, or where in the wall it sits',
   args: z.object({
-    /** Its id, as the last answer gave it. */
+    /** Its id, as the last answer gave it. The storey comes with it. */
     id: z.string().min(1),
     width: length().optional(),
     height: length().optional(),
@@ -38,12 +38,10 @@ export const updateOpening = defineCommand({
     /** Another side of its room to move it to, or another wall by id. */
     toSide: z.enum(SIDE_NAMES).optional(),
     toWall: z.string().min(1).optional(),
-    level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'update-opening')
-    const found = openingById(draft, level, args.id, 'update-opening')
-    const { opening, room } = found
+    const found = openingById(draft, args.id, 'update-opening')
+    const { opening, room, level } = found
     const door = opening.kind === 'door'
 
     if (args.variant !== undefined && !door) {

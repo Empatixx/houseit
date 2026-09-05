@@ -1,4 +1,5 @@
 import { layerOf, objectType } from '@houseit/core/object-types'
+import { flightWidthOf, stairKind, stairShape } from '@houseit/core/stairs'
 import { SURFACE_IDS } from '@houseit/core/surfaces'
 import { sideRun } from '@houseit/geometry/sides'
 import { z } from 'zod'
@@ -15,7 +16,7 @@ import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
 import { freeWidth, placeAgainst, type Spot } from './place-object'
-import { levelOf, SIDE_NAMES, sideNamed, thingById } from './resolve'
+import { SIDE_NAMES, sideNamed, thingById } from './resolve'
 import { canStand, standingProblem, takenBy } from './standing-check'
 
 /**
@@ -37,7 +38,7 @@ export const updateObject = defineCommand({
   name: 'update-object',
   summary: 'Change a thing in its room: where it stands, its size, its turn, its finish',
   args: z.object({
-    /** Its id, as the last answer gave it. */
+    /** Its id, as the last answer gave it. The storey comes with it. */
     id: z.string().min(1),
     /** The side to back onto. */
     against: z.enum(SIDE_NAMES).optional(),
@@ -53,11 +54,9 @@ export const updateObject = defineCommand({
     rotation: z.coerce.number().int().min(-359).max(359).optional(),
     surface: z.enum(SURFACE_IDS as [string, ...string[]]).optional(),
     seats: z.coerce.number().int().positive().optional(),
-    level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'update-object')
-    const { object: found, room } = thingById(draft, level, args.id, 'update-object')
+    const { object: found, room, level } = thingById(draft, args.id, 'update-object')
     const type = objectType(found.type)
     const label = type?.label.toLowerCase() ?? found.type
 
@@ -85,12 +84,25 @@ export const updateObject = defineCommand({
       )
     }
 
+    // A staircase keeps the length its storey gives it, so a wider flight is
+    // re-drawn rather than stretched, and its depth is never asked for.
+    const climb = stairKind(found.type)
+    const height = draft.levels[level]!.height
+    const flight = climb
+      ? stairShape(climb, height, args.width ?? flightWidthOf(climb, found.width, height))
+      : undefined
+    if (flight && args.depth !== undefined) {
+      throw new CommandError(
+        `update-object: a staircase is as long as the storey makes it — ${flight.size.depth} mm for ${flight.risers} risers`,
+      )
+    }
+
     // The thing as it will be, before anywhere is tried: every check below is
     // made on this, so a wider sofa is looked for a place at its new width.
     const shape = {
       ...found,
-      width: args.width ?? found.width,
-      depth: args.depth ?? found.depth,
+      width: flight?.size.width ?? args.width ?? found.width,
+      depth: flight?.size.depth ?? args.depth ?? found.depth,
       ...(args.rotation === undefined
         ? {}
         : { rotation: args.rotation === 0 ? undefined : args.rotation }),

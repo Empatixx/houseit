@@ -9,22 +9,11 @@
  * written to behind the commands' back — which is also why its address does not
  * change.
  *
- *   scripts/chrome.sh           # a Chrome with a debugging port, once
  *   node scripts/reset-plan.mjs
  */
-import { createRequire } from 'node:module'
+import { EDITOR, openEditor } from './editor.mjs'
 
-const require = createRequire(new URL('../apps/mcp/', import.meta.url))
-const { chromium } = require('playwright-core')
-
-const EDITOR = (process.env.HOUSEIT_EDITOR_URL ?? 'http://localhost:5173').replace(/\/$/, '')
-
-const port = process.env.HOUSEIT_CDP_PORT ?? '9222'
-const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`)
-const pages = browser.contexts().flatMap((context) => context.pages())
-const page =
-  pages.find((candidate) => candidate.url().startsWith(EDITOR)) ??
-  (await browser.contexts()[0].newPage())
+const { page, close } = await openEditor()
 
 await page.waitForFunction(() => typeof window.__houseit?.projectsStore?.getState === 'function')
 const open = await page.evaluate(() => window.__houseit.projectsStore.getState().open)
@@ -40,7 +29,7 @@ if (!open) {
       ? `No project open. Open one first: ${ids.map((id) => `${EDITOR}/p/${id}`).join(', ')}`
       : 'No project open, and none to open — make one on the home screen.',
   )
-  await browser.close().catch(() => {})
+  await close()
   process.exit(1)
 }
 
@@ -62,4 +51,4 @@ const rooms = answer.ok ? answer.answer.rooms.length : -1
 console.log(
   rooms === 0 ? `${open.name} is empty.` : `Not empty: ${JSON.stringify(answer).slice(0, 200)}`,
 )
-await browser.close().catch(() => {})
+await close()

@@ -1,7 +1,8 @@
 import { floorMaterial } from '@houseit/core/floor-materials'
 import { roomsOf } from '@houseit/geometry/rooms'
+import { wellsInRoom } from '@houseit/geometry/wells'
 import { useMemo } from 'react'
-import { Shape, ShapeGeometry } from 'three'
+import { Path, Shape, ShapeGeometry } from 'three'
 import { aimAt, finishDrawing, putDown } from '../edit/draw-commands'
 import { pick } from '../edit/pick'
 import { placeArmed } from '../edit/place-commands'
@@ -25,33 +26,45 @@ export function RoomFloors() {
   const level = useDocument((state) => state.level)
   const hovered = useHover((state) => state.hovered)
 
-  const floors = useMemo(
-    () =>
-      roomsOf(doc, level).map((room) => {
-        const shape = new Shape()
-        room.nodes.forEach((id, index) => {
-          const node = doc.nodes[id]!
-          // Shapes are built in the XY plane and laid flat by the mesh rotation.
-          if (index === 0) shape.moveTo(node.x * MM, node.y * MM)
-          else shape.lineTo(node.x * MM, node.y * MM)
+  const floors = useMemo(() => {
+    return roomsOf(doc, level).map((room) => {
+      const shape = new Shape()
+      room.nodes.forEach((id, index) => {
+        const node = doc.nodes[id]!
+        // Shapes are built in the XY plane and laid flat by the mesh rotation.
+        if (index === 0) shape.moveTo(node.x * MM, node.y * MM)
+        else shape.lineTo(node.x * MM, node.y * MM)
+      })
+      shape.closePath()
+
+      // Where the staircases from the storey below come up through this floor.
+      // The hole is not drawn anywhere: it is the staircase, seen from above.
+      const pierced = wellsInRoom(doc, level, room)
+      for (const well of pierced) {
+        const hole = new Path()
+        well.outline.forEach((corner, index) => {
+          if (index === 0) hole.moveTo(corner.x * MM, corner.y * MM)
+          else hole.lineTo(corner.x * MM, corner.y * MM)
         })
-        shape.closePath()
-        const material = room.floor ? floorMaterial(room.floor) : undefined
-        return {
-          room,
-          // The material is part of the key on purpose. Laying a floor in a room
-          // that had none swaps a plain white material for one with a texture, and
-          // patching that onto the material already on screen leaves it black
-          // until the page is reloaded. Keyed this way the mesh is built afresh,
-          // with its texture from the start, exactly as it is on a reload.
-          key: `${room.nodes.join('-')}-${room.floor ?? 'bare'}`,
-          id: room.id,
-          geometry: new ShapeGeometry(shape),
-          texture: material ? floorTexture(material) : undefined,
-        }
-      }),
-    [doc, level],
-  )
+        hole.closePath()
+        shape.holes.push(hole)
+      }
+
+      const material = room.floor ? floorMaterial(room.floor) : undefined
+      return {
+        room,
+        // The material is part of the key on purpose. Laying a floor in a room
+        // that had none swaps a plain white material for one with a texture, and
+        // patching that onto the material already on screen leaves it black
+        // until the page is reloaded. Keyed this way the mesh is built afresh,
+        // with its texture from the start, exactly as it is on a reload.
+        key: `${room.nodes.join('-')}-${room.floor ?? 'bare'}-${pierced.map((it) => it.object).join('-')}`,
+        id: room.id,
+        geometry: new ShapeGeometry(shape),
+        texture: material ? floorTexture(material) : undefined,
+      }
+    })
+  }, [doc, level])
 
   return (
     <>

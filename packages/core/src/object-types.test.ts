@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 import { layerOf, OBJECT_TYPE_IDS, OBJECT_TYPES, objectType, symbolOf } from './object-types'
+import { isStaircase, STAIR_KINDS, stairKind } from './stairs'
 import { SURFACE_IDS, surfaceOf } from './surfaces'
 
 test('every type can be found by the id the command surface offers', () => {
@@ -21,13 +22,25 @@ test('every type is finished in surfaces that exist', () => {
   }
 })
 
-test('every type has a real size and a symbol to draw it with', () => {
+test('every type has a real size, and a symbol unless it is drawn instead', () => {
   for (const entry of OBJECT_TYPES) {
     expect(entry.size.width, entry.id).toBeGreaterThan(0)
     expect(entry.size.depth, entry.id).toBeGreaterThan(0)
+    // A staircase is drawn from the storey it climbs rather than read off a
+    // file, and is the only thing in the catalogue that is.
+    if (isStaircase(entry.id)) {
+      expect(symbolOf(entry.id), entry.id).toBeUndefined()
+      continue
+    }
     expect(entry.symbol, entry.id).toMatch(/^[a-z0-9-]+\.svg$/)
     expect(symbolOf(entry.id)).toBe(entry.symbol)
   }
+})
+
+test('every kind of staircase is in the catalogue, and every staircase is a kind', () => {
+  const stairs = OBJECT_TYPES.filter((entry) => isStaircase(entry.id))
+
+  expect(stairs.map((entry) => stairKind(entry.id)).sort()).toEqual([...STAIR_KINDS].sort())
 })
 
 test('every surface has a fill and a darker line to draw it with', () => {

@@ -76,9 +76,13 @@ coinciding, and face detection collapses when they do not.
 ## Commands
 
 One MCP tool, `floorplan`, taking a command string. It parses like a CLI, and there are
-ten of them: three nouns, each made, changed and taken out again, and one question.
+thirteen of them: four nouns, each made, changed and taken out again, and one question.
 
 ```
+add-level      --name "1. patro" [--height 2.7m] [--below]
+update-level   --level "1. patro" --name podkroví --height 2.4m
+remove-level   --level podkroví
+
 add-room       --material natural-oak --shape l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name house
 add-room       --material tile-white --name kitchen --from house --side west --width 3.6m --kind kitchen
 add-room       --material tile-white --name snug --points "0,0; 5m,0; 5m,3m; 3m,3m; 3m,5m; 0,5m"
@@ -140,7 +144,10 @@ now wrong with the plan. Over MCP it comes with a picture of what the command di
 framed the way a click would show it: one picture for the call, not one a line.
 
 `get-plan` is the one question left, and it is only for the rooms a command did not
-touch. `update` and `remove` take the `--id` the answer gave.
+touch. `update` and `remove` take the `--id` the answer gave — an id is one thing in
+the whole house, so it brings its storey with it. A room is looked for on every
+storey too: `--room ložnice` finds the bedroom wherever it is, and `--level` is for
+saying which when you mean to.
 
 The problems are the ones The reference's review looks for: a room nobody can walk to from the
 front door, a bedroom opening straight into the kitchen, a door that cannot swing for
@@ -273,6 +280,28 @@ teardown in `features.md` and kept as data in
 `packages/core/src/catalog.ts`. Each type is one plan symbol scaled to the
 type's size, with its white swapped for the surface it was given. `--help` on
 `add-object` lists every id.
+
+## Storeys and stairs
+
+`add-level` builds upwards, `--below` builds a cellar, and the editor puts which
+storey you are on in a card at the head of the plan — click it to step between them
+or to add one. The plan is drawn one storey at a time, with the one underneath
+showing faintly through so an upper floor has something to line up against.
+
+A staircase is the one thing in the catalogue that is **drawn rather than stamped**:
+the storey's floor-to-floor height decides how many risers a flight has, and that
+decides how long it is. So its length is never asked for — `--depth` on a staircase
+is refused — and `--width` is the clear width of the flight. Five kinds: straight,
+L with a landing, L with winders, U, and spiral.
+
+```
+add-object --room hala --type stairs-u --against north --width 1m
+```
+
+The hole in the floor above is not a thing anybody draws. It is the staircase, seen
+from the storey above: the floor up there is cut round it, the room reports it, and
+`check-plan` says so whether you put a wardrobe over the stairwell or built the
+stairs under the wardrobe.
 
 ## Doors
 

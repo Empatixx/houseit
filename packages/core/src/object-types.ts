@@ -67,7 +67,44 @@ export type ObjectType = {
 /** Under the floor's furniture, on it, or on top of it. */
 export type Layer = 'under' | 'floor' | 'over'
 
-export const OBJECT_TYPES: readonly ObjectType[] = CATALOG_OBJECT_TYPES
+/**
+ * The staircases, which are drawn rather than stamped.
+ *
+ * They leave the catalogue's symbols behind because their size is not theirs to
+ * keep: the height of the storey decides how many risers a flight has, and how
+ * many risers decides how long it is. The sizes here are what a flight comes to
+ * in a storey of 2.8 m, which is what the palette shows and what a drag drops —
+ * `add-object` works out the real one from the storey it lands on.
+ */
+const STAIR_SURFACES = ['walnut', 'oak', 'white', 'black', 'marble', 'steel'] as const
+
+const STAIRS: readonly ObjectType[] = [
+  { id: 'stairs-straight', label: 'Straight Staircase', size: { width: 900, depth: 4275 } },
+  {
+    id: 'stairs-l-landing',
+    label: 'L-Shaped Staircase (Landing)',
+    size: { width: 2115, depth: 2115 },
+  },
+  {
+    id: 'stairs-l-winder',
+    label: 'L-Shaped Staircase (Winder)',
+    size: { width: 1830, depth: 1830 },
+  },
+  { id: 'stairs-u', label: 'U-Shaped Staircase', size: { width: 1800, depth: 3225 } },
+  { id: 'stairs-spiral', label: 'Spiral Staircase', size: { width: 1600, depth: 1600 } },
+].map((stair) => ({
+  ...stair,
+  surfaces: STAIR_SURFACES,
+  stands: 'wall' as const,
+  // Nothing on disk: `stairs.ts` draws it, at the storey's own number of treads.
+  symbol: '',
+  rooms: ['any'],
+}))
+
+export const OBJECT_TYPES: readonly ObjectType[] = [
+  ...CATALOG_OBJECT_TYPES.filter((type) => !type.id.startsWith('stairs-')),
+  ...STAIRS,
+]
 
 export const OBJECT_TYPE_IDS = OBJECT_TYPES.map((entry) => entry.id)
 
@@ -77,5 +114,9 @@ export const objectType = (id: string): ObjectType | undefined =>
 /** Which layer a thing takes up, with the floor as what most things mean. */
 export const layerOf = (id: string): Layer => objectType(id)?.layer ?? 'floor'
 
-/** The symbol a type is drawn with, or nothing for a type the catalogue does not know. */
-export const symbolOf = (id: string): string | undefined => objectType(id)?.symbol
+/**
+ * The symbol a type is drawn with, or nothing for a type the catalogue does not
+ * know — and nothing for a staircase either, which is drawn from its storey
+ * rather than read off a file.
+ */
+export const symbolOf = (id: string): string | undefined => objectType(id)?.symbol || undefined

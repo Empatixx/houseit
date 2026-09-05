@@ -1,4 +1,5 @@
 import type { HouseDocument, HouseObject, Side } from '@houseit/core/document'
+import { levelsOf } from '@houseit/core/levels'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { runOfWall } from '@houseit/geometry/sides'
 import type { Draft } from 'immer'
@@ -15,17 +16,58 @@ export const SIDE_NAMES = ['north', 'south', 'east', 'west'] as const
  * records the plan holds, with the refusal worded for the command that asked.
  */
 
-/** The level a command was given, or the only one there is. */
+/**
+ * The storey a command was given — by name or by id, the way a room is — or the
+ * lowest one there is, which is the whole house until somebody builds upwards.
+ */
 export function levelOf(
   doc: HouseDocument | Draft<HouseDocument>,
   given: string | undefined,
   what: string,
 ) {
-  const level = given ?? Object.keys(doc.levels)[0]
-  if (!level || !doc.levels[level]) {
-    throw new CommandError(`${what}: unknown level ${given ?? '<none>'}`)
+  const stack = levelsOf(doc as HouseDocument)
+  if (given === undefined) {
+    const ground = stack[0]
+    if (!ground) throw new CommandError(`${what}: this plan has no storeys`)
+    return ground.id
   }
-  return level
+  const found = stack.find((level) => level.id === given || level.name === given)
+  if (!found) {
+    throw new CommandError(
+      `${what}: there is no storey called ${given} — there is ${stack.map((it) => it.name).join(', ')}`,
+    )
+  }
+  return found.id
+}
+
+/**
+ * The room of that name, and the storey it is on.
+ *
+ * A storey said is a storey meant: the room is looked for there and nowhere
+ * else. Said nothing, every storey is looked at, lowest first — because "the
+ * bedroom" is a room in the house, and which floor it is on is a thing the
+ * plan knows and the person asking does not have to.
+ */
+export function whereRoom(
+  doc: HouseDocument | Draft<HouseDocument>,
+  given: string | undefined,
+  name: string,
+  what: string,
+): { room: Room & { id: string }; level: string } {
+  if (given !== undefined) {
+    const level = levelOf(doc, given, what)
+    return { room: roomNamed(doc, level, name, what), level }
+  }
+
+  const stack = levelsOf(doc as HouseDocument)
+  for (const storey of stack) {
+    const room = roomsOf(doc, storey.id).find(
+      (candidate) =>
+        candidate.name === name || (candidate.id !== undefined && candidate.id === name),
+    )
+    if (room?.id) return { room: room as Room & { id: string }, level: storey.id }
+  }
+  throw new CommandError(`${what}: there is no room called ${name}`)
 }
 
 /**
@@ -80,17 +122,18 @@ export function sideNamed(
  */
 export function thingById(
   doc: HouseDocument | Draft<HouseDocument>,
-  level: string,
   id: string,
   what: string,
-): { object: HouseObject; room: Room & { id: string } } {
+): { object: HouseObject; room: Room & { id: string }; level: string } {
   const object = doc.objects[id]
-  if (!object || object.level !== level) {
-    throw new CommandError(`${what}: there is nothing called ${id}`)
-  }
+  if (!object) throw new CommandError(`${what}: there is nothing called ${id}`)
+  // An id is one thing in the whole house, so the storey comes off the thing
+  // rather than being asked for: nobody knows which floor `f7` is on, and
+  // nobody should have to say.
+  const level = object.level
   const room = roomsOf(doc, level).find((candidate) => candidate.id === object.room)
   if (!room?.id) throw new CommandError(`${what}: ${id} stands in no room`)
-  return { object: object as HouseObject, room: room as Room & { id: string } }
+  return { object: object as HouseObject, room: room as Room & { id: string }, level }
 }
 
 /**

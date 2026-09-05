@@ -6,7 +6,7 @@ import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
 import { moveWall } from './move-wall'
-import { levelOf, roomNamed, SIDE_NAMES } from './resolve'
+import { SIDE_NAMES, whereRoom } from './resolve'
 
 /**
  * Changes a room that is already cut: its name, what sort of room it is, its
@@ -36,8 +36,7 @@ export const updateRoom = defineCommand({
     level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'update-room')
-    const room = roomNamed(draft, level, args.room, 'update-room')
+    const { room, level } = whereRoom(draft, args.level, args.room, 'update-room')
 
     if (
       args.name === undefined &&

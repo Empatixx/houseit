@@ -15,7 +15,15 @@ const DENSITY = 0.4
 /** The longest side of a symbol's texture, so a car does not cost a wall of pixels. */
 const LONGEST = 1024
 
-const WHITE = /#ffffff|#fff\b|white/gi
+/**
+ * What counts as the white a finish replaces.
+ *
+ * Not global, and that matters: `test` on a global regexp carries its
+ * `lastIndex` from one call to the next, so asked about the same colour twice
+ * it answers yes and then no. Every second shape of a symbol came out untinted
+ * — which on a staircase is every second tread.
+ */
+const WHITE = /#ffffff|#fff\b|white/i
 
 const cache = new Map<string, Promise<Texture>>()
 const sources = new Map<string, Promise<string>>()
@@ -43,6 +51,27 @@ export function symbolTexture(
   const loading = sourceOf(file).then((source) => rasterise(tint(source, fill), size))
   cache.set(key, loading)
   return loading
+}
+
+/**
+ * The same, for a drawing that was made rather than fetched.
+ *
+ * A staircase has no file: how many treads it has depends on the storey it
+ * climbs, so it is drawn on the spot. Everything after that is identical — the
+ * white becomes the finish, and it is rasterised at the size the thing is.
+ */
+export function drawnTexture(
+  key: string,
+  svg: string,
+  fill: string,
+  size: { width: number; depth: number },
+): Promise<Texture> {
+  const cached = cache.get(`${key}@${fill}`)
+  if (cached) return cached
+
+  const drawing = rasterise(tint(svg, fill), size)
+  cache.set(`${key}@${fill}`, drawing)
+  return drawing
 }
 
 /** The white of the drawing becomes the finish; the lines stay the lines. */

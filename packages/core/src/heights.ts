@@ -102,6 +102,7 @@ const HEIGHTS: Record<string, Partial<Height>> = {
   'stairs-u': { height: 1400 },
   'stairs-l-landing': { height: 1400 },
   'stairs-l-winder': { height: 1400 },
+  'stairs-spiral': { height: 1400 },
   column: { height: 2700 },
   post: { height: 2700 },
   railing: { height: 1000, glass: true },

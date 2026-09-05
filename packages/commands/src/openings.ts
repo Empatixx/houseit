@@ -50,12 +50,12 @@ export function roomOfOpening(
  */
 export function openingById(
   doc: HouseDocument | Draft<HouseDocument>,
-  level: string,
   id: string,
   what: string,
-): { opening: Opening; room: Room & { id: string }; side: Side; run?: number } {
+): { opening: Opening; room: Room & { id: string }; side: Side; level: string; run?: number } {
   const opening = doc.openings[id]
-  if (!opening || doc.walls[opening.wall]?.level !== level) {
+  const level = opening ? doc.walls[opening.wall]?.level : undefined
+  if (!opening || level === undefined) {
     throw new CommandError(`${what}: there is no door or window called ${id}`)
   }
   const room = roomOfOpening(doc as HouseDocument, roomsOf(doc, level), opening as Opening)
@@ -66,6 +66,7 @@ export function openingById(
     opening: opening as Opening,
     room: room as Room & { id: string },
     side: place.side,
+    level,
     run: place.nth,
   }
 }

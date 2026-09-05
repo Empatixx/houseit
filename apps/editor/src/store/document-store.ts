@@ -5,6 +5,7 @@ import {
   type ScriptResult,
 } from '@houseit/commands/patches'
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
+import { levelsOf } from '@houseit/core/levels'
 import { applyPatches, enablePatches, type Patch } from 'immer'
 import { createStore } from 'zustand/vanilla'
 
@@ -15,8 +16,10 @@ type HistoryEntry = { patches: Patch[]; inversePatches: Patch[] }
 
 export type DocumentState = {
   doc: HouseDocument
-  /** The level currently being edited. */
+  /** The storey currently being edited: one at a time, the way a plan is drawn. */
   level: string
+  /** Goes up or down a storey. Not an edit — the plan is the same either way. */
+  setLevel: (level: string) => void
   past: HistoryEntry[]
   future: HistoryEntry[]
   canUndo: boolean
@@ -68,13 +71,19 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
 
     return {
       doc: start,
-      level: Object.keys(start.levels)[0]!,
+      level: levelsOf(start)[0]!.id,
       past: [],
       future: [],
       canUndo: false,
       canRedo: false,
 
       exec: (source) => commit(runScriptWithPatches(get().doc, source)),
+
+      // Going up a storey changes nothing about the plan, so it makes no
+      // history entry: undo takes back an edit, not a look.
+      setLevel: (level) => {
+        if (get().doc.levels[level]) set({ level })
+      },
 
       apply: (command, args) => commit(applyWithPatches(get().doc, command, args)),
 
@@ -96,7 +105,7 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
       load: (doc) =>
         set({
           doc,
-          level: Object.keys(doc.levels)[0]!,
+          level: levelsOf(doc)[0]!.id,
           past: [],
           future: [],
           canUndo: false,

@@ -7,6 +7,7 @@ import type {
 } from '@houseit/bridge/contract'
 import { answerFor } from '@houseit/commands/answer'
 import { describeCommands } from '@houseit/commands/registry'
+import { levelsOf } from '@houseit/core/levels'
 import { roomsOf } from '@houseit/geometry/rooms'
 import type { createDocumentStore } from '../store/document-store'
 import { modeStore } from '../store/mode'
@@ -63,6 +64,18 @@ export function installFloorplanBridge(
     return `no project open — ${where}`
   }
 
+  /** The room of that name or id, and the storey it stands on. */
+  const whichStorey = (name: string) => {
+    const { doc } = store.getState()
+    for (const storey of levelsOf(doc)) {
+      const room = roomsOf(doc, storey.id).find(
+        (candidate) => candidate.name === name || candidate.id === name,
+      )
+      if (room?.id) return { room, level: storey.id }
+    }
+    return undefined
+  }
+
   /** The part of the canvas nothing floats over, where the framing lands. */
   const clear = (): Clear => {
     const canvas = document.querySelector('canvas')
@@ -76,7 +89,6 @@ export function installFloorplanBridge(
    * and clearances, the level gets everything or nothing.
    */
   const show = (view: ViewRequest): ShowResult => {
-    const { doc, level } = store.getState()
     const selection = selectionStore.getState()
     // A picture for the agent is a plan, whatever the tab was looking at, and
     // with nothing over it: the panel folds until the next click.
@@ -90,11 +102,15 @@ export function installFloorplanBridge(
       return { ok: true }
     }
 
-    const room = roomsOf(doc, level).find(
-      (candidate) => candidate.name === view.room || candidate.id === view.room,
-    )
-    if (!room?.id) return { ok: false, error: `there is no room called ${view.room}` }
-    const roomId = room.id
+    // Looked for on every storey, and the one it is on is stepped onto — the
+    // same thing a person does with the storey card before looking at a room
+    // upstairs. A picture of the first floor was otherwise unaskable for.
+    const found = whichStorey(view.room)
+    if (!found) return { ok: false, error: `there is no room called ${view.room}` }
+    if (found.level !== store.getState().level) store.getState().setLevel(found.level)
+    const { doc } = store.getState()
+    const { room } = found
+    const roomId = room.id!
 
     let picked: { kind: 'room' | 'object'; id: string } = { kind: 'room', id: roomId }
     if (view.object !== undefined) {
