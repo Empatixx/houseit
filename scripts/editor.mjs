@@ -30,10 +30,14 @@ export async function openEditor({ viewport = { width: 1440, height: 900 } } = {
   const running = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`).catch(() => undefined)
   if (running) {
     const page = await bridged(running.contexts().flatMap((context) => context.pages()))
-    if (page) return { page, close: async () => browserGoes(running) }
+    if (page) {
+      await noCache(page)
+      return { page, close: async () => browserGoes(running) }
+    }
     const context = running.contexts()[0]
     if (context) {
       const opened = await context.newPage()
+      await noCache(opened)
       return { page: opened, close: async () => browserGoes(running) }
     }
   }
@@ -45,6 +49,7 @@ export async function openEditor({ viewport = { width: 1440, height: 900 } } = {
     viewport,
   })
   const page = (await bridged(context.pages())) ?? context.pages()[0] ?? (await context.newPage())
+  await noCache(page)
   return {
     page,
     close: async () => {
@@ -56,6 +61,19 @@ export async function openEditor({ viewport = { width: 1440, height: 900 } } = {
 
 /** Only what this script started is closed; a window somebody is watching is left alone. */
 const browserGoes = (browser) => browser.close().catch(() => undefined)
+
+/**
+ * No HTTP cache, ever.
+ *
+ * The profile is persistent, so its cache outlives the run: a page opened again
+ * comes back with the bundle it had last time, and a change to the editor is
+ * simply not there. Two long hunts for a bug that was only a stale module
+ * bought this line.
+ */
+async function noCache(page) {
+  const session = await page.context().newCDPSession(page)
+  await session.send('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => undefined)
+}
 
 async function bridged(pages) {
   for (const page of pages) {

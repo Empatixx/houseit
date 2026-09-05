@@ -21,7 +21,7 @@ import { Separator } from '@/components/ui/separator'
 import { finish, remove, resize, roomOf, turnTo } from '../edit/object-commands'
 import { removeOpening, setOpening, whereOpening } from '../edit/opening-commands'
 import { layFloor, rename, setKind } from '../edit/room-commands'
-import { type CutRequest, cutRoom, drawFloor, type FloorRequest } from '../edit/shape-commands'
+import { type CutRequest, cutRoom } from '../edit/shape-commands'
 import { knockThrough, nameWall } from '../edit/wall-commands'
 import { selectionStore, useSelection } from '../store/selection'
 import { useDocument } from '../store/store'
@@ -39,13 +39,15 @@ export function PanelContent() {
   const selected = useSelection((state) => state.selected)
 
   if (!selected) {
-    const empty = !Object.values(doc.walls).some((wall) => wall.level === level)
-    return empty ? (
-      <FloorForm />
-    ) : (
+    // A storey with nothing on it has nothing to show. It is drawn with the
+    // pencil along the foot, or said to the agent — and a form standing in
+    // front of both of those is in the way rather than in hand.
+    const bare = !Object.values(doc.walls).some((wall) => wall.level === level)
+    return (
       <p className="text-xs leading-5 text-muted-foreground">
-        Pick a room, a thing, a door or a wall to see it here. Drag things and openings to move
-        them, drag a wall across itself; R turns, Delete removes, ⌘Z undoes.
+        {bare
+          ? 'Nothing on this storey yet. Draw wall traces the outline; a click on the last corner closes it.'
+          : 'Pick a room, a thing, a door or a wall to see it here. Drag things and openings to move them, drag a wall across itself; R turns, Delete removes, ⌘Z undoes.'}
       </p>
     )
   }
@@ -396,102 +398,6 @@ function OpeningPanel({ opening }: { opening: Opening }) {
 }
 
 /** The outline of an empty floor: `floor-shape`, from a form. */
-function FloorForm() {
-  const [kind, setKind] = useState<FloorRequest['kind']>('rectangle')
-  const [width, setWidth] = useState('12000')
-  const [depth, setDepth] = useState('9000')
-  const [notchWidth, setNotchWidth] = useState('4000')
-  const [notchDepth, setNotchDepth] = useState('3000')
-  const [barDepth, setBarDepth] = useState('4000')
-  const [stemWidth, setStemWidth] = useState('5000')
-  const [walk, setWalk] = useState('12m e, 6m n, 4m w, 3m n, 8m w')
-  const [name, setName] = useState('house')
-  const [material, setMaterial] = useState('natural-oak')
-  const number = (value: string, set: (next: string) => void) => (
-    <Input inputMode="numeric" value={value} onChange={(e) => set(e.target.value)} />
-  )
-  return (
-    <>
-      <Heading>Floor</Heading>
-      <p className="text-xs leading-5 text-muted-foreground">
-        Nothing is drawn yet. Start with the outline.
-      </p>
-      <Field label="Shape">
-        <Select value={kind} onValueChange={(value) => setKind(value as FloorRequest['kind'])}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="rectangle">rectangle</SelectItem>
-            <SelectItem value="l">L</SelectItem>
-            <SelectItem value="u">U</SelectItem>
-            <SelectItem value="t">T</SelectItem>
-            <SelectItem value="walk">walk round it</SelectItem>
-          </SelectContent>
-        </Select>
-      </Field>
-      {kind === 'walk' ? (
-        <Field label="Legs">
-          <Input value={walk} onChange={(e) => setWalk(e.target.value)} />
-        </Field>
-      ) : (
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Width (mm)">{number(width, setWidth)}</Field>
-          <Field label="Depth (mm)">{number(depth, setDepth)}</Field>
-        </div>
-      )}
-      {kind === 'l' || kind === 'u' ? (
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Notch width">{number(notchWidth, setNotchWidth)}</Field>
-          <Field label="Notch depth">{number(notchDepth, setNotchDepth)}</Field>
-        </div>
-      ) : null}
-      {kind === 't' ? (
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Bar depth">{number(barDepth, setBarDepth)}</Field>
-          <Field label="Stem width">{number(stemWidth, setStemWidth)}</Field>
-        </div>
-      ) : null}
-      <Field label="Name">
-        <Input value={name} onChange={(e) => setName(e.target.value)} />
-      </Field>
-      <Field label="Floor">
-        <Select value={material} onValueChange={setMaterial}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FLOOR_MATERIALS.map((entry) => (
-              <SelectItem key={entry.id} value={entry.id}>
-                <FloorSwatch id={entry.id} />
-                {entry.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      <Button
-        size="sm"
-        onClick={() =>
-          drawFloor({
-            kind,
-            width: Number(width),
-            depth: Number(depth),
-            notchWidth: Number(notchWidth),
-            notchDepth: Number(notchDepth),
-            barDepth: Number(barDepth),
-            stemWidth: Number(stemWidth),
-            walk,
-            name: name.trim() || 'house',
-            material,
-          })
-        }
-      >
-        Draw
-      </Button>
-    </>
-  )
-}
 
 function Heading({ children }: { children: ReactNode }) {
   return (

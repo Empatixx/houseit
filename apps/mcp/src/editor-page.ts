@@ -47,7 +47,10 @@ export async function connectToEditor(endpoint = DEFAULT_ENDPOINT): Promise<Page
   if (running) {
     for (const context of running.contexts()) {
       const found = await bridgedPage(context)
-      if (found) return found
+      if (found) {
+        await noCache(found)
+        return found
+      }
     }
     // Chrome is here but no tab has the editor in it: open one.
     const context = running.contexts()[0]
@@ -58,7 +61,10 @@ export async function connectToEditor(endpoint = DEFAULT_ENDPOINT): Promise<Page
 
   const context = await launchHeadless()
   const opened = (await bridgedPage(context)) ?? (await editorTab(context))
-  if (opened) return opened
+  if (opened) {
+    await noCache(opened)
+    return opened
+  }
   await closeEditor()
   throw new Error(NOT_FOUND)
 }
@@ -95,6 +101,18 @@ async function launchHeadless(): Promise<BrowserContext> {
   return owned
 }
 
+/**
+ * No HTTP cache on this tab, ever.
+ *
+ * The profile is persistent, so its cache outlives the run: a tab opened again
+ * comes back with the bundle it had last time, and a change to the editor is
+ * simply not there while the dev server has already served the new one.
+ */
+async function noCache(page: Page): Promise<void> {
+  const session = await page.context().newCDPSession(page)
+  await session.send('Network.setCacheDisabled', { cacheDisabled: true }).catch(() => undefined)
+}
+
 /** A tab in this context with the editor's bridge installed, if there is one. */
 async function bridgedPage(context: BrowserContext): Promise<Page | undefined> {
   for (const page of context.pages()) {
@@ -127,6 +145,7 @@ function waitForCanvas(page: Page): Promise<unknown> {
 /** A fresh tab on the editor, waited on until its bridge is up. */
 async function editorTab(context: BrowserContext): Promise<Page | undefined> {
   const page = context.pages().find((it) => it.url() === 'about:blank') ?? (await context.newPage())
+  await noCache(page)
   await page.goto(EDITOR_URL).catch(() => undefined)
   const ready = await page
     .waitForFunction("typeof window.floorplan?.exec === 'function'", undefined, { timeout: 15_000 })

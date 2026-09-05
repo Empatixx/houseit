@@ -4,9 +4,12 @@ import { documentStore } from '../store/store'
 import { runEdit } from './run-edit'
 
 /**
- * What draws the shape of the plan: a wall dragged in from a side, a room cut
- * off another, the outline of the floor. Each is the command an agent would
- * give, with what the hand did worked out into the command's words.
+ * What draws the shape of the plan: a room cut off another. The command an
+ * agent would give, with what the hand did worked out into its words.
+ *
+ * The outline of a bare storey is not here. It is the pencil — a walk of legs
+ * that closes on itself — because a form asking for a width and a depth is a
+ * worse way to draw a house than drawing one.
  */
 
 export type CutRequest = {
@@ -38,40 +41,6 @@ export function cutRoom(from: Room, cut: CutRequest): boolean {
         : { side: cut.where as 'north' }),
       width: cut.width,
       material: cut.material,
-    }),
-  )
-}
-
-export type FloorRequest = {
-  kind: 'rectangle' | 'l' | 'u' | 't' | 'walk'
-  width?: number
-  depth?: number
-  notchWidth?: number
-  notchDepth?: number
-  barDepth?: number
-  stemWidth?: number
-  walk?: string
-  name: string
-  material: string
-}
-
-/** Draws the outline of an empty floor: `add-room` with nothing to come out of. */
-export function drawFloor(floor: FloorRequest): boolean {
-  return runEdit(() =>
-    documentStore.getState().apply(addRoom, {
-      name: floor.name,
-      material: floor.material,
-      ...(floor.kind === 'walk'
-        ? { walk: floor.walk ?? '' }
-        : {
-            shape: floor.kind,
-            width: floor.width,
-            depth: floor.depth,
-            ...(floor.kind === 'l' || floor.kind === 'u'
-              ? { notchWidth: floor.notchWidth, notchDepth: floor.notchDepth }
-              : {}),
-            ...(floor.kind === 't' ? { barDepth: floor.barDepth, stemWidth: floor.stemWidth } : {}),
-          }),
     }),
   )
 }

@@ -77,9 +77,9 @@ grows — the drag never writes to the document itself.
 ## Storeys, and the stairs between them
 
 A storey is `add-level`, and the editor stacks them at the foot of the plan's
-right edge: one round button to a storey, the top floor at the top, the one
-being drawn filled in. It is a section of the house standing on its end, so
-which floor you are on is seen rather than read. Dragging a button up or down
+right edge: the same tabs as the plan and the walk, turned on their side, the
+top floor at the top and the one being drawn picked out. It is a section of the
+house standing on its end, so which floor you are on is seen rather than read. Dragging a button up or down
 the stack moves that storey in the house and everything on it comes along —
 `update-level --storey n`, because the rooms belong to the storey and not to
 the height. Hovering one opens its name, its floor-to-floor height and the way
