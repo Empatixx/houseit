@@ -136,5 +136,8 @@ export const removeRoom = defineCommand({
         )
       }
     }
+    // The room that went and the room it went into: one of the two is still
+    // there to look at, and the other is worth naming as gone.
+    return { changed: [room.id, into.id] }
   },
 })

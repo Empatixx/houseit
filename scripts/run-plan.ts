@@ -9,10 +9,11 @@
  *   bun scripts/run-plan.ts apps/editor/public/plans/sample-house.txt
  */
 import { readFileSync } from 'node:fs'
+import { checkLevel } from '../packages/commands/src/checks'
+import { runScript } from '../packages/commands/src/run'
 import { createEmptyDocument } from '../packages/core/src/document'
 import { roomsOf } from '../packages/geometry/src/rooms'
 import { standingAt } from '../packages/geometry/src/standing'
-import { askScript, runScript } from '../packages/commands/src/run'
 
 const file = process.argv[2]
 if (!file) {
@@ -29,8 +30,6 @@ lines.forEach((line, index) => {
   const trimmed = line.trim()
   if (!trimmed || trimmed.startsWith('#')) return
   try {
-    // A line that only looks — describe, measure — prints what it saw, where it is.
-    for (const said of askScript(doc, trimmed)) console.log(JSON.stringify(said, null, 2))
     doc = runScript(doc, trimmed)
   } catch (error) {
     failed = true
@@ -63,4 +62,10 @@ const openings = Object.values(doc.openings)
 console.log(
   `${openings.filter((o) => o.kind === 'door').length} doors, ${openings.filter((o) => o.kind === 'window').length} windows, ${Object.keys(doc.objects).length} objects`,
 )
+
+// The same reading the agent gets with every command, said once at the end:
+// a room nobody can reach, a door that cannot open, a bedroom with no window.
+for (const problem of checkLevel(doc, level)) {
+  console.log(`${problem.severity === 'error' ? '!' : '?'} ${problem.code}: ${problem.message}`)
+}
 if (failed) process.exit(1)

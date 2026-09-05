@@ -5,8 +5,8 @@ import type {
   ShowResult,
   ViewRequest,
 } from '@houseit/bridge/contract'
+import { answerFor } from '@houseit/commands/answer'
 import { describeCommands } from '@houseit/commands/registry'
-import { newest } from '@houseit/commands/resolve'
 import { roomsOf } from '@houseit/geometry/rooms'
 import type { createDocumentStore } from '../store/document-store'
 import { modeStore } from '../store/mode'
@@ -87,7 +87,7 @@ export function installFloorplanBridge(
       selection.select(null)
       selection.showDimensions(view.dimensions ?? false)
       viewStore.getState().frame(null)
-      return { ok: true, clear: clear() }
+      return { ok: true }
     }
 
     const room = roomsOf(doc, level).find(
@@ -97,11 +97,11 @@ export function installFloorplanBridge(
     const roomId = room.id
 
     let picked: { kind: 'room' | 'object'; id: string } = { kind: 'room', id: roomId }
-    if (view.type !== undefined) {
-      const found = newest(
-        Object.values(doc.objects).filter((it) => it.room === roomId && it.type === view.type),
-      )
-      if (!found) return { ok: false, error: `there is no ${view.type} in ${view.room}` }
+    if (view.object !== undefined) {
+      const found = doc.objects[view.object]
+      if (!found || found.room !== roomId) {
+        return { ok: false, error: `there is no ${view.object} in ${view.room}` }
+      }
       picked = { kind: 'object', id: found.id }
     }
 
@@ -116,21 +116,36 @@ export function installFloorplanBridge(
       x1: Math.max(...xs) + ROOM_MARGIN,
       y1: Math.max(...ys) + ROOM_MARGIN,
     })
-    return { ok: true, clear: clear() }
+    return { ok: true }
   }
 
   window.floorplan = {
     exec: (source) => {
       if (!projects.getState().open) return { ok: false, error: noProject() }
       try {
-        const output = store.getState().exec(source)
-        return { ok: true, output, ...snapshot() }
+        const touched = store.getState().exec(source)
+        // Built after the transaction, off the plan as it now stands: what the
+        // agent is told is read from the same document the tab is drawing.
+        const { doc, level } = store.getState()
+        const answer = answerFor(doc, level, touched.changed, touched.shown)
+        return { ok: true, answer, ...snapshot() }
       } catch (error) {
         return { ok: false, error: error instanceof Error ? error.message : String(error) }
       }
     },
     getPlan: snapshot,
     help: describeCommands,
+    clear,
+    save: () => projects.getState().save(),
+    ensureProject: async (name) => {
+      const { refresh, list, create } = projects.getState()
+      await refresh()
+      const found = (projects.getState().list ?? list ?? []).find(
+        (project) => project.id === name || project.name === name,
+      )
+      const meta = found ?? (await create(name))
+      return { id: meta.id, name: meta.name }
+    },
     show: (view) => {
       if (!projects.getState().open) return { ok: false, error: noProject() }
       try {

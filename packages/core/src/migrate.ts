@@ -26,6 +26,22 @@ const MIGRATIONS: Record<number, Migration> = {
    * has something lasting to belong to.
    */
   1: ({ roomLabels, ...doc }) => ({ ...doc, rooms: roomLabels ?? {} }),
+  /**
+   * A thing's `turn` becomes its `rotation`. The angle was always a field on the
+   * object; only the word changes, so that what `update-object --rotation` sets
+   * and what the plan stores are called the same thing.
+   */
+  2: (doc) => ({
+    ...doc,
+    objects: Object.fromEntries(
+      Object.entries((doc.objects ?? {}) as Record<string, Record<string, unknown>>).map(
+        ([id, { turn, ...object }]) => [
+          id,
+          { ...object, ...(turn === undefined ? {} : { rotation: turn }) },
+        ],
+      ),
+    ),
+  }),
 }
 
 function readVersion(input: unknown): number {

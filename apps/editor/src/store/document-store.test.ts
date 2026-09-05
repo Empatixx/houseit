@@ -1,10 +1,9 @@
-import { moveObject } from '@houseit/commands/move-object'
+import { updateObject } from '@houseit/commands/update-object'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
 import { createDocumentStore } from './document-store'
 
-const floor =
-  'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name dům'
+const floor = 'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name dům'
 const kitchen = 'add-room --material natural-oak --name kuchyň --from dům --side west --width 3.6m'
 
 const roomCount = (store: ReturnType<typeof createDocumentStore>) => {
@@ -79,23 +78,34 @@ test('a failing script leaves the document untouched and nothing to undo', () =>
 
 test('apply runs a command on typed arguments, with the same history a script gets', () => {
   const store = createDocumentStore()
-  store.getState().exec(`${floor}\nadd-object --room dům --type sofa-3 --against south`)
+  const { changed } = store
+    .getState()
+    .exec(`${floor}\nadd-object --room dům --type sofa-3 --against south`)
+  const sofa = changed.find((id) => id.startsWith('f'))!
 
-  store.getState().apply(moveObject, { room: 'dům', type: 'sofa-3', against: 'north' })
+  store.getState().apply(updateObject, { id: sofa, against: 'north' })
 
-  const sofa = Object.values(store.getState().doc.objects)[0]!
-  expect(sofa.against).toBe('north')
+  expect(store.getState().doc.objects[sofa]!.against).toBe('north')
   store.getState().undo()
-  expect(Object.values(store.getState().doc.objects)[0]!.against).toBe('south')
+  expect(store.getState().doc.objects[sofa]!.against).toBe('south')
+})
+
+test('exec says what it touched, which is how the next command names it', () => {
+  const store = createDocumentStore()
+
+  const { changed } = store.getState().exec(`${floor}\n${kitchen}`)
+
+  // The floor's room, the kitchen cut out of it, and the floor again as it now is.
+  expect(changed.filter((id) => id.startsWith('r')).length).toBeGreaterThanOrEqual(2)
 })
 
 test('apply is checked by the same schema as the words are', () => {
   const store = createDocumentStore()
   store.getState().exec(floor)
 
-  expect(() =>
-    store.getState().apply(moveObject, { room: 'dům', type: 'sofa-3', along: 'far' }),
-  ).toThrow(/move-object: along/)
+  expect(() => store.getState().apply(updateObject, { id: 'f1', along: 'far' })).toThrow(
+    /update-object: along/,
+  )
   expect(store.getState().canUndo).toBe(true) // only the floor
   expect(store.getState().past).toHaveLength(1)
 })

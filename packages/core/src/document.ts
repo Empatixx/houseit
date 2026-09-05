@@ -3,7 +3,7 @@ import { HostSchema } from './host'
 import { ROOM_KIND_IDS } from './room-kinds'
 
 /** Bumped whenever the stored shape changes; see `migrate`. */
-export const DOCUMENT_VERSION = 2
+export const DOCUMENT_VERSION = 3
 
 /**
  * Every length in the document is a whole number of millimetres. Floating point
@@ -124,8 +124,12 @@ export const ObjectSchema = z.object({
   /**
    * A turn about its own middle, in whole degrees, on top of the way it already
    * faces where it stands. Absent means square on, which nearly everything is.
+   *
+   * A stored angle rather than a verb: turning a thing is `update-object
+   * --rotation`, the same way making it wider is `--width`. There is no more a
+   * command for turning than there is one for widening.
    */
-  turn: z.number().int().min(-359).max(359).optional(),
+  rotation: z.number().int().min(-359).max(359).optional(),
   /** Places at a table. Ignored by everything without them. */
   seats: z.number().int().positive().optional(),
 })

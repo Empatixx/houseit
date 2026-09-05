@@ -1,37 +1,43 @@
-import type { ExecResult, Output } from '@houseit/bridge/contract'
+import type { ExecResult } from '@houseit/bridge/contract'
+import type { Answer } from '@houseit/commands/answer'
+import type { RoomReport } from '@houseit/commands/survey'
 import { createEmptyDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
-import { compactJson, report, toolDescription } from './report'
+import { compactJson, helpText, report, toolDescription } from './report'
 
-const ok = (rooms: { name?: string; area: number }[], output: Output[] = []): ExecResult => ({
+const ok = (answer: Partial<Answer>, project?: string): ExecResult => ({
   ok: true,
   document: createEmptyDocument(),
-  rooms,
-  output,
+  rooms: [],
+  ...(project === undefined ? {} : { project: { id: project, name: project } }),
+  answer: { level: 'l1', changed: [], rooms: [], problems: [], ...answer } as Answer,
 })
 
-test('reports each room with its name and area in square metres', () => {
-  const text = report(ok([{ name: 'kitchen', area: 15_120_000 }]))
+test('the answer comes back as JSON: what changed, the rooms, what is wrong', () => {
+  const rooms = [{ id: 'r1', name: 'kitchen', areaM2: 15.1 }] as RoomReport[]
+  const text = report(ok({ changed: ['f7'], rooms }))
 
-  expect(text).toContain('kitchen')
-  expect(text).toContain('15.1')
+  const [, ...json] = text.split('\n')
+  expect(JSON.parse(json.join('\n'))).toMatchObject({
+    changed: ['f7'],
+    rooms: [{ name: 'kitchen', areaM2: 15.1 }],
+  })
 })
 
-test('says so plainly when the plan holds no rooms yet', () => {
-  expect(report(ok([]))).toMatch(/no rooms/i)
+test('the plan it was about is named, since the agent did not choose it', () => {
+  expect(report(ok({}, 'byt-praha'))).toMatch(/^byt-praha\n/)
 })
 
-test('names an unnamed room rather than leaving a gap', () => {
-  expect(report(ok([{ area: 6_000_000 }]))).toMatch(/unnamed/i)
-})
-
-test('what a describe or measure said comes back as JSON, in place of the room count', () => {
+test('what is wrong with the plan rides along without being asked for', () => {
   const text = report(
-    ok([{ name: 'kitchen', area: 15_120_000 }], [{ room: 'kitchen', width: 4200 }]),
+    ok({
+      problems: [
+        { code: 'door.blocked', severity: 'error', message: 'a door in pracovna cannot open' },
+      ],
+    }),
   )
 
-  expect(JSON.parse(text)).toEqual({ room: 'kitchen', width: 4200 })
-  expect(text).not.toMatch(/Done/)
+  expect(text).toContain('door.blocked')
 })
 
 test('passes a failure through as the message the command produced', () => {
@@ -40,11 +46,23 @@ test('passes a failure through as the message the command produced', () => {
   expect(text).toContain('unknown option --colour')
 })
 
-test('the tool description carries the full command help, so the agent needs no docs', () => {
+test('the tool description never names a command or a catalogue, so it cannot churn', () => {
   const description = toolDescription()
 
-  expect(description).toContain('add-room')
-  expect(description).toContain('--name')
+  // What would change under it: a new command, a new kind of sofa, a new floor.
+  // None of them may reach the description, or every cached prompt is thrown away.
+  expect(description).not.toContain('--notch-width')
+  expect(description).not.toContain('sofa-3')
+  expect(description).not.toContain('natural-oak')
+  expect(description).toContain('help')
+})
+
+test('the command list is there for the asking, with the options on it', () => {
+  const help = helpText()
+
+  expect(help).toContain('add-room')
+  expect(help).toContain('--name')
+  expect(help).toContain('update-object')
 })
 
 test('short things stay on one line and long things open out, and it is still JSON', () => {

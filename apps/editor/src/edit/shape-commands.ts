@@ -1,5 +1,4 @@
 import { addRoom } from '@houseit/commands/add-room'
-import { floorShape } from '@houseit/commands/floor-shape'
 import type { Room } from '@houseit/geometry/rooms'
 import { documentStore } from '../store/store'
 import { runEdit } from './run-edit'
@@ -56,16 +55,16 @@ export type FloorRequest = {
   material: string
 }
 
-/** Draws the outline of an empty floor. */
+/** Draws the outline of an empty floor: `add-room` with nothing to come out of. */
 export function drawFloor(floor: FloorRequest): boolean {
   return runEdit(() =>
-    documentStore.getState().apply(floorShape, {
+    documentStore.getState().apply(addRoom, {
       name: floor.name,
       material: floor.material,
       ...(floor.kind === 'walk'
         ? { walk: floor.walk ?? '' }
         : {
-            kind: floor.kind,
+            shape: floor.kind,
             width: floor.width,
             depth: floor.depth,
             ...(floor.kind === 'l' || floor.kind === 'u'

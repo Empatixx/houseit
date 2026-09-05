@@ -42,8 +42,8 @@ export const addObject = defineCommand({
     depth: length().optional(),
     surface: z.enum(SURFACE_IDS as [string, ...string[]]).optional(),
     seats: z.coerce.number().int().positive().optional(),
-    /** Degrees, turned about its own middle on top of the way it faces. */
-    turn: z.coerce.number().int().min(-359).max(359).optional(),
+    /** Its turn about its own middle, in whole degrees, on top of the way it faces. */
+    rotation: z.coerce.number().int().min(-359).max(359).optional(),
     level: z.string().optional(),
   }),
   run: (draft, args) => {
@@ -64,9 +64,9 @@ export const addObject = defineCommand({
 
     const width = args.width ?? type.size.width
     const depth = args.depth ?? type.size.depth
-    const turn = args.turn
+    const rotation = args.rotation
 
-    const shape = { type: type.id, width, depth, turn }
+    const shape = { type: type.id, width, depth, rotation }
     const taken = takenBy(shape)
     const across =
       args.across === undefined ? undefined : fractionAcross(draft, room, args.across, 'add-object')
@@ -124,8 +124,9 @@ export const addObject = defineCommand({
       width,
       depth,
       surface,
-      ...(turn ? { turn } : {}),
+      ...(rotation ? { rotation } : {}),
       ...(seats ? { seats } : {}),
     }
+    return { changed: [id] }
   },
 })

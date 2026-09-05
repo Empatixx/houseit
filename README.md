@@ -34,9 +34,10 @@ script goes as one argument, lines and quotes and all, or on standard input:
 
 ```bash
 node apps/mcp/dist/cli.js add-room --name "master bedroom" --from house --side north --width 4m
-node apps/mcp/dist/cli.js 'add-door --room "master bedroom" --side south
-describe --room "master bedroom"'
+node apps/mcp/dist/cli.js 'add-opening --room "master bedroom" --kind door --side south'
 node apps/mcp/dist/cli.js - < plan.txt
+node apps/mcp/dist/cli.js --project byt-praha get-plan   # in that plan, made if new
+node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg get-plan --room kitchen
 node scripts/reset-plan.mjs        # empties the plan in the tab, for starting over
 ```
 
@@ -74,72 +75,93 @@ coinciding, and face detection collapses when they do not.
 
 ## Commands
 
-One MCP tool, `floorplan`, taking a command string. It parses like a CLI:
+One MCP tool, `floorplan`, taking a command string. It parses like a CLI, and there are
+ten of them: three nouns, each made, changed and taken out again, and one question.
 
 ```
-floor-shape  --material natural-oak --kind l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name house
-add-room     --material tile-white --name kitchen --from house --side west --width 3.6m
-add-room     --material tile-white --name snug --points "0,0; 5m,0; 5m,3m; 3m,3m; 3m,5m; 0,5m"
-add-room     --material tile-white --name pantry --from house --side north --along 0 --walk "3m s, 4m e, 3m n"
-add-door     --room kitchen --side east --variant pocket
-add-window   --room kitchen --side north --width 1.2m --along 2.4m
-add-window   --room snug --wall w12
-move-window  --room kitchen --side north --to-side west
-add-object   --room kitchen --type sofa-3 --against south --surface linen
-move-object  --id f3 --against west
-turn-object  --room kitchen --type sofa-3 --by 90
-set-surface  --room kitchen --type sofa-3 --surface linen
-rename-room  --room kitchen --name kuchyň
-set-room-kind --room snug --kind living
-move-wall    --room kitchen --side east --by 300
-add-wall     --room living --side north --along 0.3 --length 2.5m
-draw-wall    --room living --side north --along 0.6 --walk "3m s, 2m e"
-remove-room  --room pantry --into kitchen
-describe     --room kitchen
-measure      --room kitchen --side north
-check-plan
+add-room       --material natural-oak --shape l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name house
+add-room       --material tile-white --name kitchen --from house --side west --width 3.6m --kind kitchen
+add-room       --material tile-white --name snug --points "0,0; 5m,0; 5m,3m; 3m,3m; 3m,5m; 0,5m"
+add-room       --material tile-white --name pantry --from house --side north --along 0 --walk "3m s, 4m e, 3m n"
+update-room    --room kitchen --name kuchyň --kind kitchen --material tile-slate
+update-room    --room kitchen --side east --by 300
+remove-room    --room pantry --into kitchen
+
+add-opening    --room kitchen --kind door --side east --variant pocket
+add-opening    --room kitchen --kind window --side north --width 1.2m --along 2.4m
+add-opening    --room snug --kind window --wall w12
+update-opening --id o7 --width 1.5m --to-side west
+remove-opening --id o7
+
+add-object     --room kitchen --type sofa-3 --against south --surface linen
+update-object  --id f3 --against west --rotation 90 --width 2.4m
+remove-object  --id f3
+
+get-plan       --room kitchen
 ```
 
 Several commands separated by newlines apply as one transaction — all of them land, or
 none do.
 
+**There is no command for a wall.** Every wall in a plan is the edge of a room, so
+asking for the rooms is asking for the walls: `add-room` draws the ones a room needs,
+and moving the wall between two rooms is making one of them bigger — `update-room
+--side north --by 300`. One fewer thing to say, and no way to say it two ways that
+disagree.
+
 A room is cut out of a room: a strip off a side, a box out of a corner, any shape by
 its corners (`--points`, from the south-west corner of the floor) or by a walk of legs
-from a side (`--walk`). Walls are found by the side of the room they face — and a
-side is every wall facing that way, so an L has two north walls, told apart in
-`describe` by number and by id; `--wall w12` names one where `--side` would name the
-longest. Everything `describe` lists has an id — rooms, walls, doors, windows, things —
-and any command takes `--id f3` where it takes `--room --type --nth`. `--along` is a
-fraction of the wall (0 at its west or south end) or a length from that end: `0.3`,
-`2.4m`, `-1m` for a metre short of the far end.
+from a side (`--walk`). With nothing to come out of, `add-room` draws the outline of the
+floor itself. Walls are found by the side of the room they face — and a side is every
+wall facing that way, so an L has two north walls, told apart by number and by id;
+`--wall w12` names one where `--side` would name the longest. `--along` is a fraction of
+the wall (0 at its west or south end) or a length from that end: `0.3`, `2.4m`, `-1m`
+for a metre short of the far end.
 
-Two of them only look. `describe` says what is there — every room's clear size, floor,
-neighbours, doors with where they lead, windows, and what stands in it, all in the same
-words the other commands take. `measure` puts a tape on the plan, a room, one side of a
-room (what is on it and what is still free) or a thing in it (its distance to each
-wall). Both answer with JSON, and over MCP the answer comes with a picture of what was
-asked about, picked out and framed the way a click would show it. So the agent ends a
-script with `describe --room kitchen` and sees the kitchen it just made.
+**There is no command for looking, either.** Every command answers the same way, whether
+it changed everything or nothing:
 
-`check-plan` reads the plan for trouble the way The reference's review does: a room nobody can
-walk to from the front door, a bedroom opening straight into the kitchen, a door that
-cannot swing for the sofa in front of it, a laundry too small to be one, a living room
-with no window, a kitchen with no fridge. What sort of room a room is comes from its
-name for now, in English or Czech. An empty list is what a finished plan gets.
+```json
+{ "level": "…", "changed": ["f7"],
+  "rooms": [ { "name": "kitchen", "areaM2": 15.1, "width": 4200, "depth": 3600,
+               "walls": [ {"id":"w3","side":"north","length":4275} ],
+               "sides": [ { "side": "north", "walls": [{"id":"w3","from":0,"to":4275}],
+                            "length": 4275, "openings": [],
+                            "objects": [ {"id":"f1","type":"kitchen-l","from":1462,"to":4713} ],
+                            "free": [ {"from":0,"to":1462} ] } ],
+               "openings": [ {"id":"o4","kind":"door","side":"south","along":0.5,"to":"hall"} ],
+               "objects": [ {"id":"f7","type":"sofa-3","against":"south","along":0.5} ] } ],
+  "problems": [] }
+```
+
+The rooms it touched, read back in full — every wall with what opens and stands on it
+and **the stretches still free**, which is what the next placing needs — and everything
+now wrong with the plan. Over MCP it comes with a picture of what the command did,
+framed the way a click would show it: one picture for the call, not one a line.
+
+`get-plan` is the one question left, and it is only for the rooms a command did not
+touch. `update` and `remove` take the `--id` the answer gave.
+
+The problems are the ones The reference's review looks for: a room nobody can walk to from the
+front door, a bedroom opening straight into the kitchen, a door that cannot swing for
+the sofa in front of it, a laundry too small to be one, a living room with no window, a
+kitchen with no fridge. They ride along in every answer rather than waiting behind a
+question, so the command that put the chair in the doorway is the one that says the door
+cannot open. What sort of room a room is comes from `--kind`, or from its name — in
+English or Czech. An empty list is what a finished plan gets.
 
 Editing by hand on the plan goes through the same door. Dragging a thing ends in one
-`move-object`, R turns it with `turn-object`, Delete is `remove-object`; a door or a
-window dragged along its wall, or to another wall of the room, is `move-door` or
-`move-window`, and Delete takes it out — so a sofa dragged into a wall, or a door
-dragged to where the wardrobe would stop it opening, snaps back with the command's own
-refusal, every edit undoes, and the agent's `describe` tells it what was done by hand.
-Where there are two of a kind, `--nth 2` says which; `describe` numbers them the same way.
+`update-object`, R turns it with `--rotation`, Delete is `remove-object`; a door or a
+window dragged along its wall, or to another wall of the room, is `update-opening`, and
+Delete takes it out — so a sofa dragged into a wall, or a door dragged to where the
+wardrobe would stop it opening, snaps back with the command's own refusal, every edit
+undoes, and the agent's next answer tells it what was done by hand.
 
 The panel down the plan's right edge shows what is picked and lets it be changed: a room's name,
 kind and floor, a thing's finish, size and turn, a door's kind and width, a window's width,
-height and sill. Each field is one command — `rename-room`, `set-room-kind`, `set-floor`,
-`set-surface`, `resize-object`, `turn-object`, `set-door`, `set-window` — and a field the
-plan refuses goes back to what the plan says, with the refusal as a toast.
+height and sill. Each field is one command — `update-room`, `update-object`,
+`update-opening` — and a field the plan refuses goes back to what the plan says, with the
+refusal as a toast.
 
 What is picked goes violet where it is drawn — a room's walls and floor, a thing's picture,
 a door, a wall — and whatever the pointer is over goes a paler violet first. A picked thing
@@ -181,7 +203,7 @@ and a picture asked for over MCP always comes as a plan.
 The bar along the bottom of the plan says what the next click does. Furniture opens
 upward — a category to the side, a search at the top — and Structure holds the doors and
 the window. Pick one and the next click on a room puts it there — `add-object` against the
-nearest wall or out in the room, `add-door` or `add-window` in the nearest wall, each with
+nearest wall or out in the room, `add-opening` in the nearest wall, each with
 the exact `--along` the click meant. Shift keeps it armed for the next click; Escape lets
 go. Draw wall is the pencil: a click puts a corner down, the line to the next follows the
 pointer square to the last one — north, south, east or west, never in between — snapping
@@ -190,22 +212,21 @@ on the last corner, or on the first, or Enter finishes; Escape throws it away. T
 is one `draw-wall`: a walk of legs from where it started, on a side of a room or on the
 paper, every leg a wall joined to whatever it crosses or reaches.
 
-Walls move too. Pick one and drag it across itself and it becomes one `move-wall`: the
-whole line of it moves, the walls meeting it stretch or shorten, the doors in them keep
-their distance from the end that stayed, and the rooms either side grow and shrink —
-refused where a wall would shorten to nothing, a window would be pushed off its wall, or
-something would be left standing in masonry. A room's panel knocks it through into a
-neighbour with `remove-room`: the wall between them goes, and what stood in the room
-stays where it stood. A garage or a terrace is a room like any other — `add-room` cuts
-it, `set-room-kind` says what it is.
+Walls move too. Pick one and drag it across itself and it becomes one `update-room --side
+… --by …`: the whole line of it moves, the walls meeting it stretch or shorten, the doors
+in them keep their distance from the end that stayed, and the rooms either side grow and
+shrink — refused where a wall would shorten to nothing, a window would be pushed off its
+wall, or something would be left standing in masonry. A room's panel knocks it through
+into a neighbour with `remove-room`: the wall between them goes, and what stood in the
+room stays where it stood. A garage or a terrace is a room like any other — `add-room`
+cuts it and says what it is with `--kind`.
 
 Shapes are made the way a builder makes them. The floor starts as a rectangle, an L, a U,
-a T, or a walk round any outline (`floor-shape`, from the panel while the plan is empty).
-A room is cut off a side or out of a corner of another — a stepped side too, and what
-comes off a stepped side is L-shaped. `add-wall` puts a wall in from a side: right across,
-and the room is two; or a stub of a length, and the room has an alcove, the arm of a T.
-Two stubs meeting close a room between them. On the plan the wall tool is a drag from a
-wall into the room; the room's panel cuts rooms off it.
+a T, or a walk round any outline — `add-room --shape`, with nothing to come out of, from
+the panel while the plan is empty. A room is cut off a side or out of a corner of another
+— a stepped side too, and what comes off a stepped side is L-shaped. The pencil and the
+wall stubs are the editor's own: an alcove or the arm of a T is drawn by hand, since a
+wall that closes no room is not a room to ask for.
 
 Each command is declared once, with a Zod schema for its arguments. That single
 declaration produces the CLI parser, the MCP tool description the agent reads, the
@@ -256,10 +277,10 @@ type's size, with its white swapped for the surface it was given. `--help` on
 ## Doors
 
 ```
-add-door --room entry --side south --width 914
-add-door --room hall --side south --width 1.6m --variant sliding
-add-door --room garage --side south --variant garage
-add-door --room pantry --side east --variant pocket
+add-opening --room entry --kind door --side south --width 914
+add-opening --room hall --kind door --side south --width 1.6m --variant sliding
+add-opening --room garage --kind door --side south --variant garage
+add-opening --room pantry --kind door --side east --variant pocket
 ```
 
 Hinged unless said otherwise, and drawn with its leaf and swing. A sliding door
@@ -352,10 +373,13 @@ description, so it needs no other instructions.
 
 ```bash
 node apps/mcp/dist/cli.js --help
-node apps/mcp/dist/cli.js floor-shape --kind l --width 12m --depth 9m \
-  --notch-width 4m --notch-depth 3m --name dům
-node apps/mcp/dist/cli.js add-room --name kuchyň --from dům --side west --width 3.6m
-node apps/mcp/dist/cli.js describe --room kuchyň
-node apps/mcp/dist/cli.js --picture /tmp/kuchyň.jpg measure --room kuchyň
-node apps/mcp/dist/cli.js get-plan
+node apps/mcp/dist/cli.js --project byt add-room --shape l --width 12m --depth 9m \
+  --notch-width 4m --notch-depth 3m --name dům --material natural-oak
+node apps/mcp/dist/cli.js add-room --name kuchyň --from dům --side west --width 3.6m \
+  --material tile-white
+node apps/mcp/dist/cli.js --picture /tmp/kuchyň.jpg get-plan --room kuchyň
 ```
+
+With no Chrome on the debugging port, the CLI starts one headless on the same profile —
+so an agent on its own needs nothing but the dev server, and `--project` puts it in a
+plan, making one under that name if there is none.

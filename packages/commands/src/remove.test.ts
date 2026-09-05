@@ -1,77 +1,83 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
-import { runScript } from './run'
+import { askPlan, runScript } from './run'
 
-const room = () =>
-  runScript(
-    createEmptyDocument(),
-    'floor-shape --material natural-oak --kind rectangle --width 6m --depth 4m --name pokoj',
-  )
+const ROOM = 'add-room --material natural-oak --shape rectangle --width 6m --depth 4m --name pokoj'
 
-const build = (script: string[]) => runScript(room(), script.join('\n'))
+const room = () => runScript(createEmptyDocument(), ROOM)
 const things = (doc: HouseDocument) => Object.values(doc.objects)
 const openings = (doc: HouseDocument) => Object.values(doc.openings)
 
-test('something put in a room can be taken out of it again', () => {
-  const doc = build([
-    'add-object --room pokoj --type dining-6',
-    'remove-object --room pokoj --type dining-6',
-  ])
+/**
+ * What a script put in, by id — which is what the agent has too: every command
+ * answers with the ids it changed, so the id of the thing just placed is in the
+ * answer to placing it.
+ */
+const made = (script: string[]) => askPlan(room(), script.join('\n')).changed
+
+test('something put in a room can be taken out of it again by the id it was given', () => {
+  const [thing] = made(['add-object --room pokoj --type dining-6'])
+  const doc = runScript(
+    room(),
+    `add-object --room pokoj --type dining-6\nremove-object --id ${thing}`,
+  )
 
   expect(things(doc)).toEqual([])
 })
 
-test('the one put in last comes out first, so removing undoes adding', () => {
-  const doc = build([
+test('the id names which of two alike, so the first can go and the second stay', () => {
+  const script = [
     'add-object --room pokoj --type office-chair --surface fabric',
     'add-object --room pokoj --type office-chair --surface grey',
-    'remove-object --room pokoj --type office-chair',
-  ])
+  ]
+  const [first] = made(script)
+  const doc = runScript(room(), [...script, `remove-object --id ${first}`].join('\n'))
 
-  expect(things(doc).map((thing) => thing.surface)).toEqual(['fabric'])
-})
-
-test('only the type asked for is taken out', () => {
-  const doc = build([
-    'add-object --room pokoj --type dining-6',
-    'add-object --room pokoj --type rug-rect',
-    'remove-object --room pokoj --type rug-rect',
-  ])
-
-  expect(things(doc).map((thing) => thing.type)).toEqual(['dining-6'])
+  expect(things(doc).map((thing) => thing.surface)).toEqual(['grey'])
 })
 
 test('taking out something that was never there says so', () => {
-  expect(() => build(['remove-object --room pokoj --type dining-6'])).toThrow(
-    /no rectangular dining set/i,
-  )
+  expect(() => runScript(room(), 'remove-object --id f9')).toThrow(/nothing called f9/i)
 })
 
-test('a window can be taken out of the side it went into', () => {
-  const doc = build([
-    'add-window --room pokoj --side south',
-    'remove-window --room pokoj --side south',
-  ])
+test('a window can be taken out by its id', () => {
+  const script = ['add-opening --kind window --room pokoj --side south']
+  const [window_] = made(script)
+  const doc = runScript(room(), [...script, `remove-opening --id ${window_}`].join('\n'))
 
   expect(openings(doc)).toEqual([])
 })
 
-test('a door is not taken out by asking for a window, nor the other way about', () => {
-  const doc = build([
-    'add-window --room pokoj --side south --width 1m',
-    'add-door --room pokoj --side south --width 0.8m',
-    'remove-window --room pokoj --side south',
-  ])
+test('one opening out of a wall holding two leaves the other where it was', () => {
+  const script = [
+    'add-opening --kind window --room pokoj --side south --width 1m',
+    'add-opening --kind door --room pokoj --side south --width 0.8m',
+  ]
+  const [window_] = made(script)
+  const doc = runScript(room(), [...script, `remove-opening --id ${window_}`].join('\n'))
 
   expect(openings(doc).map((opening) => opening.kind)).toEqual(['door'])
 })
 
-test('a door can be taken out too', () => {
-  const doc = build(['add-door --room pokoj --side north', 'remove-door --room pokoj --side north'])
+test('a door comes out the same way a window does, since they are one thing', () => {
+  const script = ['add-opening --kind door --room pokoj --side north']
+  const [door] = made(script)
+  const doc = runScript(room(), [...script, `remove-opening --id ${door}`].join('\n'))
 
   expect(openings(doc)).toEqual([])
 })
 
-test('taking a window out of a side that has none says so', () => {
-  expect(() => build(['remove-window --room pokoj --side north'])).toThrow(/no window/i)
+test('taking out an opening that is not there says so', () => {
+  expect(() => runScript(room(), 'remove-opening --id o3')).toThrow(/no door or window called o3/i)
+})
+
+test('what went is named in the answer, along with the room it went from', () => {
+  const script = ['add-object --room pokoj --type dining-6']
+  const [thing] = made(script)
+  const answer = askPlan(room(), [...script, `remove-object --id ${thing}`].join('\n'))
+
+  expect(answer.changed).toContain(thing)
+  // The id is gone from the plan, so the room is what is left to look at.
+  expect(answer.rooms.map((room) => room.name)).toEqual(['pokoj'])
+  expect(answer.rooms[0]!.objects).toEqual([])
 })

@@ -18,8 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { finish, nameObject, remove, resize, turnTo } from '../edit/object-commands'
-import { nameOpening, removeOpening, setOpening } from '../edit/opening-commands'
+import { finish, remove, resize, roomOf, turnTo } from '../edit/object-commands'
+import { removeOpening, setOpening, whereOpening } from '../edit/opening-commands'
 import { layFloor, rename, setKind } from '../edit/room-commands'
 import { type CutRequest, cutRoom, drawFloor, type FloorRequest } from '../edit/shape-commands'
 import { knockThrough, nameWall } from '../edit/wall-commands'
@@ -268,7 +268,7 @@ function KnockThrough({ room }: { room: Room }) {
 
 function ObjectPanel({ object }: { object: HouseObject }) {
   const type = objectType(object.type)
-  const named = nameObject(object)
+  const room = roomOf(object)
   const surfaces = SURFACES.filter((surface) => type?.surfaces.includes(surface.id))
 
   return (
@@ -298,11 +298,14 @@ function ObjectPanel({ object }: { object: HouseObject }) {
         </Field>
       </div>
       <Field label="Turn (°)">
-        <NumberField value={object.turn ?? 0} onCommit={(turn) => turnTo(object, turn)} />
+        <NumberField
+          value={object.rotation ?? 0}
+          onCommit={(rotation) => turnTo(object, rotation)}
+        />
       </Field>
       <Facts
         rows={[
-          ['Room', named?.room.name ?? '—'],
+          ['Room', room?.name ?? '—'],
           [
             'Stands',
             object.against
@@ -327,7 +330,7 @@ function ObjectPanel({ object }: { object: HouseObject }) {
 }
 
 function OpeningPanel({ opening }: { opening: Opening }) {
-  const named = nameOpening(opening)
+  const where = whereOpening(opening)
   const isDoor = opening.kind === 'door'
 
   return (
@@ -373,8 +376,8 @@ function OpeningPanel({ opening }: { opening: Opening }) {
       )}
       <Facts
         rows={[
-          ['Room', named?.room.name ?? '—'],
-          ['Wall', named ? `${named.side}${named.nth > 1 ? `, no. ${named.nth}` : ''}` : '—'],
+          ['Room', where?.room.name ?? '—'],
+          ['Wall', where ? `${where.side}, ${opening.wall}` : '—'],
         ]}
       />
       <Button

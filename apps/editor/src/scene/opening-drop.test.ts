@@ -7,7 +7,7 @@ import { openingDropOf } from './opening-drop'
 const house = () => {
   const doc = runScript(
     createEmptyDocument(),
-    'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name house',
+    'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name house',
   )
   const level = Object.keys(doc.levels)[0]!
   return { doc, level, room: roomsOf(doc, level)[0]! }

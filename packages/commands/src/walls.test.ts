@@ -1,27 +1,34 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
-import { askScript, runScript } from './run'
+import { askPlan, runScript } from './run'
 import type { RoomReport } from './survey'
 
+/** The doors, or the windows, of a room: one list of openings, told apart by kind. */
+const doorsOf = (room: RoomReport) => room.openings.filter((it) => it.kind === 'door')
+const windowsOf = (room: RoomReport) => room.openings.filter((it) => it.kind === 'window')
+
 const HOUSE = [
-  'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name house',
+  'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name house',
   'add-room --material natural-oak --name kitchen --from house --side west --width 4m',
   'add-room --material natural-oak --name hall --from house --side north --width 1.5m',
-  'add-door --room house --side south',
-  'add-door --room kitchen --side east',
-  'add-window --room kitchen --side north --along 0.5',
+  'add-opening --kind door --room house --side south',
+  'add-opening --kind door --room kitchen --side east',
+  'add-opening --kind window --room kitchen --side north --along 0.5',
 ].join('\n')
 
 const house = () => runScript(createEmptyDocument(), HOUSE)
+/** An opening by kind in a named room, the way the answer to putting it in gave it. */
+const openingIn = (doc: HouseDocument, name: string, kind: 'door' | 'window') =>
+  askPlan(doc, `get-plan --room ${name}`).rooms[0]!.openings.find((it) => it.kind === kind)!.id
 const level = (doc: HouseDocument) => Object.keys(doc.levels)[0]!
 const report = (doc: HouseDocument, name: string) =>
-  askScript(doc, `describe --room "${name}"`)[0] as RoomReport
+  askPlan(doc, `get-plan --room "${name}"`).rooms[0]!
 
 test('a wall moved outward makes the room bigger and the room beyond it smaller', () => {
   const before = { kitchen: report(house(), 'kitchen'), house: report(house(), 'house') }
 
-  const doc = runScript(house(), 'move-wall --room kitchen --side east --by 1m')
+  const doc = runScript(house(), 'update-room --room kitchen --side east --by 1m')
 
   const after = { kitchen: report(doc, 'kitchen'), house: report(doc, 'house') }
   expect(after.kitchen.width - before.kitchen.width).toBe(1000)
@@ -32,7 +39,7 @@ test('a wall moved outward makes the room bigger and the room beyond it smaller'
 
 test('the whole line moves, so the wall carrying on beyond stays straight', () => {
   // The kitchen's east wall runs on north into the hall's partition: both move.
-  const doc = runScript(house(), 'move-wall --room kitchen --side east --by 500')
+  const doc = runScript(house(), 'update-room --room kitchen --side east --by 500')
 
   const nodes = Object.values(doc.nodes).map((node) => node.x)
   expect(nodes.filter((x) => x === 4000)).toHaveLength(0)
@@ -41,22 +48,22 @@ test('the whole line moves, so the wall carrying on beyond stays straight', () =
 
 test('a door in the moved wall goes with it; a window in a stretched wall keeps its distance', () => {
   const before = report(house(), 'kitchen')
-  const doc = runScript(house(), 'move-wall --room kitchen --side east --by 1m')
+  const doc = runScript(house(), 'update-room --room kitchen --side east --by 1m')
   const after = report(doc, 'kitchen')
 
   // The door is in the wall that moved: the same place along it as before.
-  expect(after.doors.find((it) => it.side === 'east')?.along).toBeCloseTo(
-    before.doors.find((it) => it.side === 'east')!.along,
+  expect(doorsOf(after).find((it) => it.side === 'east')?.along).toBeCloseTo(
+    doorsOf(before).find((it) => it.side === 'east')!.along,
     2,
   )
   // The window is in the north wall, which stretched: the same distance from the west corner.
-  const was = before.windows[0]!.along * before.width
-  const is = after.windows[0]!.along * after.width
+  const was = windowsOf(before)[0]!.along * before.width
+  const is = windowsOf(after)[0]!.along * after.width
   expect(Math.abs(is - was)).toBeLessThan(20)
 })
 
 test('a wall cannot be moved through the room on the other side', () => {
-  expect(() => runScript(house(), 'move-wall --room kitchen --side east --by 9m')).toThrow(
+  expect(() => runScript(house(), 'update-room --room kitchen --side east --by 9m')).toThrow(
     /would leave the wall/,
   )
 })
@@ -65,13 +72,13 @@ test('a wall cannot be moved so that what stands in the room no longer fits', ()
   const doc = runScript(
     house(),
     [
-      'remove-window --room kitchen --side north',
+      `remove-opening --id ${openingIn(house(), 'kitchen', 'window')}`,
       'add-object --room kitchen --type refrigerator --against north --along 0.2',
       'add-object --room kitchen --type stove --against north --along 0.8',
     ].join('\n'),
   )
 
-  expect(() => runScript(doc, 'move-wall --room kitchen --side east --by -2.5m')).toThrow(
+  expect(() => runScript(doc, 'update-room --room kitchen --side east --by -2.5m')).toThrow(
     /refrigerator|stove/,
   )
 })
@@ -79,7 +86,10 @@ test('a wall cannot be moved so that what stands in the room no longer fits', ()
 test('rooms keep their names when a wall moves past an anchor', () => {
   const doc = runScript(
     house(),
-    'remove-window --room kitchen --side north\nmove-wall --room kitchen --side east --by -3.5m',
+    [
+      `remove-opening --id ${openingIn(house(), 'kitchen', 'window')}`,
+      'update-room --room kitchen --side east --by -3.5m',
+    ].join('\n'),
   )
 
   const names = roomsOf(doc, level(doc))
@@ -90,7 +100,7 @@ test('rooms keep their names when a wall moves past an anchor', () => {
 })
 
 test('a window that would be pushed off the end of its wall stops the move', () => {
-  expect(() => runScript(house(), 'move-wall --room kitchen --side east --by -3.5m')).toThrow(
+  expect(() => runScript(house(), 'update-room --room kitchen --side east --by -3.5m')).toThrow(
     /window .* pushed off its end/,
   )
 })
@@ -115,7 +125,7 @@ test('a room knocked through into its neighbour is gone, and its things stand wh
   expect(fridge.against).toBe('north')
   expect(fridge.at!.x).toBeLessThan(4000)
   // The door between them went with the wall; the front door stayed.
-  expect(merged.doors.map((it) => it.side)).toEqual(['south'])
+  expect(doorsOf(merged).map((it) => it.side)).toEqual(['south'])
 })
 
 test('a room shares no wall with a room across the house', () => {
@@ -137,7 +147,7 @@ test('what stands against another wall stays put when this one moves; what stand
     ].join('\n'),
   )
   const before = report(doc, 'house')
-  const moved = runScript(doc, 'move-wall --room kitchen --side east --by 1m')
+  const moved = runScript(doc, 'update-room --room kitchen --side east --by 1m')
   const after = report(moved, 'house')
 
   const sofa = (r: RoomReport) => r.objects.find((it) => it.type === 'sofa-3')!.at!

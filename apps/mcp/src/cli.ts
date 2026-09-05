@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from 'node:fs'
-import { connectToEditor, execOnPage, pictureOf, readPlan, showOnPage } from './editor-page'
-import { report, toolDescription } from './report'
+import {
+  closeEditor,
+  connectToEditor,
+  execOnPage,
+  openProject,
+  pictureOf,
+  showOnPage,
+} from './editor-page'
+import { helpText, report, toolDescription } from './report'
 import { scriptOf } from './script-of'
 import { viewOf } from './view-of'
 
@@ -16,50 +23,56 @@ const USAGE = [
   '  houseit <command> [--option value …]      one command, its words as arguments',
   "  houseit '<script>'                          a script as written, lines and quotes and all",
   '  houseit - < script.txt                     the same from standard input',
-  '  houseit [--picture out.jpg] describe …     with a picture of what was described',
+  '  houseit --picture out.jpg get-plan         with a picture of what it answered about',
+  '  houseit --project byt-praha get-plan       in that plan, made if there is none yet',
 ].join('\n')
 
 async function main(argv: string[]): Promise<number> {
   if (argv.length === 0 || argv[0] === '--help' || argv[0] === 'help') {
-    process.stdout.write(`${USAGE}\n\n${toolDescription()}\n`)
+    process.stdout.write(`${USAGE}\n\n${toolDescription()}\n\nCommands:\n\n${helpText()}\n`)
     return 0
   }
 
-  // `houseit --picture out.jpg describe --room kitchen` saves what the agent
-  // would have been shown. Taken off the front, before the command begins.
+  // Taken off the front, before the command begins: these say where the command
+  // runs and what to do with what it shows, and neither is part of the command.
   let picture: string | undefined
-  if (argv[0] === '--picture') {
-    picture = argv[1]
-    if (!picture) throw new Error('--picture needs a file to write to')
+  let project: string | undefined
+  while (argv[0] === '--picture' || argv[0] === '--project') {
+    const value = argv[1]
+    if (!value) throw new Error(`${argv[0]} needs a value`)
+    if (argv[0] === '--picture') picture = value
+    else project = value
     argv = argv.slice(2)
   }
 
   const page = await connectToEditor()
-
-  if (argv[0] === 'get-plan') {
-    process.stdout.write(`${JSON.stringify(await readPlan(page), null, 2)}\n`)
-    return 0
-  }
+  if (project !== undefined) await openProject(page, project)
 
   // One command's words back into a line, or a script handed over as written.
   const source = argv[0] === '-' ? readFileSync(0, 'utf8') : scriptOf(argv)
   const result = await execOnPage(page, source)
   process.stdout.write(`${report(result)}\n`)
 
-  const view = result.ok && picture ? viewOf(source) : undefined
-  if (view && picture) {
-    const shown = await showOnPage(page, view)
+  if (result.ok && picture) {
+    const shown = await showOnPage(page, viewOf(result.answer))
     if (!shown.ok) throw new Error(shown.error)
-    writeFileSync(picture, await pictureOf(page, shown.clear))
+    writeFileSync(picture, await pictureOf(page))
     process.stderr.write(`picture written to ${picture}\n`)
   }
   return result.ok ? 0 : 1
 }
 
-main(process.argv.slice(2)).then(
-  (code) => process.exit(code),
-  (error: unknown) => {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
-    process.exit(1)
-  },
-)
+// The plan is written back and a browser this process started is closed, either
+// way — a failure half way through a script still leaves the plan as it stands.
+main(process.argv.slice(2))
+  .then(
+    (code) => code,
+    (error: unknown) => {
+      process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
+      return 1
+    },
+  )
+  .then(async (code) => {
+    await closeEditor()
+    process.exit(code)
+  })

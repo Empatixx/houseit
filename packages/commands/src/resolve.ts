@@ -1,5 +1,4 @@
 import type { HouseDocument, HouseObject, Side } from '@houseit/core/document'
-import { objectType } from '@houseit/core/object-types'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { runOfWall } from '@houseit/geometry/sides'
 import type { Draft } from 'immer'
@@ -30,7 +29,7 @@ export function levelOf(
 }
 
 /**
- * The room with that name, or with that id as `describe` gives it, with its
+ * The room with that name, or with the id the last answer gave it, with its
  * record — a face nobody has named is not a room to a command.
  */
 export function roomNamed(
@@ -46,7 +45,7 @@ export function roomNamed(
   return room as Room & { id: string }
 }
 
-/** A wall of a room, said either way: by the side it is on, or by its id from `describe`. */
+/** A wall of a room, said either way: by the side it is on, or by its own id. */
 export type WallRef = { side?: Side; wall?: string }
 
 /**
@@ -68,43 +67,37 @@ export function sideNamed(
     return { side: place.side, nth: place.nth, wall: ref.wall }
   }
   if (ref.side !== undefined) return { side: ref.side }
-  throw new CommandError(`${what}: say which wall — --side, or --wall with its id from describe`)
+  throw new CommandError(`${what}: say which wall — --side, or --wall with its id`)
 }
 
-/** A thing, said either way: by its id from `describe`, or by room, type and which of that type. */
-export type ThingRef = { id?: string; room?: string; type?: string; nth?: number }
-
-/** The thing a command means, and the room it stands in. */
-export function thingNamed(
+/**
+ * The thing a command means, and the room it stands in.
+ *
+ * By id, and only by id. Every command answers with the rooms it touched and
+ * every thing in them by id, so the id of the sofa just placed is in the answer
+ * to placing it — "the second sofa in the living room" is a second way of
+ * saying the same thing, and one of the two ways is always the wrong one.
+ */
+export function thingById(
   doc: HouseDocument | Draft<HouseDocument>,
   level: string,
-  ref: ThingRef,
+  id: string,
   what: string,
 ): { object: HouseObject; room: Room & { id: string } } {
-  if (ref.id !== undefined) {
-    const object = doc.objects[ref.id]
-    if (!object || object.level !== level) {
-      throw new CommandError(`${what}: there is nothing called ${ref.id}`)
-    }
-    const room = roomsOf(doc, level).find((candidate) => candidate.id === object.room)
-    if (!room?.id) throw new CommandError(`${what}: ${ref.id} stands in no room`)
-    return { object: object as HouseObject, room: room as Room & { id: string } }
+  const object = doc.objects[id]
+  if (!object || object.level !== level) {
+    throw new CommandError(`${what}: there is nothing called ${id}`)
   }
-  if (ref.room === undefined || ref.type === undefined) {
-    throw new CommandError(
-      `${what}: say which thing — --room and --type, or --id with its id from describe`,
-    )
-  }
-  const room = roomNamed(doc, level, ref.room, what)
-  return { object: objectNamed(doc, level, room, ref.type, ref.nth, what), room }
+  const room = roomsOf(doc, level).find((candidate) => candidate.id === object.room)
+  if (!room?.id) throw new CommandError(`${what}: ${id} stands in no room`)
+  return { object: object as HouseObject, room: room as Room & { id: string } }
 }
 
 /**
  * The last thing added, which is the one with the highest number in its id.
  *
- * Nothing names a thing by id: what anybody knows is that there is a rug in the
- * living room. So the rug meant, when there are two, is the one that went in
- * last — the same one `remove-object` would take out.
+ * What the editor picks when a click lands on a stack of things, and how the
+ * plan's own thumbnail decides what to show.
  */
 export const newest = <T extends { id: string }>(entries: T[]): T | undefined =>
   entries.reduce<T | undefined>(
@@ -114,37 +107,3 @@ export const newest = <T extends { id: string }>(entries: T[]): T | undefined =>
 
 /** Ids are a prefix and a number: `o12` came after `o3`. */
 export const order = (id: string) => Number.parseInt(id.replace(/^\D+/, ''), 10) || 0
-
-/**
- * The nth thing of a kind in the order they went in, counting from one; none
- * asked for, the last. Two nightstands are "the first" and "the second", which
- * is what a person says and what `describe` reports — an id is not.
- */
-export function nthOf<T extends { id: string }>(
-  entries: T[],
-  nth: number | undefined,
-): T | undefined {
-  const sorted = [...entries].sort((one, other) => order(one.id) - order(other.id))
-  return nth === undefined ? sorted.at(-1) : sorted[nth - 1]
-}
-
-/** The thing a command means: of this type, in this room, the nth or the last. */
-export function objectNamed(
-  doc: HouseDocument | Draft<HouseDocument>,
-  level: string,
-  room: Room & { id: string },
-  type: string,
-  nth: number | undefined,
-  what: string,
-): HouseObject {
-  const label = objectType(type)?.label.toLowerCase() ?? type
-  const ofType = Object.values(doc.objects).filter(
-    (object) => object.level === level && object.room === room.id && object.type === type,
-  )
-  const found = nthOf(ofType, nth)
-  if (found) return found as HouseObject
-  if (ofType.length === 0) throw new CommandError(`${what}: there is no ${label} in ${room.name}`)
-  throw new CommandError(
-    `${what}: there is no ${nth}th ${label} in ${room.name} — there are ${ofType.length}`,
-  )
-}

@@ -8,7 +8,7 @@ const house = () => {
   const doc = runScript(
     createEmptyDocument(),
     [
-      'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name house',
+      'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name house',
       'add-object --room house --type nightstand --against north',
     ].join('\n'),
   )

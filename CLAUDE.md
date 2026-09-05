@@ -3,10 +3,28 @@
 ## Everything goes through the CLI, and that is the test
 
 An agent gets at this plan through one door: the commands in `packages/commands`,
-reached over MCP. Every change is made the way an agent would have to make it —
-`floor-shape`, `add-room`, `add-wall`, `add-window`, `add-door`, `set-floor`,
-`add-object`, `move-wall`, `remove-room` — and never by writing to the document. If something cannot be said as a command,
-that is the bug, and it is the bug to fix.
+reached over MCP. There are ten — `add-room`, `update-room`, `remove-room`,
+`add-opening`, `update-opening`, `remove-opening`, `add-object`, `update-object`,
+`remove-object`, `get-plan` — and every change is made the way an agent would have
+to make it, never by writing to the document. If something cannot be said as a
+command, that is the bug, and it is the bug to fix.
+
+Three nouns and one question, and the shape of it is the point:
+
+- **No noun for a wall.** Every wall is the edge of a room, so asking for the rooms
+  is asking for the walls. `add-room` draws them; moving the wall between two rooms
+  is `update-room --side north --by 300`. `draw-wall` and the stub commands still
+  exist as modules, because the pencil and the wall drag call them — they are just
+  not in the registry, so they are not words an agent has.
+- **No verb for looking.** Every command answers with what it touched, those rooms
+  read back in full — each wall with what opens and stands on it and the stretches
+  still free — and everything now wrong with the plan. `describe`, `measure` and
+  `check-plan` are gone as commands and live in `survey.ts`, `answer.ts` and
+  `checks.ts`, which the answer is built from. `get-plan` is only for rooms a
+  command did not touch.
+- **`update` takes an id.** Every answer names what it changed, so the id of the
+  sofa just placed is in the answer to placing it. There is no second way of saying
+  which sofa, and so no way for the two to disagree.
 
 Working this way is not ceremony, it is the test. Everything found by hand so far
 was found by driving the real commands and looking at what came out:
@@ -14,45 +32,62 @@ was found by driving the real commands and looking at what came out:
 - a doorway drawn as a white slab, because the floors were never asked to meet in it
 - a floor laid in a room that had none coming out black until the page reloaded
 - a window left at a size no window is ever built at
+- a picture that was a sliver of plan, because the panel had been asked to fold
+  and the folding had not happened yet when the clear region was read
 
 None of it shows up in a unit test, and none of it would have been noticed by
 editing the document behind the commands' back. So: cut the room, lay the floor,
 hang the door, place the thing — all through `exec` — then look.
 
-Looking is a command too. `describe` says what is there in the words the other
-commands take — the kitchen is 4200 by 3600, its door is in the south wall and
-opens from the hall, a sofa stands against its west wall at 0.5 — and `measure`
-puts a tape on it: a room's walls, one side of it with what is on it and what is
-still free, a thing's distance to each wall. Over MCP the last of them in a
-script comes back with a picture of what it looked at, the room picked out with
-its dimensions the way a click would pick it. From a terminal:
+From a terminal:
 
 ```bash
-node apps/mcp/dist/cli.js describe --room kitchen
-node apps/mcp/dist/cli.js measure --room kitchen --side north
-node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg measure --room kitchen --type sofa-3
+node apps/mcp/dist/cli.js --project byt get-plan
+node apps/mcp/dist/cli.js 'add-object --room kitchen --type sofa-3 --against south'
+node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg get-plan --room kitchen
 ```
+
+`--project` and `--picture` are the driver's, not the plan's: which plan is being
+worked on and what to do with the picture are no part of any plan.
+
+With Chrome already up on the debugging port, that window is used — driving the one
+somebody is watching is how the agent and the person see the same plan. With no such
+window, one is started **headless** on the same profile, so an agent on its own needs
+nothing but `bun run dev`. `scripts/chrome.sh` is for when you want to watch.
 
 An option a plan cannot do without belongs in the schema as required, not as
 something with a default nobody checks.
 
 The same holds for the mouse. A drag on the plan is not a second way of moving
-things: it is worked out into one `move-object` (`apps/editor/src/edit`), run
+things: it is worked out into one `update-object` (`apps/editor/src/edit`), run
 through the same store as the command bar and the bridge, and refused by the
 same check (`standing-check.ts`) with the same words. The editor calls the
-command with typed arguments (`store.apply(moveObject, {...})`); only the
+command with typed arguments (`store.apply(updateObject, {...})`); only the
 terminal and the MCP tool go through the words (`store.exec(line)`). Neither
 the editor nor the logic under it ever builds a line of text for the parser to
 read back. If a hand edit needs something a command cannot say, the command
 grows — the drag never writes to the document itself.
+
+## The tool description never changes
+
+`toolDescription()` in `apps/mcp/src/report.ts` is frozen prose and must stay that
+way: it names no command, no object type and no floor material. A description is
+part of the prompt, and a prompt that changes throws away the cache of every
+conversation using it — so a new sofa in the catalogue would make every agent
+everywhere start again from cold. The command list is `floorplan("help")`, which is
+an answer and is cached like any other. There is a test that fails if a catalogue
+word reaches the description.
 
 ## A plan belongs to a project
 
 The editor opens on a home screen of cards, one to a plan, and a plan is worked on
 at an address of its own — `/p/byt-praha`. So the commands work on whichever
 project the tab has open: with none open, `exec` refuses and names what there is
-to open. Projects are not commands and the agent cannot make one; they belong to
-the editor, the way the camera does.
+to open. Which project that is stays out of the commands — it is no part of any
+plan — so it is said to the driver instead: `houseit --project byt-praha …`
+navigates the tab there, making one under that name if there is none, through
+`window.floorplan.ensureProject`. A person picks it off the home screen; an agent
+is told. Neither picks it with `add-room`.
 
 They live in IndexedDB (`apps/editor/src/store/projects`), on two shelves — the
 names, dates and thumbnails the home screen lists, and the documents behind them.

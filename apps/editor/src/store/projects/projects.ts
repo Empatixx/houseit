@@ -25,6 +25,14 @@ export type ProjectsState = {
   openProject: (id: string) => Promise<ProjectMeta | undefined>
   /** Writes what is waiting, then takes the plan off the screen. */
   closeProject: () => Promise<void>
+  /**
+   * Writes what is waiting and leaves the plan where it is.
+   *
+   * For a driver that is about to close the browser it opened: the plan is held
+   * for a quarter second before it is written, and a tab shut inside that
+   * quarter second takes the last command with it.
+   */
+  save: () => Promise<void>
   /** A new name. The id it was given at the start stays what it was. */
   rename: (id: string, name: string) => Promise<void>
   /** Gives back what it took, so that it can be put back. */
@@ -86,6 +94,8 @@ export function createProjectsStore(
       set({ open: meta })
       return meta
     },
+
+    save: () => writer.flush(),
 
     closeProject: async () => {
       if (!get().open) return

@@ -1,36 +1,36 @@
+import type { Answer } from '@houseit/commands/answer'
+import type { ObjectReport, RoomReport } from '@houseit/commands/survey'
 import { expect, test } from 'vitest'
 import { viewOf } from './view-of'
 
-test('a script that only edits asks for no picture', () => {
-  expect(viewOf('add-door --room kitchen --side south')).toBeUndefined()
+const room = (name: string, objects: Partial<ObjectReport>[] = []): RoomReport =>
+  ({ id: 'r1', name, objects: objects as ObjectReport[] }) as RoomReport
+
+const answer = (rooms: RoomReport[], changed: string[] = []): Answer =>
+  ({ level: 'l1', changed, rooms, problems: [] }) as Answer
+
+test('one room touched is a picture of that room', () => {
+  expect(viewOf(answer([room('kitchen')], ['r1']))).toEqual({ room: 'kitchen' })
 })
 
-test('a describe of a room is a picture of that room', () => {
-  expect(viewOf('describe --room kitchen')).toEqual({ room: 'kitchen', dimensions: false })
+test('one thing changed in it is a picture of that thing, in its room', () => {
+  const kitchen = room('kitchen', [{ id: 'f7' }, { id: 'f8' }])
+
+  expect(viewOf(answer([kitchen], ['f7']))).toEqual({ room: 'kitchen', object: 'f7' })
 })
 
-test('a measure of a thing is a picture of that thing, in its room', () => {
-  expect(viewOf('measure --room kitchen --type sofa-3')).toEqual({
-    room: 'kitchen',
-    type: 'sofa-3',
+test('two things changed in one room is a picture of the room, not of either', () => {
+  const kitchen = room('kitchen', [{ id: 'f7' }, { id: 'f8' }])
+
+  expect(viewOf(answer([kitchen], ['f7', 'f8']))).toEqual({ room: 'kitchen' })
+})
+
+test('several rooms touched is the whole level, with every dimension on it', () => {
+  expect(viewOf(answer([room('kitchen'), room('hall')], ['r1', 'r2']))).toEqual({
     dimensions: true,
   })
 })
 
-test('a measure of the whole plan shows every dimension', () => {
-  expect(viewOf('measure')).toEqual({ dimensions: true })
-})
-
-test('the last look in a script is the one pictured', () => {
-  const script = [
-    'describe --room hall',
-    'add-window --room kitchen --side north',
-    'describe --room kitchen',
-  ].join('\n')
-
-  expect(viewOf(script)).toMatchObject({ room: 'kitchen' })
-})
-
-test('a line the command would refuse asks for nothing', () => {
-  expect(viewOf('describe --colour blue')).toBeUndefined()
+test('nothing to point at is still the whole level rather than nothing', () => {
+  expect(viewOf(answer([]))).toEqual({ dimensions: true })
 })

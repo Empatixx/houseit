@@ -1,6 +1,5 @@
-import { addDoor } from '@houseit/commands/add-door'
 import { addObject } from '@houseit/commands/add-object'
-import { addWindow } from '@houseit/commands/add-window'
+import { addOpening } from '@houseit/commands/add-opening'
 import { objectType } from '@houseit/core/object-types'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
@@ -13,8 +12,8 @@ import { runEdit } from './run-edit'
 /**
  * Puts what the palette armed where the plan was clicked, as the command an
  * agent would give: `add-object` against the nearest wall or out in the room,
- * `add-door` or `add-window` in the nearest wall, each with the exact
- * `--along` the click meant. The plan checks it as it checks everything.
+ * `add-opening` in the nearest wall, each with the exact `--along` the click
+ * meant. The plan checks it as it checks everything.
  */
 export function placeArmed(armed: Armed, room: Room, point: Point): boolean {
   if (!room.name) return false
@@ -34,8 +33,9 @@ export function placeArmed(armed: Armed, room: Room, point: Point): boolean {
   if (!drop) return false
   if (armed.kind === 'door') {
     return runEdit(() =>
-      documentStore.getState().apply(addDoor, {
+      documentStore.getState().apply(addOpening, {
         room: name,
+        kind: 'door',
         side: drop.toSide,
         along: drop.along,
         variant: armed.variant,
@@ -43,7 +43,9 @@ export function placeArmed(armed: Armed, room: Room, point: Point): boolean {
     )
   }
   return runEdit(() =>
-    documentStore.getState().apply(addWindow, { room: name, side: drop.toSide, along: drop.along }),
+    documentStore
+      .getState()
+      .apply(addOpening, { room: name, kind: 'window', side: drop.toSide, along: drop.along }),
   )
 }
 

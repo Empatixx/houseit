@@ -3,8 +3,7 @@ import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
 import { runScript } from './run'
 
-const FLOOR =
-  'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name dům'
+const FLOOR = 'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name dům'
 
 const floor = () => {
   const doc = createEmptyDocument()
@@ -106,7 +105,7 @@ test('cutting from a room that does not exist says so', () => {
 })
 
 const L_FLOOR =
-  'floor-shape --material natural-oak --kind l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name dům'
+  'add-room --material natural-oak --shape l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name dům'
 
 const lFloor = () => {
   const doc = createEmptyDocument()
@@ -290,7 +289,7 @@ const flat = (script: string[]) =>
   runScript(
     createEmptyDocument(),
     [
-      'floor-shape --material natural-oak --kind rectangle --width 8m --depth 5m --name byt',
+      'add-room --material natural-oak --shape rectangle --width 8m --depth 5m --name byt',
       ...script,
     ].join('\n'),
   )
@@ -305,7 +304,7 @@ const openingAt = (doc: HouseDocument) => {
 }
 
 test('a window stays where it is when the wall under it is split', () => {
-  const before = flat(['add-window --room byt --side south --width 1.2m'])
+  const before = flat(['add-opening --kind window --room byt --side south --width 1.2m'])
   const after = runScript(
     before,
     'add-room --material natural-oak --name koupelna --from byt --side west --width 2m',
@@ -316,7 +315,7 @@ test('a window stays where it is when the wall under it is split', () => {
 
 test('and it stays no wider than the wall it ends up in', () => {
   const doc = flat([
-    'add-window --room byt --side south --width 1.2m',
+    'add-opening --kind window --room byt --side south --width 1.2m',
     'add-room --material natural-oak --name koupelna --from byt --side west --width 2m',
   ])
   const opening = Object.values(doc.openings)[0]!
@@ -330,7 +329,7 @@ test('and it stays no wider than the wall it ends up in', () => {
 test('a partition that would run through a window is refused', () => {
   // The window sits in the middle of the south wall; cutting four metres off the
   // west would put the new partition straight through it.
-  const doc = flat(['add-window --room byt --side south --width 1.2m'])
+  const doc = flat(['add-opening --kind window --room byt --side south --width 1.2m'])
 
   expect(() =>
     runScript(doc, 'add-room --material natural-oak --name kout --from byt --side west --width 4m'),

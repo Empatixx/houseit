@@ -3,19 +3,21 @@ import { layerOf, objectType } from '@houseit/core/object-types'
 import { roomKindOf } from '@houseit/core/room-kinds'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
-import { z } from 'zod'
 import { type Box, boxOf, clashes } from './boxes'
-import { defineCommand } from './define-command'
 import { swingOf } from './place-opening'
-import { levelOf } from './resolve'
 import { standingProblem } from './standing-check'
-import { objectsIn, type RoomReport, surveyLevel } from './survey'
+import { type OpeningReport, objectsIn, type RoomReport, surveyLevel } from './survey'
 
 /**
  * Reads the plan for trouble: a room nobody can get to, a bedroom opening
  * straight into the kitchen, a door that cannot swing for the sofa in front
- * of it, a laundry too small to be one, a living room with no window. Changes
- * nothing and answers with the list — empty is what a finished plan gets.
+ * of it, a laundry too small to be one, a living room with no window. Empty is
+ * what a finished plan gets.
+ *
+ * Not a command. It runs after every command that changes anything, and the
+ * list rides along in the answer — so the command that put the chair in the
+ * doorway is the one that says the door cannot open, rather than a separate
+ * question asked later by somebody who suspected it already.
  *
  * The rules are the ones the reference reviews a plan by and the ones this plan's own
  * commands already keep, so nothing is refused here that a command would have
@@ -31,23 +33,6 @@ export type Problem = {
   room?: string
   message: string
 }
-
-export const checkPlan = defineCommand({
-  name: 'check-plan',
-  summary: 'Read the plan for trouble: reach, privacy, doors, sizes, windows, things in the way',
-  args: z.object({
-    level: z.string().optional(),
-  }),
-  run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'check-plan')
-    const problems = checkLevel(draft, level)
-    return {
-      level,
-      ok: problems.every((problem) => problem.severity !== 'error'),
-      problems,
-    }
-  },
-})
 
 export function checkLevel(doc: HouseDocument, level: string): Problem[] {
   const survey = surveyLevel(doc, level)
@@ -66,13 +51,17 @@ export function checkLevel(doc: HouseDocument, level: string): Problem[] {
 
 const rank = (problem: Problem) => (problem.severity === 'error' ? 0 : 1)
 
+/** The doors of a room, which are the openings anybody walks through. */
+const doorsOf = (room: RoomReport): OpeningReport[] =>
+  room.openings.filter((opening) => opening.kind === 'door')
+
 /** Every room has a door, and every room can be walked to from the front door. */
 function reach(rooms: RoomReport[]): Problem[] {
   const problems: Problem[] = []
   if (rooms.length === 0) return problems
 
   const named = rooms.filter((room) => room.name !== undefined)
-  const entrances = named.filter((room) => room.doors.some((door) => door.to === 'outside'))
+  const entrances = named.filter((room) => doorsOf(room).some((door) => door.to === 'outside'))
   if (entrances.length === 0) {
     problems.push({
       code: 'house.no-entrance',
@@ -82,7 +71,7 @@ function reach(rooms: RoomReport[]): Problem[] {
   }
 
   for (const room of named) {
-    if (room.doors.length === 0) {
+    if (doorsOf(room).length === 0) {
       problems.push({
         code: 'room.no-door',
         severity: 'error',
@@ -100,13 +89,15 @@ function reach(rooms: RoomReport[]): Problem[] {
     if (reached.has(name)) continue
     reached.add(name)
     const room = named.find((candidate) => candidate.name === name)
-    for (const door of room?.doors ?? []) {
-      if (door.to !== 'outside' && !reached.has(door.to)) queue.push(door.to)
+    for (const door of room ? doorsOf(room) : []) {
+      if (door.to !== undefined && door.to !== 'outside' && !reached.has(door.to)) {
+        queue.push(door.to)
+      }
     }
   }
   if (entrances.length > 0) {
     for (const room of named) {
-      if (!reached.has(room.name!) && room.doors.length > 0) {
+      if (!reached.has(room.name!) && doorsOf(room).length > 0) {
         problems.push({
           code: 'room.unreachable',
           severity: 'error',
@@ -126,9 +117,9 @@ function privacy(rooms: RoomReport[]): Problem[] {
   for (const room of rooms) {
     const kind = kinds.get(room.name)
     if (!kind || !['bedroom', 'bathroom', 'half-bath'].includes(kind.id)) continue
-    const interior = room.doors.filter((door) => door.to !== 'outside')
+    const interior = doorsOf(room).filter((door) => door.to !== 'outside')
     if (interior.length === 0) continue
-    const onlyPublic = interior.every((door) => kinds.get(door.to)?.public)
+    const onlyPublic = interior.every((door) => kinds.get(door.to ?? '')?.public)
     if (onlyPublic) {
       problems.push({
         code: 'room.opens-to-public',
@@ -171,7 +162,11 @@ function sizes(rooms: RoomReport[]): Problem[] {
 /** A room somebody lives in has a window. */
 function windows(rooms: RoomReport[]): Problem[] {
   return rooms
-    .filter((room) => roomKindOf(room)?.needsWindow && room.windows.length === 0)
+    .filter(
+      (room) =>
+        roomKindOf(room)?.needsWindow &&
+        !room.openings.some((opening) => opening.kind === 'window'),
+    )
     .map((room) => ({
       code: 'window.missing',
       severity: 'warning' as const,

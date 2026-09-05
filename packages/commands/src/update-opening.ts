@@ -1,0 +1,141 @@
+import type { HouseDocument, Opening } from '@houseit/core/document'
+import type { Room } from '@houseit/geometry/rooms'
+import type { Draft } from 'immer'
+import { z } from 'zod'
+import { along, alongSide } from './along-schema'
+import { CommandError } from './command-error'
+import { defineCommand } from './define-command'
+import { length } from './length-schema'
+import { openingById } from './openings'
+import { checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
+import { levelOf, SIDE_NAMES, sideNamed } from './resolve'
+
+/**
+ * Changes a door or a window that is already in: wider, higher, a pocket leaf
+ * instead of a hinged one, further along its wall, or into another wall of its
+ * room altogether.
+ *
+ * Everything said is settled at once and checked once, on what the opening
+ * becomes. A wider door moved along its wall in one command is checked at its
+ * new width in its new place, which is the only question worth asking — done as
+ * two commands, each passes on its own and the pair can still land the door
+ * across the window.
+ */
+export const updateOpening = defineCommand({
+  name: 'update-opening',
+  summary: 'Change a door or a window: its size, its kind of leaf, or where in the wall it sits',
+  args: z.object({
+    /** Its id, as the last answer gave it. */
+    id: z.string().min(1),
+    width: length().optional(),
+    height: length().optional(),
+    /** How high off the floor a window starts. */
+    sill: length().optional(),
+    /** A door's leaf. A sliding or pocket door stops swinging; a hinged one starts. */
+    variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).optional(),
+    /** How far along its wall: a fraction, or a length from the west or south end. */
+    along: along().optional(),
+    /** Another side of its room to move it to, or another wall by id. */
+    toSide: z.enum(SIDE_NAMES).optional(),
+    toWall: z.string().min(1).optional(),
+    level: z.string().optional(),
+  }),
+  run: (draft, args) => {
+    const level = levelOf(draft, args.level, 'update-opening')
+    const found = openingById(draft, level, args.id, 'update-opening')
+    const { opening, room } = found
+    const door = opening.kind === 'door'
+
+    if (args.variant !== undefined && !door) {
+      throw new CommandError('update-opening: a window has no leaf, so no --variant')
+    }
+    if (args.sill !== undefined && door) {
+      throw new CommandError('update-opening: a door starts on the floor, so it has no --sill')
+    }
+    const moving =
+      args.toSide !== undefined || args.toWall !== undefined || args.along !== undefined
+    const resizing =
+      args.width !== undefined || args.height !== undefined || args.sill !== undefined
+    if (!moving && !resizing && args.variant === undefined) {
+      throw new CommandError(
+        'update-opening: say what to change — --width, --height, --sill, --variant, --along, --to-side or --to-wall',
+      )
+    }
+
+    const variant = args.variant ?? opening.variant
+    const width = args.width ?? opening.width
+    const swings = door && variant === 'hinged'
+
+    if (moving) {
+      const at =
+        args.toSide !== undefined || args.toWall !== undefined
+          ? sideNamed(
+              draft,
+              level,
+              room,
+              { side: args.toSide, wall: args.toWall },
+              'update-opening',
+            )
+          : { side: found.side, nth: found.run }
+      const spot =
+        args.along !== undefined
+          ? placeOpeningAt(
+              draft,
+              level,
+              room,
+              at.side,
+              width,
+              alongSide(draft, level, room, at, args.along, 'update-opening'),
+              'update-opening',
+              swings,
+              opening.id,
+              at.nth,
+            )
+          : placeOpening(
+              draft,
+              level,
+              room,
+              at.side,
+              width,
+              'update-opening',
+              swings,
+              opening.id,
+              at.nth,
+              at.wall,
+            )
+      const target = draft.openings[opening.id]!
+      target.wall = spot.wall
+      target.t = spot.t
+      if (door) target.swing = spot.swing
+    } else if (resizing || args.variant !== undefined) {
+      // Where it already is, at what it is about to become: still inside the
+      // wall, clear of its neighbours, and able to swing if it has started to.
+      refit(draft, level, room, opening, width, swings, 'update-opening')
+    }
+
+    const target = draft.openings[opening.id]!
+    target.width = width
+    target.variant = variant
+    if (args.height !== undefined) target.height = args.height
+    if (args.sill !== undefined) target.sillHeight = args.sill
+    return { changed: [opening.id] }
+  },
+})
+
+/** The opening at its own place, at the new width: still in the wall, clear of the rest. */
+function refit(
+  draft: Draft<HouseDocument>,
+  level: string,
+  room: Room & { id: string },
+  found: Opening,
+  width: number,
+  swings: boolean,
+  what: string,
+) {
+  const wall = draft.walls[found.wall]
+  const a = wall && draft.nodes[wall.a]
+  const b = wall && draft.nodes[wall.b]
+  if (!wall || !a || !b) throw new CommandError(`${what}: the wall it is in is gone`)
+  const span = Math.hypot(b.x - a.x, b.y - a.y)
+  checkOpeningAt(draft, level, room, found.wall, found.t * span, width, what, swings, found.id)
+}

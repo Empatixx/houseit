@@ -1,7 +1,6 @@
 import type { HouseDocument } from '@houseit/core/document'
 import type { Draft } from 'immer'
 import { CommandError } from './command-error'
-import type { Output } from './define-command'
 import { REGISTRY } from './registry'
 import { scriptLines } from './script-lines'
 
@@ -10,12 +9,19 @@ import { scriptLines } from './script-lines'
  * part way through is what makes a script atomic — Immer discards the draft, so a
  * half-applied plan is not reachable.
  *
- * What comes back is what the lines that only looked had to say, in order. A
- * `describe` after an `add-room` sees the room, because it runs on the same
- * draft — the script is one transaction, and a look is part of it.
+ * What comes back is everything the script touched, oldest first and each id
+ * once. A script is one transaction and gets one answer: the rooms behind those
+ * ids, read off the plan as it stands at the end, and one picture of them.
  */
-export function applyScript(draft: Draft<HouseDocument>, source: string): Output[] {
-  const output: Output[] = []
+export function applyScript(
+  draft: Draft<HouseDocument>,
+  source: string,
+): { changed: string[]; shown: string[] } {
+  const changed: string[] = []
+  const shown: string[] = []
+  const add = (into: string[], ids: string[]) => {
+    for (const id of ids) if (!into.includes(id)) into.push(id)
+  }
   for (const [name, ...argv] of scriptLines(source)) {
     if (!name) continue
     const command = REGISTRY.get(name)
@@ -23,7 +29,8 @@ export function applyScript(draft: Draft<HouseDocument>, source: string): Output
       throw new CommandError(`Unknown command "${name}"`)
     }
     const said = command.execute(draft, argv)
-    if (said !== undefined) output.push(said)
+    add(changed, said?.changed ?? [])
+    add(shown, said?.shown ?? [])
   }
-  return output
+  return { changed, shown }
 }

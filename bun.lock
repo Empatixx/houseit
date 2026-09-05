@@ -83,6 +83,7 @@
       "name": "@houseit/bridge",
       "version": "0.0.0",
       "dependencies": {
+        "@houseit/commands": "workspace:*",
         "@houseit/core": "workspace:*",
       },
       "devDependencies": {

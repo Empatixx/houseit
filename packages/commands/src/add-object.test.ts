@@ -8,7 +8,7 @@ import { runScript } from './run'
 const room = () => ({
   doc: runScript(
     createEmptyDocument(),
-    'floor-shape --material natural-oak --kind rectangle --width 6m --depth 4m --name pokoj',
+    'add-room --material natural-oak --shape rectangle --width 6m --depth 4m --name pokoj',
   ),
 })
 const things = (doc: HouseDocument) => Object.values(doc.objects)
@@ -95,7 +95,7 @@ const ell = (bite: string) => ({
   doc: runScript(
     createEmptyDocument(),
     [
-      'floor-shape --material natural-oak --kind rectangle --width 8m --depth 6m --name pokoj',
+      'add-room --material natural-oak --shape rectangle --width 8m --depth 6m --name pokoj',
       `add-room --material natural-oak --name kout --from pokoj --corner north-east ${bite}`,
     ].join('\n'),
   ),
@@ -243,7 +243,7 @@ test('a sofa still spreads out, because a room is not a kitchen', () => {
 test('two things at walls that meet do not end up in the same corner', () => {
   const doc = runScript(
     createEmptyDocument(),
-    'floor-shape --material natural-oak --kind rectangle --width 3m --depth 2.4m --name obývák',
+    'add-room --material natural-oak --shape rectangle --width 3m --depth 2.4m --name obývák',
   )
 
   const next = runScript(
@@ -267,14 +267,14 @@ test('a thing can be turned, and it is checked on the shape it makes once turned
   const room = (depth: string, name: string) =>
     runScript(
       createEmptyDocument(),
-      `floor-shape --material natural-oak --kind rectangle --width 4m --depth ${depth} --name ${name}`,
+      `add-room --material natural-oak --shape rectangle --width 4m --depth ${depth} --name ${name}`,
     )
 
   const turned = runScript(
     room('4m', 'pokoj'),
-    'add-object --room pokoj --type club-chair --against west --turn 45',
+    'add-object --room pokoj --type club-chair --against west --rotation 45',
   )
-  expect(Object.values(turned.objects)[0]!.turn).toBe(45)
+  expect(Object.values(turned.objects)[0]!.rotation).toBe(45)
 
   // On the diagonal an armchair reaches a good deal further into the room than
   // the 838 it was cut to. A wall it stands at square on is not a wall it stands
@@ -284,6 +284,6 @@ test('a thing can be turned, and it is checked on the shape it makes once turned
     runScript(narrow, 'add-object --room chodba --type club-chair --against north'),
   ).not.toThrow()
   expect(() =>
-    runScript(narrow, 'add-object --room chodba --type club-chair --against north --turn 45'),
+    runScript(narrow, 'add-object --room chodba --type club-chair --against north --rotation 45'),
   ).toThrow(/does not fit/)
 })

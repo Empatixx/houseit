@@ -210,7 +210,7 @@ function useSpin(object: HouseObject, spot: Spot) {
     if (!now) return
     const degrees = angleTo(now)
     const normalised = degrees > 180 ? degrees - 360 : degrees
-    if (normalised !== (object.turn ?? 0)) turnTo(object, normalised)
+    if (normalised !== (object.rotation ?? 0)) turnTo(object, normalised)
   }
 
   return { preview, down, move, up }

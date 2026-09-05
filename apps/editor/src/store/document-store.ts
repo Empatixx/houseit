@@ -1,4 +1,4 @@
-import type { ArgsOf, Output, TypedCommand } from '@houseit/commands/define-command'
+import type { ArgsOf, Touched, TypedCommand } from '@houseit/commands/define-command'
 import {
   applyWithPatches,
   runScriptWithPatches,
@@ -24,15 +24,15 @@ export type DocumentState = {
   /**
    * Runs a script of command lines, as the command bar and the bridge do.
    * Throws `CommandError` on bad input, leaving the document alone; what comes
-   * back is what its `describe` and `measure` lines said.
+   * back is what it touched, which is what an answer is then built about.
    */
-  exec: (source: string) => Output[]
+  exec: (source: string) => Touched
   /**
    * Runs one command on typed arguments, as the editor does for a drag or a
    * key. The same checks, the same history entry — only no line of text in
    * between.
    */
-  apply: <C extends TypedCommand>(command: C, args: ArgsOf<C>) => Output[]
+  apply: <C extends TypedCommand>(command: C, args: ArgsOf<C>) => Touched
   undo: () => void
   redo: () => void
   /**
@@ -53,8 +53,8 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
   const start = initial ?? createEmptyDocument()
   return createStore<DocumentState>()((set, get) => {
     /** Takes a finished transaction into the document and the history, if it changed anything. */
-    const commit = (result: ScriptResult): Output[] => {
-      if (result.patches.length === 0) return result.output
+    const commit = (result: ScriptResult): Touched => {
+      if (result.patches.length === 0) return result.touched
       const { past } = get()
       set({
         doc: result.doc,
@@ -63,7 +63,7 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
         canUndo: true,
         canRedo: false,
       })
-      return result.output
+      return result.touched
     }
 
     return {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Empties the plan of the project open in the editor tab: what was drawn is
- * forgotten and the editor comes back on a blank floor, ready for `floor-shape`.
+ * forgotten and the editor comes back on a blank floor, ready for `add-room`.
  * For starting a plan over from an agent's shell, where nothing else can reach
  * the tab.
  *
@@ -57,8 +57,8 @@ await page.waitForFunction(
   open.id,
 )
 
-const answer = await page.evaluate(() => window.floorplan.exec('describe'))
-const rooms = answer.ok ? (answer.output[0]?.rooms?.length ?? 0) : -1
+const answer = await page.evaluate(() => window.floorplan.exec('get-plan'))
+const rooms = answer.ok ? answer.answer.rooms.length : -1
 console.log(
   rooms === 0 ? `${open.name} is empty.` : `Not empty: ${JSON.stringify(answer).slice(0, 200)}`,
 )

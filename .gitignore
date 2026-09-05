@@ -12,3 +12,5 @@ playwright-report/
 test-results/
 .playwright-mcp/
 dist/
+
+.claude/settings.local.json

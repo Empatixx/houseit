@@ -7,7 +7,7 @@ import { boxOf, clashes, INSIDE_A_WALL, wallBox } from './boxes'
 import type { Spot } from './place-object'
 
 /** What a thing is and how big, which is all a check on where it stands needs. */
-export type Shape = { type: string; width: number; depth: number; turn?: number }
+export type Shape = { type: string; width: number; depth: number; rotation?: number }
 
 /**
  * What a thing really takes up: what it reaches once it is turned, plus
@@ -51,8 +51,8 @@ export function standingProblem(
   shape: Shape,
   except?: string,
 ): string | undefined {
-  const { width, depth, turn } = shape
-  const at = standingAt(doc, level, room, { ...spot, width, depth, turn })
+  const { width, depth, rotation } = shape
+  const at = standingAt(doc, level, room, { ...spot, width, depth, rotation })
   if (!at) return `${room.name ?? 'the room'} has no wall on that side`
 
   const spread = objectType(shape.type)?.reach ?? 0
@@ -72,7 +72,7 @@ export function standingProblem(
     },
     // Square to the wall, not to the thing: `needs` is already the box the
     // turned shape fills, so turning that box again counts the turn twice.
-    turn: at.turn - swingOf({ turn }),
+    turn: at.turn - swingOf({ rotation }),
   }
   if (!fitsInside(doc, room, footprintOf(middle, needs))) {
     return `it would reach outside ${room.name ?? 'the room'}`

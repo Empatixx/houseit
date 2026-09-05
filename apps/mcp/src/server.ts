@@ -1,8 +1,15 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { connectToEditor, execOnPage, PICTURE_TYPE, pictureOf, showOnPage } from './editor-page'
-import { report, toolDescription } from './report'
+import {
+  closeEditor,
+  connectToEditor,
+  execOnPage,
+  PICTURE_TYPE,
+  pictureOf,
+  showOnPage,
+} from './editor-page'
+import { helpText, report, toolDescription } from './report'
 import { viewOf } from './view-of'
 
 const server = new McpServer({ name: 'houseit', version: '0.1.0' })
@@ -10,8 +17,10 @@ const server = new McpServer({ name: 'houseit', version: '0.1.0' })
 type Content = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }
 
 /**
- * One tool, not one per action. Adding a command leaves the tool surface
- * unchanged, and the agent can batch several commands into one transaction.
+ * One tool, not one per action, and a description that never changes. Adding a
+ * command or a kind of sofa leaves both alone, so nothing here can invalidate a
+ * conversation's cache — the command list is `help`, which is an answer rather
+ * than a prompt.
  */
 server.registerTool(
   'floorplan',
@@ -21,22 +30,27 @@ server.registerTool(
     inputSchema: {
       command: z
         .string()
-        .describe('One or more commands, one per line. Applied as a single transaction.'),
+        .describe(
+          'One or more commands, one per line, applied as a single transaction. `help` for the list.',
+        ),
     },
   },
   async ({ command }) => {
     try {
+      if (command.trim() === 'help') {
+        return { content: [{ type: 'text', text: helpText() }] }
+      }
+
       const page = await connectToEditor()
       const result = await execOnPage(page, command)
       const content: Content[] = [{ type: 'text', text: report(result) }]
 
-      // A look comes with a picture of what was looked at: the answer about the
-      // kitchen and the kitchen itself, framed and picked as a click would have.
-      const view = result.ok ? viewOf(command) : undefined
-      if (view) {
-        const shown = await showOnPage(page, view)
+      // Every answer comes with a picture of what it did — one for the call,
+      // not one a line, since a script is one transaction and one answer.
+      if (result.ok) {
+        const shown = await showOnPage(page, viewOf(result.answer))
         if (shown.ok) {
-          const picture = await pictureOf(page, shown.clear)
+          const picture = await pictureOf(page)
           content.push({ type: 'image', data: picture.toString('base64'), mimeType: PICTURE_TYPE })
         }
       }
@@ -47,5 +61,14 @@ server.registerTool(
     }
   },
 )
+
+// A headless browser started for the agent belongs to this process, and the
+// plan in it is held for a quarter second before it is written: closing it
+// properly is the difference between the last command landing and vanishing.
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    void closeEditor().then(() => process.exit(0))
+  })
+}
 
 await server.connect(new StdioServerTransport())

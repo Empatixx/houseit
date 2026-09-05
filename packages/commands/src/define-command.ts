@@ -6,14 +6,24 @@ import { flagOf, type OptionSpec } from './option-spec'
 import { parseArgv } from './parse-argv'
 
 /**
- * What a command has to say for itself, beyond what it did to the document.
+ * What a command touched: the ids of what it made or changed — a room, an
+ * opening, a thing.
  *
- * Most commands say nothing: the plan afterwards is the answer. The ones that
- * only look — `describe`, `measure` — answer with this, and it has to be plain
- * data, because it leaves the transaction it was made in and crosses to whoever
- * asked as JSON. Nothing from the draft may be handed back as it is.
+ * This is all a command says for itself, and it is what the answer is built
+ * from. There is no command for looking: the plan is read back through the ids
+ * a change reports, so every command answers with the rooms it touched, their
+ * free stretches of wall and whatever is now wrong with the plan. Ask nothing,
+ * and you are told anyway.
  */
-export type Output = Record<string, unknown>
+/** What a whole script touched, gathered from every command in it. */
+export type Touched = { changed: string[]; shown: string[] }
+
+export type Change = {
+  /** Ids of what it made or changed. */
+  changed?: string[]
+  /** Ids it changed nothing about but wants the answer to cover: `get-plan`. */
+  shown?: string[]
+}
 
 /**
  * A command as the command line and the agent see it: a name, a summary, the
@@ -24,7 +34,7 @@ export type AnyCommand = {
   summary: string
   options: OptionSpec[]
   /** Runs the command from its words on a line, as the terminal and the MCP tool do. */
-  execute: (draft: Draft<HouseDocument>, argv: string[]) => Output | undefined
+  execute: (draft: Draft<HouseDocument>, argv: string[]) => Change | undefined
 }
 
 /**
@@ -35,7 +45,7 @@ export type AnyCommand = {
 export type Command<Args extends z.ZodObject> = AnyCommand & {
   args: Args
   /** Runs the command on typed arguments. Checked by the same schema as the words are. */
-  apply(draft: Draft<HouseDocument>, args: z.input<Args>): Output | undefined
+  apply(draft: Draft<HouseDocument>, args: z.input<Args>): Change | undefined
 }
 
 /** Any typed command, whatever it takes — for code that is handed commands as values. */
@@ -48,9 +58,9 @@ type Definition<Args extends z.ZodObject> = {
   name: string
   summary: string
   args: Args
-  /** Does the work; a command that only looks answers with its output. */
-  // biome-ignore lint/suspicious/noConfusingVoidType: a command that changes the plan returns nothing at all
-  run: (draft: Draft<HouseDocument>, args: z.infer<Args>) => Output | void
+  /** Does the work, and says what it touched. */
+  // biome-ignore lint/suspicious/noConfusingVoidType: a command may touch nothing nameable
+  run: (draft: Draft<HouseDocument>, args: z.infer<Args>) => Change | void
 }
 
 /** Unwraps optional/default/nullable wrappers to reach the value type underneath. */
@@ -89,7 +99,7 @@ export function defineCommand<Args extends z.ZodObject>(
 ): Command<Args> {
   const options = optionsOf(definition.args)
 
-  const apply = (draft: Draft<HouseDocument>, args: z.input<Args>): Output | undefined => {
+  const apply = (draft: Draft<HouseDocument>, args: z.input<Args>): Change | undefined => {
     const result = definition.args.safeParse(args)
     if (!result.success) {
       const detail = result.error.issues
@@ -97,7 +107,7 @@ export function defineCommand<Args extends z.ZodObject>(
         .join('; ')
       throw new CommandError(`${definition.name}: ${detail}`)
     }
-    return definition.run(draft, result.data as z.infer<Args>) as Output | undefined
+    return definition.run(draft, result.data as z.infer<Args>) as Change | undefined
   }
 
   return {

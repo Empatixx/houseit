@@ -7,8 +7,7 @@ import { selectionStore } from '../store/selection'
 import { viewStore } from '../store/view'
 import { installFloorplanBridge } from './floorplan-bridge'
 
-const floor =
-  'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name dům'
+const floor = 'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name dům'
 
 /** The bridge with a project open, which is the only state it does anything in. */
 async function bridgeOn(store = createDocumentStore()) {
@@ -66,21 +65,38 @@ test('getPlan reports the document and its derived rooms', async () => {
   expect(Object.keys(plan.document.walls)).toHaveLength(4)
 })
 
-test('exec hands back what describe and measure said', async () => {
+test('every exec answers with the rooms it touched and what is wrong with the plan', async () => {
   const bridge = await bridgeOn()
   bridge.exec(floor)
 
-  const result = bridge.exec('describe --room dům')
+  const result = bridge.exec('get-plan --room dům')
 
-  expect(result.ok && result.output).toHaveLength(1)
-  expect(result.ok && result.output[0]).toMatchObject({ name: 'dům' })
+  expect(result.ok && result.answer.rooms).toHaveLength(1)
+  expect(result.ok && result.answer.rooms[0]).toMatchObject({ name: 'dům' })
+  // A floor with no door on it is a house nobody can get into, and it says so
+  // without having been asked.
+  expect(result.ok && result.answer.problems.map((it) => it.code)).toContain('house.no-entrance')
+})
+
+test('a change answers the same way, and names what it changed', async () => {
+  const bridge = await bridgeOn()
+  bridge.exec(floor)
+
+  const result = bridge.exec('add-object --room dům --type sofa-3 --against south')
+
+  expect(result.ok && result.answer.changed).toHaveLength(1)
+  expect(result.ok && result.answer.rooms[0]?.objects).toHaveLength(1)
+  // The stretch of wall left beside it, which is what the next placing needs.
+  const south = result.ok ? result.answer.rooms[0]!.sides.find((it) => it.side === 'south') : null
+  expect(south?.objects).toHaveLength(1)
+  expect(south?.free.length).toBeGreaterThan(0)
 })
 
 test('showing a room picks it and frames it, with room to spare round it', async () => {
   const bridge = await bridgeOn()
   bridge.exec(floor)
 
-  expect(bridge.show({ room: 'dům' })).toMatchObject({ ok: true })
+  expect(bridge.show({ room: 'dům' })).toEqual({ ok: true })
 
   expect(selectionStore.getState().selected).toMatchObject({ kind: 'room' })
   const box = viewStore.getState().box
@@ -89,13 +105,33 @@ test('showing a room picks it and frames it, with room to spare round it', async
   expect(box!.x1).toBeGreaterThan(12_000)
 })
 
-test('showing a thing picks the last one of its type in the room', async () => {
+test('showing a thing picks it out by the id the answer gave', async () => {
   const bridge = await bridgeOn()
-  bridge.exec(`${floor}\nadd-object --room dům --type sofa-3 --against south`)
+  const result = bridge.exec(`${floor}\nadd-object --room dům --type sofa-3 --against south`)
+  const sofa = result.ok ? result.answer.changed.find((id) => id.startsWith('f'))! : ''
 
-  expect(bridge.show({ room: 'dům', type: 'sofa-3' })).toMatchObject({ ok: true })
+  expect(bridge.show({ room: 'dům', object: sofa })).toMatchObject({ ok: true })
 
   expect(selectionStore.getState().selected).toMatchObject({ kind: 'object' })
+})
+
+test('what is in the way is asked for after the framing, not reported with it', async () => {
+  const bridge = await bridgeOn()
+  bridge.exec(floor)
+
+  // Showing folds the panel away, and the folding is a render that has not
+  // happened when show returns. So show says only whether it could frame what
+  // it was asked for, and where to look is a second question, asked later.
+  expect(bridge.show({ room: 'dům' })).toEqual({ ok: true })
+
+  // Nothing is in the way of a canvas nothing has been laid out over.
+  expect(bridge.clear().x).toBe(0)
+
+  // Asked again with a rail down the left, it says so — the answer is read at
+  // the moment of asking rather than kept from the moment of showing.
+  viewStore.getState().cover('rail', { edge: 'left', extent: 60 })
+  expect(bridge.clear().x).toBe(60)
+  viewStore.getState().cover('rail', null)
 })
 
 test('showing the level lets go of whatever was picked and frames the plan', async () => {
@@ -118,11 +154,11 @@ test('showing what is not there is refused by name, not thrown', async () => {
     ok: false,
     error: expect.stringMatching(/attic/),
   })
-  expect(bridge.show({ room: 'dům', type: 'sofa-3' })).toMatchObject({ ok: false })
+  expect(bridge.show({ room: 'dům', object: 'f9' })).toMatchObject({ ok: false })
 })
 
 test('help lists the commands an agent may use', async () => {
-  expect((await bridgeOn()).help()).toMatch(/floor-shape/)
+  expect((await bridgeOn()).help()).toMatch(/add-room/)
 })
 
 test('with no project open there is nothing to work on, and it says which there are', async () => {

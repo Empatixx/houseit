@@ -13,7 +13,7 @@ function fresh() {
 }
 
 const ROOM =
-  'floor-shape --material tile-white --kind rectangle --width 4000 --depth 3000 --name kitchen'
+  'add-room --material tile-white --shape rectangle --width 4000 --depth 3000 --name kitchen'
 const after = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 test('a new project gets an id from its name and a plan of its own', async () => {

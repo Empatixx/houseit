@@ -1,8 +1,16 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
-import { askScript, runScript } from './run'
-import type { RoomReport } from './survey'
+import { askPlan, runScript } from './run'
+import type { RoomReport, SideReport } from './survey'
+
+/** The doors, or the windows, of a room: one list of openings, told apart by kind. */
+const doorsOf = (room: RoomReport) => room.openings.filter((it) => it.kind === 'door')
+const windowsOf = (room: RoomReport) => room.openings.filter((it) => it.kind === 'window')
+
+/** The run of a side that a wall belongs to: what `sides` says about that wall. */
+const sideHolding = (room: RoomReport, wall: string): SideReport =>
+  room.sides.find((side) => side.walls.some((it) => it.id === wall))!
 
 /**
  * Rooms that are not rectangles, and the walls of them that a side alone
@@ -14,11 +22,11 @@ const level = (doc: HouseDocument) => Object.keys(doc.levels)[0]!
 const named = (doc: HouseDocument, name: string) =>
   roomsOf(doc, level(doc)).find((room) => room.name === name)
 const report = (doc: HouseDocument, name: string) =>
-  askScript(doc, `describe --room "${name}"`)[0] as RoomReport
+  askPlan(doc, `get-plan --room "${name}"`).rooms[0]!
 
-const RECT = 'floor-shape --material natural-oak --kind rectangle --width 12m --depth 9m --name dům'
+const RECT = 'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name dům'
 const L_FLOOR =
-  'floor-shape --material natural-oak --kind l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name dům'
+  'add-room --material natural-oak --shape l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --name dům'
 
 test('an L has six walls, two of them on one side, told apart by number and id', () => {
   const doc = runScript(createEmptyDocument(), L_FLOOR)
@@ -41,8 +49,8 @@ test('a door goes into the inner wall of an L by its id, and describe says so', 
   const walls = report(doc, 'dům').walls
   const inner = walls.find((wall) => wall.nth !== undefined && wall.length === 3000)!
 
-  const next = runScript(doc, `add-door --room dům --wall ${inner.id}`)
-  const doors = report(next, 'dům').doors
+  const next = runScript(doc, `add-opening --kind door --room dům --wall ${inner.id}`)
+  const doors = doorsOf(report(next, 'dům'))
 
   expect(doors).toHaveLength(1)
   expect(doors[0]!.wall).toBe(inner.id)
@@ -59,11 +67,8 @@ test('a thing stands against the inner wall of an L by its id', () => {
 
   expect(shelf.against).toBe(inner.side)
   expect(shelf.wall).toBe(inner.id)
-  const tape = askScript(next, `measure --room dům --wall ${inner.id}`)[0] as {
-    walls: string[]
-    objects: { id: string }[]
-  }
-  expect(tape.walls).toContain(inner.id)
+  const tape = sideHolding(report(next, 'dům'), inner.id)
+  expect(tape.walls.map((it) => it.id)).toContain(inner.id)
   expect(tape.objects.map((it) => it.id)).toEqual([shelf.id])
 })
 
@@ -101,11 +106,11 @@ test('along takes a length as well as a fraction', () => {
   const next = runScript(
     doc,
     [
-      'add-window --room dům --side south --along 2.4m',
-      'add-window --room dům --side south --along -1m',
+      'add-opening --kind window --room dům --side south --along 2.4m',
+      'add-opening --kind window --room dům --side south --along -1m',
     ].join('\n'),
   )
-  const windows = report(next, 'dům').windows
+  const windows = windowsOf(report(next, 'dům'))
 
   expect(windows).toHaveLength(2)
   // 2.4 m from the west end of a run that starts 150 mm in from the corner.
@@ -123,7 +128,7 @@ test('everything has an id, and a thing is reached by it', () => {
 
   expect(room.id).toMatch(/^r\d+$/)
   expect(sofa.id).toMatch(/^f\d+$/)
-  const next = runScript(doc, `move-object --id ${sofa.id} --against north`)
+  const next = runScript(doc, `update-object --id ${sofa.id} --against north`)
   expect(report(next, 'dům').objects[0]!.against).toBe('north')
   const gone = runScript(next, `remove-object --id ${sofa.id}`)
   expect(report(gone, 'dům').objects).toHaveLength(0)
@@ -183,19 +188,20 @@ test('a wall named narrows along to that wall, and the tape to it', () => {
   expect(west).toHaveLength(2)
   const upper = west.reduce((best, next) => (next.length < best.length ? next : best))
 
-  const next = runScript(doc, `add-window --room dům --wall ${upper.id} --along 0.5`)
-  const window_ = report(next, 'dům').windows[0]!
+  const next = runScript(doc, `add-opening --kind window --room dům --wall ${upper.id} --along 0.5`)
+  const window_ = report(next, 'dům').openings.find((it) => it.kind === 'window')!
   expect(window_.wall).toBe(upper.id)
   expect(window_.along).toBeGreaterThan(0.85)
 
-  const tape = askScript(next, `measure --room dům --wall ${upper.id}`)[0] as {
-    length: number
-    walls: string[]
-    openings: { id: string }[]
-  }
-  expect(tape.walls).toEqual([upper.id])
-  expect(tape.length).toBeLessThan(1500)
+  // The run spans both west walls, but each carries its own stretch of it — so
+  // --wall w9 has somewhere to be placed along without the run being cut up.
+  const tape = sideHolding(report(next, 'dům'), upper.id)
+  const own = tape.walls.find((it) => it.id === upper.id)!
+  expect(own.to - own.from).toBeLessThan(1500)
   expect(tape.openings.map((it) => it.id)).toEqual([window_.id])
+  const centre = (own.from + own.to) / 2
+  expect(tape.openings[0]!.from).toBeLessThan(centre)
+  expect(tape.openings[0]!.to).toBeGreaterThan(centre)
 })
 
 test('check-plan believes a thing on the inner wall of an L', () => {
@@ -205,7 +211,7 @@ test('check-plan believes a thing on the inner wall of an L', () => {
   )!
   const next = runScript(doc, `add-object --room dům --type bookshelf --wall ${inner.id}`)
 
-  const answer = askScript(next, 'check-plan')[0] as { problems: { code: string }[] }
+  const answer = askPlan(next, 'get-plan')
   expect(answer.problems.filter((it) => it.code === 'object.misplaced')).toEqual([])
 })
 
@@ -213,7 +219,7 @@ test('a strip off the north is said by its depth, and a floor with a width and a
   const doc = runScript(
     createEmptyDocument(),
     [
-      'floor-shape --material natural-oak --width 12m --depth 9m --name dům',
+      'add-room --material natural-oak --width 12m --depth 9m --name dům',
       'add-room --name hall --material tile-white --from dům --side north --depth 2m',
     ].join('\n'),
   )

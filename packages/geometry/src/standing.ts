@@ -23,7 +23,7 @@ export type Standing = {
    * be worked out from the turned shape or half of an armchair set at an angle
    * stands inside the wall.
    */
-  turn?: number
+  rotation?: number
 }
 
 export type Spot = {
@@ -88,7 +88,7 @@ export function standingAt(
 }
 
 /** The turn a thing was given, in radians. Nothing at all, for almost everything. */
-export const swingOf = (thing: { turn?: number }) => ((thing.turn ?? 0) * Math.PI) / 180
+export const swingOf = (thing: { rotation?: number }) => ((thing.rotation ?? 0) * Math.PI) / 180
 
 /**
  * What a thing takes up once it is turned: across the wall it stands at, and into
@@ -98,7 +98,7 @@ export const swingOf = (thing: { turn?: number }) => ((thing.turn ?? 0) * Math.P
  * the two swap over by degrees, and both the stretch of wall it needs and how far
  * back it has to be set follow the turned shape rather than the shape it was cut to.
  */
-export function reachOf(thing: { width: number; depth: number; turn?: number }): {
+export function reachOf(thing: { width: number; depth: number; rotation?: number }): {
   across: number
   into: number
 } {

@@ -88,7 +88,7 @@ async function build(page, width, depth, args) {
   await page.waitForTimeout(1200)
 
   const script = [
-    `floor-shape --material tile-white --kind rectangle --width ${Math.round(width)} --depth ${Math.round(depth)} --name look`,
+    `add-room --material tile-white --shape rectangle --width ${Math.round(width)} --depth ${Math.round(depth)} --name look`,
     ['add-object --room look', `--type ${args.type}`, ...flags(args)].join(' '),
   ].join('\n')
 

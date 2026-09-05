@@ -13,6 +13,13 @@ import { length } from './length-schema'
 import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
 import { standingProblem } from './standing-check'
 
+/**
+ * Not a command an agent has: moving the wall between two rooms is making one
+ * of them bigger, and that is `update-room --side north --by 200`, which is
+ * where this is called from. The editor's own wall drag calls it directly with
+ * typed arguments, the way every mouse edit calls the command behind it.
+ */
+
 /** A wall shorter than this is not a wall anybody can build. */
 const LEAST = 300
 
@@ -42,7 +49,7 @@ export const moveWall = defineCommand({
   run: (draft, args) => {
     const level = levelOf(draft, args.level, 'move-wall')
     const room = roomNamed(draft, level, args.room, 'move-wall')
-    if (args.by === 0) return
+    if (args.by === 0) return { changed: [room.id] }
 
     const at = sideNamed(draft, level, room, args, 'move-wall')
     const walls = wallsOnSide(draft, level, room, at.side, at.nth)
@@ -127,6 +134,13 @@ export const moveWall = defineCommand({
     )
     if (problem) {
       throw new CommandError(`move-wall: ${problem.problem}`)
+    }
+
+    // Both sides of a moved wall changed shape, so both are part of the answer.
+    return {
+      changed: roomsOf(draft, level)
+        .filter((face) => face.id !== undefined && face.nodes.some((node) => moving.has(node)))
+        .map((face) => face.id!),
     }
   },
 })

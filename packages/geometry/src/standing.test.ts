@@ -18,7 +18,7 @@ test('a thing given a turn is turned where it stands, and set back by what it th
   const square = { against: 'north' as const, along: 0.5, width: 1000, depth: 400 }
 
   const straight = standingAt(doc, level, room, square)!
-  const quarter = standingAt(doc, level, room, { ...square, turn: 90 })!
+  const quarter = standingAt(doc, level, room, { ...square, rotation: 90 })!
 
   // A quarter turn about its own middle, on top of the way it faces at that wall.
   expect(quarter.turn - straight.turn).toBeCloseTo(Math.PI / 2)
