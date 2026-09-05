@@ -10,7 +10,7 @@ import { usePanelShown } from './ui/edges'
 import { Inspector } from './ui/inspector'
 import { ProjectChip } from './ui/project-chip'
 import { Rail } from './ui/rail'
-import { StoreyCard } from './ui/storey-card'
+import { StoreyStack } from './ui/storey-stack'
 import { TopOverlay } from './ui/top-overlay'
 import { WalkHint } from './ui/walk-hint'
 
@@ -41,7 +41,7 @@ export function App() {
           <Inspector />
           <Rail />
           <ProjectChip />
-          <StoreyCard />
+          {mode === '2d' ? <StoreyStack /> : null}
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

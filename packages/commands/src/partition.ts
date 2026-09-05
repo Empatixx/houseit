@@ -189,9 +189,8 @@ export function linkPoints(
 
 /** The node at a point, split out of a wall if one is there, or new if nothing is. */
 export function nodeAtOrNew(draft: Draft<HouseDocument>, level: string, point: Point): string {
-  for (const node of Object.values(draft.nodes)) {
-    if (node.x === point.x && node.y === point.y) return node.id
-  }
+  const here = nodeHere(draft, level, point)
+  if (here) return here
   const wall = wallUnder(draft, level, point)
   if (wall) return splitWall(draft, wall.id, { x: Math.round(point.x), y: Math.round(point.y) })
   const id = allocateId(draft.nodes, 'n')
@@ -206,12 +205,33 @@ export function nodeAt(
   point: Point,
   what: string,
 ): string {
-  for (const node of Object.values(draft.nodes)) {
-    if (node.x === point.x && node.y === point.y) return node.id
-  }
+  const here = nodeHere(draft, level, point)
+  if (here) return here
   const wall = wallUnder(draft, level, point)
   if (!wall) throw new CommandError(`${what}: nothing at ${point.x},${point.y} for a wall to meet`)
   return splitWall(draft, wall.id, { x: Math.round(point.x), y: Math.round(point.y) })
+}
+
+/**
+ * The node at a point that this storey's walls hang off.
+ *
+ * A node carries no storey of its own — walls do — so a house of two floors
+ * built on the same footprint has two nodes at every corner, one per storey.
+ * Taking whichever came first attaches the upper floor's walls to the ground
+ * floor's corners, and then neither storey's walls close a room: the graph is
+ * one tangle wearing two floors.
+ *
+ * So: a node already carrying a wall on this storey, or one carrying no walls
+ * at all, and otherwise none — let the caller make a fresh one.
+ */
+function nodeHere(draft: Draft<HouseDocument>, level: string, point: Point): string | undefined {
+  const at = Object.values(draft.nodes).filter((node) => node.x === point.x && node.y === point.y)
+  if (at.length === 0) return undefined
+
+  const walls = Object.values(draft.walls)
+  const hanging = (id: string) => walls.filter((wall) => wall.a === id || wall.b === id)
+  const onThisStorey = at.find((node) => hanging(node.id).some((wall) => wall.level === level))
+  return (onThisStorey ?? at.find((node) => hanging(node.id).length === 0))?.id
 }
 
 /** The wall a point lies on, if any does. */

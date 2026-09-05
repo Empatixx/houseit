@@ -1,10 +1,4 @@
-import {
-  LayersIcon,
-  LayoutListIcon,
-  LibraryBigIcon,
-  ListChecksIcon,
-  type LucideIcon,
-} from 'lucide-react'
+import { LayoutListIcon, LibraryBigIcon, ListChecksIcon, type LucideIcon } from 'lucide-react'
 import { type ReactNode, type PointerEvent as ReactPointerEvent, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -17,7 +11,6 @@ import { useCover } from './use-cover'
 /** The rail's tabs, top to bottom, each with its mark. Nothing is behind them yet. */
 const TABS: { id: RailTab; label: string; icon: LucideIcon }[] = [
   { id: 'rooms', label: 'Rooms', icon: LayoutListIcon },
-  { id: 'levels', label: 'Levels', icon: LayersIcon },
   { id: 'issues', label: 'Issues', icon: ListChecksIcon },
   { id: 'catalogue', label: 'Catalogue', icon: LibraryBigIcon },
 ]

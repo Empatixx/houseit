@@ -16,18 +16,37 @@ import { standingProblem } from './standing-check'
  * either room stays where it stood, now in the one room. The other room keeps
  * its name and its floor. A room that shares no wall with the one named
  * cannot be knocked into it.
+ *
+ * The last room on a storey has nowhere to be knocked into, and is taken away
+ * outright — walls, doors and all. That is not a hole in a house, it is a
+ * storey nobody has built on yet, and it is the only way to have one again.
+ * Any other room has to say where it goes: a room simply deleted would leave
+ * the house open to the weather.
  */
 export const removeRoom = defineCommand({
   name: 'remove-room',
-  summary: 'Knock a room through into the room next door',
+  summary: 'Knock a room through into the room next door, or clear the last room off a storey',
   args: z.object({
     room: z.string().min(1),
-    /** The neighbour it becomes part of. */
-    into: z.string().min(1),
+    /** The neighbour it becomes part of. Not needed for the last room on a storey. */
+    into: z.string().min(1).optional(),
     level: z.string().optional(),
   }),
   run: (draft, args) => {
     const { room, level } = whereRoom(draft, args.level, args.room, 'remove-room')
+
+    // Nothing to knock it into, and nothing left standing when it goes: the
+    // storey goes back to bare paper.
+    if (args.into === undefined) {
+      const others = roomsOf(draft, level).filter((other) => other.id !== room.id)
+      if (others.length > 0) {
+        throw new CommandError(
+          `remove-room: say which room ${room.name} is knocked through into — there is still ${others.map((it) => it.name ?? '(unnamed)').join(', ')} on this storey`,
+        )
+      }
+      return clearStorey(draft, level)
+    }
+
     // Knocked through into a neighbour, which is a room on the same storey: a
     // room above is not next door, it is overhead.
     const into = roomNamed(draft, level, args.into, 'remove-room')
@@ -142,3 +161,29 @@ export const removeRoom = defineCommand({
     return { changed: [room.id, into.id] }
   },
 })
+
+/** Everything drawn on a storey, away: the walls, what they held, and the room. */
+function clearStorey(draft: Parameters<typeof deleteWall>[0], level: string) {
+  const gone: string[] = []
+  for (const wall of Object.values(draft.walls)) {
+    if (wall.level === level) deleteWall(draft, level, wall.id)
+  }
+  for (const object of Object.values(draft.objects)) {
+    if (object.level === level) {
+      gone.push(object.id)
+      delete draft.objects[object.id]
+    }
+  }
+  for (const record of Object.values(draft.rooms)) {
+    if (record.level === level) {
+      gone.push(record.id)
+      delete draft.rooms[record.id]
+    }
+  }
+  // Nodes nothing hangs off any more: a wall taken out leaves its ends behind.
+  const held = new Set(Object.values(draft.walls).flatMap((wall) => [wall.a, wall.b]))
+  for (const node of Object.keys(draft.nodes)) {
+    if (!held.has(node)) delete draft.nodes[node]
+  }
+  return { changed: gone }
+}

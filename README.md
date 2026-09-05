@@ -283,10 +283,13 @@ type's size, with its white swapped for the surface it was given. `--help` on
 
 ## Storeys and stairs
 
-`add-level` builds upwards, `--below` builds a cellar, and the editor puts which
-storey you are on in a card at the head of the plan — click it to step between them
-or to add one. The plan is drawn one storey at a time, with the one underneath
-showing faintly through so an upper floor has something to line up against.
+`add-level` builds upwards and `--below` builds a cellar. The editor stacks the
+storeys at the foot of the plan's right edge, one round button each, the top floor
+at the top and the one you are drawing filled in: a click steps onto a storey, a
+drag moves it in the house and takes its rooms with it, and hovering one opens its
+name, its height and the way to rename or remove it. The plan is drawn one storey at
+a time, with the one underneath showing faintly through so an upper floor has
+something to line up against.
 
 A staircase is the one thing in the catalogue that is **drawn rather than stamped**:
 the storey's floor-to-floor height decides how many risers a flight has, and that

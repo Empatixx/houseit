@@ -76,11 +76,25 @@ grows — the drag never writes to the document itself.
 
 ## Storeys, and the stairs between them
 
-A storey is `add-level`, and the editor puts which one you are on in a card at
-the head of the plan. It is drawn one at a time — that is what a floor plan is —
-with the storey underneath showing faintly through, because an upper floor is
-drawn on top of the one below and without that there is nothing to line a wall
-up against.
+A storey is `add-level`, and the editor stacks them at the foot of the plan's
+right edge: one round button to a storey, the top floor at the top, the one
+being drawn filled in. It is a section of the house standing on its end, so
+which floor you are on is seen rather than read. Dragging a button up or down
+the stack moves that storey in the house and everything on it comes along —
+`update-level --storey n`, because the rooms belong to the storey and not to
+the height. Hovering one opens its name, its floor-to-floor height and the way
+to rename or take it out, beside the button rather than over the plan.
+
+It is drawn one storey at a time — that is what a floor plan is — with the
+storey underneath showing faintly through, because an upper floor is drawn on
+top of the one below and without that there is nothing to line a wall up
+against.
+
+**A node carries no storey; walls do.** So a house of two floors on the same
+footprint has two nodes at every corner, and anything looking a node up by
+coordinate has to want one this storey's walls hang off — `nodeHere` in
+`partition.ts`. Taking whichever came first attaches the upper floor's walls to
+the ground floor's corners, and then neither storey closes a room.
 
 **A staircase is drawn, not stamped.** It is the only thing in the catalogue
 that is, and the reason is that its size is not its own: the storey's

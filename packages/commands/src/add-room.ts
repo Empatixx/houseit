@@ -17,7 +17,7 @@ import { parseLength } from './length'
 import { length } from './length-schema'
 import { parseWalk } from './parse-walk'
 import { linkPoints, nearWall, partitionAlong } from './partition'
-import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
+import { levelOf, roomNamed, SIDE_NAMES, sideNamed, whereRoom } from './resolve'
 
 const PARTITION_THICKNESS = 150
 /** Exterior walls are heavier than the partitions that get cut into them later. */
@@ -95,7 +95,6 @@ export const addRoom = defineCommand({
     level: z.string().optional(),
   }),
   run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'add-room')
     const cutting =
       args.from !== undefined ||
       args.side !== undefined ||
@@ -104,7 +103,7 @@ export const addRoom = defineCommand({
 
     // Nothing to come out of: this is the floor itself, and the one room on it.
     if (!cutting) {
-      const made = drawOutline(draft, level, {
+      const made = drawOutline(draft, levelOf(draft, args.level, 'add-room'), {
         ...args,
         thickness: args.thickness ?? EXTERIOR_THICKNESS,
       })
@@ -127,14 +126,21 @@ export const addRoom = defineCommand({
       )
     }
 
+    // A room is cut out of a room, so the storey is that room's — said or not.
+    // `--points` may name no room at all, and then it is whichever storey is
+    // meant, and the room the first corner falls in.
     if (args.points !== undefined) {
+      const level =
+        cut.from === undefined
+          ? levelOf(draft, args.level, 'add-room')
+          : whereRoom(draft, args.level, cut.from, 'add-room').level
       return named(draft, cutByPoints(draft, level, cut, parsePoints(args.points)), args.kind)
     }
 
     if (cut.from === undefined) {
       throw new CommandError('add-room: say which room it comes out of, with --from')
     }
-    const source = roomNamed(draft, level, cut.from, 'add-room')
+    const { room: source, level } = whereRoom(draft, args.level, cut.from, 'add-room')
 
     if (args.walk !== undefined) {
       return named(draft, cutByWalk(draft, level, source, cut), args.kind)

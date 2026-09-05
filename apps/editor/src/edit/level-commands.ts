@@ -34,6 +34,11 @@ export function setStoreyHeight(level: string, height: number): boolean {
   return runEdit(() => documentStore.getState().apply(updateLevel, { level, height }))
 }
 
+/** Moves a storey up or down the house, counting the lowest as the first. */
+export function moveStorey(level: string, storey: number): boolean {
+  return runEdit(() => documentStore.getState().apply(updateLevel, { level, storey }))
+}
+
 export function removeStorey(level: string): boolean {
   const { doc } = documentStore.getState()
   const left = levelsOf(doc).filter((storey) => storey.id !== level)

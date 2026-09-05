@@ -61,11 +61,16 @@ export const addLevel = defineCommand({
 })
 
 /**
- * Changes a storey: its name, or how high it is built.
+ * Changes a storey: its name, how high it is built, or where in the house it is.
  *
  * A storey made taller lifts everything above it, since a floor sits on the
  * walls under it. That is also why the height is not a decoration: it is what
  * decides how many risers a staircase climbing out of this storey has.
+ *
+ * `--storey` moves it up or down the stack, counting the lowest as the first.
+ * Everything on a storey goes with it — the rooms belong to the storey, not to
+ * the height — so this swaps two floors of a house over rather than shuffling
+ * a label.
  */
 export const updateLevel = defineCommand({
   name: 'update-level',
@@ -75,11 +80,13 @@ export const updateLevel = defineCommand({
     level: z.string().optional(),
     name: z.string().trim().min(1).optional(),
     height: length().optional(),
+    /** Where in the house it stands, counting the lowest as the first. */
+    storey: z.coerce.number().int().positive().optional(),
   }),
   run: (draft, args) => {
     const level = levelOf(draft, args.level, 'update-level')
-    if (args.name === undefined && args.height === undefined) {
-      throw new CommandError('update-level: say what to change — --name or --height')
+    if (args.name === undefined && args.height === undefined && args.storey === undefined) {
+      throw new CommandError('update-level: say what to change — --name, --height or --storey')
     }
     const taken = levelsOf(draft).some((other) => other.id !== level && other.name === args.name)
     if (taken) throw new CommandError(`update-level: there is already a storey called ${args.name}`)
@@ -94,9 +101,35 @@ export const updateLevel = defineCommand({
         if (other.elevation > record.elevation) draft.levels[other.id]!.elevation += lifted
       }
     }
+    if (args.storey !== undefined) {
+      const stack = levelsOf(draft)
+      if (args.storey > stack.length) {
+        throw new CommandError(
+          `update-level: this house has ${stack.length} storey(s), so there is no ${args.storey}th to move to`,
+        )
+      }
+      const rest = stack.filter((other) => other.id !== level)
+      rest.splice(args.storey - 1, 0, record)
+      restack(draft, rest)
+    }
     return { changed: [level] }
   },
 })
+
+/**
+ * Stands the storeys back up in the order given: each floor on the walls of the
+ * one under it, from wherever the lowest one starts. Elevation is the order, so
+ * changing the order is changing the elevations and nothing else — what stands
+ * on a storey belongs to the storey and comes along.
+ */
+function restack(draft: Parameters<typeof levelsOf>[0], order: { id: string }[]): void {
+  let elevation = levelsOf(draft)[0]?.elevation ?? 0
+  for (const storey of order) {
+    const record = draft.levels[storey.id]!
+    record.elevation = elevation
+    elevation += record.height
+  }
+}
 
 /**
  * Takes a storey out. Only an empty one: a storey with walls on it is a floor

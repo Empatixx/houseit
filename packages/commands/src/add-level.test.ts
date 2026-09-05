@@ -1,5 +1,6 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { levelsOf } from '@houseit/core/levels'
+import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
 import { askPlan, runScript } from './run'
 
@@ -109,4 +110,67 @@ test('a command that works on another storey answers about that storey', () => {
   expect(answer.level).toBe(levelsOf(doc)[1]!.id)
   // And the trouble reported is that storey's: a bedroom with no door on it.
   expect(answer.problems.map((it) => it.code)).toContain('house.no-entrance')
+})
+
+test('the last room on a storey is cleared away, so the storey can be built again', () => {
+  const doc = runScript(
+    house(),
+    [
+      'add-level --name "1. patro"',
+      'add-room --shape rectangle --width 10m --depth 8m --material white-oak --name ložnice --level "1. patro"',
+      'add-object --room ložnice --type queen-bed --against north',
+    ].join('\n'),
+  )
+
+  const bare = runScript(doc, 'remove-room --room ložnice')
+
+  expect(roomsOf(bare, levelsOf(bare)[1]!.id)).toEqual([])
+  expect(Object.values(bare.walls).filter((wall) => wall.level === levelsOf(bare)[1]!.id)).toEqual(
+    [],
+  )
+  expect(Object.values(bare.objects)).toEqual([])
+  // The ground floor is untouched, and the storey is there to draw on again.
+  expect(roomsOf(bare, levelsOf(bare)[0]!.id)).toHaveLength(1)
+  expect(() =>
+    runScript(
+      bare,
+      'add-room --shape l --width 10m --depth 8m --notch-width 3m --notch-depth 3m --material white-oak --name podkroví --level "1. patro"',
+    ),
+  ).not.toThrow()
+})
+
+test('a room with neighbours still has to say where it is knocked through to', () => {
+  const doc = runScript(
+    house(),
+    'add-room --name kout --from obývák --side west --width 2m --material white-oak',
+  )
+
+  expect(() => runScript(doc, 'remove-room --room kout')).toThrow(/say which room kout is knocked/)
+})
+
+test('a storey moved down the stack takes its rooms with it', () => {
+  const doc = runScript(
+    house(),
+    [
+      'add-level --name "1. patro"',
+      'add-room --shape rectangle --width 10m --depth 8m --material white-oak --name ložnice --level "1. patro"',
+    ].join('\n'),
+  )
+  const upper = levelsOf(doc)[1]!.id
+
+  const swapped = runScript(doc, 'update-level --level "1. patro" --storey 1')
+
+  // The bedroom is now the ground floor, and the living room is over it.
+  expect(storeys(swapped)).toEqual([
+    ['1. patro', 0, 2800],
+    ['Ground floor', 2800, 2800],
+  ])
+  expect(levelsOf(swapped)[0]!.id).toBe(upper)
+  expect(roomsOf(swapped, upper).map((it) => it.name)).toEqual(['ložnice'])
+})
+
+test('there is no storey past the top of the house to move one to', () => {
+  const doc = runScript(house(), 'add-level --name "1. patro"')
+
+  expect(() => runScript(doc, 'update-level --storey 5')).toThrow(/2 storey\(s\)/)
 })

@@ -40,7 +40,7 @@ export function checkLevel(doc: HouseDocument, level: string): Problem[] {
   const survey = surveyLevel(doc, level)
   const rooms = roomsOf(doc, level)
   const problems: Problem[] = [
-    ...reach(survey.rooms),
+    ...reach(survey.rooms, level, doc),
     ...privacy(survey.rooms),
     ...sizes(survey.rooms),
     ...windows(survey.rooms),
@@ -58,18 +58,32 @@ const rank = (problem: Problem) => (problem.severity === 'error' ? 0 : 1)
 const doorsOf = (room: RoomReport): OpeningReport[] =>
   room.openings.filter((opening) => opening.kind === 'door')
 
-/** Every room has a door, and every room can be walked to from the front door. */
-function reach(rooms: RoomReport[]): Problem[] {
+/**
+ * Every room has a door, and every room can be walked to from the way in.
+ *
+ * The way in is the front door on the storey that has one, and the top of the
+ * stairs on every storey above: an upper floor with no door to the outside is
+ * an upper floor, not a house nobody can get into. So a room the stairs come up
+ * into counts as an entrance to its storey, and only a storey with neither is
+ * one nobody can reach.
+ */
+function reach(rooms: RoomReport[], level: string, doc: HouseDocument): Problem[] {
   const problems: Problem[] = []
   if (rooms.length === 0) return problems
 
   const named = rooms.filter((room) => room.name !== undefined)
-  const entrances = named.filter((room) => doorsOf(room).some((door) => door.to === 'outside'))
+  const landings = named.filter((room) => (room.wells?.length ?? 0) > 0)
+  const entrances = [
+    ...named.filter((room) => doorsOf(room).some((door) => door.to === 'outside')),
+    ...landings.filter((room) => !doorsOf(room).some((door) => door.to === 'outside')),
+  ]
   if (entrances.length === 0) {
     problems.push({
       code: 'house.no-entrance',
       severity: 'error',
-      message: 'no door leads outside — nobody can get in',
+      message: levelBelow(doc, level)
+        ? `nothing reaches ${doc.levels[level]?.name ?? 'this storey'} — no door outside and no stairs coming up`
+        : 'no door leads outside — nobody can get in',
     })
   }
 
