@@ -30,10 +30,6 @@ export function renameStorey(level: string, name: string): boolean {
   return runEdit(() => documentStore.getState().apply(updateLevel, { level, name: called }))
 }
 
-export function setStoreyHeight(level: string, height: number): boolean {
-  return runEdit(() => documentStore.getState().apply(updateLevel, { level, height }))
-}
-
 /** Moves a storey up or down the house, counting the lowest as the first. */
 export function moveStorey(level: string, storey: number): boolean {
   return runEdit(() => documentStore.getState().apply(updateLevel, { level, storey }))

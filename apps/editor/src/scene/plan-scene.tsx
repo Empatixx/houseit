@@ -9,6 +9,7 @@ import { FitToPlan } from './fit-to-plan'
 import { Furniture } from './furniture/furniture'
 import { RoomAnnotations } from './room-annotations'
 import { RoomFloors } from './room-floors'
+import { StairsBelow } from './stairs-below'
 import { StoreyBelow } from './storey-below'
 import { Walls } from './walls'
 
@@ -47,6 +48,7 @@ export function PlanScene() {
       <DotGrid />
 
       <StoreyBelow />
+      <StairsBelow />
       <RoomFloors />
       <Furniture />
       <Walls />

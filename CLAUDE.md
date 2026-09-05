@@ -77,9 +77,11 @@ grows — the drag never writes to the document itself.
 ## Storeys, and the stairs between them
 
 A storey is `add-level`, and the editor stacks them at the foot of the plan's
-right edge: the same tabs as the plan and the walk, turned on their side, the
-top floor at the top and the one being drawn picked out. It is a section of the
-house standing on its end, so which floor you are on is seen rather than read. Dragging a button up or down
+right edge: one card each, the top floor at the top and the one being drawn
+picked out. Cards rather than the parts of one control, because that is what
+they are — separate things, each of which can be picked up and put down
+somewhere else in the pile. It is a section of the house standing on its end,
+so which floor you are on is seen rather than read. Dragging a button up or down
 the stack moves that storey in the house and everything on it comes along —
 `update-level --storey n`, because the rooms belong to the storey and not to
 the height. Hovering one opens its name, its floor-to-floor height and the way
@@ -89,6 +91,12 @@ It is drawn one storey at a time — that is what a floor plan is — with the
 storey underneath showing faintly through, because an upper floor is drawn on
 top of the one below and without that there is nothing to line a wall up
 against.
+
+The flight from the storey below is drawn under this storey's floors, so what
+shows of it is exactly what the well leaves showing. Not a ghost and not a
+decoration: the stairs really are there, a storey down, and the floor really is
+missing over them. Without it an upper floor has an empty hole in it and no way
+of telling that the hole is the way down.
 
 **A node carries no storey; walls do.** So a house of two floors on the same
 footprint has two nodes at every corner, and anything looking a node up by
