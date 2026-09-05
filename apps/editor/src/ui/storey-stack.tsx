@@ -22,6 +22,10 @@ import { useCover } from './use-cover'
  * So which floor you are on is not something to read but something to see, and
  * stepping between them is one click on the floor you want.
  *
+ * Hovering a card says which storey it is. Renaming it and taking it out are
+ * offered only on the storey you are standing on, because a bin under every
+ * card the pointer passes over is a bin waiting for a slip.
+ *
  * The plus at its head builds another on top — at the head because that is
  * where the storey it makes will be. There is only the one, because
  * a house grows upwards: a cellar is `add-level --below` and rare enough not
@@ -45,22 +49,66 @@ export function StoreyStack() {
   // Top floor at the top, the way a house is drawn in section.
   const shown = [...storeys].reverse()
 
-  /** Which storey the pointer is over, as a place in the stack counting from the lowest. */
-  const placeUnder = (y: number): number | undefined => {
-    for (const [id, element] of buttons.current) {
-      const box = element.getBoundingClientRect()
-      if (y >= box.top && y <= box.bottom) {
-        return storeys.findIndex((storey) => storey.id === id) + 1
-      }
-    }
+  /**
+   * Which card the pointer is over, as a place in the pile as it is drawn.
+   *
+   * Never the carried card itself, which is under the pointer by definition and
+   * would otherwise be the only answer — the pile would then never make room
+   * for it, and dropping it would put it back exactly where it came from.
+   * Beyond either end of the pile, the end it went past.
+   */
+  const slotUnder = (y: number, carrying?: string): number | undefined => {
+    const boxes = shown.flatMap((storey, slot) => {
+      if (storey.id === carrying) return []
+      const box = buttons.current.get(storey.id)?.getBoundingClientRect()
+      return box ? [{ slot, box }] : []
+    })
+    const over = boxes.find(({ box }) => y >= box.top && y <= box.bottom)
+    if (over) return over.slot
+    const first = boxes[0]
+    const last = boxes.at(-1)
+    if (first && y < first.box.top) return first.slot
+    if (last && y > last.box.bottom) return last.slot
     return undefined
   }
 
-  /** The storey the carried one would drop onto, which is the one it swaps with. */
-  const over =
-    carried?.moved === true
-      ? storeys[(placeUnder(carried.from + carried.by) ?? 0) - 1]?.id
-      : undefined
+  /**
+   * How far apart the cards sit, measured rather than assumed — and measured
+   * off the layout rather than off the screen. A card being carried has been
+   * moved by a transform, which `getBoundingClientRect` counts and `offsetTop`
+   * does not; asking the screen mid-drag says the cards are a pixel apart.
+   */
+  const step = (): number => {
+    const tops = shown
+      .map((storey) => buttons.current.get(storey.id)?.offsetTop)
+      .filter((top) => top !== undefined)
+    const [first, second] = tops
+    const apart = first !== undefined && second !== undefined ? Math.abs(second - first) : 0
+    return apart > 8 ? apart : 50
+  }
+
+  // Where the carried card would land, and the pile as it would then read. The
+  // cards keep their order in the DOM and are only shifted, so React never
+  // remounts one mid-drag and the shift can be animated.
+  const carrying = carried?.moved === true ? carried : undefined
+  const landing = carrying ? slotUnder(carrying.from + carrying.by, carrying.id) : undefined
+  const after = carrying && landing !== undefined ? resettle(shown, carrying.id, landing) : shown
+
+  /**
+   * Which storey a card would be, counting up from the ground — of the pile as
+   * it would be, so a card carried to the bottom reads 1 before it is dropped
+   * rather than after. `after` is drawn top first, so the count runs back.
+   */
+  const numberOf = (id: string): number =>
+    after.length - after.findIndex((storey) => storey.id === id)
+
+  /** How far a card has to move to show the pile as it would be. */
+  const shift = (id: string): number => {
+    if (!carrying || carrying.id === id) return 0
+    const from = shown.findIndex((storey) => storey.id === id)
+    const to = after.findIndex((storey) => storey.id === id)
+    return (to - from) * step()
+  }
 
   return (
     <div
@@ -109,12 +157,12 @@ export function StoreyStack() {
                 here
                   ? 'border-primary text-foreground ring-1 ring-primary'
                   : 'text-muted-foreground hover:text-foreground hover:shadow-md',
-                // Lifted off the pile and out from under the others while it is
-                // carried; the one it would drop onto says so with a dashed edge.
-                dragging && carried.moved && 'scale-105 cursor-grabbing shadow-lg transition-none',
-                over === storey.id && !dragging && 'border-dashed border-primary/60',
-                // Only the resting cards animate, or the carried one lags the pointer.
-                !dragging && 'transition-all',
+                // Lifted off the pile while it is carried. The rest move aside
+                // to show the order it would leave behind, and they animate;
+                // the carried one does not, or it lags the pointer.
+                dragging && carried.moved
+                  ? 'scale-105 cursor-grabbing shadow-lg transition-none'
+                  : 'transition-all',
               )}
               onPointerDown={(event) => {
                 event.currentTarget.setPointerCapture(event.pointerId)
@@ -135,25 +183,33 @@ export function StoreyStack() {
                   documentStore.getState().setLevel(storey.id)
                   return
                 }
-                const to = placeUnder(event.clientY)
-                if (to !== undefined) moveStorey(storey.id, to)
+                // The pile is drawn top floor first, so a place in it counts
+                // back from the top to a storey counting up from the ground.
+                const slot = slotUnder(event.clientY, storey.id)
+                if (slot !== undefined) moveStorey(storey.id, shown.length - slot)
               }}
               // Carried, it goes with the pointer: a card being dragged that
               // stays where it was is a card that does not look dragged.
-              style={
-                dragging && carried.moved ? { transform: `translateY(${carried.by}px)` } : undefined
-              }
+              style={{
+                transform:
+                  dragging && carried.moved
+                    ? `translateY(${carried.by}px)`
+                    : `translateY(${shift(storey.id)}px)`,
+              }}
             >
               {/* Says the card can be carried, without a handle to aim at:
                   the whole card is the handle. */}
               <GripHorizontalIcon className="size-3 opacity-40" />
-              {storeys.indexOf(storey) + 1}
+              {numberOf(storey.id)}
             </button>
 
             {/* Beside the card, not over the plan: what else this storey can be. */}
             <div
               className={cn(
-                'pointer-events-none absolute top-1 right-full mr-2',
+                // Padded, not margined: a gap between the card and the panel is
+                // a gap the pointer crosses, and crossing it lost the hover
+                // before you ever reached the pencil.
+                'pointer-events-none absolute top-1 right-full pr-2',
                 'translate-x-3 opacity-0 transition-all duration-150 ease-out',
                 'group-hover/storey:pointer-events-auto group-hover/storey:translate-x-0 group-hover/storey:opacity-100',
                 'group-focus-within/storey:pointer-events-auto group-focus-within/storey:translate-x-0 group-focus-within/storey:opacity-100',
@@ -184,25 +240,31 @@ export function StoreyStack() {
                     <span className="max-w-48 truncate text-sm whitespace-nowrap">
                       {storey.name}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7"
-                      aria-label={`Rename ${storey.name}`}
-                      onClick={() => setNaming(storey.id)}
-                    >
-                      <PencilIcon />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 text-destructive hover:text-destructive"
-                      aria-label={`Take out ${storey.name}`}
-                      disabled={storeys.length < 2}
-                      onClick={() => removeStorey(storey.id)}
-                    >
-                      <TrashIcon />
-                    </Button>
+                    {here ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          aria-label={`Rename ${storey.name}`}
+                          onClick={() => setNaming(storey.id)}
+                        >
+                          <PencilIcon />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-destructive hover:text-destructive"
+                          aria-label={`Take out ${storey.name}`}
+                          disabled={storeys.length < 2}
+                          onClick={() => removeStorey(storey.id)}
+                        >
+                          <TrashIcon />
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="w-3" />
+                    )}
                   </>
                 )}
               </div>
@@ -212,6 +274,16 @@ export function StoreyStack() {
       })}
     </div>
   )
+}
+
+/** The pile as it would read with one card taken out and put back at `to`. */
+function resettle<T extends { id: string }>(pile: T[], carried: string, to: number): T[] {
+  const from = pile.findIndex((entry) => entry.id === carried)
+  if (from === -1) return pile
+  const rest = [...pile]
+  const [taken] = rest.splice(from, 1)
+  rest.splice(to, 0, taken!)
+  return rest
 }
 
 /**
