@@ -192,13 +192,14 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
           ) : null}
-          {spin.open ? null : <Turner at={grip} height={ABOVE} />}
+          {spin.held ? null : <Turner at={grip} height={ABOVE} />}
           <mesh
             position={toWorld(grip.x, grip.y, ABOVE)}
             rotation={[-Math.PI / 2, 0, 0]}
             onPointerDown={spin.down}
             onPointerMove={spin.move}
             onPointerUp={spin.up}
+            onClick={(event) => event.stopPropagation()}
           >
             <circleGeometry args={[0.3, 20]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -318,7 +319,7 @@ function useSpin(object: HouseObject, spot: Spot) {
     turnTo(object, normalised)
   }
 
-  return { preview, base, open: held || pinned, down, move, up }
+  return { preview, base, open: held || pinned, held, down, move, up }
 }
 
 type Carried = { from: Point; shift: Point }
