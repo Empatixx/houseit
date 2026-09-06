@@ -31,4 +31,12 @@ const SHAPED: Record<string, readonly Part[]> = {
   'stairs-l-winder': ell(0.35, 0.35),
 }
 
+export const FILLS_ITS_BOX: Record<string, string> = {
+  'shower-l': 'large rather than L-shaped: the l is a size, like shower-s and shower-m',
+  'stairs-u':
+    'its two flights and the landing across their heads fill the rectangle, however much it looks like a U',
+}
+
+export const declaresParts = (type: string): boolean => type in SHAPED
+
 export const partsOf = (type: string): readonly Part[] => SHAPED[type] ?? WHOLE
