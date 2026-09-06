@@ -28,9 +28,11 @@ const spoke = (spin: number, reach: number) => {
   return { x1: from.x, y1: from.y, x2: to.x, y2: to.y }
 }
 
+const turned = (spin: number) => ((spin + 180) % 360) - 180
+
 const sweep = (spin: number, radius: number) => {
   const to = corner(spin, radius)
-  return `M 0 ${-radius} A ${radius} ${radius} 0 ${spin > 180 ? 1 : 0} 1 ${to.x} ${to.y}`
+  return `M 0 ${-radius} A ${radius} ${radius} 0 0 ${turned(spin) < 0 ? 0 : 1} ${to.x} ${to.y}`
 }
 
 export function Compass() {
@@ -47,7 +49,7 @@ export function Compass() {
     viewStore.getState().spinTo(round((degrees + 360) % 360))
   }
 
-  const showing = Math.round(spin)
+  const showing = Math.round(turned(spin))
 
   return (
     <Popover>
@@ -114,26 +116,17 @@ export function Compass() {
             {spin === 0 ? null : (
               <line {...spoke(spin, MARK)} stroke="var(--primary)" strokeWidth={3.5} />
             )}
-            <line
-              x1={0}
-              y1={0}
-              x2={corner(spin, RING - MARK - 4).x}
-              y2={corner(spin, RING - MARK - 4).y}
-              stroke="var(--primary)"
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              opacity={0.55}
-            />
-            <circle r={3.5} fill="var(--primary)" />
             <text
               x={0}
-              y={32}
+              y={0}
               textAnchor="middle"
-              fontSize={20}
-              fill="var(--foreground)"
+              dominantBaseline="central"
+              fontSize={26}
+              fill="var(--primary)"
               fontWeight={600}
             >
-              {showing}°
+              {showing < 0 ? '−' : ''}
+              {Math.abs(showing)}°
             </text>
           </svg>
           <Button
