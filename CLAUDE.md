@@ -341,6 +341,36 @@ anything.
 A symbol is scaled to the size its type declares, so it is held to that size by
 construction. Its top edge is the thing's back — the side that goes against a wall.
 
+## Bringing a thing in as a model
+
+Most furniture is written: slabs and drums in `scene/walk/models`. A thing can
+arrive as a model instead. Drop the `.glb` in `apps/editor/public/models` and add
+a row to `packages/core/src/imported.ts` — an id, a label, the size it really is
+in millimetres including its height, the finishes it comes in, whether it stands
+against a wall, and which rooms it belongs in.
+
+That is all it takes to become a type like any other: `add-object --type wardrobe`
+places it, every check tests it, and the plan draws it. A model on its own could
+not do any of that, because a thing is placed by its real width and depth and
+refused by its footprint, and a mesh carries none of those numbers.
+
+What the model has to be: Y up, x across it, z front to back with the back at
+z=0, which is the side that goes against a wall. It is stood on the floor,
+centred, and stretched to the size the row declares — so declare the size the
+thing actually is, or it will be drawn at one size and checked at another. A
+material named `body` takes the object's surface; everything else keeps what the
+model came with, so a finish still means something without flattening the work
+somebody put into the materials.
+
+If the thing is not a rectangle on the floor, say so with `parts`, in fractions
+of its own size, the way `footprint.ts` does for the catalogue's own L-shapes.
+The plan draws those parts as well as testing against them, so the corner a
+corner bench wraps round is drawn empty and something is allowed to stand in it.
+Left out, it fills its rectangle.
+
+`scripts/make-glb.mjs` writes the two that are committed, so an asset in the tree
+can be rebuilt and read rather than being a binary nobody can account for.
+
 ## Checks
 
 ```bash

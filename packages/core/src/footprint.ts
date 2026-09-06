@@ -1,3 +1,4 @@
+import { importedType } from './imported'
 export type Part = { x0: number; y0: number; x1: number; y1: number }
 
 const WHOLE: readonly Part[] = [{ x0: 0, y0: 0, x1: 1, y1: 1 }]
@@ -39,4 +40,5 @@ export const FILLS_ITS_BOX: Record<string, string> = {
 
 export const declaresParts = (type: string): boolean => type in SHAPED
 
-export const partsOf = (type: string): readonly Part[] => SHAPED[type] ?? WHOLE
+export const partsOf = (type: string): readonly Part[] =>
+  SHAPED[type] ?? importedType(type)?.parts ?? WHOLE

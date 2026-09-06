@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 import { declaresParts, FILLS_ITS_BOX, partsOf } from './footprint'
+import { IMPORTED_TYPES } from './imported'
 import { OBJECT_TYPE_IDS } from './object-types'
 
 const SHAPE_IN_THE_NAME = /-(l|u)(-|$)/
@@ -27,5 +28,21 @@ test('every exception says why it is one', () => {
   for (const [id, why] of Object.entries(FILLS_ITS_BOX)) {
     expect(SHAPE_IN_THE_NAME.test(id)).toBe(true)
     expect(why.length).toBeGreaterThan(20)
+  }
+})
+
+test('a type brought in as a model may say what it really fills', () => {
+  const shaped = IMPORTED_TYPES.filter((type) => type.parts !== undefined)
+
+  expect(shaped.length).toBeGreaterThan(0)
+  for (const type of shaped) {
+    expect(partsOf(type.id)).toEqual(type.parts)
+    expect(partsOf(type.id).length).toBeGreaterThan(1)
+  }
+})
+
+test('a brought type that says nothing fills its box, like everything else', () => {
+  for (const type of IMPORTED_TYPES.filter((entry) => entry.parts === undefined)) {
+    expect(partsOf(type.id)).toEqual([{ x0: 0, y0: 0, x1: 1, y1: 1 }])
   }
 })
