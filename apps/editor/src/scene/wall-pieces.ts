@@ -242,9 +242,12 @@ function slidingOf(opening: Opening, hole: Span, line: number, wall: Wall): Wall
  * laid along the arc rather than a dashed line, so they scale with the drawing
  * like every other line here.
  *
- * The whole swing hangs off the wall's face, not its centre line. A leaf pinned
- * to the centre line would have half its root buried in the wall and its arc
- * would close into the middle of the masonry instead of onto the jamb.
+ * The whole swing hangs off the face of the wall, not its centre line and not
+ * the face on the other side. A leaf that starts anywhere inside the masonry is
+ * a leaf that ends short of the far jamb by whatever it lost in there — the
+ * drawing of a door too small for the hole it hangs in, which is exactly how it
+ * reads. Off the near face, the leaf's tip and the far jamb are both one door's
+ * width from the hinge, and the quarter between them is a circle.
  */
 function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPiece[] {
   const width = opening.width
@@ -260,13 +263,16 @@ function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPi
   // also where the arc is centred — so the swing springs off the edge of the open
   // door rather than out of the middle of it.
   const stile = hinge + (towards * leaf) / 2
+  // The leaf stands wholly in the room: its root on the face the door swings off
+  // and its tip a full width in from there.
+  const stands = swing * (width / 2 + face)
 
   const pieces: WallPiece[] = [
     {
       key: `${opening.id}-leaf`,
       colour: INK.outline,
       at: stile,
-      aside: swing * (width / 2 - face),
+      aside: stands,
       turn: QUARTER,
       length: width,
       thickness: leaf,
@@ -277,7 +283,7 @@ function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPi
       key: `${opening.id}-leaf-fill`,
       colour: INK.glass,
       at: stile,
-      aside: swing * (width / 2 - face),
+      aside: stands,
       turn: QUARTER,
       length: width - 2 * line,
       thickness: leaf - 2 * line,
@@ -286,27 +292,25 @@ function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPi
     },
   ]
 
-  // The swing runs between the corner of the open leaf that faces the opening and
-  // the near face of the far jamb — the two points a reader's eye goes to. They
-  // are not the same distance from the hinge, so the quarter is an ellipse, not a
-  // circle; a circle would have to miss one of them. Both semi-axes come in by
-  // half a line so it is the drawn edge that lands on the corners rather than the
-  // middle of the line straddling them.
-  const reach = width - leaf - line / 2
-  const rise = width - 2 * face - line / 2
+  // A door sweeps a circle its own width about the hinge, which is what the plan
+  // checks a door against and what the reference draws: the tip of the open leaf and the
+  // near face of the far jamb are both that far away, so one radius reaches both.
+  // It comes in by half a line, so it is the drawn edge that lands on them rather
+  // than the middle of the line straddling them.
+  const radius = width - line / 2
   const step = QUARTER / (2 * DASHES - 1)
 
   for (let i = 0; i < DASHES; i += 1) {
     const angle = (2 * i + 0.5) * step
-    const run = reach * Math.cos(angle)
-    const drop = rise * Math.sin(angle)
+    const run = radius * Math.cos(angle)
+    const drop = radius * Math.sin(angle)
     pieces.push({
       key: `${opening.id}-arc-${i}`,
       colour: INK.outline,
-      at: hinge + towards * (leaf + reach * Math.sin(angle)),
-      aside: swing * (face + rise * Math.cos(angle)),
+      at: hinge + towards * drop,
+      aside: swing * (face + run),
       turn: Math.atan2(-swing * drop, towards * run),
-      length: step * Math.hypot(run, drop),
+      length: step * radius,
       thickness: line,
       base: 4,
       height,
