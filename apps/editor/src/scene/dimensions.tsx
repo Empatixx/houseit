@@ -119,4 +119,4 @@ export function DimensionLine({ dimension }: { dimension: Dimension }) {
 
 const keyOf = ({ from, to }: Dimension) => `${from.x},${from.y}-${to.x},${to.y}`
 
-const metres = (length: number) => `${(length / 1000).toFixed(2)} m`
+export const metres = (length: number) => `${(length / 1000).toFixed(2)} m`
