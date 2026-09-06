@@ -40,17 +40,18 @@ export function Turner({ at, height }: { at: Point; height: number }) {
         width={30}
         height={30}
         viewBox="0 0 24 24"
-        fill="none"
-        stroke={INK}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
         className="pointer-events-none select-none"
         aria-hidden="true"
       >
-        <path d="M 17.32 8.27 A 6.5 6.5 0 1 0 17.32 15.73" />
-        <path d="M 17.13 4.68 L 17.32 8.27 L 14.01 6.87" />
-        <path d="M 14.01 17.14 L 17.32 15.73 L 17.13 19.33" />
+        <path
+          d="M 7.2 6.5 H 12.5 A 6 6 0 0 1 18.5 12.5 V 15.8"
+          fill="none"
+          stroke={INK}
+          strokeWidth={2.4}
+          strokeLinecap="round"
+        />
+        <path d="M 3.5 6.5 L 6.9 4.3 L 6.9 8.7 Z" fill={INK} />
+        <path d="M 18.5 19.5 L 16.3 16.1 L 20.7 16.1 Z" fill={INK} />
       </svg>
     </Html>
   )
