@@ -1,6 +1,13 @@
 import { expect, test } from 'vitest'
 import { flightOf } from './levels'
-import { flightWidthOf, STAIR_KINDS, stairShape, stairSymbol, treadsOf } from './stairs'
+import {
+  coveredTreads,
+  flightWidthOf,
+  STAIR_KINDS,
+  stairShape,
+  stairSymbol,
+  treadsOf,
+} from './stairs'
 
 const STOREY = 2800
 
@@ -68,7 +75,7 @@ test('every kind draws to a symbol the size of its own footprint', () => {
 
 test('a straight flight draws one tread for every one it climbs', () => {
   const shape = stairShape('straight', STOREY)
-  const treads = stairSymbol(shape).match(/<rect /g)?.length ?? 0
+  const treads = stairSymbol(shape).match(/<path /g)?.length ?? 0
 
   expect(treads).toBe(shape.risers - 1)
 })
@@ -88,21 +95,8 @@ test('every kind has treads, and they all stay on the footprint they claim', () 
 
     expect(treads.length, kind).toBeGreaterThan(3)
     for (const tread of treads) {
-      // The corners of a tread, turned about its own middle as it is drawn.
-      const corners = [
-        [-1, -1],
-        [1, -1],
-        [1, 1],
-        [-1, 1],
-      ].map(([sx, sy]) => {
-        const x = (sx! * tread.width) / 2
-        const y = (sy! * tread.depth) / 2
-        return {
-          x: tread.cx + x * Math.cos(tread.turn) - y * Math.sin(tread.turn),
-          y: tread.cy + x * Math.sin(tread.turn) + y * Math.cos(tread.turn),
-        }
-      })
-      for (const corner of corners) {
+      expect(tread.outline.length, kind).toBeGreaterThanOrEqual(3)
+      for (const corner of tread.outline) {
         expect(corner.x, `${kind} across`).toBeGreaterThanOrEqual(-1)
         expect(corner.x, `${kind} across`).toBeLessThanOrEqual(shape.size.width + 1)
         expect(corner.y, `${kind} along`).toBeGreaterThanOrEqual(-1)
@@ -110,6 +104,46 @@ test('every kind has treads, and they all stay on the footprint they claim', () 
       }
     }
   }
+})
+
+test('every kind lands on the floor above: one tread for every riser but the last', () => {
+  for (const kind of STAIR_KINDS) {
+    for (const height of [2400, 2600, 2800, 3000, 3600]) {
+      const shape = stairShape(kind, height)
+      // The floor above is the last step, so a flight with more treads than that
+      // comes up through it, and one with fewer stops short of it — an L with a
+      // landing did the one and a winder the other.
+      expect(treadsOf(shape).length, `${kind} at ${height}`).toBe(shape.risers - 1)
+    }
+  }
+})
+
+test('a winder turns its corner on three treads that all meet at the inside of the turn', () => {
+  const shape = stairShape('l-winder', STOREY)
+  const corner = shape.flight
+  const treads = treadsOf(shape)
+  // The arm up is every tread wholly below the corner square.
+  const up = treads.filter((tread) => tread.outline.every((point) => point.y >= corner - 1)).length
+  const winders = treads.slice(up, up + 3)
+
+  for (const tread of winders) {
+    expect(
+      tread.outline.some(
+        (point) => Math.abs(point.x - corner) < 1 && Math.abs(point.y - corner) < 1,
+      ),
+      `step ${tread.step}`,
+    ).toBe(true)
+  }
+  // Climbed one after the other, between the arm up and the arm away.
+  expect(winders.map((tread) => tread.step)).toEqual([up + 1, up + 2, up + 3])
+})
+
+test('the foot of a flight can stand under the floor above, and the rest cannot', () => {
+  const shape = stairShape('straight', STOREY)
+  // Sixteen risers of 175 under a 250 slab: two treads up there is still 2100 clear.
+  expect(coveredTreads(shape)).toBe(2)
+  // A low storey has no room over any tread at all.
+  expect(coveredTreads(stairShape('straight', 2400))).toBe(0)
 })
 
 test('the treads are numbered from the foot, each one step above the last', () => {

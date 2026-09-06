@@ -13,15 +13,16 @@ const things = (doc: HouseDocument) => Object.values(doc.objects).map((it) => it
 
 test('something stands in the corner an L-shaped run wraps round', () => {
   // Against the north wall, the run goes along it and its leg comes down the
-  // east side. What that leaves is the corner it wraps round, to the west of
-  // the leg and in front of the run — and a table stands in it.
+  // west side, as the drawing has it. What that leaves is the corner it wraps
+  // round, to the east of the leg and in front of the run — and a table
+  // stands in it.
   const doc = runScript(room(), 'add-object --room kuchyň --type kitchen-l --against north')
   const kitchen = askPlan(doc, 'get-plan --room kuchyň').rooms[0]!.objects[0]!
   expect(kitchen.at).toEqual({ x: 3000, y: 3568 })
 
   const inside = runScript(
     doc,
-    'add-object --room kuchyň --type dining-round-4 --along 0.2 --across 0.6',
+    'add-object --room kuchyň --type dining-round-4 --along 0.8 --across 0.6',
   )
 
   expect(things(inside)).toEqual(['kitchen-l', 'dining-round-4'])

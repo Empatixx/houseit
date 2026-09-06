@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber'
 import { usePlanDoc } from '../../store/store'
 import { EYE } from '../../store/walk'
 import { MM } from '../plan-coordinates'
-import { Floors } from './floors'
+import { Ceilings, Floors } from './floors'
 import { Furniture } from './furniture'
 import { Walker } from './walker'
 import { Walls } from './walls'
@@ -40,6 +40,7 @@ export function WalkScene() {
       {storeys.map((storey) => (
         <group key={storey.id} position={[0, storey.elevation * MM, 0]}>
           <Floors level={storey.id} />
+          <Ceilings level={storey.id} />
           <Walls level={storey.id} />
           <Furniture level={storey.id} />
         </group>

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { roomsOf } from './rooms'
-import { footprintOf, standingAt } from './standing'
+import { footprintOf, piecesOf, standingAt } from './standing'
 import { planWith } from './test-utils'
 
 const only = () => {
@@ -35,4 +35,18 @@ test('a turned footprint is the corners where they actually are', () => {
 
   expect(Math.max(...corners.map((corner) => corner.y))).toBeCloseTo(500)
   expect(Math.max(...corners.map((corner) => corner.x))).toBeCloseTo(200)
+})
+
+test('the parts of a thing lie where its drawing puts them, not in its mirror image', () => {
+  const { doc, level, room } = only()
+  // A corner sofa's chaise is on the right of its drawing. Against the south
+  // wall the drawing is turned half round to put its back on the wall, and the
+  // chaise comes out on the west — which is where the click has to find it.
+  const sofa = { type: 'sofa-l', against: 'south' as const, along: 0.5, width: 3000, depth: 1800 }
+  const spot = standingAt(doc, level, room, sofa)!
+
+  const [, chaise] = piecesOf(spot, sofa)
+
+  expect(chaise).toBeDefined()
+  for (const corner of chaise!) expect(corner.x).toBeLessThanOrEqual(spot.at.x + 1)
 })

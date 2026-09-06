@@ -4,7 +4,9 @@ import { surfaceOf } from '@houseit/core/surfaces'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { standingAt } from '@houseit/geometry/standing'
 import { useMemo } from 'react'
+import { pick } from '../edit/pick'
 import { useDocument, usePlanDoc } from '../store/store'
+import { dragged } from './drag'
 import { useSymbol } from './furniture/use-symbol'
 import { MM, toWorld } from './plan-coordinates'
 
@@ -17,7 +19,9 @@ import { MM, toWorld } from './plan-coordinates'
  * well leaves showing, the way it would if you looked down.
  *
  * Without it an upper floor has an empty hole in it and no way of telling that
- * the hole is the way down.
+ * the hole is the way down. A click on it picks the flight, the way a click on
+ * anything else picks that: the stairs you can see are the stairs you can
+ * choose, whichever storey you are looking at.
  */
 export function StairsBelow() {
   const doc = usePlanDoc()
@@ -72,11 +76,13 @@ export function StairsBelow() {
 const UNDERFOOT = 6
 
 function Flight({
+  id,
   spot,
   surface,
   size,
   drawing,
 }: {
+  id: string
   spot: { at: { x: number; y: number }; turn: number }
   surface: Parameters<typeof useSymbol>[1]
   size: { width: number; depth: number }
@@ -91,6 +97,11 @@ function Flight({
       // Laid flat and turned the way the flight faces, half round like every
       // other symbol so its top edge is the thing's back.
       rotation={[-Math.PI / 2, 0, spot.turn + Math.PI]}
+      onClick={(event) => {
+        if (dragged(event)) return
+        event.stopPropagation()
+        pick({ kind: 'object', id })
+      }}
     >
       <planeGeometry args={[size.width * MM, size.depth * MM]} />
       <meshBasicMaterial map={texture} transparent />

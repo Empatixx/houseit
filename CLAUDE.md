@@ -153,24 +153,54 @@ symbols are written in, and `--depth` on a staircase is refused rather than
 obeyed. `--width` is the clear width of the flight, which for a U comes out
 twice as wide on the floor.
 
-`treadsOf` is the one description of what a flight is made of, and both the
-symbol and the model in the walk are built from it — the staircase looked down
-on and the staircase climbed cannot be two different staircases. They were: one
-drawn at the storey's tread count, the other a straight run of slabs 1400 tall
-whatever the kind, so a winder came out as a ramp through its own wall and a
-spiral as a box. A staircase in the walk is as tall as its storey, because the
-one number a flight cannot be given in advance is the one that says where its
-top step is. It also has no symbol to stamp, and asking every thing in the walk
-for one dropped every flight in the house out of the 3D.
+`treadsOf` is the one description of what a flight is made of, and the symbol,
+the model in the walk and the well above are all built from it — the staircase
+looked down on and the staircase climbed cannot be two different staircases.
+They were: one drawn at the storey's tread count, the other a straight run of
+slabs 1400 tall whatever the kind, so a winder came out as a ramp through its
+own wall and a spiral as a box. A tread is an outline, not a box, because a
+winder turns its corner on three wedges and a spiral is nothing but; and the
+treads of a flight are exactly one fewer than its risers, the floor above being
+the last step. `armsOf` is the one place that shares them out between the arms,
+because when the footprint and the treads counted separately an L came up two
+treads through the floor above and a winder stopped three short of it. In the
+walk each step is a block one riser tall on the one below, open underneath the
+way a stair is, as tall as its storey — the one number a flight cannot be given
+in advance is the one that says where its top step is. It also has no symbol to
+stamp, and asking every thing in the walk for one dropped every flight in the
+house out of the 3D.
+
+**The drawing's left is the thing's right.** A symbol's top edge is the back,
+and to put the back against a wall the drawing is laid on the plan turned half
+round — so with a thing facing north, the left of its drawing lies to the
+east. Everything that says where a part of a thing is goes through `onPlan` in
+`standing.ts`: the boxes a click and a clash are tested against, and the well
+a flight cuts. A model in the walk is built in the thing's own frame, +x its
+right, so a kitchen whose leg is on the left of its drawing builds its leg on
++x. The parts and the stair model were a mirror image of the drawing once,
+which is why a click on the arm of a staircase fell through to the floor.
 
 **The well is the staircase, seen from above.** The hole in the floor overhead
 is not a thing anybody draws or stores — `wells.ts` derives it from the flight
-below, the way rooms are derived from walls. One record of a hole, so the floor
-drawn with it and the room reporting it can never disagree; `wellsInRoom` is the
-single place that decides which room a well is in, and both the renderer and the
-survey call it. `check-plan` looks both ways, because either half can be the one
-that moved: a wardrobe pushed over a stairwell from upstairs is the same fault
-as a staircase built under a wardrobe from downstairs.
+below, the way rooms are derived from walls. Not the whole flight: over the
+first treads there is a storey of air less the slab, and while that is still
+the headroom somebody needs (`HEADROOM` and `SLAB` in `levels.ts`) the floor
+above stays; the well is the treads without it, taken together, so an L makes
+an L-shaped hole and a straight flight the top of its run. One record of a
+hole, so the floor drawn with it and the room reporting it can never disagree;
+`wellsInRoom` is the single place that decides what of a well is a room's, and
+both the renderer and the survey call it. A well that comes up under a wall is
+cut along it and each room gets its part — the wall is the fault and the
+checks say so, but a hole reaching out of the room it is cut from cannot be
+cut at all, which is how a well came to be reported and drawn nowhere.
+`check-plan` looks both ways, because either half can be the one that moved: a
+wardrobe pushed over a stairwell from upstairs is the same fault as a staircase
+built under a wardrobe from downstairs.
+
+**A storey has a lid.** In the walk every room has a slab over it, `SLAB`
+thick up to the top of its walls, with a hole where its own staircase comes up
+— the ceiling of this storey, the floor of the next, and the roof where there
+is no next. Without it a house walked through was an open box.
 
 `bun scripts/look-stairs.ts /tmp/stairs.png [height]` draws every kind at a
 storey's height on one page. A generated drawing is code, and the only way to

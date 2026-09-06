@@ -128,21 +128,35 @@ export function piecesOf(
   const parts = partsOf(thing.type)
   if (parts.length === 1) return [footprintOf(spot, thing)]
 
+  // The parts are fractions of the drawing, from its left edge and its top.
+  const place = (x: number, y: number) =>
+    onPlan(spot, thing, { x: x * thing.width, y: y * thing.depth })
+  return parts.map((part) => [
+    place(part.x0, part.y0),
+    place(part.x1, part.y0),
+    place(part.x1, part.y1),
+    place(part.x0, part.y1),
+  ])
+}
+
+/**
+ * Where a point of a thing's drawing falls on the plan.
+ *
+ * The drawing's frame is the symbol's: x across from its left edge, y down
+ * from its top, in the thing's own millimetres, and the top is the thing's
+ * back. Laid on the plan the drawing is turned half round to put its back on
+ * the wall, so with the thing facing north its left edge lies to the east —
+ * the way a sofa whose chaise is on the right of its drawing has it on the
+ * sitter's left. Everything that says where part of a thing is goes through
+ * here, so the parts a click is tested against and the well a flight cuts
+ * cannot be a mirror image of the thing as drawn, which they were.
+ */
+export function onPlan(spot: Spot, size: { width: number; depth: number }, point: Point): Point {
+  const x = size.width / 2 - point.x
+  const y = point.y - size.depth / 2
   const cos = Math.cos(spot.turn)
   const sin = Math.sin(spot.turn)
-  const place = (x: number, y: number) => ({
-    x: spot.at.x + x * cos - y * sin,
-    y: spot.at.y + x * sin + y * cos,
-  })
-  return parts.map((part) => {
-    // The parts are fractions from the back-left of the thing; the footprint is
-    // measured out from its middle, which is where it is put.
-    const x0 = (part.x0 - 0.5) * thing.width
-    const x1 = (part.x1 - 0.5) * thing.width
-    const y0 = (part.y0 - 0.5) * thing.depth
-    const y1 = (part.y1 - 0.5) * thing.depth
-    return [place(x0, y0), place(x1, y0), place(x1, y1), place(x0, y1)]
-  })
+  return { x: spot.at.x + x * cos - y * sin, y: spot.at.y + x * sin + y * cos }
 }
 
 /** The four corners a thing takes up on the floor, in plan millimetres. */

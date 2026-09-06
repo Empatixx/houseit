@@ -66,8 +66,15 @@ export function roomOf(object: HouseObject) {
   return placed(object)?.room
 }
 
+/**
+ * Where a thing stands: its document, its storey and its room. The storey is
+ * the thing's own, not the one the tab has open — a staircase is picked from
+ * the floor above, through the well it comes up in, and it still stands on the
+ * floor below.
+ */
 function placed(object: HouseObject) {
-  const { doc, level } = documentStore.getState()
+  const { doc } = documentStore.getState()
+  const level = object.level
   const room = roomsOf(doc, level).find((candidate) => candidate.id === object.room)
   if (!room?.name) {
     sayError('the room this stands in has no name, so nothing can be said about it')

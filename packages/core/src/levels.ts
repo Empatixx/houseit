@@ -60,3 +60,15 @@ export function flightOf(height: number): { risers: number; riser: number; going
   const riser = Math.round(height / count)
   return { risers: count, riser, going: Math.round(630 - 2 * riser) }
 }
+
+/**
+ * How thick the floor between two storeys is, in millimetres: what a ceiling
+ * is made of, and what a flight of stairs has to come up through.
+ */
+export const SLAB = 250
+
+/**
+ * How much clear height somebody needs over a tread before the floor above can
+ * go over it rather than open up into a well. The building rule's 2100.
+ */
+export const HEADROOM = 2100

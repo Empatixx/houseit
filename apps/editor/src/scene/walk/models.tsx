@@ -1,5 +1,12 @@
-import { flightWidthOf, type StairKind, stairShape, treadsOf } from '@houseit/core/stairs'
+import {
+  flightWidthOf,
+  type Point,
+  type StairKind,
+  stairShape,
+  treadsOf,
+} from '@houseit/core/stairs'
 import type { ReactNode } from 'react'
+import { Shape } from 'three'
 import { MM } from '../plan-coordinates'
 import { lighter, PAINT, type Paint } from './finish'
 
@@ -598,6 +605,7 @@ const officeDesk: Builder = ({ w, d, h, body, frame }) => (
 const officeDeskL: Builder = (p) => {
   const { w, d, h, body, frame } = p
   const run = 800
+  // The leg is on the left of the drawing, which is the thing's own right.
   return (
     <>
       <Slab base={h - 40} h={40} w={w} d={run} z={d / 2 - run / 2} paint={body} />
@@ -606,20 +614,13 @@ const officeDeskL: Builder = (p) => {
         h={40}
         w={run}
         d={d - run}
-        x={-(w / 2 - run / 2)}
+        x={w / 2 - run / 2}
         z={-run / 2}
         paint={body}
       />
-      <Slab x={w / 2 - 40} z={d / 2 - run / 2} h={h - 40} w={80} d={run - 100} paint={frame} />
-      <Slab
-        x={-(w / 2 - run / 2)}
-        z={-(d / 2 - 40)}
-        h={h - 40}
-        w={run - 100}
-        d={80}
-        paint={frame}
-      />
       <Slab x={-(w / 2 - 40)} z={d / 2 - run / 2} h={h - 40} w={80} d={run - 100} paint={frame} />
+      <Slab x={w / 2 - run / 2} z={-(d / 2 - 40)} h={h - 40} w={run - 100} d={80} paint={frame} />
+      <Slab x={w / 2 - 40} z={d / 2 - run / 2} h={h - 40} w={80} d={run - 100} paint={frame} />
     </>
   )
 }
@@ -740,10 +741,11 @@ const kitchenL =
   (p) => {
     const { w, d } = p
     const deep = Math.min(650, d / 2)
+    // The leg is on the left of the drawing, which is the thing's own right.
     return (
       <>
         {run(p, { z: d / 2 - deep / 2, d: deep, upper })}
-        <Put x={-(w / 2 - deep / 2)} z={-deep / 2} turn={-Math.PI / 2}>
+        <Put x={w / 2 - deep / 2} z={-deep / 2} turn={Math.PI / 2}>
           {run(p, { w: d - deep, d: deep, upper })}
         </Put>
       </>
@@ -1144,7 +1146,11 @@ const car = (suv: boolean): Builder => {
  * Not a straight run of slabs whatever the kind, which is what it was: a winder
  * came out as a ramp through its own wall, and a spiral as a box. The treads are
  * `treadsOf`, so the flight climbed here is the flight drawn from above, right
- * down to how many steps it takes.
+ * down to how many steps it takes and which way round the corner it turns.
+ *
+ * Each step is a block one riser tall standing on the one below, so the flight
+ * is open underneath the way a stair is — not a solid mass down to the floor,
+ * which made an L a wooden wall and the space under the stairs no space at all.
  *
  * `h` is the storey it climbs — the walk hands a staircase its floor-to-floor
  * height, not the catalogue's — so the last tread is one riser under the floor
@@ -1155,24 +1161,16 @@ const staircase =
   ({ w, h, body, frame }) => {
     const shape = stairShape(kind, h, flightWidthOf(kind, w, h))
     const rise = h / shape.risers
-    const treads = treadsOf(shape)
 
     return (
       <>
-        {/* Each tread solid to the floor, which is how a stair in a house is
-            built and what makes it read as one from underneath, through the well. */}
-        {treads.map((tread) => (
-          <Slab
+        {treadsOf(shape).map((tread) => (
+          <Step
             key={tread.step}
-            base={0}
-            h={tread.step * rise}
-            w={tread.width}
-            d={tread.depth}
-            // The symbol's y runs back to front and its top edge is the thing's
-            // back, which is +z here.
-            x={tread.cx - shape.size.width / 2}
-            z={shape.size.depth / 2 - tread.cy}
-            turn={tread.turn}
+            outline={tread.outline}
+            size={shape.size}
+            base={(tread.step - 1) * rise}
+            h={rise}
             paint={body}
           />
         ))}
@@ -1182,6 +1180,42 @@ const staircase =
       </>
     )
   }
+
+type StepProps = {
+  /** The tread, in the drawing's frame: x from its left edge, y from its top. */
+  outline: Point[]
+  size: { width: number; depth: number }
+  base: number
+  h: number
+  paint: Paint
+}
+
+/**
+ * One step of a flight: the tread's outline, stood up as a block.
+ *
+ * The drawing is laid on the plan turned half round to put its top, the back,
+ * against the wall — so the drawing's left is the thing's right, which is +x
+ * here, and its top is +z. Built any other way the flight in the walk is the
+ * mirror image of the flight on the plan, and climbs into the corner the well
+ * was not cut in.
+ */
+function Step({ outline, size, base, h, paint }: StepProps) {
+  const shape = new Shape()
+  outline.forEach((point, index) => {
+    const x = (size.width / 2 - point.x) * MM
+    // Drawn flat in x and y and stood up by a quarter turn, which takes y to -z.
+    const y = (point.y - size.depth / 2) * MM
+    if (index === 0) shape.moveTo(x, y)
+    else shape.lineTo(x, y)
+  })
+  shape.closePath()
+  return (
+    <mesh position={[0, base * MM, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <extrudeGeometry args={[shape, { depth: h * MM, bevelEnabled: false }]} />
+      <Finish paint={paint} />
+    </mesh>
+  )
+}
 
 const column: Builder = ({ w, d, h }) => <Slab h={h} w={w} d={d} paint={PAINT.wall} />
 
