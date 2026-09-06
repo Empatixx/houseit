@@ -10,7 +10,7 @@ const RING = 62
 const TICK = 7
 const MARK = 17
 const NEAR = 4
-const BAND = 0.15
+const BAND = 0.09
 const GLOW = 0.22
 
 const round = (spin: number) => {

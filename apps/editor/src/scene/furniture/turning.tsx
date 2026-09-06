@@ -1,5 +1,6 @@
 import type { Point } from '@houseit/geometry/outlines'
 import { Html, Line } from '@react-three/drei'
+import { RefreshCcwIcon } from 'lucide-react'
 import { DoubleSide } from 'three'
 import { EMPHASIS } from '../../store/hover'
 import { MM, toWorld } from '../plan-coordinates'
@@ -7,7 +8,7 @@ import { MM, toWorld } from '../plan-coordinates'
 const INK = EMPHASIS.picked.line
 const FAINT = '#a1a1aa'
 const TICKS = 24
-const BAND = 0.15
+const BAND = 0.09
 const GLOW = 0.22
 
 const spot = (centre: Point, angle: number, radius: number): Point => ({
@@ -40,21 +41,7 @@ export function Turner({ at, height }: { at: Point; height: number }) {
         className="pointer-events-none flex size-9 select-none items-center justify-center rounded-full border border-black/10 bg-white shadow-sm"
         style={{ color: INK }}
       >
-        <svg
-          width={24}
-          height={24}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M 4.53 12.65 A 7.5 7.5 0 1 1 11.35 19.47" />
-          <path d="M 6.63 9.02 L 4.53 12.65 L 1.83 9.44" />
-          <path d="M 14.56 22.17 L 11.35 19.47 L 14.98 17.37" />
-        </svg>
+        <RefreshCcwIcon size={22} strokeWidth={2.25} />
       </div>
     </Html>
   )
