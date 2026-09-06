@@ -1,10 +1,10 @@
 import type { HouseDocument, Level } from '@houseit/core/document'
 import { levelAbove, levelBelow } from '@houseit/core/levels'
 import { layerOf, objectType } from '@houseit/core/object-types'
+import { boxOf, clashes, clashesAny, wallBox } from '@houseit/geometry/boxes'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { piecesOf, standingAt } from '@houseit/geometry/standing'
 import { stairwaysOn, type Well } from '@houseit/geometry/wells'
-import { boxOf, clashes, clashesAny, wallBox } from '../boxes'
 import { label, type Problem, type Rule } from './rule'
 
 export const stairs: Rule = ({ doc, level }) => {

@@ -1,4 +1,4 @@
-import type { Point } from '@houseit/geometry/outlines'
+import type { Point } from './outlines'
 
 export type Box = { x0: number; y0: number; x1: number; y1: number }
 

@@ -1,10 +1,10 @@
-import type { HouseDocument, Opening, Side } from '@houseit/core/document'
-import type { Point } from '@houseit/geometry/outlines'
+import type { HouseDocument, Side } from '@houseit/core/document'
+import { type Box, boxOf, clashes } from '@houseit/geometry/boxes'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { wallsFacing as facing, sideRun } from '@houseit/geometry/sides'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
-import { type Box, boxOf, clashes } from './boxes'
+import { sweptBy, swingOf } from '@houseit/geometry/swing'
 import { CommandError } from './command-error'
 
 export type { Side }
@@ -159,32 +159,6 @@ export function checkOpeningAt(
     )
   }
   return swing
-}
-
-function sweptBy(a: Point, b: Point, span: number, at: number, width: number, swing: -1 | 1): Box {
-  const unit = { x: (b.x - a.x) / (span || 1), y: (b.y - a.y) / (span || 1) }
-  const into = { x: -unit.y * swing, y: unit.x * swing }
-  const hinge = { x: a.x + unit.x * (at - width / 2), y: a.y + unit.y * (at - width / 2) }
-
-  return boxOf(
-    [0, 1].flatMap((along) =>
-      [0, 1].map((out) => ({
-        x: hinge.x + unit.x * width * along + into.x * width * out,
-        y: hinge.y + unit.y * width * along + into.y * width * out,
-      })),
-    ),
-  )
-}
-
-export function swingOf(doc: HouseDocument, opening: Opening): Box | undefined {
-  if (opening.kind !== 'door' || opening.variant !== 'hinged') return undefined
-  const wall = doc.walls[opening.wall]
-  const a = wall && doc.nodes[wall.a]
-  const b = wall && doc.nodes[wall.b]
-  if (!a || !b) return undefined
-
-  const span = Math.hypot(b.x - a.x, b.y - a.y)
-  return sweptBy(a, b, span, opening.t * span, opening.width, opening.swing)
 }
 
 function swingIsClear(

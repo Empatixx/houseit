@@ -4,7 +4,7 @@ import { stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
 import { type Surface, surfaceOf } from '@houseit/core/surfaces'
 import type { Point } from '@houseit/geometry/outlines'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
-import { piecesOf, type Spot, standingAt, swingOf } from '@houseit/geometry/standing'
+import { piecesOf, type Spot, standingAt, turnOf } from '@houseit/geometry/standing'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import { aimAt, putDown } from '../../edit/draw-commands'
@@ -168,7 +168,7 @@ function useSpin(object: HouseObject, spot: Spot) {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null
   const holding = useRef(false)
   const [preview, setPreview] = useState<number | null>(null)
-  const base = spot.turn - swingOf(object)
+  const base = spot.turn - turnOf(object)
 
   const angleTo = (point: Point) => {
     const total = Math.atan2(point.y - spot.at.y, point.x - spot.at.x) - Math.PI / 2

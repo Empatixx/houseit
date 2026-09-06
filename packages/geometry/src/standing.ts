@@ -37,7 +37,7 @@ export function standingAt(
         x: low + thing.along * (high - low),
         y: thing.across === undefined ? room.centre.y : south + thing.across * (north - south),
       },
-      turn: swingOf(thing),
+      turn: turnOf(thing),
     }
   }
 
@@ -56,17 +56,17 @@ export function standingAt(
       x: run.from.x + unit.x * travelled + run.inward.x * back,
       y: run.from.y + unit.y * travelled + run.inward.y * back,
     },
-    turn: Math.atan2(-run.inward.x, run.inward.y) + swingOf(thing),
+    turn: Math.atan2(-run.inward.x, run.inward.y) + turnOf(thing),
   }
 }
 
-export const swingOf = (thing: { rotation?: number }) => ((thing.rotation ?? 0) * Math.PI) / 180
+export const turnOf = (thing: { rotation?: number }) => ((thing.rotation ?? 0) * Math.PI) / 180
 
 export function reachOf(thing: { width: number; depth: number; rotation?: number }): {
   across: number
   into: number
 } {
-  const swing = swingOf(thing)
+  const swing = turnOf(thing)
   const square = Math.abs(Math.cos(swing))
   const skew = Math.abs(Math.sin(swing))
 

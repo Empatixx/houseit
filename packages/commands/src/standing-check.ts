@@ -1,9 +1,9 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { layerOf, objectType } from '@houseit/core/object-types'
+import { boxOf, clashesAny, INSIDE_A_WALL, wallBox } from '@houseit/geometry/boxes'
 import { fitsInside } from '@houseit/geometry/fits'
 import type { Room } from '@houseit/geometry/rooms'
-import { footprintOf, piecesOf, reachOf, standingAt, swingOf } from '@houseit/geometry/standing'
-import { boxOf, clashesAny, INSIDE_A_WALL, wallBox } from './boxes'
+import { footprintOf, piecesOf, reachOf, standingAt, turnOf } from '@houseit/geometry/standing'
 import type { Spot } from './place-object'
 
 export type Shape = { type: string; width: number; depth: number; rotation?: number }
@@ -52,7 +52,7 @@ export function standingProblem(
       x: at.at.x - Math.sin(at.turn) * forward,
       y: at.at.y + Math.cos(at.turn) * forward,
     },
-    turn: at.turn - swingOf({ rotation }),
+    turn: at.turn - turnOf({ rotation }),
   }
   if (!how.overhang && !fitsInside(doc, room, footprintOf(middle, needs))) {
     return `it would reach outside ${room.name ?? 'the room'}`

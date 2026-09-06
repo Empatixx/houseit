@@ -1,6 +1,5 @@
+import type { Box } from './boxes'
 import type { Point } from './outlines'
-
-export type Box = { x0: number; y0: number; x1: number; y1: number }
 
 export function unionOfBoxes(boxes: Box[]): Point[][] {
   if (boxes.length === 0) return []

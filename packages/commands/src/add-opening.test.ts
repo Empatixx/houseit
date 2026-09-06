@@ -1,7 +1,7 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
+import type { Box } from '@houseit/geometry/boxes'
+import { swingOf } from '@houseit/geometry/swing'
 import { expect, test } from 'vitest'
-import type { Box } from './boxes'
-import { swingOf } from './place-opening'
 import { runScript } from './run'
 
 const FLOOR = 'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name dům'
