@@ -1,20 +1,22 @@
 import type { HouseObject, Opening, Wall } from '@houseit/core/document'
 import { finishesFor, finishOf, type Part, STYLES, styleOf } from '@houseit/core/finishes'
 import { FLOOR_MATERIALS, floorMaterial } from '@houseit/core/floor-materials'
-import { objectType } from '@houseit/core/object-types'
+import { CAMERA, objectType } from '@houseit/core/object-types'
 import { ROOM_KINDS, roomKindOf } from '@houseit/core/room-kinds'
 import { SURFACES } from '@houseit/core/surfaces'
 import { interiorSize } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { standingAt } from '@houseit/geometry/standing'
 import {
   BlindsIcon,
   BrickWallIcon,
+  CameraIcon,
   DoorOpenIcon,
   LayersIcon,
   PaletteIcon,
   PanelTopIcon,
 } from 'lucide-react'
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,13 +28,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { finish, remove, resize, roomOf, turnTo } from '../edit/object-commands'
+import { sayError } from '../edit/notice'
+import { finish, placeCamera, remove, resize, roomOf, turnTo } from '../edit/object-commands'
 import { removeOpening, setOpening, whereOpening } from '../edit/opening-commands'
+import { pick } from '../edit/pick'
 import { layFloor, setFinish, setKind, setStyle } from '../edit/room-commands'
+import { promptFor, type Visualised, visualise } from '../edit/visualise'
 import { nameWall } from '../edit/wall-commands'
 import { selectionStore, useSelection } from '../store/selection'
 import { useDocument } from '../store/store'
 import { KindIcon } from './avatars'
+import { CameraView } from './camera-view'
 import { type Choice, FinishRow } from './finish-picker'
 
 export function PanelContent() {
@@ -55,7 +61,12 @@ export function PanelContent() {
   }
   if (selected.kind === 'object') {
     const object = doc.objects[selected.id]
-    return object ? <ObjectPanel object={object} /> : null
+    if (!object) return null
+    return object.type === CAMERA ? (
+      <CameraPanel object={object} />
+    ) : (
+      <ObjectPanel object={object} />
+    )
   }
   if (selected.kind === 'opening') {
     const opening = doc.openings[selected.id]
@@ -172,6 +183,102 @@ function RoomPanel({ room }: { room: Room }) {
           onPick={(id) => setFinish(room, part, id)}
         />
       ))}
+      <Separator />
+      <Heading>Visualise</Heading>
+      <p className="text-xs leading-5 text-muted-foreground">
+        Put a camera in the room, turn it to face what you want to see, and generate a picture from
+        there.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          const id = placeCamera(room)
+          if (id) pick({ kind: 'object', id })
+        }}
+      >
+        <CameraIcon />
+        Visualise
+      </Button>
+    </>
+  )
+}
+
+function CameraPanel({ object }: { object: HouseObject }) {
+  const doc = useDocument((state) => state.doc)
+  const level = useDocument((state) => state.level)
+  const room = roomOf(object)
+  const spot = room ? standingAt(doc, level, room, object) : undefined
+  const record = room?.id === undefined ? undefined : doc.rooms[room.id]
+  const suggested = promptFor(record)
+  const [prompt, setPrompt] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [seen, setSeen] = useState<Visualised | null>(null)
+  const eye = useRef<() => string | undefined>(() => undefined)
+  const ready = useCallback((take: () => string | undefined) => {
+    eye.current = take
+  }, [])
+
+  const generate = async () => {
+    setBusy(true)
+    try {
+      setSeen(await visualise(prompt.trim() || suggested, () => eye.current()))
+    } catch (error) {
+      sayError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <Heading>Camera</Heading>
+      {spot ? <CameraView spot={spot} level={level} onReady={ready} /> : null}
+      <Field label="Turn (°)">
+        <NumberField
+          value={object.rotation ?? 0}
+          onCommit={(rotation) => turnTo(object, rotation)}
+        />
+      </Field>
+      <Facts rows={[['Room', room?.name ?? '—']]} />
+      <Separator />
+      <Heading>Visualise</Heading>
+      <Field label="Prompt">
+        <textarea
+          value={prompt}
+          placeholder={suggested}
+          rows={4}
+          onChange={(event) => setPrompt(event.target.value)}
+          className="w-full min-w-0 resize-y rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        />
+      </Field>
+      <Button size="sm" disabled={busy} onClick={() => void generate()}>
+        {busy ? 'Generating…' : 'Generate'}
+      </Button>
+      {seen ? (
+        <figure className="flex flex-col gap-1.5">
+          <img
+            src={seen.image}
+            alt="What the camera sees"
+            draggable={false}
+            className="aspect-[4/3] w-full rounded-lg border object-cover"
+          />
+          <figcaption className="text-xs leading-5 text-muted-foreground">
+            Not a render yet, the camera's own view. Asked for: {seen.prompt}
+          </figcaption>
+        </figure>
+      ) : null}
+      <Button
+        variant="outline"
+        size="sm"
+        className="hover:border-destructive hover:text-destructive"
+        onClick={() => {
+          remove(object)
+          selectionStore.getState().select(null)
+        }}
+      >
+        Remove
+      </Button>
     </>
   )
 }

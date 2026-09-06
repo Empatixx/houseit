@@ -52,10 +52,24 @@ const IMPORTED: readonly ObjectType[] = IMPORTED_TYPES.map((type) => ({
   symbol: '',
 }))
 
+export const CAMERA = 'camera'
+
+const LOOKING: ObjectType = {
+  id: CAMERA,
+  label: 'Camera',
+  size: { width: 300, depth: 300 },
+  surfaces: ['white'],
+  stands: 'free',
+  layer: 'over',
+  symbol: 'camera.svg',
+  rooms: ['any'],
+}
+
 export const OBJECT_TYPES: readonly ObjectType[] = [
   ...CATALOG_OBJECT_TYPES.filter((type) => !type.id.startsWith('stairs-')),
   ...STAIRS,
   ...IMPORTED,
+  LOOKING,
 ]
 
 export const OBJECT_TYPE_IDS = OBJECT_TYPES.map((entry) => entry.id)

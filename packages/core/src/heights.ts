@@ -13,6 +13,7 @@ const HEIGHTS: Record<string, Partial<Height>> = {
   'yoga-mat': { height: 10 },
   'picture-frame': { height: 600, base: 1200 },
   'floor-lamp': { height: 1600 },
+  camera: { height: 1600 },
   'table-lamp': { height: 500, base: 700 },
   'potted-plant': { height: 1300 },
   'potted-plant-m': { height: 900 },

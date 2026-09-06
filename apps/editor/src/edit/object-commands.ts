@@ -1,8 +1,10 @@
+import { addObject } from '@houseit/commands/add-object'
 import { removeObject } from '@houseit/commands/remove'
 import { updateObject } from '@houseit/commands/update-object'
 import type { HouseObject } from '@houseit/core/document'
+import { CAMERA } from '@houseit/core/object-types'
 import type { Point } from '@houseit/geometry/outlines'
-import { roomsOf } from '@houseit/geometry/rooms'
+import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { dropOf } from '../scene/furniture/drop'
 import { documentStore } from '../store/store'
 import { sayError } from './notice'
@@ -52,4 +54,33 @@ function placed(object: HouseObject) {
     return undefined
   }
   return { doc, level, room: { ...room, name: room.name } }
+}
+
+const CAMERA_SPOTS: [number, number][] = [
+  [0.5, 0.5],
+  [0.3, 0.3],
+  [0.7, 0.3],
+  [0.3, 0.7],
+  [0.7, 0.7],
+  [0.5, 0.15],
+  [0.15, 0.5],
+]
+
+export function placeCamera(room: Room): string | undefined {
+  if (!room.name) return undefined
+  const name = room.name
+  let refused = ''
+  for (const [along, across] of CAMERA_SPOTS) {
+    const before = new Set(Object.keys(documentStore.getState().doc.objects))
+    try {
+      documentStore.getState().apply(addObject, { room: name, type: CAMERA, along, across })
+    } catch (error) {
+      refused ||= error instanceof Error ? error.message : String(error)
+      continue
+    }
+    const id = Object.keys(documentStore.getState().doc.objects).find((key) => !before.has(key))
+    if (id) return id
+  }
+  sayError(refused || 'there is no floor free for a camera')
+  return undefined
 }

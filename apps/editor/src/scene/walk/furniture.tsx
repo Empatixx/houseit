@@ -1,6 +1,6 @@
 import type { HouseObject } from '@houseit/core/document'
 import { heightOf } from '@houseit/core/heights'
-import { layerOf, symbolOf } from '@houseit/core/object-types'
+import { CAMERA, layerOf, symbolOf } from '@houseit/core/object-types'
 import { isStaircase } from '@houseit/core/stairs'
 import { type Surface, surfaceOf } from '@houseit/core/surfaces'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
@@ -26,7 +26,7 @@ export function Furniture({ level }: { level: string }) {
         .map((room) => [room.id!, room] as const),
     )
     const standing = Object.values(doc.objects)
-      .filter((object) => object.level === level)
+      .filter((object) => object.level === level && object.type !== CAMERA)
       .flatMap((object) => {
         const room = rooms.get(object.room)
         const spot = room ? standingAt(doc, level, room, object) : undefined
