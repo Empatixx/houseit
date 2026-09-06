@@ -9,7 +9,7 @@ export type Writer = {
   flush(): Promise<void>
 }
 
-export function createWriter(db: Promise<ProjectsDb>): Writer {
+export function createWriter(db: () => Promise<ProjectsDb>): Writer {
   let waiting: { id: string; doc: HouseDocument; level: string } | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   let running: Promise<void> = Promise.resolve()
@@ -21,7 +21,7 @@ export function createWriter(db: Promise<ProjectsDb>): Writer {
     waiting = undefined
     if (!pending) return
 
-    const database = await db
+    const database = await db()
     await database.write(pending.id, pending.doc)
     const meta = await database.meta(pending.id)
     if (!meta) return

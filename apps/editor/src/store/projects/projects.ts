@@ -1,4 +1,5 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
+import { migrateDocument } from '@houseit/core/migrate'
 import { useStore } from 'zustand'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import type { DocumentState } from '../document-store'
@@ -26,9 +27,11 @@ export type ProjectsState = {
 }
 
 export function createProjectsStore(
-  db: Promise<ProjectsDb>,
+  open: () => Promise<ProjectsDb>,
   docs: StoreApi<DocumentState> = documentStore,
 ): StoreApi<ProjectsState> {
+  let opened: Promise<ProjectsDb> | undefined
+  const db = () => (opened ??= open())
   const writer = createWriter(db)
 
   const store = createStore<ProjectsState>()((set, get) => ({
@@ -36,11 +39,11 @@ export function createProjectsStore(
     open: null,
 
     refresh: async () => {
-      set({ list: await (await db).list() })
+      set({ list: await (await db()).list() })
     },
 
     create: async (name) => {
-      const database = await db
+      const database = await db()
       const list = await database.list()
       const called = name.trim() || UNTITLED
       const now = Date.now()
@@ -61,10 +64,13 @@ export function createProjectsStore(
 
     openProject: async (id) => {
       await get().closeProject()
-      const database = await db
+      const database = await db()
       const meta = await database.meta(id)
       if (!meta) return undefined
-      docs.getState().load((await database.read(id)) ?? createEmptyDocument())
+      const stored = await database.read(id)
+      const doc = stored === undefined ? createEmptyDocument() : readable(stored)
+      if (!doc) return undefined
+      docs.getState().load(doc)
       set({ open: meta })
       return meta
     },
@@ -81,7 +87,7 @@ export function createProjectsStore(
     rename: async (id, name) => {
       const called = name.trim()
       if (!called) return
-      const database = await db
+      const database = await db()
       const meta = await database.meta(id)
       if (!meta) return
       const renamed = { ...meta, name: called }
@@ -94,17 +100,18 @@ export function createProjectsStore(
 
     remove: async (id) => {
       if (get().open?.id === id) await get().closeProject()
-      const database = await db
+      const database = await db()
       const meta = await database.meta(id)
       if (!meta) return undefined
-      const doc = await database.read(id)
+      const stored = await database.read(id)
+      const doc = stored === undefined ? undefined : readable(stored)
       await database.remove(id)
       set((state) => ({ list: state.list?.filter((project) => project.id !== id) }))
       return { meta, doc }
     },
 
     restore: async ({ meta, doc }) => {
-      const database = await db
+      const database = await db()
       await database.put(meta)
       if (doc) await database.write(meta.id, doc)
       await get().refresh()
@@ -120,12 +127,19 @@ export function createProjectsStore(
   return store
 }
 
-export const projectsStore = createProjectsStore(
-  openProjects().then(async (db) => {
-    await importLocalPlan(db)
-    return db
-  }),
-)
+export const projectsStore = createProjectsStore(async () => {
+  const db = await openProjects()
+  await importLocalPlan(db)
+  return db
+})
+
+function readable(stored: unknown): HouseDocument | undefined {
+  try {
+    return migrateDocument(stored)
+  } catch {
+    return undefined
+  }
+}
 
 export function useProjects<T>(selector: (state: ProjectsState) => T): T {
   return useStore(projectsStore, selector)

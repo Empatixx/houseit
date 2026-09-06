@@ -62,7 +62,8 @@ test('a plan written by an older build is brought forward on the way in', async 
   await importLocalPlan(db, store)
 
   const [project] = await db.list()
-  expect((await db.read(project?.id ?? ''))?.rooms.r1?.name).toBe('kuchyň')
+  const stored = (await db.read(project?.id ?? '')) as ReturnType<typeof createEmptyDocument>
+  expect(stored.rooms.r1?.name).toBe('kuchyň')
 })
 
 test('nothing in localStorage means no project is made', async () => {

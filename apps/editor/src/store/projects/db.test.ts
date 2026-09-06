@@ -1,4 +1,4 @@
-import { createEmptyDocument, DOCUMENT_VERSION } from '@houseit/core/document'
+import { createEmptyDocument } from '@houseit/core/document'
 import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
 import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
@@ -41,38 +41,13 @@ test('nothing saved under that name means nothing to read', async () => {
   expect(await db.meta('byt')).toBeUndefined()
 })
 
-test('a document written by an older build is brought forward', async () => {
+test('a document comes back exactly as it was stored, unjudged', async () => {
   const db = await fresh()
-  const level = 'l1'
-  await writeRaw(db, 'byt', {
-    version: 1,
-    levels: { [level]: { id: level, name: 'Ground floor', elevation: 0, height: 2800 } },
-    nodes: {},
-    walls: {},
-    openings: {},
-    roomLabels: { r1: { id: 'r1', level, x: 1, y: 1, name: 'kuchyň' } },
-    devices: {},
-    circuits: {},
-  })
+  const older = { version: 1, roomLabels: { r1: { id: 'r1', name: 'kuchyň' } } }
 
-  const doc = await db.read('byt')
+  await writeRaw(db, 'byt', older)
 
-  expect(doc?.version).toBe(DOCUMENT_VERSION)
-  expect(doc?.rooms.r1?.name).toBe('kuchyň')
-})
-
-test('junk where a document should be is ignored rather than thrown', async () => {
-  const db = await fresh()
-  await writeRaw(db, 'byt', 'not a document at all')
-
-  expect(await db.read('byt')).toBeUndefined()
-})
-
-test('a document from a newer build is ignored, not half-read', async () => {
-  const db = await fresh()
-  await writeRaw(db, 'byt', { ...createEmptyDocument(), version: 99 })
-
-  expect(await db.read('byt')).toBeUndefined()
+  expect(await db.read('byt')).toEqual(older)
 })
 
 test('removing a project takes its document with it', async () => {

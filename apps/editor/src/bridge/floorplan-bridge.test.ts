@@ -10,7 +10,7 @@ import { installFloorplanBridge } from './floorplan-bridge'
 const floor = 'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name dům'
 
 async function bridgeOn(store = createDocumentStore()) {
-  const projects = createProjectsStore(openProjects(new FakeIndexedDb()), store)
+  const projects = createProjectsStore(() => openProjects(new FakeIndexedDb()), store)
   installFloorplanBridge(store, projects)
   const meta = await projects.getState().create('Byt')
   await projects.getState().openProject(meta.id)
@@ -19,7 +19,7 @@ async function bridgeOn(store = createDocumentStore()) {
 
 async function bridgeWithNothingOpen() {
   const store = createDocumentStore()
-  const projects = createProjectsStore(openProjects(new FakeIndexedDb()), store)
+  const projects = createProjectsStore(() => openProjects(new FakeIndexedDb()), store)
   await projects.getState().create('Byt')
   await projects.getState().refresh()
   installFloorplanBridge(store, projects)

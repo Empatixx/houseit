@@ -21,7 +21,7 @@ const levelOf = (doc: HouseDocument) => Object.keys(doc.levels)[0] as string
 async function started(): Promise<{ db: ProjectsDb; writer: ReturnType<typeof createWriter> }> {
   const db = await fresh()
   await db.put(meta)
-  return { db, writer: createWriter(Promise.resolve(db)) }
+  return { db, writer: createWriter(() => Promise.resolve(db)) }
 }
 
 const after = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))

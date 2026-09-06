@@ -1,5 +1,4 @@
 import type { HouseDocument } from '@houseit/core/document'
-import { migrateDocument } from '@houseit/core/migrate'
 import type { Outline } from './outline'
 
 const DB_NAME = 'houseit'
@@ -19,7 +18,7 @@ export type ProjectsDb = {
   list(): Promise<ProjectMeta[]>
   meta(id: string): Promise<ProjectMeta | undefined>
   put(meta: ProjectMeta): Promise<void>
-  read(id: string): Promise<HouseDocument | undefined>
+  read(id: string): Promise<unknown>
   write(id: string, doc: HouseDocument): Promise<void>
   remove(id: string): Promise<void>
 }
@@ -63,15 +62,7 @@ export async function openProjects(
 
     put: (meta) => changing([PROJECTS], (tx) => void tx.objectStore(PROJECTS).put(meta)),
 
-    read: async (id) => {
-      const stored = await asking<unknown>(DOCUMENTS, (shelf) => shelf.get(id))
-      if (stored === undefined) return undefined
-      try {
-        return migrateDocument(stored)
-      } catch {
-        return undefined
-      }
-    },
+    read: (id) => asking<unknown>(DOCUMENTS, (shelf) => shelf.get(id)),
 
     write: (id, doc) => changing([DOCUMENTS], (tx) => void tx.objectStore(DOCUMENTS).put(doc, id)),
 

@@ -1,14 +1,21 @@
+import { createEmptyDocument } from '@houseit/core/document'
 import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
 import { createDocumentStore } from '../document-store'
 import { WRITE_DELAY } from './autosave'
-import { openProjects } from './db'
+import { openProjects, type ProjectsDb } from './db'
 import { createProjectsStore } from './projects'
 
 function fresh() {
   const docs = createDocumentStore()
-  const store = createProjectsStore(openProjects(new FakeIndexedDb()), docs)
+  const store = createProjectsStore(() => openProjects(new FakeIndexedDb()), docs)
   return { docs, store, at: store.getState }
+}
+
+function over(db: ProjectsDb) {
+  const docs = createDocumentStore()
+  const store = createProjectsStore(() => Promise.resolve(db), docs)
+  return { docs, at: store.getState }
 }
 
 const ROOM =
@@ -146,4 +153,42 @@ test('removing a project that is not there gives back nothing', async () => {
   const { at } = fresh()
 
   expect(await at().remove('nowhere')).toBeUndefined()
+})
+
+test('a plan written by an older build is brought forward as it is opened', async () => {
+  const db = await openProjects(new FakeIndexedDb())
+  await db.put({ id: 'byt', name: 'Byt', createdAt: 1, updatedAt: 1 })
+  await db.write('byt', {
+    version: 1,
+    levels: { l1: { id: 'l1', name: 'Ground floor', elevation: 0, height: 2800 } },
+    nodes: {},
+    walls: {},
+    openings: {},
+    roomLabels: { r1: { id: 'r1', level: 'l1', x: 1, y: 1, name: 'kuchyň' } },
+    devices: {},
+    circuits: {},
+  } as never)
+  const { docs, at } = over(db)
+
+  expect(await at().openProject('byt')).toBeDefined()
+  expect(docs.getState().doc.rooms.r1?.name).toBe('kuchyň')
+})
+
+test('a plan that cannot be read is refused, not opened empty over the top of it', async () => {
+  const db = await openProjects(new FakeIndexedDb())
+  await db.put({ id: 'byt', name: 'Byt', createdAt: 1, updatedAt: 1 })
+  await db.write('byt', 'not a document at all' as never)
+  const { at } = over(db)
+
+  expect(await at().openProject('byt')).toBeUndefined()
+  expect(at().open).toBeNull()
+})
+
+test('a plan from a newer build is refused rather than half-read', async () => {
+  const db = await openProjects(new FakeIndexedDb())
+  await db.put({ id: 'byt', name: 'Byt', createdAt: 1, updatedAt: 1 })
+  await db.write('byt', { ...createEmptyDocument(), version: 99 } as never)
+  const { at } = over(db)
+
+  expect(await at().openProject('byt')).toBeUndefined()
 })
