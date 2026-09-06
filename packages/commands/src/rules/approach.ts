@@ -9,6 +9,7 @@ import { piecesOf, standingAt } from '@houseit/geometry/standing'
 import { label, type Problem, type Rule } from './rule'
 
 const SQUEEZE = 600
+const TOUCHING = 60
 
 export const approach: Rule = ({ doc, level, rooms }) => {
   const problems: Problem[] = []
@@ -102,9 +103,9 @@ function acrossDoorway(box: Box, doorway: Doorway, side: -1 | 1): Span | undefin
   const out = corners.map(
     (corner) => (corner.x * doorway.across.x + corner.y * doorway.across.y) * side,
   )
-  if (Math.max(...out) <= doorway.face || Math.min(...out) >= doorway.face + STANDARD.approach) {
-    return undefined
-  }
+  const near = doorway.face + TOUCHING
+  const far = doorway.face + STANDARD.approach - TOUCHING
+  if (Math.max(...out) <= near || Math.min(...out) >= far) return undefined
 
   const half = doorway.width / 2
   const on = corners.map((corner) => corner.x * doorway.along.x + corner.y * doorway.along.y)

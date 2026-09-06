@@ -120,3 +120,19 @@ test('the trouble is told to the command that caused it, not to a later question
 
   expect(codes(script)).toContain('door.blocked')
 })
+
+const ROOM = 'add-room --material ash --shape rectangle --width 5m --depth 5m --name room'
+const atDoor = (across: number) =>
+  [
+    ROOM,
+    'add-opening --kind door --room room --side south --along 0.5 --variant pocket',
+    `add-object --room room --type box --width 600 --depth 600 --along 0.5 --across ${across}`,
+  ].join('\n')
+
+test('something a shoulder away from a door is not standing in the way of it', () => {
+  expect(codes(atDoor(0.21))).not.toContain('door.no-approach')
+})
+
+test('something right in front of a door is', () => {
+  expect(codes(atDoor(0.15))).toContain('door.no-approach')
+})
