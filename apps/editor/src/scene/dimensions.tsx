@@ -24,7 +24,7 @@ export function Dimensions() {
   const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
   const selected = useSelection((state) => state.selected)
-  const showAll = useSelection((state) => state.showAll)
+  const measured = useSelection((state) => state.measured)
 
   const rooms = useMemo(() => roomsOf(doc, level), [doc, level])
   const extent = useMemo(() => planExtent(doc, level), [doc, level])
@@ -36,14 +36,12 @@ export function Dimensions() {
   const spot =
     pickedObject && objectRoom ? standingAt(doc, level, objectRoom, pickedObject) : undefined
 
-  const lines: Dimension[] = []
-  if (showAll) {
-    for (const room of rooms) lines.push(...roomDimensions(doc, level, room))
-  } else if (pickedRoom) {
-    lines.push(...roomDimensions(doc, level, pickedRoom))
-  }
-  if ((showAll || pickedRoom) && extent) lines.push(...extentDimensions(extent))
-  if (pickedObject && objectRoom && spot) {
+  const measuring =
+    measured === 'all' ? rooms : measured === 'selected' && pickedRoom ? [pickedRoom] : []
+
+  const lines: Dimension[] = measuring.flatMap((room) => roomDimensions(doc, level, room))
+  if (measuring.length > 0 && extent) lines.push(...extentDimensions(extent))
+  if (measured !== 'none' && pickedObject && objectRoom && spot) {
     lines.push(...objectClearances(doc, level, objectRoom, spot, pickedObject))
   }
 

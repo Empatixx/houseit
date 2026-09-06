@@ -73,7 +73,7 @@ export function installFloorplanBridge(
 
     if (view.room === undefined) {
       selection.select(null)
-      selection.showDimensions(view.dimensions ?? false)
+      selection.measure(view.dimensions ? 'all' : 'none')
       viewStore.getState().frame(null)
       return { ok: true }
     }
@@ -98,7 +98,7 @@ export function installFloorplanBridge(
     const xs = corners.map((corner) => corner.x)
     const ys = corners.map((corner) => corner.y)
     selection.select(picked)
-    selection.showDimensions(false)
+    selection.measure('selected')
     viewStore.getState().frame({
       x0: Math.min(...xs) - ROOM_MARGIN,
       y0: Math.min(...ys) - ROOM_MARGIN,

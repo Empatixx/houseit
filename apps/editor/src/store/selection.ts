@@ -7,20 +7,22 @@ export type Selection =
   | { kind: 'opening'; id: string }
   | { kind: 'wall'; id: string }
 
+export type Measured = 'all' | 'selected' | 'none'
+
+export const MEASURED: Measured[] = ['none', 'selected', 'all']
+
 type SelectionState = {
   selected: Selection | null
-  showAll: boolean
+  measured: Measured
   select: (selection: Selection | null) => void
-  toggleAll: () => void
-  showDimensions: (all: boolean) => void
+  measure: (measured: Measured) => void
 }
 
 export const selectionStore = createStore<SelectionState>()((set) => ({
   selected: null,
-  showAll: false,
+  measured: 'none',
   select: (selected) => set({ selected }),
-  toggleAll: () => set((state) => ({ showAll: !state.showAll })),
-  showDimensions: (showAll) => set({ showAll }),
+  measure: (measured) => set({ measured }),
 }))
 
 export function useSelection<T>(selector: (state: SelectionState) => T): T {

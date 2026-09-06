@@ -131,7 +131,7 @@ test('showing the level lets go of whatever was picked and frames the plan', asy
   expect(bridge.show({ dimensions: true })).toMatchObject({ ok: true })
 
   expect(selectionStore.getState().selected).toBeNull()
-  expect(selectionStore.getState().showAll).toBe(true)
+  expect(selectionStore.getState().measured).toBe('all')
   expect(viewStore.getState().box).toBeNull()
 })
 

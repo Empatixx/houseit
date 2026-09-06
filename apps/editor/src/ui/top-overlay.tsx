@@ -9,12 +9,18 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ZOOM } from '../scene/zooming'
 import { useMode } from '../store/mode'
-import { selectionStore, useSelection } from '../store/selection'
+import { MEASURED, type Measured, selectionStore, useSelection } from '../store/selection'
 import { documentStore, useDocument } from '../store/store'
 import { viewStore } from '../store/view'
 import { Compass } from './compass'
@@ -25,7 +31,7 @@ import { useCover } from './use-cover'
 export function TopOverlay() {
   const canUndo = useDocument((state) => state.canUndo)
   const canRedo = useDocument((state) => state.canRedo)
-  const showAll = useSelection((state) => state.showAll)
+  const measured = useSelection((state) => state.measured)
   const walking = useMode((state) => state.mode === '3d')
   const edge = useRightEdge()
   const shown = usePanelShown()
@@ -83,15 +89,25 @@ export function TopOverlay() {
             </Tooltip>
             <PopoverContent align="end" className="w-64">
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="measurements" className="text-sm">
                     Measurements
                   </Label>
-                  <Switch
-                    id="measurements"
-                    checked={showAll}
-                    onCheckedChange={(on) => selectionStore.getState().showDimensions(on)}
-                  />
+                  <Select
+                    value={measured}
+                    onValueChange={(value) => selectionStore.getState().measure(value as Measured)}
+                  >
+                    <SelectTrigger id="measurements" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEASURED.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button
                   variant="outline"
