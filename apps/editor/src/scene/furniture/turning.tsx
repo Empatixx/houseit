@@ -1,6 +1,5 @@
 import type { Point } from '@houseit/geometry/outlines'
 import { Html, Line } from '@react-three/drei'
-import { RefreshCcwIcon } from 'lucide-react'
 import { DoubleSide } from 'three'
 import { EMPHASIS } from '../../store/hover'
 import { MM, toWorld } from '../plan-coordinates'
@@ -37,12 +36,22 @@ export function Turner({ at, height }: { at: Point; height: number }) {
       zIndexRange={[8, 5]}
       style={{ pointerEvents: 'none' }}
     >
-      <div
-        className="pointer-events-none flex size-9 select-none items-center justify-center rounded-full border border-black/10 bg-white shadow-sm"
-        style={{ color: INK }}
+      <svg
+        width={30}
+        height={30}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={INK}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="pointer-events-none select-none"
+        aria-hidden="true"
       >
-        <RefreshCcwIcon size={22} strokeWidth={2.25} />
-      </div>
+        <path d="M 17.32 8.27 A 6.5 6.5 0 1 0 17.32 15.73" />
+        <path d="M 17.13 4.68 L 17.32 8.27 L 14.01 6.87" />
+        <path d="M 14.01 17.14 L 17.32 15.73 L 17.13 19.33" />
+      </svg>
     </Html>
   )
 }
