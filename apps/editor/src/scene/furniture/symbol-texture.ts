@@ -5,6 +5,8 @@ const LONGEST = 1024
 
 const WHITE = /#ffffff|#fff\b|white/i
 
+export type Hatch = { colour: string; spacing: number; width: number }
+
 const cache = new Map<string, Promise<Texture>>()
 const sources = new Map<string, Promise<string>>()
 
@@ -23,12 +25,15 @@ export function symbolTexture(
   file: string,
   fill: string,
   size: { width: number; depth: number },
+  hatch?: Hatch,
 ): Promise<Texture> {
-  const key = `${file}@${fill}`
+  const key = keyOf(file, fill, hatch)
   const cached = cache.get(key)
   if (cached) return cached
 
-  const loading = sourceOf(file).then((source) => rasterise(tint(source, fill), size))
+  const loading = sourceOf(file).then((source) =>
+    rasterise(dressed(source, fill, size, hatch), size),
+  )
   cache.set(key, loading)
   return loading
 }
@@ -38,19 +43,65 @@ export function drawnTexture(
   svg: string,
   fill: string,
   size: { width: number; depth: number },
+  hatch?: Hatch,
 ): Promise<Texture> {
-  const cached = cache.get(`${key}@${fill}`)
+  const cached = cache.get(keyOf(key, fill, hatch))
   if (cached) return cached
 
-  const drawing = rasterise(tint(svg, fill), size)
-  cache.set(`${key}@${fill}`, drawing)
+  const drawing = rasterise(dressed(svg, fill, size, hatch), size)
+  cache.set(keyOf(key, fill, hatch), drawing)
   return drawing
 }
+
+const keyOf = (name: string, fill: string, hatch: Hatch | undefined) =>
+  hatch ? `${name}@${fill}@${hatch.colour}/${hatch.spacing}/${hatch.width}` : `${name}@${fill}`
+
+const dressed = (
+  source: string,
+  fill: string,
+  size: { width: number; depth: number },
+  hatch: Hatch | undefined,
+) => (hatch ? hatched(tint(source, fill), source, size, hatch) : tint(source, fill))
 
 function tint(source: string, fill: string): string {
   return source.replace(/fill="([^"]*)"/g, (match, colour: string) =>
     WHITE.test(colour) ? `fill="${fill}"` : match,
   )
+}
+
+const round = (value: number) => Math.round(value * 1000) / 1000
+
+export function hatched(
+  drawing: string,
+  source: string,
+  size: { width: number; depth: number },
+  hatch: Hatch,
+): string {
+  const box = /viewBox="\s*([-\d.]+)\s+([-\d.]+)\s+([\d.]+)\s+([\d.]+)/.exec(source)
+  const [x, y, width, height] = box ? box.slice(1, 5).map(Number) : [0, 0, size.width, size.depth]
+  const units = (width ?? size.width) / size.width
+  const step = round(hatch.spacing * units)
+  const line = round(hatch.width * units)
+  const root = /<svg\b[^>]*>/.exec(source)?.[0] ?? ''
+  const inherited = /\sfill="[^"]*"/.exec(root)?.[0] ?? ''
+  const body = source
+    .replace(/^[\s\S]*?<svg\b[^>]*>/, '')
+    .replace(/<\/svg>[\s\S]*$/, '')
+    .replace(/<defs\b[\s\S]*?<\/defs>/g, '')
+    .replace(/\s(?:id|clip-path|mask|filter)="[^"]*"/g, '')
+    .replace(/fill="([^"]*)"/g, (match, colour: string) =>
+      colour === 'none'
+        ? match
+        : WHITE.test(colour) || colour.startsWith('url(')
+          ? 'fill="#fff"'
+          : 'fill="#000"',
+    )
+    .replace(/stroke="(?!none)[^"]*"/g, 'stroke="#000"')
+  const defs = `<defs><pattern id="picked-hatch" patternUnits="userSpaceOnUse" width="${step}" height="${step}" patternTransform="rotate(45)"><rect width="${line}" height="${step}" fill="${hatch.colour}"/></pattern><mask id="picked-mask"><g${inherited}>${body}</g></mask></defs>`
+  const overlay = `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="url(#picked-hatch)" mask="url(#picked-mask)"/>`
+  return drawing
+    .replace(/<svg\b[^>]*>/, (tag) => `${tag}${defs}`)
+    .replace(/<\/svg>/, `${overlay}</svg>`)
 }
 
 function rasterise(svg: string, size: { width: number; depth: number }): Promise<Texture> {

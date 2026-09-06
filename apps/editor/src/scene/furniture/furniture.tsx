@@ -24,7 +24,7 @@ import { dragged, pointOnPlan } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
 import { symbolHeight } from './stacking'
 import { Dial, Turner } from './turning'
-import { useSymbol } from './use-symbol'
+import { PICKED_HATCH, pickedSurface, useSymbol } from './use-symbol'
 
 function drawingOf(
   doc: Parameters<typeof standingAt>[0],
@@ -84,20 +84,28 @@ type GlyphProps = {
 }
 
 function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
-  const texture = useSymbol(symbol, surface, object)
-  const drag = useDrag(object, spot)
-  const spin = useSpin(object, spot)
   const picked = useSelection(
     (state) => state.selected?.kind === 'object' && state.selected.id === object.id,
   )
   const hovered = useHover(
     (state) => state.hovered?.kind === 'object' && state.hovered.id === object.id,
   )
-  if (!texture) return null
+  const plain = useSymbol(symbol, surface, object)
+  const marked = useSymbol(picked ? symbol : '', pickedSurface(surface), object, PICKED_HATCH)
+  const drag = useDrag(object, spot)
+  const spin = useSpin(object, spot)
+  if (!plain) return null
 
+  const texture = (picked ? marked : undefined) ?? plain
   const at = { x: spot.at.x + drag.shift.x, y: spot.at.y + drag.shift.y }
   const turn = spin.preview ?? spot.turn
-  const tint = picked ? EMPHASIS.picked.tint : hovered ? EMPHASIS.hovered.tint : '#ffffff'
+  const tint = picked
+    ? marked
+      ? '#ffffff'
+      : EMPHASIS.picked.tint
+    : hovered
+      ? EMPHASIS.hovered.tint
+      : '#ffffff'
 
   const reach = (Math.hypot(object.width, object.depth) / 2 + 280) * Math.SQRT1_2
   const grip = { x: at.x + reach, y: at.y + reach }
@@ -110,7 +118,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   return (
     <>
       {drag.live ? (
-        <Ghost object={object} spot={spot} at={at} texture={texture} stack={stack} />
+        <Ghost object={object} spot={spot} at={at} texture={plain} stack={stack} />
       ) : null}
       <mesh
         position={toWorld(at.x, at.y, symbolHeight(stack))}
