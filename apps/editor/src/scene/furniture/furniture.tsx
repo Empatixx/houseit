@@ -10,6 +10,7 @@ import { piecesOf, type Spot, standingAt, turnOf } from '@houseit/geometry/stand
 import { Line } from '@react-three/drei'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
+import type { Texture } from 'three'
 import { aimAt, putDown } from '../../edit/draw-commands'
 import { moveTo, turnTo } from '../../edit/object-commands'
 import { pick } from '../../edit/pick'
@@ -107,7 +108,9 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
 
   return (
     <>
-      {drag.live ? <Ghost object={object} spot={spot} at={at} /> : null}
+      {drag.live ? (
+        <Ghost object={object} spot={spot} at={at} texture={texture} stack={stack} />
+      ) : null}
       <mesh
         position={toWorld(at.x, at.y, symbolHeight(stack))}
         rotation={[-Math.PI / 2, 0, turn + Math.PI]}
@@ -174,7 +177,15 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
 
 const GHOST = '#a1a1aa'
 
-function Ghost({ object, spot, at }: { object: HouseObject; spot: Spot; at: Point }) {
+type GhostProps = {
+  object: HouseObject
+  spot: Spot
+  at: Point
+  texture: Texture
+  stack: { layer: Layer; index: number }
+}
+
+function Ghost({ object, spot, at, texture, stack }: GhostProps) {
   const across = Math.round(at.x - spot.at.x)
   const down = Math.round(at.y - spot.at.y)
   const corner = { x: at.x, y: spot.at.y }
@@ -189,6 +200,20 @@ function Ghost({ object, spot, at }: { object: HouseObject; spot: Spot; at: Poin
 
   return (
     <>
+      <mesh
+        position={toWorld(spot.at.x, spot.at.y, symbolHeight(stack) - 5)}
+        rotation={[-Math.PI / 2, 0, spot.turn + Math.PI]}
+      >
+        <planeGeometry args={[object.width * MM, object.depth * MM]} />
+        <meshBasicMaterial
+          map={texture}
+          color={GHOST}
+          transparent
+          alphaTest={0.02}
+          opacity={0.5}
+          depthWrite={false}
+        />
+      </mesh>
       {piecesOf(spot, object).map((piece) => (
         <Line
           key={`${piece[0]?.x},${piece[0]?.y}`}
