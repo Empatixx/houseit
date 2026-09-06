@@ -22,6 +22,7 @@ export type ProjectsState = {
   closeProject: () => Promise<void>
   save: () => Promise<void>
   rename: (id: string, name: string) => Promise<void>
+  picture: (id: string, image: string) => Promise<void>
   remove: (id: string) => Promise<Removed | undefined>
   restore: (removed: Removed) => Promise<void>
 }
@@ -95,6 +96,17 @@ export function createProjectsStore(
       set((state) => ({
         list: state.list?.map((project) => (project.id === id ? renamed : project)),
         open: state.open?.id === id ? renamed : state.open,
+      }))
+    },
+
+    picture: async (id, image) => {
+      const database = await db()
+      const meta = await database.meta(id)
+      if (!meta) return
+      const pictured = { ...meta, picture: image }
+      await database.put(pictured)
+      set((state) => ({
+        list: state.list?.map((project) => (project.id === id ? pictured : project)),
       }))
     },
 

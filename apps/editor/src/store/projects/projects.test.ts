@@ -192,3 +192,14 @@ test('a plan from a newer build is refused rather than half-read', async () => {
 
   expect(await at().openProject('byt')).toBeUndefined()
 })
+
+test('a picture of the plan is kept with the project and shown in the list', async () => {
+  const { store, at } = fresh()
+  const meta = await at().create('Byt')
+
+  await at().picture(meta.id, 'data:image/jpeg;base64,AAAA')
+
+  expect(store.getState().list?.[0]?.picture).toBe('data:image/jpeg;base64,AAAA')
+  await at().refresh()
+  expect(store.getState().list?.[0]?.picture).toBe('data:image/jpeg;base64,AAAA')
+})

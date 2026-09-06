@@ -7,6 +7,7 @@ import { DotGrid } from './dot-grid'
 import { Drawing } from './drawing'
 import { FitToPlan } from './fit-to-plan'
 import { Furniture } from './furniture/furniture'
+import { PlanPicture } from './plan-picture'
 import { RoomAnnotations } from './room-annotations'
 import { RoomFloors } from './room-floors'
 import { Spinning } from './spinning'
@@ -43,6 +44,7 @@ export function PlanScene() {
       <Dimensions />
       <Drawing />
       <FitToPlan />
+      <PlanPicture />
       <Zooming />
       <Spinning />
     </Canvas>

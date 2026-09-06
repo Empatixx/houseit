@@ -12,6 +12,7 @@ export type ProjectMeta = {
   createdAt: number
   updatedAt: number
   outline?: Outline
+  picture?: string
 }
 
 export type ProjectsDb = {
