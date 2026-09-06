@@ -5,16 +5,13 @@ import { useSelection } from '../../store/selection'
 import { usePlanDoc } from '../../store/store'
 import { dragged } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
-import { planPieces, solidPieces, type WallPiece } from '../wall-pieces'
+import { solidPieces, type WallPiece } from '../wall-pieces'
+import { doorPieces } from './doors'
 
 const PAINT = {
   wall: '#f1f0ed',
-  leaf: '#cdb894',
-  garage: '#f5f5f4',
   glass: '#a7c8e6',
 } as const
-
-const STANDS_IN_OPENING = /-(leaf|near|far|panel)$/
 
 export function Walls({ level }: { level: string }) {
   const doc = usePlanDoc()
@@ -65,8 +62,11 @@ function StandingWall({ wall, doc, degrees, picked, pickedOpening }: StandingWal
 
   const openings = Object.values(doc.openings).filter((opening) => opening.wall === wall.id)
   const solids = solidPieces(wall, openings, length, growA, span)
-  const standing = planPieces(wall, openings, length, growA, span).filter((piece) =>
-    STANDS_IN_OPENING.test(piece.key),
+  const standing = openings.flatMap((opening) =>
+    doorPieces(opening, wall, growA + opening.t * span).map((piece) => ({
+      ...piece,
+      opening: opening.id,
+    })),
   )
 
   const place = (piece: Pick<WallPiece, 'at' | 'aside'>) => {
@@ -102,27 +102,19 @@ function StandingWall({ wall, doc, degrees, picked, pickedOpening }: StandingWal
         )
       })}
       {standing.map((piece) => {
-        const opening = piece.opening ? doc.openings[piece.opening] : undefined
+        const opening = doc.openings[piece.opening]
         if (!opening) return null
         const at = place(piece)
         const chosen = pickedOpening === opening.id
         return (
           <mesh
             key={piece.key}
-            position={toWorld(at.x, at.y, wall.baseOffset + opening.height / 2)}
-            rotation={[0, angle + (piece.turn ?? 0), 0]}
+            position={toWorld(at.x, at.y, wall.baseOffset + piece.base + piece.height / 2)}
+            rotation={[0, angle + piece.turn, 0]}
             onClick={picker(opening)}
           >
             <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
-            <meshLambertMaterial
-              color={
-                chosen
-                  ? EMPHASIS.picked.fill
-                  : opening.variant === 'garage'
-                    ? PAINT.garage
-                    : PAINT.leaf
-              }
-            />
+            <meshLambertMaterial color={chosen ? EMPHASIS.picked.fill : piece.colour} />
           </mesh>
         )
       })}
