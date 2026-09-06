@@ -37,8 +37,8 @@ export function Turner({ at, height }: { at: Point; height: number }) {
       style={{ pointerEvents: 'none' }}
     >
       <svg
-        width={30}
-        height={30}
+        width={40}
+        height={40}
         viewBox="0 0 24 24"
         className="pointer-events-none select-none"
         aria-hidden="true"
