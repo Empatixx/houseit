@@ -3,7 +3,7 @@ import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 
 export const INK = {
   outline: '#212121',
-  wall: '#424242',
+  wall: '#212121',
   glass: '#ffffff',
   perspective: '#e7e5e4',
 } as const

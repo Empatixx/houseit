@@ -19,7 +19,7 @@ import { useSelection } from '../store/selection'
 import { toolStore } from '../store/tool'
 import { dragged, pointOnPlan } from './drag'
 import { MM, toWorld } from './plan-coordinates'
-import { INK, planPieces } from './wall-pieces'
+import { INK, planPieces, type WallPiece } from './wall-pieces'
 
 type WallMeshProps = {
   wall: Wall
@@ -152,7 +152,7 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
           >
             <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
             <meshBasicMaterial
-              color={tinted(piece.colour, emphasis)}
+              color={tinted(piece, emphasis)}
               transparent={piece.hidden}
               opacity={piece.hidden ? 0 : 1}
               depthWrite={!piece.hidden}
@@ -206,13 +206,12 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
 
 const pullStart: { current: Point | null } = { current: null }
 
-function tinted(colour: string, emphasis: Emphasis | undefined): string {
-  if (!emphasis) return colour
+function tinted(piece: WallPiece, emphasis: Emphasis | undefined): string {
+  if (!emphasis) return piece.colour
   const blues = EMPHASIS[emphasis]
-  if (colour === INK.outline) return blues.line
-  if (colour === INK.wall) return blues.fill
-  if (colour === INK.glass) return blues.glass
-  return colour
+  if (piece.key.startsWith('fill-')) return blues.fill
+  if (piece.colour === INK.glass) return blues.glass
+  return blues.line
 }
 
 type Held = { id: string; from: Point; shift: Point }

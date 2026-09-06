@@ -53,7 +53,7 @@ test('a blank wall is an outline with the fill sitting inside it', () => {
 })
 
 test('the fill stops either side of an opening', () => {
-  const fills = plan([window_]).filter((piece) => piece.colour === INK.wall)
+  const fills = plan([window_]).filter((piece) => piece.key.startsWith('fill-'))
 
   expect(fills.map((piece) => piece.length)).toEqual([2400, 2400])
 })
