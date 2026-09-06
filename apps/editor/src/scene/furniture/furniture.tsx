@@ -183,23 +183,23 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
             <mesh
               position={toWorld(at.x, at.y, ABOVE)}
               rotation={[-Math.PI / 2, 0, 0]}
+              onPointerDown={spin.down}
               onPointerMove={spin.move}
               onPointerUp={spin.up}
+              onClick={spin.click}
             >
-              <circleGeometry
-                args={[(Math.hypot(object.width, object.depth) / 2 + 900) * MM, 40]}
-              />
+              <circleGeometry args={[REACH, 40]} />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
           ) : null}
-          {spin.held ? null : <Turner at={grip} height={ABOVE} />}
+          {spin.open ? null : <Turner at={grip} height={ABOVE} />}
           <mesh
             position={toWorld(grip.x, grip.y, ABOVE)}
             rotation={[-Math.PI / 2, 0, 0]}
             onPointerDown={spin.down}
             onPointerMove={spin.move}
             onPointerUp={spin.up}
-            onClick={(event) => event.stopPropagation()}
+            onClick={spin.click}
           >
             <circleGeometry args={[0.3, 20]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
@@ -211,6 +211,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
 }
 
 const GHOST = '#a1a1aa'
+const REACH = 60
 
 type GhostProps = {
   object: HouseObject
@@ -270,8 +271,10 @@ function Ghost({ object, spot, at, texture, stack }: GhostProps) {
 function useSpin(object: HouseObject, spot: Spot) {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null
   const grabbed = useRef<number | null>(null)
-  const [held, setHeld] = useState(false)
-  const [pinned, setPinned] = useState(false)
+  const following = useRef(false)
+  const presses = useRef(0)
+  const opened = useRef(-1)
+  const [open, setOpen] = useState(false)
   const [preview, setPreview] = useState<number | null>(null)
   const base = spot.turn - turnOf(object)
 
@@ -283,14 +286,31 @@ function useSpin(object: HouseObject, spot: Spot) {
     return ((degrees % 360) + 360) % 360
   }
 
+  const signed = (degrees: number) => (degrees > 180 ? degrees - 360 : degrees)
+
+  const settle = (degrees: number | null) => {
+    grabbed.current = null
+    following.current = false
+    setOpen(false)
+    setPreview(null)
+    if (controls) controls.enabled = true
+    if (degrees !== null && signed(degrees) !== (object.rotation ?? 0))
+      turnTo(object, signed(degrees))
+  }
+
   const down = (event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) return
+    presses.current += 1
+    if (following.current) {
+      event.stopPropagation()
+      return
+    }
     const from = pointOnPlan(event.ray)
     if (!from) return
     event.stopPropagation()
     ;(event.target as Element).setPointerCapture(event.pointerId)
     grabbed.current = raw(from)
-    setHeld(true)
+    setOpen(true)
     if (controls) controls.enabled = false
   }
   const move = (event: ThreeEvent<PointerEvent>) => {
@@ -302,24 +322,27 @@ function useSpin(object: HouseObject, spot: Spot) {
   }
   const up = (event: ThreeEvent<PointerEvent>) => {
     const from = grabbed.current
-    if (from === null) return
+    if (from === null || following.current) return
     ;(event.target as Element).releasePointerCapture(event.pointerId)
-    grabbed.current = null
-    setHeld(false)
     if (controls) controls.enabled = true
     const now = pointOnPlan(event.ray)
-    setPreview(null)
     const degrees = now ? angleTo(now, from) : null
-    const normalised = degrees === null ? null : degrees > 180 ? degrees - 360 : degrees
-    if (normalised === null || normalised === (object.rotation ?? 0)) {
-      setPinned((was) => !was)
+    if (degrees === null || signed(degrees) === (object.rotation ?? 0)) {
+      following.current = true
+      opened.current = presses.current
       return
     }
-    setPinned(false)
-    turnTo(object, normalised)
+    settle(degrees)
+  }
+  const click = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation()
+    if (!following.current || presses.current === opened.current) return
+    const from = grabbed.current
+    const now = pointOnPlan(event.ray)
+    settle(from !== null && now ? angleTo(now, from) : null)
   }
 
-  return { preview, base, open: held || pinned, held, down, move, up }
+  return { preview, base, open, down, move, up, click }
 }
 
 type Carried = { from: Point; shift: Point }
