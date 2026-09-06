@@ -32,7 +32,7 @@ import { layFloor, setFinish, setKind, setStyle } from '../edit/room-commands'
 import { nameWall } from '../edit/wall-commands'
 import { selectionStore, useSelection } from '../store/selection'
 import { useDocument } from '../store/store'
-import { KindIcon, SurfaceSwatch } from './avatars'
+import { KindIcon } from './avatars'
 import { type Choice, FinishRow } from './finish-picker'
 
 export function PanelContent() {
@@ -179,26 +179,18 @@ function RoomPanel({ room }: { room: Room }) {
 function ObjectPanel({ object }: { object: HouseObject }) {
   const type = objectType(object.type)
   const room = roomOf(object)
-  const surfaces = SURFACES.filter((surface) => type?.surfaces.includes(surface.id))
+  const surfaces: Choice[] = SURFACES.filter((surface) => type?.surfaces.includes(surface.id)).map(
+    (surface) => ({
+      id: surface.id,
+      label: surface.label,
+      colour: surface.fill,
+      line: surface.line,
+    }),
+  )
 
   return (
     <>
       <Heading>{type?.label ?? object.type}</Heading>
-      <Field label="Finish">
-        <Select value={object.surface} onValueChange={(value) => finish(object, value)}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {surfaces.map((surface) => (
-              <SelectItem key={surface.id} value={surface.id}>
-                <SurfaceSwatch id={surface.id} />
-                {surface.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
       <div className="grid grid-cols-2 gap-2">
         <Field label="Width (mm)">
           <NumberField value={object.width} onCommit={(width) => resize(object, { width })} />
@@ -223,6 +215,16 @@ function ObjectPanel({ object }: { object: HouseObject }) {
               : `free at ${object.along} along, ${object.across ?? 0.5} across`,
           ],
         ]}
+      />
+      <Separator />
+      <Heading>Design preference</Heading>
+      <FinishRow
+        icon={<PaletteIcon />}
+        label="Finish"
+        title="Add finish"
+        chosen={surfaces.find((choice) => choice.id === object.surface)}
+        choices={surfaces}
+        onPick={(id) => finish(object, id)}
       />
       <Button
         variant="outline"

@@ -1,4 +1,3 @@
-import { surfaceOf } from '@houseit/core/surfaces'
 import {
   BathIcon,
   BedDoubleIcon,
@@ -20,20 +19,6 @@ import {
   WashingMachineIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-export function SurfaceSwatch({ id }: { id: string }) {
-  const surface = surfaceOf(id)
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-block size-4 shrink-0 rounded-full"
-      style={{
-        backgroundColor: surface?.fill ?? '#ffffff',
-        boxShadow: `inset 0 0 0 1px ${surface?.line ?? '#9d9d99'}`,
-      }}
-    />
-  )
-}
 
 const KIND_ICONS: Record<string, LucideIcon> = {
   'half-bath': ToiletIcon,

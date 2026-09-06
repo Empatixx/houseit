@@ -5,7 +5,21 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
-export type Choice = { id: string; label: string; picture?: string; colour?: string }
+export type Choice = {
+  id: string
+  label: string
+  picture?: string
+  colour?: string
+  line?: string
+}
+
+const flat = (choice: Choice) =>
+  choice.picture
+    ? undefined
+    : {
+        background: choice.colour,
+        boxShadow: choice.line ? `inset 0 0 0 1px ${choice.line}` : undefined,
+      }
 
 const BESIDE = 24
 
@@ -101,7 +115,7 @@ function Picture({ choice, picked }: { choice: Choice; picked: boolean }) {
         'block aspect-square w-full overflow-hidden rounded-lg border transition-shadow group-hover:shadow-md group-focus-visible:ring-[3px] group-focus-visible:ring-ring/50',
         picked && 'ring-2 ring-primary ring-offset-1',
       )}
-      style={choice.picture ? undefined : { background: choice.colour }}
+      style={flat(choice)}
     >
       {choice.picture ? (
         <img
@@ -119,7 +133,7 @@ function Swatch({ choice }: { choice: Choice }) {
   return (
     <span
       className="block size-3.5 shrink-0 overflow-hidden rounded-full border"
-      style={choice.picture ? undefined : { background: choice.colour }}
+      style={flat(choice)}
     >
       {choice.picture ? (
         <img
