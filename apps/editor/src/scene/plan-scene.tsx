@@ -26,7 +26,7 @@ export function PlanScene() {
       onPointerMissed={() => selectionStore.getState().select(null)}
     >
       <OrthographicCamera makeDefault position={OVERHEAD} zoom={45} up={UP} near={0.1} far={200} />
-      <OrbitControls makeDefault enableRotate={false} enableDamping={false} />
+      <OrbitControls makeDefault enableRotate={false} enableZoom={false} enableDamping={false} />
 
       <color attach="background" args={['#f4f4f5']} />
 
