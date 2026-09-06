@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { extname, join } from 'node:path'
 import { createRequire } from 'node:module'
+import { extname, join } from 'node:path'
 
 const require = createRequire(import.meta.url)
 const ts = require('@typescript/typescript6')

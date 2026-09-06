@@ -368,7 +368,7 @@ The plan draws those parts as well as testing against them, so the corner a
 corner bench wraps round is drawn empty and something is allowed to stand in it.
 Left out, it fills its rectangle.
 
-`scripts/make-glb.mjs` writes the two that are committed, so an asset in the tree
+`scripts/make-glb.mjs` writes the one that is committed, so an asset in the tree
 can be rebuilt and read rather than being a binary nobody can account for.
 
 ## Checks

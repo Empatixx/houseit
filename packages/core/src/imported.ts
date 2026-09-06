@@ -22,19 +22,6 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     rooms: ['bedroom', 'walk-in', 'any'],
     model: 'wardrobe.glb',
   },
-  {
-    id: 'corner-bench',
-    label: 'Corner Bench',
-    size: { width: 1800, depth: 1800, height: 850 },
-    surfaces: ['oak', 'walnut', 'white', 'grey', 'linen'],
-    stands: 'wall',
-    rooms: ['kitchen', 'dining', 'living', 'any'],
-    parts: [
-      { x0: 0, y0: 0, x1: 1, y1: 0.35 },
-      { x0: 0, y0: 0, x1: 0.35, y1: 1 },
-    ],
-    model: 'corner-bench.glb',
-  },
 ]
 
 export const importedType = (id: string): ImportedType | undefined =>

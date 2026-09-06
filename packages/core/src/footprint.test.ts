@@ -32,10 +32,7 @@ test('every exception says why it is one', () => {
 })
 
 test('a type brought in as a model may say what it really fills', () => {
-  const shaped = IMPORTED_TYPES.filter((type) => type.parts !== undefined)
-
-  expect(shaped.length).toBeGreaterThan(0)
-  for (const type of shaped) {
+  for (const type of IMPORTED_TYPES.filter((entry) => entry.parts !== undefined)) {
     expect(partsOf(type.id)).toEqual(type.parts)
     expect(partsOf(type.id).length).toBeGreaterThan(1)
   }
