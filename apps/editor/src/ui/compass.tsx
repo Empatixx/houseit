@@ -19,7 +19,7 @@ const round = (spin: number) => {
 
 const corner = (spin: number, radius: number) => {
   const radians = (spin * Math.PI) / 180
-  return { x: Math.sin(radians) * radius, y: -Math.cos(radians) * radius }
+  return { x: Math.cos(radians) * radius, y: Math.sin(radians) * radius }
 }
 
 const spoke = (spin: number, reach: number) => {
@@ -31,8 +31,9 @@ const spoke = (spin: number, reach: number) => {
 const turned = (spin: number) => ((spin + 180) % 360) - 180
 
 const sweep = (spin: number, radius: number) => {
+  const from = corner(0, radius)
   const to = corner(spin, radius)
-  return `M 0 ${-radius} A ${radius} ${radius} 0 0 ${turned(spin) < 0 ? 0 : 1} ${to.x} ${to.y}`
+  return `M ${from.x} ${from.y} A ${radius} ${radius} 0 0 ${turned(spin) < 0 ? 0 : 1} ${to.x} ${to.y}`
 }
 
 export function Compass() {
@@ -45,7 +46,7 @@ export function Compass() {
     const dx = event.clientX - (box.left + box.width / 2)
     const dy = event.clientY - (box.top + box.height / 2)
     if (Math.hypot(dx, dy) < 8) return
-    const degrees = (Math.atan2(dx, -dy) * 180) / Math.PI
+    const degrees = (Math.atan2(dy, dx) * 180) / Math.PI
     viewStore.getState().spinTo(round((degrees + 360) % 360))
   }
 
@@ -125,7 +126,6 @@ export function Compass() {
               fill="var(--primary)"
               fontWeight={600}
             >
-              {showing < 0 ? '−' : ''}
               {Math.abs(showing)}°
             </text>
           </svg>
