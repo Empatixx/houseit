@@ -3,7 +3,7 @@ import { SNAP } from '@houseit/commands/partition'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { sideOfWall, sideRun } from '@houseit/geometry/sides'
-import { drawStore } from '../store/draw'
+import { drawStore, type Guide } from '../store/draw'
 import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
 import { endPreview, previewCommand } from './preview'
@@ -11,7 +11,11 @@ import { runEdit } from './run-edit'
 
 const GRID = 50
 
-function snapPoint(point: Point): Point {
+type Axis = 'x' | 'y'
+
+const snapPoint = (point: Point): Point => snapTo(point).point
+
+function snapTo(point: Point): { point: Point; stuck: boolean } {
   const { doc, level } = documentStore.getState()
   let best: { point: Point; distance: number } | undefined
   for (const node of Object.values(doc.nodes)) {
@@ -20,7 +24,7 @@ function snapPoint(point: Point): Point {
       best = { point: { x: node.x, y: node.y }, distance }
     }
   }
-  if (best) return best.point
+  if (best) return { point: best.point, stuck: true }
   for (const wall of Object.values(doc.walls)) {
     if (wall.level !== level) continue
     const a = doc.nodes[wall.a]
@@ -34,25 +38,70 @@ function snapPoint(point: Point): Point {
     const distance = Math.hypot(foot.x - point.x, foot.y - point.y)
     if (distance <= SNAP && (!best || distance < best.distance)) best = { point: foot, distance }
   }
-  if (best) return best.point
-  return { x: Math.round(point.x / GRID) * GRID, y: Math.round(point.y / GRID) * GRID }
+  if (best) return { point: best.point, stuck: true }
+  return {
+    point: { x: Math.round(point.x / GRID) * GRID, y: Math.round(point.y / GRID) * GRID },
+    stuck: false,
+  }
+}
+
+function marksOn(drawn: Point[]): Point[] {
+  const { doc, level } = documentStore.getState()
+  const marks = drawn.slice(0, -1)
+  for (const wall of Object.values(doc.walls)) {
+    if (wall.level !== level) continue
+    for (const id of [wall.a, wall.b]) {
+      const node = doc.nodes[id]
+      if (node) marks.push({ x: node.x, y: node.y })
+    }
+  }
+  return marks
+}
+
+function aligned(point: Point, axes: Axis[], drawn: Point[]): { point: Point; guides: Guide[] } {
+  const marks = marksOn(drawn)
+  const cursor = { ...point }
+  const from: Point[] = []
+  for (const axis of axes) {
+    const other: Axis = axis === 'x' ? 'y' : 'x'
+    let best: { mark: Point; off: number; away: number } | undefined
+    for (const mark of marks) {
+      const off = Math.abs(mark[axis] - point[axis])
+      if (off > SNAP) continue
+      const away = Math.abs(mark[other] - point[other])
+      if (!best || off < best.off || (off === best.off && away < best.away)) {
+        best = { mark, off, away }
+      }
+    }
+    if (!best) continue
+    cursor[axis] = best.mark[axis]
+    if (best.away >= 1) from.push(best.mark)
+  }
+  return { point: cursor, guides: from.map((mark) => ({ from: mark, to: { ...cursor } })) }
 }
 
 export function aimAt(point: Point): void {
   const { points } = drawStore.getState()
   const last = points[points.length - 1]
   if (!last) {
-    drawStore.getState().aim(snapPoint(point))
+    const snapped = snapTo(point)
+    const aim = snapped.stuck
+      ? { point: snapped.point, guides: [] }
+      : aligned(snapped.point, ['x', 'y'], points)
+    drawStore.getState().aim(aim.point, aim.guides)
     return
   }
   const dx = point.x - last.x
   const dy = point.y - last.y
-  const square =
-    Math.abs(dx) >= Math.abs(dy) ? { x: point.x, y: last.y } : { x: last.x, y: point.y }
-  const snapped = snapPoint(square)
-  const cursor =
-    Math.abs(dx) >= Math.abs(dy) ? { x: snapped.x, y: last.y } : { x: last.x, y: snapped.y }
-  drawStore.getState().aim(cursor)
+  const level = Math.abs(dx) >= Math.abs(dy)
+  const square = level ? { x: point.x, y: last.y } : { x: last.x, y: point.y }
+  const snapped = snapTo(square)
+  const squared = level ? { x: snapped.point.x, y: last.y } : { x: last.x, y: snapped.point.y }
+  const aim = snapped.stuck
+    ? { point: squared, guides: [] }
+    : aligned(squared, [level ? 'x' : 'y'], points)
+  const cursor = aim.point
+  drawStore.getState().aim(cursor, aim.guides)
   const args = drawArgs([...points, cursor])
   if (args) previewCommand(drawWall, args)
   else endPreview()
@@ -61,7 +110,7 @@ export function aimAt(point: Point): void {
 export function putDown(point: Point): void {
   const { points, cursor } = drawStore.getState()
   if (points.length === 0) {
-    drawStore.getState().put(snapPoint(point))
+    drawStore.getState().put(cursor ?? snapPoint(point))
     return
   }
   const corner = cursor ?? snapPoint(point)

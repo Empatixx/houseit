@@ -1,7 +1,8 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
-import { type ThreeEvent, useThree } from '@react-three/fiber'
+import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
+import type { Group, OrthographicCamera } from 'three'
 import { aimAt, putDown } from '../edit/draw-commands'
 import { moveOpeningTo } from '../edit/opening-commands'
 import { pick } from '../edit/pick'
@@ -16,7 +17,7 @@ import {
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
 import { usePreview } from '../store/preview'
 import { useSelection } from '../store/selection'
-import { toolStore } from '../store/tool'
+import { toolStore, useTool } from '../store/tool'
 import { dragged, pointOnPlan } from './drag'
 import { MM, toWorld } from './plan-coordinates'
 import { INK, planPieces, type WallPiece } from './wall-pieces'
@@ -34,6 +35,7 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
   const carry = useCarry()
   const [pull, setPull] = useState(0)
   const previewing = usePreview((state) => state.doc !== null)
+  const drawing = useTool((state) => state.armed?.kind === 'wall')
   const a0 = doc.nodes[wall.a]
   const b0 = doc.nodes[wall.b]
 
@@ -126,28 +128,21 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
               pick(opening ? { kind: 'opening', id: opening.id } : { kind: 'wall', id: wall.id })
             }}
             onPointerDown={(event) => {
-              if (toolStore.getState().armed?.kind === 'wall') return
-              carry.down(event, opening ? opening.id : wall.id)
+              if (toolStore.getState().armed?.kind === 'wall' || !opening) return
+              carry.down(event, opening.id)
             }}
             onPointerMove={(event) => {
               if (toolStore.getState().armed?.kind === 'wall') {
                 aimAt({ x: event.point.x / MM, y: -event.point.z / MM })
                 return
               }
-              const carried = carry.move(event)
-              if (!carried || opening) return
-              previewWallMove(wall, carried.shift)
+              carry.move(event)
             }}
             onPointerUp={(event) => {
               const carried = carry.up(event)
-              endPreview()
-              if (!carried) return
+              if (!carried || !opening || !centre) return
               const { shift } = carried
-              if (opening && centre) {
-                moveOpeningTo(opening, { x: centre.x + shift.x, y: centre.y + shift.y })
-              } else if (!opening) {
-                moveWallBy(wall, shift)
-              }
+              moveOpeningTo(opening, { x: centre.x + shift.x, y: centre.y + shift.y })
             }}
           >
             <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
@@ -160,6 +155,23 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
           </mesh>
         )
       })}
+
+      {ofPickedRoom && !drawing ? (
+        <Knob
+          at={{ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }}
+          height={wall.height + 60}
+          onDown={(event) => carry.down(event, wall.id)}
+          onMove={(event) => {
+            const carried = carry.move(event)
+            if (carried) previewWallMove(wall, carried.shift)
+          }}
+          onUp={(event) => {
+            const carried = carry.up(event)
+            endPreview()
+            if (carried) moveWallBy(wall, carried.shift)
+          }}
+        />
+      ) : null}
 
       {picked && stub && tip ? (
         <mesh
@@ -205,6 +217,43 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
 }
 
 const pullStart: { current: Point | null } = { current: null }
+
+const KNOB = 7
+
+type KnobProps = {
+  at: Point
+  height: number
+  onDown: (event: ThreeEvent<PointerEvent>) => void
+  onMove: (event: ThreeEvent<PointerEvent>) => void
+  onUp: (event: ThreeEvent<PointerEvent>) => void
+}
+
+function Knob({ at, height, onDown, onMove, onUp }: KnobProps) {
+  const group = useRef<Group>(null)
+  useFrame(({ camera }) => {
+    group.current?.scale.setScalar(KNOB / (camera as OrthographicCamera).zoom)
+  })
+  return (
+    <group
+      ref={group}
+      position={toWorld(at.x, at.y, height)}
+      rotation={[-Math.PI / 2, 0, 0]}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <mesh>
+        <circleGeometry args={[1, 24]} />
+        <meshBasicMaterial color={INK.outline} />
+      </mesh>
+      <mesh position={[0, 0, 0.1]}>
+        <circleGeometry args={[0.72, 24]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+    </group>
+  )
+}
 
 function tinted(piece: WallPiece, emphasis: Emphasis | undefined): string {
   if (!emphasis) return piece.colour

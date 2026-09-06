@@ -1,4 +1,4 @@
-import { Html } from '@react-three/drei'
+import { Html, Line } from '@react-three/drei'
 import { useDraw } from '../store/draw'
 import { EMPHASIS } from '../store/hover'
 import { ABOVE, metres } from './dimensions'
@@ -10,7 +10,8 @@ const HEIGHT = 2800
 export function Drawing() {
   const points = useDraw((state) => state.points)
   const cursor = useDraw((state) => state.cursor)
-  const corners = cursor && points.length > 0 ? [...points, cursor] : points
+  const guides = useDraw((state) => state.guides)
+  const corners = cursor && (points.length > 0 || guides.length > 0) ? [...points, cursor] : points
   if (corners.length === 0) return null
 
   const seen = new Map<string, number>()
@@ -23,6 +24,20 @@ export function Drawing() {
 
   return (
     <>
+      {guides.map((guide) => (
+        <Line
+          key={`${guide.from.x},${guide.from.y}`}
+          points={[
+            toWorld(guide.from.x, guide.from.y, ABOVE),
+            toWorld(guide.to.x, guide.to.y, ABOVE),
+          ]}
+          color={EMPHASIS.picked.line}
+          lineWidth={1.5}
+          dashed
+          dashSize={0.05}
+          gapSize={0.08}
+        />
+      ))}
       {keyed.map(({ corner, key }) => (
         <mesh
           key={key}
