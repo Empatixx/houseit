@@ -23,6 +23,7 @@ import { ABOVE, DimensionLine } from '../dimensions'
 import { dragged, pointOnPlan } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
 import { symbolHeight } from './stacking'
+import { Dial, Turner } from './turning'
 import { useSymbol } from './use-symbol'
 
 function drawingOf(
@@ -98,8 +99,20 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   const turn = spin.preview ?? spot.turn
   const tint = picked ? EMPHASIS.picked.tint : hovered ? EMPHASIS.hovered.tint : '#ffffff'
 
-  const reach = object.depth / 2 + 350
-  const handle = { x: at.x - Math.sin(turn) * reach, y: at.y + Math.cos(turn) * reach }
+  const across = { x: Math.cos(turn), y: Math.sin(turn) }
+  const along = { x: -Math.sin(turn), y: Math.cos(turn) }
+  const corners = [-1, 1].flatMap((side) =>
+    [-1, 1].map((end) => ({
+      x: at.x + (across.x * side * object.width + along.x * end * object.depth) / 2,
+      y: at.y + (across.y * side * object.width + along.y * end * object.depth) / 2,
+    })),
+  )
+  const corner = corners.reduce((best, one) => (one.x + one.y > best.x + best.y ? one : best))
+  const away = Math.hypot(corner.x - at.x, corner.y - at.y) || 1
+  const grip = {
+    x: corner.x + ((corner.x - at.x) / away) * 280,
+    y: corner.y + ((corner.y - at.y) / away) * 280,
+  }
 
   const on = (event: ThreeEvent<PointerEvent | MouseEvent>) => {
     const where = { x: event.point.x / MM, y: -event.point.z / MM }
@@ -160,16 +173,28 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
         />
       </mesh>
       {picked ? (
-        <mesh
-          position={toWorld(handle.x, handle.y, symbolHeight(stack) + 400)}
-          rotation={[-Math.PI / 2, 0, 0]}
-          onPointerDown={spin.down}
-          onPointerMove={spin.move}
-          onPointerUp={spin.up}
-        >
-          <circleGeometry args={[0.13, 24]} />
-          <meshBasicMaterial color={EMPHASIS.picked.line} />
-        </mesh>
+        <>
+          {spin.open ? (
+            <Dial
+              centre={at}
+              height={ABOVE}
+              base={spin.base}
+              turn={turn}
+              radius={Math.hypot(object.width, object.depth) / 2 + 520}
+            />
+          ) : null}
+          <Turner at={grip} height={ABOVE} />
+          <mesh
+            position={toWorld(grip.x, grip.y, ABOVE)}
+            rotation={[-Math.PI / 2, 0, 0]}
+            onPointerDown={spin.down}
+            onPointerMove={spin.move}
+            onPointerUp={spin.up}
+          >
+            <circleGeometry args={[0.26, 20]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+        </>
       ) : null}
     </>
   )
@@ -234,43 +259,57 @@ function Ghost({ object, spot, at, texture, stack }: GhostProps) {
 
 function useSpin(object: HouseObject, spot: Spot) {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null
-  const holding = useRef(false)
+  const grabbed = useRef<number | null>(null)
+  const [held, setHeld] = useState(false)
+  const [pinned, setPinned] = useState(false)
   const [preview, setPreview] = useState<number | null>(null)
   const base = spot.turn - turnOf(object)
 
-  const angleTo = (point: Point) => {
-    const total = Math.atan2(point.y - spot.at.y, point.x - spot.at.x) - Math.PI / 2
+  const raw = (point: Point) => Math.atan2(point.y - spot.at.y, point.x - spot.at.x)
+
+  const angleTo = (point: Point, from: number) => {
+    const total = spot.turn + (raw(point) - from)
     const degrees = Math.round(((total - base) * 180) / Math.PI / 15) * 15
     return ((degrees % 360) + 360) % 360
   }
 
   const down = (event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) return
+    const from = pointOnPlan(event.ray)
+    if (!from) return
     event.stopPropagation()
     ;(event.target as Element).setPointerCapture(event.pointerId)
-    holding.current = true
+    grabbed.current = raw(from)
+    setHeld(true)
     if (controls) controls.enabled = false
   }
   const move = (event: ThreeEvent<PointerEvent>) => {
-    if (!holding.current) return
+    const from = grabbed.current
+    if (from === null) return
     const now = pointOnPlan(event.ray)
     if (!now) return
-    setPreview(base + (angleTo(now) * Math.PI) / 180)
+    setPreview(base + (angleTo(now, from) * Math.PI) / 180)
   }
   const up = (event: ThreeEvent<PointerEvent>) => {
-    if (!holding.current) return
+    const from = grabbed.current
+    if (from === null) return
     ;(event.target as Element).releasePointerCapture(event.pointerId)
-    holding.current = false
+    grabbed.current = null
+    setHeld(false)
     if (controls) controls.enabled = true
     const now = pointOnPlan(event.ray)
     setPreview(null)
-    if (!now) return
-    const degrees = angleTo(now)
-    const normalised = degrees > 180 ? degrees - 360 : degrees
-    if (normalised !== (object.rotation ?? 0)) turnTo(object, normalised)
+    const degrees = now ? angleTo(now, from) : null
+    const normalised = degrees === null ? null : degrees > 180 ? degrees - 360 : degrees
+    if (normalised === null || normalised === (object.rotation ?? 0)) {
+      setPinned((was) => !was)
+      return
+    }
+    setPinned(false)
+    turnTo(object, normalised)
   }
 
-  return { preview, down, move, up }
+  return { preview, base, open: held || pinned, down, move, up }
 }
 
 type Carried = { from: Point; shift: Point }
