@@ -4,19 +4,11 @@ import { expect, test } from 'vitest'
 import { askPlan, runScript } from './run'
 import type { RoomReport, SideReport } from './survey'
 
-/** The doors, or the windows, of a room: one list of openings, told apart by kind. */
 const doorsOf = (room: RoomReport) => room.openings.filter((it) => it.kind === 'door')
 const windowsOf = (room: RoomReport) => room.openings.filter((it) => it.kind === 'window')
 
-/** The run of a side that a wall belongs to: what `sides` says about that wall. */
 const sideHolding = (room: RoomReport, wall: string): SideReport =>
   room.sides.find((side) => side.walls.some((it) => it.id === wall))!
-
-/**
- * Rooms that are not rectangles, and the walls of them that a side alone
- * cannot name: an L has two north walls, and the inner one has to be
- * reachable by id — for a door, a window, a thing against it, a tape on it.
- */
 
 const level = (doc: HouseDocument) => Object.keys(doc.levels)[0]!
 const named = (doc: HouseDocument, name: string) =>
@@ -113,7 +105,6 @@ test('along takes a length as well as a fraction', () => {
   const windows = windowsOf(report(next, 'dům'))
 
   expect(windows).toHaveLength(2)
-  // 2.4 m from the west end of a run that starts 150 mm in from the corner.
   expect(windows[0]!.along * (12_000 - 300)).toBeCloseTo(2400, -1)
   expect(windows[1]!.along).toBeGreaterThan(0.9)
 })
@@ -134,7 +125,6 @@ test('everything has an id, and a thing is reached by it', () => {
   expect(report(gone, 'dům').objects).toHaveLength(0)
 })
 
-/** A node sitting inside a wall rather than at its end: a graph gone wrong. */
 function overlapping(doc: HouseDocument): string[] {
   const bad: string[] = []
   for (const wall of Object.values(doc.walls)) {
@@ -168,14 +158,11 @@ test('a box cut the whole depth of an arm lands on the wall that is there, and d
   expect(named(next, 'bed')?.area).toBe(3000 * 6000)
   expect(named(next, 'hall')?.area).toBe(8000 * 3000)
   expect(named(next, 'dům')?.area).toBe(12_000 * 9000 - 3000 * 6000 - 8000 * 3000)
-  // The house borders 5 m of the hall's north wall, and that is the wall it lists.
   const south = report(next, 'dům').walls.filter((wall) => wall.side === 'south')
   expect(south.map((wall) => wall.length).sort()).toEqual([4000, 5000])
 })
 
 test('a wall named narrows along to that wall, and the tape to it', () => {
-  // The hall's east wall is split by a partition landing on it from the hall's
-  // side, so the house's west side is two walls in line: one run.
   const doc = runScript(
     createEmptyDocument(),
     [
@@ -193,8 +180,6 @@ test('a wall named narrows along to that wall, and the tape to it', () => {
   expect(window_.wall).toBe(upper.id)
   expect(window_.along).toBeGreaterThan(0.85)
 
-  // The run spans both west walls, but each carries its own stretch of it — so
-  // --wall w9 has somewhere to be placed along without the run being cut up.
   const tape = sideHolding(report(next, 'dům'), upper.id)
   const own = tape.walls.find((it) => it.id === upper.id)!
   expect(own.to - own.from).toBeLessThan(1500)

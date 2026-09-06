@@ -2,12 +2,6 @@ import { createEmptyDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
 import { askPlan, runScript } from './run'
 
-/**
- * A third storey drawn over two that are already there, and cut through the
- * middle. Both halves of that are worth holding onto: storeys stack on the same
- * footprint without their walls tangling, and a cut that takes a slice out of
- * the middle of a room leaves two rooms behind it, not one.
- */
 test('a third storey is cut up over two that are already there', () => {
   const doc = runScript(
     createEmptyDocument(),
@@ -27,10 +21,8 @@ test('a third storey is cut up over two that are already there', () => {
   )
 
   const loft = askPlan(cut, 'get-plan --level "2. patro"').rooms
-  // The slice out of the middle, and the two pieces it left either side of it.
   expect(loft.map((it) => it.name).sort()).toEqual(['ateliér', 'podkroví', 'podkroví 2'])
   expect(loft.reduce((total, room) => total + room.areaM2, 0)).toBeCloseTo(12 * 6, 0)
-  // And the storeys under it are untouched.
   expect(askPlan(cut, 'get-plan --level "1. patro"').rooms).toHaveLength(2)
   expect(askPlan(cut, 'get-plan --level "Ground floor"').rooms).toHaveLength(1)
 })

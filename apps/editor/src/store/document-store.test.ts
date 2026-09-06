@@ -95,7 +95,6 @@ test('exec says what it touched, which is how the next command names it', () => 
 
   const { changed } = store.getState().exec(`${floor}\n${kitchen}`)
 
-  // The floor's room, the kitchen cut out of it, and the floor again as it now is.
   expect(changed.filter((id) => id.startsWith('r')).length).toBeGreaterThanOrEqual(2)
 })
 
@@ -106,6 +105,6 @@ test('apply is checked by the same schema as the words are', () => {
   expect(() => store.getState().apply(updateObject, { id: 'f1', along: 'far' })).toThrow(
     /update-object: along/,
   )
-  expect(store.getState().canUndo).toBe(true) // only the floor
+  expect(store.getState().canUndo).toBe(true)
   expect(store.getState().past).toHaveLength(1)
 })

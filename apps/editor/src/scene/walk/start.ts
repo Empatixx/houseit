@@ -4,21 +4,8 @@ import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { piecesOf, standingAt } from '@houseit/geometry/standing'
 import { yawTowards } from '../../store/walk'
 
-/**
- * Where a walk starts, and which way it faces.
- *
- * In the biggest room, on floor nobody has put anything on, looking in towards
- * the middle of it. The room's anchor is where its label hangs, which is the
- * middle of the room and therefore under the table as often as not — start
- * there and the walk opens inside the kitchen run or standing in the bed, with
- * a wall filling the view, which reads as the whole thing being broken rather
- * than as standing somewhere silly.
- */
-
-/** Room enough round somebody to stand in without being inside the furniture. */
 const ELBOW = 500
 
-/** How finely the room is tried for a clear spot: coarse, since this only opens a view. */
 const STEPS = 9
 
 export type Start = { at: Point; yaw: number }
@@ -33,7 +20,6 @@ export function startOf(doc: HouseDocument, level: string): Start | undefined {
   const stored = biggest.id ? doc.rooms[biggest.id] : undefined
   const middle = stored ? { x: stored.x, y: stored.y } : biggest.centre
 
-  // Every box everything in the room stands on, to keep out of.
   const taken = Object.values(doc.objects).flatMap((object) => {
     if (object.level !== level || object.room !== biggest.id) return []
     const spot = standingAt(doc, level, biggest, object)
@@ -47,12 +33,6 @@ export function startOf(doc: HouseDocument, level: string): Start | undefined {
   return { at, yaw: yawTowards(at, middle) }
 }
 
-/**
- * The clear spot with the most room round it, out of a grid of them.
- *
- * Every one is tried and the roomiest kept rather than the first taken, so the
- * walk opens in the middle of the floor and not wedged behind the door.
- */
 function roomiest(
   outline: Point[],
   taken: Point[][],
@@ -77,7 +57,6 @@ function roomiest(
   return best?.at
 }
 
-/** Whether a point is in a box, counting a margin round it as in it. */
 function within(piece: Point[], at: Point, margin: number): boolean {
   const box = boxOf(piece)
   return (
@@ -88,7 +67,6 @@ function within(piece: Point[], at: Point, margin: number): boolean {
   )
 }
 
-/** How far a point is from a box, and nothing at all when it is inside one. */
 function clearanceOf(piece: Point[], at: Point): number {
   const box = boxOf(piece)
   return Math.hypot(

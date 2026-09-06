@@ -30,12 +30,6 @@ test('a wall shared by two rooms yields both rooms, not one merged room', () => 
   expect(areasOf(findFaces(doc, level))).toEqual([2000 * 3000, 4000 * 3000])
 })
 
-/**
- * Pins a constraint the rest of the system has to respect: the wall graph is
- * topological, not geometric. A partition that merely crosses another wall on
- * screen shares no node with it and therefore divides nothing. Commands that add
- * walls must split what they meet — see `@houseit/commands`.
- */
 test('a partition that shares no node with the walls it crosses divides nothing', () => {
   const { doc, level } = planWith([
     [0, 0, 6000, 0],

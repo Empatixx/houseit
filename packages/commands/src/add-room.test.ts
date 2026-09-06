@@ -151,7 +151,6 @@ test('cutting a corner leaves the rest of the room L-shaped', () => {
 
   expect(named(next, level, 'kuchyň')?.area).toBe(4000 * 3000)
   expect(rest.area).toBe(12_000 * 9000 - 4000 * 3000)
-  // Six corners, which is what tells an L from a rectangle.
   expect(new Set(rest.nodes).size).toBe(6)
 })
 
@@ -294,7 +293,6 @@ const flat = (script: string[]) =>
     ].join('\n'),
   )
 
-/** Where an opening actually sits, which is the only thing that must not move. */
 const openingAt = (doc: HouseDocument) => {
   const opening = Object.values(doc.openings)[0]!
   const wall = doc.walls[opening.wall]!
@@ -327,8 +325,6 @@ test('and it stays no wider than the wall it ends up in', () => {
 })
 
 test('a partition that would run through a window is refused', () => {
-  // The window sits in the middle of the south wall; cutting four metres off the
-  // west would put the new partition straight through it.
   const doc = flat(['add-opening --kind window --room byt --side south --width 1.2m'])
 
   expect(() =>

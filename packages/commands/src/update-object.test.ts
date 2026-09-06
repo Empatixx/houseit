@@ -11,7 +11,6 @@ const HOUSE = [
 
 const house = () => runScript(createEmptyDocument(), HOUSE)
 
-/** The ids the answer to furnishing the house gave, in the order they went in. */
 const ids = () => askPlan(createEmptyDocument(), HOUSE).changed.filter((id) => id.startsWith('f'))
 
 const objects = (doc: HouseDocument) => Object.values(doc.objects)
@@ -26,7 +25,6 @@ test('a thing moved to another side is placed on it the way a new thing would be
   const doc = runScript(house(), `update-object --id ${id} --against north`)
 
   expect(sofa(doc)).toMatchObject({ against: 'north' })
-  // Between the two nightstands, in the middle of the clear stretch.
   expect(sofa(doc).along).toBeCloseTo(0.5, 1)
 })
 
@@ -80,7 +78,6 @@ test('a turn is a number the thing keeps, and zero is no turn at all', () => {
   const turned = runScript(house(), `update-object --id ${id} --rotation 90`)
   expect(sofa(turned).rotation).toBe(90)
 
-  // Absolute, not a nudge: the second says where it ends up, not how far to go.
   const again = runScript(turned, `update-object --id ${id} --rotation -45`)
   expect(sofa(again).rotation).toBe(-45)
 
@@ -92,7 +89,6 @@ test('a turn that would put a thing into its wall is refused', () => {
   const script = [
     'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name house',
     'add-room --material natural-oak --name nook --from house --side west --width 1.3m',
-    // Narrow and deep: it stands along the north wall, and turned it would not.
     'add-object --room nook --type sofa-3 --against north --width 1000 --depth 2000',
   ].join('\n')
   const doc = runScript(createEmptyDocument(), script)

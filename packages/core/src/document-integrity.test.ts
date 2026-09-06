@@ -1,7 +1,6 @@
 import { expect, test } from 'vitest'
 import { createEmptyDocument, parseDocument } from './document'
 
-/** A one-wall document the integrity tests can break in a single specific way. */
 function documentWithOneWall() {
   const doc = createEmptyDocument()
   const level = Object.keys(doc.levels)[0]!

@@ -5,21 +5,6 @@ import type { Draft } from 'immer'
 import { CommandError } from './command-error'
 import { sideSign } from './place-opening'
 
-/**
- * Finding a door or a window that is already in.
- *
- * By id, and only by id. Every command that changes anything answers with the
- * rooms it touched and every opening in them by id, so the id of the door just
- * hung is in the answer to hanging it — there is nothing left for "the second
- * door on the north side" to do except be another way of saying the same thing
- * wrong.
- */
-
-/**
- * The room an opening belongs to: a door's is the room it swings into; a
- * window's is whichever room its wall bounds. Nothing for an opening in a wall
- * no room walks.
- */
 export function roomOfOpening(
   doc: HouseDocument,
   rooms: Room[],
@@ -44,10 +29,6 @@ export function roomOfOpening(
   return walking[0]
 }
 
-/**
- * The opening a command means, with the room it belongs to and the side of
- * that room it is in — which is what putting it somewhere else starts from.
- */
 export function openingById(
   doc: HouseDocument | Draft<HouseDocument>,
   id: string,

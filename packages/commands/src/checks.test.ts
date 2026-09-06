@@ -2,11 +2,6 @@ import { createEmptyDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
 import { askPlan } from './run'
 
-/**
- * What a plan is told about itself without asking. The problems ride along in
- * every answer, so this reads them off the answer to the very script that built
- * the plan — which is how the agent gets them too.
- */
 const check = (script: string) => askPlan(createEmptyDocument(), script)
 const codes = (script: string) => check(script).problems.map((problem) => problem.code)
 const ok = (script: string) => check(script).problems.every((it) => it.severity !== 'error')
@@ -60,7 +55,6 @@ test('a bedroom opening straight into the living room is called out, a hall betw
 test('a room too small or too dark for what it is called', () => {
   const script = [
     HOUSE,
-    // A hall across the top, and a laundry cut off the end of it: 1.5 by 1.5.
     'add-room --material natural-oak --name hall --from house --side north --width 1.5m',
     'add-room --material natural-oak --name laundry --from hall --side west --width 1.5m',
     'add-room --material natural-oak --name bedroom --from house --side east --width 4m',
@@ -114,7 +108,6 @@ test('errors come before warnings, and the answer is plain data', () => {
 
   const severities = report.problems.map((it) => it.severity)
   expect(severities.indexOf('warning')).toBeGreaterThanOrEqual(severities.lastIndexOf('error'))
-  // It crosses to whoever asked as JSON, so nothing of the draft may be in it.
   expect(JSON.parse(JSON.stringify(report))).toEqual(report)
 })
 
@@ -125,6 +118,5 @@ test('the trouble is told to the command that caused it, not to a later question
     'add-object --room house --type sofa-3 --against south --along 0.5',
   ].join('\n')
 
-  // The very line that put the sofa in the doorway says the door cannot open.
   expect(codes(script)).toContain('door.blocked')
 })

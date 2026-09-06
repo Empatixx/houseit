@@ -1,22 +1,9 @@
-/**
- * How tall things stand, in millimetres, for the view that walks through the
- * plan.
- *
- * The catalogue came from plan symbols, which are seen from straight above and
- * carry no height, so the heights live here by type, with a guess for anything
- * not listed. A thing that hangs on the wall says how far up it starts; one
- * that is mostly glass says so, and is drawn so the room shows through it.
- */
 export type Height = {
-  /** From its base to its top. */
   height: number
-  /** How far above the floor its base is. */
   base: number
-  /** Mostly glass — a shower screen, a railing — so it is drawn see-through. */
   glass?: boolean
 }
 
-/** What anything not listed is taken to be: a table, near enough. */
 const DEFAULT = 750
 
 const HEIGHTS: Record<string, Partial<Height>> = {
@@ -117,7 +104,6 @@ const HEIGHTS: Record<string, Partial<Height>> = {
   'gym-bench': { height: 450 },
 }
 
-/** How tall a thing of this type stands, and how far off the floor it starts. */
 export function heightOf(type: string): Height {
   const known = HEIGHTS[type]
   return { height: known?.height ?? DEFAULT, base: known?.base ?? 0, glass: known?.glass }

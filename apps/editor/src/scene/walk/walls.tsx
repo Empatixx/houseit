@@ -7,7 +7,6 @@ import { dragged } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
 import { planPieces, solidPieces, type WallPiece } from '../wall-pieces'
 
-/** What the walls, the leaves and the glass are painted. */
 const PAINT = {
   wall: '#f1f0ed',
   leaf: '#cdb894',
@@ -15,15 +14,8 @@ const PAINT = {
   glass: '#a7c8e6',
 } as const
 
-/** The plan pieces that stand in an opening: a leaf, a sliding panel, a garage door. */
 const STANDS_IN_OPENING = /-(leaf|near|far|panel)$/
 
-/**
- * The walls, at their real height, with the openings as holes: a sill under
- * every window and a head over every opening, the glass in the window, and
- * the door standing open the way the plan draws it. A click picks the wall,
- * or the door or window clicked.
- */
 export function Walls({ level }: { level: string }) {
   const doc = usePlanDoc()
   const selected = useSelection((state) => state.selected)
@@ -66,7 +58,6 @@ function StandingWall({ wall, doc, degrees, picked, pickedOpening }: StandingWal
   const dy = b.y - a.y
   const span = Math.hypot(dx, dy)
   if (span === 0) return null
-  // Extended by half a thickness into every corner it shares, as in the plan.
   const growA = (degrees.get(wall.a) ?? 0) > 1 ? wall.thickness / 2 : 0
   const growB = (degrees.get(wall.b) ?? 0) > 1 ? wall.thickness / 2 : 0
   const length = span + growA + growB
@@ -78,7 +69,6 @@ function StandingWall({ wall, doc, degrees, picked, pickedOpening }: StandingWal
     STANDS_IN_OPENING.test(piece.key),
   )
 
-  /** Where a piece's middle is on the plan, from how far along and how far aside it is. */
   const place = (piece: Pick<WallPiece, 'at' | 'aside'>) => {
     const travelled = piece.at - growA
     const aside = piece.aside ?? 0

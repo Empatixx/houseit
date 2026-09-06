@@ -9,7 +9,6 @@ import { installFloorplanBridge } from './floorplan-bridge'
 
 const floor = 'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name dům'
 
-/** The bridge with a project open, which is the only state it does anything in. */
 async function bridgeOn(store = createDocumentStore()) {
   const projects = createProjectsStore(openProjects(new FakeIndexedDb()), store)
   installFloorplanBridge(store, projects)
@@ -18,7 +17,6 @@ async function bridgeOn(store = createDocumentStore()) {
   return window.floorplan
 }
 
-/** The bridge with nothing open, which is what the home screen is. */
 async function bridgeWithNothingOpen() {
   const store = createDocumentStore()
   const projects = createProjectsStore(openProjects(new FakeIndexedDb()), store)
@@ -73,8 +71,6 @@ test('every exec answers with the rooms it touched and what is wrong with the pl
 
   expect(result.ok && result.answer.rooms).toHaveLength(1)
   expect(result.ok && result.answer.rooms[0]).toMatchObject({ name: 'dům' })
-  // A floor with no door on it is a house nobody can get into, and it says so
-  // without having been asked.
   expect(result.ok && result.answer.problems.map((it) => it.code)).toContain('house.no-entrance')
 })
 
@@ -86,7 +82,6 @@ test('a change answers the same way, and names what it changed', async () => {
 
   expect(result.ok && result.answer.changed).toHaveLength(1)
   expect(result.ok && result.answer.rooms[0]?.objects).toHaveLength(1)
-  // The stretch of wall left beside it, which is what the next placing needs.
   const south = result.ok ? result.answer.rooms[0]!.sides.find((it) => it.side === 'south') : null
   expect(south?.objects).toHaveLength(1)
   expect(south?.free.length).toBeGreaterThan(0)
@@ -119,16 +114,10 @@ test('what is in the way is asked for after the framing, not reported with it', 
   const bridge = await bridgeOn()
   bridge.exec(floor)
 
-  // Showing folds the panel away, and the folding is a render that has not
-  // happened when show returns. So show says only whether it could frame what
-  // it was asked for, and where to look is a second question, asked later.
   expect(bridge.show({ room: 'dům' })).toEqual({ ok: true })
 
-  // Nothing is in the way of a canvas nothing has been laid out over.
   expect(bridge.clear().x).toBe(0)
 
-  // Asked again with a rail down the left, it says so — the answer is read at
-  // the moment of asking rather than kept from the moment of showing.
   viewStore.getState().cover('rail', { edge: 'left', extent: 60 })
   expect(bridge.clear().x).toBe(60)
   viewStore.getState().cover('rail', null)

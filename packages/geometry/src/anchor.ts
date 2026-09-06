@@ -2,16 +2,6 @@ import { centroidOf } from './centroid'
 import type { Point } from './outlines'
 import { containsPoint } from './rooms'
 
-/**
- * A point inside a polygon to hang a room's record on.
- *
- * The centroid, when it is inside — and for a U or a deep L it is not: the
- * middle of a horseshoe is the gap. Then a point just in from the middle of
- * one of its edges is taken instead, the room being on the left of every edge
- * of a counter-clockwise face. Any point inside will do; it only has to stay
- * inside, and near the middle of an edge is as far from the far walls as a
- * point can be sure to be.
- */
 export function anchorInside(polygon: Point[], area: number, step = 200): Point {
   const centre = centroidOf(polygon, area)
   const rounded = { x: Math.round(centre.x), y: Math.round(centre.y) }

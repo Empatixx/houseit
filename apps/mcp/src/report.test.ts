@@ -49,8 +49,6 @@ test('passes a failure through as the message the command produced', () => {
 test('the tool description never names a command or a catalogue, so it cannot churn', () => {
   const description = toolDescription()
 
-  // What would change under it: a new command, a new kind of sofa, a new floor.
-  // None of them may reach the description, or every cached prompt is thrown away.
   expect(description).not.toContain('--notch-width')
   expect(description).not.toContain('sofa-3')
   expect(description).not.toContain('natural-oak')

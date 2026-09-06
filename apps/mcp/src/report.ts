@@ -1,33 +1,13 @@
 import type { ExecResult } from '@houseit/bridge/contract'
 import { describeCommands } from '@houseit/commands/registry'
 
-/**
- * What the agent reads back.
- *
- * One shape, always: what the script touched, those rooms in full — walls,
- * openings, what stands in them and what stretch of each wall is still free —
- * and everything now wrong with the plan. A command that only asked and a
- * command that changed everything answer the same way, because there is one
- * answer and it is assembled in one place.
- */
 export function report(result: ExecResult): string {
   if (!result.ok) return result.error
 
-  // Which plan this was, since the agent works on whichever project is open and
-  // did not choose it.
   const plan = result.project?.name ?? 'the plan'
   return `${plan}\n${compactJson(result.answer)}`
 }
 
-/**
- * The tool's description, which never changes.
- *
- * Deliberately not the command list. A description is part of the prompt, and a
- * prompt that changes invalidates the cache of every conversation using it — so
- * a new kind of sofa in the catalogue would make every agent everywhere start
- * again from cold. The list is a `help` away instead, and an answer to a call is
- * cached like any other.
- */
 export function toolDescription(): string {
   return [
     'Edit the floor plan open in the browser. Takes one or more commands, one per',
@@ -53,18 +33,10 @@ export function toolDescription(): string {
   ].join('\n')
 }
 
-/** The command list, asked for rather than always in front of the agent. */
 export const helpText = describeCommands
 
-/** How wide a line of the answer may be before its object is spread over several. */
 const LINE = 100
 
-/**
- * JSON that is read rather than parsed: anything short enough stays on one
- * line — a wall, a door, a clearance — and only what would not fit is opened
- * out. Pretty-printed, a room is two hundred lines of one number each; this
- * way it is twenty, and each of them says something.
- */
 export function compactJson(value: unknown, indent = ''): string {
   const flat = JSON.stringify(value)
   if (flat === undefined) return 'null'

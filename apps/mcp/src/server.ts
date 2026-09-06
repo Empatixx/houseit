@@ -16,12 +16,6 @@ const server = new McpServer({ name: 'houseit', version: '0.1.0' })
 
 type Content = { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }
 
-/**
- * One tool, not one per action, and a description that never changes. Adding a
- * command or a kind of sofa leaves both alone, so nothing here can invalidate a
- * conversation's cache — the command list is `help`, which is an answer rather
- * than a prompt.
- */
 server.registerTool(
   'floorplan',
   {
@@ -45,8 +39,6 @@ server.registerTool(
       const result = await execOnPage(page, command)
       const content: Content[] = [{ type: 'text', text: report(result) }]
 
-      // Every answer comes with a picture of what it did — one for the call,
-      // not one a line, since a script is one transaction and one answer.
       if (result.ok) {
         const shown = await showOnPage(page, viewOf(result.answer))
         if (shown.ok) {
@@ -62,9 +54,6 @@ server.registerTool(
   },
 )
 
-// A headless browser started for the agent belongs to this process, and the
-// plan in it is held for a quarter second before it is written: closing it
-// properly is the difference between the last command landing and vanishing.
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
     void closeEditor().then(() => process.exit(0))

@@ -9,10 +9,6 @@ import './styles.css'
 
 installFloorplanBridge(documentStore)
 
-// While developing, the walk can be placed from a script — the way a thing is
-// looked at in 3D from a couple of metres off, one at a time — and a project of
-// its own can be made for it to stand in. Nothing of the document goes through
-// here; that door is the bridge.
 if (import.meta.env.DEV) {
   Object.assign(window, { __houseit: { modeStore, walkStore, projectsStore } })
 }

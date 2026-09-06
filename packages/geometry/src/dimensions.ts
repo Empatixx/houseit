@@ -5,30 +5,15 @@ import type { Room } from './rooms'
 import { wallsOnSide } from './sides'
 import { footprintOf, type Spot } from './standing'
 
-/**
- * A dimension: a line between two points and the length it stands for, with
- * the way its label is set off from what it measures.
- */
 export type Dimension = {
   from: Point
   to: Point
-  /** What is measured, in millimetres — not always the line's own length. */
   length: number
-  /** Unit vector pointing from the thing measured towards the line and its label. */
   offset: Point
 }
 
-/** How far a dimension line stands off the face it measures, in millimetres. */
 export const STANDOFF = 300
 
-/**
- * The inside of a room, wall by wall: the clear length between the faces of
- * the walls at either end, drawn a little way in from the face it runs along.
- *
- * Measured between faces rather than centre lines because that is the number
- * somebody wants — how long the wall is to stand a wardrobe against — and it is
- * what the reference shows when a room is picked.
- */
 export function roomDimensions(doc: HouseDocument, level: string, room: Room): Dimension[] {
   const count = room.nodes.length
   if (count < 3) return []
@@ -41,7 +26,6 @@ export function roomDimensions(doc: HouseDocument, level: string, room: Room): D
     const a = doc.nodes[aId]
     const b = doc.nodes[bId]
     if (!a || !b) continue
-    // A wall dangling into the room is walked twice; it gets one dimension.
     const key = [aId, bId].sort().join('-')
     if (seen.has(key)) continue
     seen.add(key)
@@ -49,7 +33,6 @@ export function roomDimensions(doc: HouseDocument, level: string, room: Room): D
     const span = Math.hypot(b.x - a.x, b.y - a.y)
     if (span === 0) continue
     const along = { x: (b.x - a.x) / span, y: (b.y - a.y) / span }
-    // Faces are walked counter-clockwise, so the room is on the left of each edge.
     const inward = { x: -along.y, y: along.x }
 
     const thickness = wallBetween(doc, level, aId, bId)?.thickness ?? 0
@@ -72,14 +55,6 @@ export function roomDimensions(doc: HouseDocument, level: string, room: Room): D
   return dimensions
 }
 
-/**
- * The clear size of a room: the box round it, less the walls on its outer sides.
- *
- * For a rectangle it is what a tape measure across the room says. For a room
- * that steps, it is the box the whole room would fit in, which is still the
- * number wanted for "is it big enough for a bed and a wardrobe" — the walls of
- * the step show up as a shorter run in the room's dimensions.
- */
 export function interiorSize(
   doc: HouseDocument,
   level: string,
@@ -90,8 +65,6 @@ export function interiorSize(
 
   const xs = corners.map((corner) => corner.x)
   const ys = corners.map((corner) => corner.y)
-  // Only the walls on the room's very edge take anything off; a partition
-  // dangling into it does not make it narrower.
   const half = (side: Side) =>
     Math.max(
       0,
@@ -106,12 +79,6 @@ export function interiorSize(
 
 export type Extent = { x0: number; y0: number; x1: number; y1: number }
 
-/**
- * The outside of a level: the box round every wall's outer face.
- *
- * The walls are drawn on their centre lines, so the box round the nodes is half
- * a wall too small on every side. The thickest wall on the level says by how much.
- */
 export function planExtent(doc: HouseDocument, level: string): Extent | undefined {
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
   const nodes = walls
@@ -130,7 +97,6 @@ export function planExtent(doc: HouseDocument, level: string): Extent | undefine
   }
 }
 
-/** The two overall dimensions of a level: its width along the north side, its depth along the east. */
 export function extentDimensions(extent: Extent): Dimension[] {
   const off = STANDOFF * 2
   return [
@@ -158,14 +124,6 @@ const DIRECTIONS: Record<Side, Point> = {
   west: { x: -1, y: 0 },
 }
 
-/**
- * How far a thing stands from the walls round it: from each side of its box to
- * the face of the first wall of its room in that direction.
- *
- * The box, not the turned shape — a thing set at an angle is measured square
- * to the plan, which is how a plan is read. A side that meets no wall, because
- * the room bends away, gets no clearance rather than a wrong one.
- */
 export function objectClearances(
   doc: HouseDocument,
   level: string,
@@ -201,14 +159,12 @@ export function objectClearances(
       from: start,
       to: { x: start.x + direction.x * length, y: start.y + direction.y * length },
       length,
-      // The label sits beside the line, a quarter turn from the way it runs.
       offset: { x: -direction.y, y: direction.x },
     })
   }
   return clearances
 }
 
-/** The first wall of the room a ray from a point meets, and how far away its centre line is. */
 function nearestWall(
   doc: HouseDocument,
   level: string,
@@ -235,7 +191,6 @@ function nearestWall(
   return best
 }
 
-/** Distance along a ray to where it crosses a segment, or nothing if it misses. */
 function rayHitsSegment(from: Point, direction: Point, a: Point, b: Point): number | undefined {
   const edge = { x: b.x - a.x, y: b.y - a.y }
   const denominator = direction.x * edge.y - direction.y * edge.x

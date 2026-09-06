@@ -10,19 +10,6 @@ import { dragged } from './drag'
 import { useSymbol } from './furniture/use-symbol'
 import { MM, toWorld } from './plan-coordinates'
 
-/**
- * The stairs coming up from the storey below, seen through the hole they make.
- *
- * Not a decoration and not a ghost: the flight is really there, a storey down,
- * and the floor you are standing on is really missing over it. So it is drawn
- * where it is — under this floor — and what shows of it is exactly what the
- * well leaves showing, the way it would if you looked down.
- *
- * Without it an upper floor has an empty hole in it and no way of telling that
- * the hole is the way down. A click on it picks the flight, the way a click on
- * anything else picks that: the stairs you can see are the stairs you can
- * choose, whichever storey you are looking at.
- */
 export function StairsBelow() {
   const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
@@ -68,11 +55,6 @@ export function StairsBelow() {
   )
 }
 
-/**
- * How high the flight below is drawn: under this storey's floors, so they cover
- * it everywhere but in the well, and over the faint walls of the storey below,
- * which are further down still.
- */
 const UNDERFOOT = 6
 
 function Flight({
@@ -94,8 +76,6 @@ function Flight({
   return (
     <mesh
       position={toWorld(spot.at.x, spot.at.y, UNDERFOOT)}
-      // Laid flat and turned the way the flight faces, half round like every
-      // other symbol so its top edge is the thing's back.
       rotation={[-Math.PI / 2, 0, spot.turn + Math.PI]}
       onClick={(event) => {
         if (dragged(event)) return

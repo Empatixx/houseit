@@ -2,22 +2,15 @@ import { useDraw } from '../store/draw'
 import { EMPHASIS } from '../store/hover'
 import { MM, toWorld } from './plan-coordinates'
 
-/** How thick the pencil line is, in millimetres; as a wall by hand would be. */
 const THICKNESS = 150
 const HEIGHT = 2800
 
-/**
- * The line being drawn: the corners put down, joined, and the line to the
- * pointer. Blue, over everything, the rooms it would make showing through
- * from the preview beneath.
- */
 export function Drawing() {
   const points = useDraw((state) => state.points)
   const cursor = useDraw((state) => state.cursor)
   const corners = cursor && points.length > 0 ? [...points, cursor] : points
   if (corners.length === 0) return null
 
-  // Keyed by where they are, and told apart when the line closes on its first corner.
   const seen = new Map<string, number>()
   const keyed = corners.map((corner) => {
     const at = `${corner.x},${corner.y}`

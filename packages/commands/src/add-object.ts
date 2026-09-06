@@ -12,38 +12,20 @@ import { freeWidth, placeAgainst, placeFree, placeSomewhereAgainst } from './pla
 import { SIDE_NAMES, sideNamed, whereRoom } from './resolve'
 import { canStand, standingProblem, takenBy } from './standing-check'
 
-/**
- * Puts something in a room.
- *
- * The type says what the thing is and how big it usually is; the command carries
- * the exceptions. Nothing carries a position — `place-object` works that out from
- * the room, because "in the kitchen, against the north wall" is what a person
- * knows and a coordinate is not.
- */
 export const addObject = defineCommand({
   name: 'add-object',
   summary: `Put something in a room (${OBJECT_TYPE_IDS.join(', ')})`,
   args: z.object({
     room: z.string().min(1),
     type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]),
-    /** The side it backs onto; the longest wall facing that way, if there are several. */
     against: z.enum(SIDE_NAMES).optional(),
-    /** Or the very wall it backs onto, by its id from describe. */
     wall: z.string().min(1).optional(),
-    /**
-     * Where along that wall, or across the room: a fraction (0 at the west or
-     * south end, 1 at the other) or a length from that end. Left out, the place
-     * is chosen — which is nearly always right. Said, it is checked like any
-     * other place and refused if something is there.
-     */
     along: along().optional(),
-    /** Standing free: how far up the room, a fraction (0 south, 1 north) or a length from the south. Left out, the middle. */
     across: along().optional(),
     width: length().optional(),
     depth: length().optional(),
     surface: z.enum(SURFACE_IDS as [string, ...string[]]).optional(),
     seats: z.coerce.number().int().positive().optional(),
-    /** Its turn about its own middle, in whole degrees, on top of the way it faces. */
     rotation: z.coerce.number().int().min(-359).max(359).optional(),
     level: z.string().optional(),
   }),
@@ -62,13 +44,7 @@ export const addObject = defineCommand({
       )
     }
 
-    // A staircase is as long as the storey makes it: the risers come from the
-    // floor-to-floor height and the run from the risers, so its depth is not
-    // something to choose. How wide the flight is still is.
     const climb = stairKind(type.id)
-    // `--width` on a staircase is the clear width of the flight, not the
-    // footprint: the catalogue's own width is the footprint a 900 mm flight
-    // makes, and handing that back in would build it out of itself.
     const flight = climb ? stairShape(climb, draft.levels[level]!.height, args.width) : undefined
     if (flight && args.depth !== undefined) {
       throw new CommandError(
@@ -107,12 +83,9 @@ export const addObject = defineCommand({
             ? placeSomewhereAgainst(draft, level, room, taken.width, layer, abuts)
             : placeFree(draft, room, taken.width, layer)
 
-    // Every candidate is checked the way a move is checked, by the same code —
-    // or the check means nothing.
     const spot = spots.find((candidate) => canStand(draft, level, room, candidate, shape))
 
     if (!spot) {
-      // One place was asked for, so the one reason it will not do is worth saying.
       const first = spots[0]
       const problem =
         args.along !== undefined && first

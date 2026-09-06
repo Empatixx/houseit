@@ -18,96 +18,47 @@ import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { wellsInRoom } from '@houseit/geometry/wells'
 import { order } from './resolve'
 
-/**
- * What the plan says about itself.
- *
- * An agent that can only act through commands can only know the plan through
- * commands too, and a document dump is not knowing it: the rooms in a document
- * are anchor points, the doors are fractions along wall ids. What is said here
- * is what a person looking at the drawing would say — the kitchen is 4.2 by
- * 3.6, its door is in the south wall and opens from the hall, a sofa stands
- * against its west wall, and there are 1462 mm of that wall still free — in the
- * same words the commands take, so that what is read back can be written
- * straight into the next command.
- *
- * There is no command for any of this. It is what every command answers with
- * about the rooms it touched, which is why the free stretches live here beside
- * the room rather than behind a second question nobody remembers to ask.
- *
- * Lengths are millimetres, as everywhere; an area is in square metres because
- * that is the unit anybody thinks of a room in.
- */
-
 export type WallReport = {
-  /** Its id, which add-opening takes as --wall. */
   id: string
   side: Side
-  /** Which run of that side, west to east or south to north — only where the side has several. */
   nth?: number
   length: number
 }
 
 export type OpeningReport = {
-  /** Its id, which update-opening and remove-opening take as --id. */
   id: string
   kind: Opening['kind']
-  /** The wall it is in. */
   wall: string
   side: Side
-  /** Along that side, in the sense `--along` uses: 0 west or south, 1 east or north. */
   along: number
   width: number
   height: number
-  /** A door's kind of leaf; absent on a window, which has no leaf. */
   variant?: Opening['variant']
-  /** How high off the floor it starts. Nothing for a door. */
   sill?: number
-  /** For a door: the room it opens from, or `outside`. */
   to?: string
 }
 
 export type ObjectReport = {
-  /** Its id, which update-object and remove-object take as --id. */
   id: string
   type: string
   against?: Side
-  /** The wall it backs onto, for --wall. */
   wall?: string
   along: number
   across?: number
-  /** Its turn about its own middle, in whole degrees. Absent means square on. */
   rotation?: number
   seats?: number
   width: number
   depth: number
   surface: string
-  /** The middle of it, in plan millimetres. */
   at?: Point
-  /**
-   * From each side of its box to the face of the first wall that way, in
-   * millimetres. A side it backs onto is left out — there is nothing there to
-   * measure. This is the room to walk round it, which is the question asked of
-   * a plan more often than any other.
-   */
   clear?: Record<string, number>
 }
 
-/** A stretch of a wall, in millimetres from the run's west or south end. */
 export type Span = { from: number; to: number }
 
-/**
- * One run of one side of a room, as a line to put things along.
- *
- * The measurement that matters and the only one that cannot be worked out from
- * the rest: what is on this wall already, and what is left. `from` and `to` are
- * the millimetres a `--along` of that length lands on, so a free stretch reads
- * straight back into the next command.
- */
 export type SideReport = {
   side: Side
-  /** Which run of that side — only where the side has several. */
   nth?: number
-  /** The walls this run is made of, each with its own stretch of it. */
   walls: (Span & { id: string })[]
   length: number
   thickness: number
@@ -117,30 +68,17 @@ export type SideReport = {
 }
 
 export type RoomReport = {
-  /** Its id, which every command takes in place of the name. */
   id?: string
   name?: string
-  /** What sort of room it was told it is; left out, read from the name. */
   kind?: string
   areaM2: number
-  /** Clear width and depth, between wall faces. */
   width: number
   depth: number
-  /** Where it lies on the plan: the box round its wall centre lines. */
   box: { x0: number; y0: number; x1: number; y1: number }
   floor?: string
-  /** Rooms sharing a wall with it, by name. */
   neighbours: string[]
   walls: WallReport[]
-  /** Each side of it as a line to place against, with what is free. */
   sides: SideReport[]
-  /**
-   * The holes in its floor: the staircases on the storey below, coming up.
-   *
-   * Not a thing anybody put here — it is the flight downstairs, seen from
-   * above — so it is said out loud, or an agent standing on this floor has no
-   * way of knowing why it may not put a wardrobe there.
-   */
   wells?: {
     object: string
     type: string
@@ -152,7 +90,6 @@ export type RoomReport = {
 
 export type LevelReport = {
   level: string
-  /** The outside of the level, over the outer faces of its walls. */
   width?: number
   depth?: number
   rooms: RoomReport[]
@@ -245,7 +182,6 @@ export function surveyRoom(
   }
 }
 
-/** The stairwells in a room's floor, as boxes — nothing at all where there are none. */
 function pierced(doc: HouseDocument, level: string, room: Room): RoomReport['wells'] {
   const wells = wellsInRoom(doc, level, room)
   if (wells.length === 0) return undefined
@@ -265,14 +201,6 @@ function pierced(doc: HouseDocument, level: string, room: Room): RoomReport['wel
   })
 }
 
-/**
- * One run of a side, with what is on it and what is left.
- *
- * Openings and whatever backs onto it are projected onto the run as stretches
- * from its west or south end, and the gaps between them are what a new thing
- * can go in. The same arithmetic the placing does, said out loud — an agent
- * that can read the free stretches does not have to place by trial and refusal.
- */
 export function surveySide(
   doc: HouseDocument,
   level: string,
@@ -287,8 +215,6 @@ export function surveySide(
   const project = (point: Point) =>
     (point.x - run.from.x) * unit.x + (point.y - run.from.y) * unit.y
 
-  // Each wall's own stretch of the run, so `--wall w12` can be placed along
-  // without first working out where in the side that wall begins.
   const walls = run.walls.flatMap((wall) => {
     const stretch = stretchOf(run, wall.wall)
     return stretch === undefined
@@ -315,9 +241,6 @@ export function surveySide(
       ]
     })
 
-  // A thing says which side it backs onto and, where the side has several runs,
-  // which of them; said nothing, it is on the longest — the one a bare --against
-  // would have put it against.
   const longest = sideRun(doc, level, room, side)
   const objects = among
     .filter((object) => object.against === side && (object.againstNth ?? longest?.nth) === run.nth)
@@ -351,7 +274,6 @@ export function surveySide(
   }
 }
 
-/** What stands in a room, in the order it was put there. */
 export function objectsIn(doc: HouseDocument, level: string, room: Room): HouseObject[] {
   return Object.values(doc.objects)
     .filter((object) => object.level === level && object.room === room.id)
@@ -397,16 +319,10 @@ export function surveyObject(
   }
 }
 
-/**
- * Whether two rooms are the same face. Faces are made afresh on every look, so
- * the one a command was handed and the one in a list are never the same object;
- * the ring of nodes is what they have in common.
- */
 const sameFace = (one: Room, other: Room) =>
   one.nodes.length === other.nodes.length &&
   [...one.nodes].sort().join('-') === [...other.nodes].sort().join('-')
 
-/** Whether a room's face runs along a wall. */
 function walks(room: Room, wall: Wall): boolean {
   const count = room.nodes.length
   for (let i = 0; i < count; i += 1) {
@@ -417,15 +333,6 @@ function walks(room: Room, wall: Wall): boolean {
   return false
 }
 
-/**
- * Where along a side an opening sits, as the fraction `--along` would put a
- * thing at the same place.
- *
- * Measured along the side's run — west to east, south to north — when the wall
- * is on the room's edge, so a door and a sofa on the same wall are told apart by
- * the one number. A wall the room only reaches, not one at its edge, is measured
- * along itself the same way round.
- */
 function alongSide(
   doc: HouseDocument,
   level: string,

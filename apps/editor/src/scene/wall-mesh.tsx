@@ -24,30 +24,10 @@ import { INK, planPieces } from './wall-pieces'
 type WallMeshProps = {
   wall: Wall
   doc: HouseDocument
-  /** How many walls meet at each node, so free ends are not extended. */
   degrees: Map<string, number>
-  /** Whether the picked room is bounded by this wall, which turns it blue with the room. */
   ofPickedRoom: boolean
 }
 
-/**
- * One wall, drawn as a stack of boxes.
- *
- * Walls stop at the node they share, which leaves an empty square in every
- * corner. Each end that meets another wall is therefore extended by half the
- * thickness to fill it. Free ends are left alone — extending those would show as
- * a stub poking out of the plan.
- *
- * What the boxes are is `wall-pieces`. Which layer covers which is decided by
- * lifting one above another, because the plan is drawn from straight overhead:
- * there is no z-order to set, only height.
- *
- * Everything on a wall can be picked and carried, and moves as it is carried:
- * a door or a window along the wall, the wall across itself, the free end of a
- * stub along it. When let go, where it came to becomes one command — which
- * the plan may refuse, and then it is drawn back where it was. With the wall
- * tool armed, a drag off a wall draws a new wall into the room instead.
- */
 export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
   const selected = useSelection((state) => state.selected)
   const hovered = useHover((state) => state.hovered)
@@ -66,16 +46,12 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
   const unit = { x: (b0.x - a0.x) / span0, y: (b0.y - a0.y) / span0 }
   const across = { x: -unit.y, y: unit.x }
 
-  // Carried across itself, the whole wall moves with the pointer — and with
-  // it the rooms either side, drawn from the preview; only where the plan
-  // refuses the move does the wall alone follow, so the hand still sees it.
   const held = carry.held
   let offset = { x: 0, y: 0 }
   if (held && held.id === wall.id && !previewing) {
     const shift = held.shift.x * across.x + held.shift.y * across.y
     offset = { x: across.x * shift, y: across.y * shift }
   }
-  // A stub's free end pulled along the wall makes the wall that much longer, live.
   let a = { x: a0.x + offset.x, y: a0.y + offset.y }
   let b = { x: b0.x + offset.x, y: b0.y + offset.y }
   if (pull !== 0 && stub && !previewing) {
@@ -107,7 +83,6 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
     return wallEmphasis
   }
 
-  // The tip of a picked stub, for the handle that pulls it.
   const tip = stub ? doc.nodes[stub.stub.tip] : undefined
   const tipDirection = stub && stub.stub.tip === wall.b ? unit : { x: -unit.x, y: -unit.y }
 
@@ -115,7 +90,6 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
     <>
       {pieces.map((piece) => {
         const heldOpening = piece.opening !== undefined && held?.id === piece.opening
-        // A held opening follows the pointer along its wall until it is let go.
         const slide = heldOpening ? held!.shift.x * unit.x + held!.shift.y * unit.y : 0
         const travelled = piece.at - growA + slide
         const aside = piece.aside ?? 0
@@ -162,8 +136,6 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
               }
               const carried = carry.move(event)
               if (!carried || opening) return
-              // The rooms follow the wall as it is carried: what the drop would
-              // do, drawn as the pointer goes.
               previewWallMove(wall, carried.shift)
             }}
             onPointerUp={(event) => {
@@ -232,10 +204,8 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
   )
 }
 
-/** Where the pointer took hold of a stub's free end, while it is held. */
 const pullStart: { current: Point | null } = { current: null }
 
-/** A wall's colours, gone blue for what is picked or under the pointer. */
 function tinted(colour: string, emphasis: Emphasis | undefined): string {
   if (!emphasis) return colour
   const blues = EMPHASIS[emphasis]
@@ -245,14 +215,8 @@ function tinted(colour: string, emphasis: Emphasis | undefined): string {
   return colour
 }
 
-/** Something on the wall picked up: which, where the pointer took it, and how far it has come. */
 type Held = { id: string; from: Point; shift: Point }
 
-/**
- * Carrying a door, a window or the wall itself. The document is not touched
- * while it is held; the camera's own dragging is switched off, or the plan
- * would pan under it.
- */
 function useCarry() {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null
   const live = useRef<Held | null>(null)
@@ -279,7 +243,6 @@ function useCarry() {
     return live.current
   }
 
-  /** Lets go; where it was picked up and how far it was carried, if carried rather than clicked. */
   const up = (event: ThreeEvent<PointerEvent>): { from: Point; shift: Point } | undefined => {
     const carried = live.current
     if (!carried) return undefined
@@ -291,7 +254,6 @@ function useCarry() {
     return { from: carried.from, shift: carried.shift }
   }
 
-  /** Something else takes the pointer for a while: the camera keeps still meanwhile. */
   const hold = () => {
     if (controls) controls.enabled = false
   }

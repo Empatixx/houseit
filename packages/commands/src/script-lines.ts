@@ -1,12 +1,6 @@
 import { parse as tokenize } from 'shell-quote'
 import { CommandError } from './command-error'
 
-/**
- * A script as the lines that do something: each one tokenised the way a shell
- * would, with blank lines and `#` comments already gone. The one reading of a
- * script, so that whoever runs it and whoever only wants to know what it asks
- * for read the same lines.
- */
 export function scriptLines(source: string): string[][] {
   return source
     .split('\n')

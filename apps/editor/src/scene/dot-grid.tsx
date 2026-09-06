@@ -4,14 +4,8 @@ import { aimAt, finishDrawing, putDown } from '../edit/draw-commands'
 import { toolStore, useTool } from '../store/tool'
 import { MM } from './plan-coordinates'
 
-/** How far apart the dots are, in metres, and how much darker every fifth one is. */
 const CELL = 1
 
-/**
- * The paper the plan is drawn on: a dot at every metre, a little heavier at
- * every five. Drawn in a shader so a dot is a dot at any zoom — a couple of
- * pixels across, not a metre across.
- */
 export function DotGrid() {
   const drawing = useTool((state) => state.armed?.kind === 'wall')
   const material = useMemo(
@@ -64,8 +58,6 @@ export function DotGrid() {
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, -0.05, 0]}
       material={material}
-      // The paper takes the pencil: a corner where it is clicked, and the
-      // line to the next corner following the pointer over it.
       onPointerMove={
         drawing ? (event) => aimAt({ x: event.point.x / MM, y: -event.point.z / MM }) : undefined
       }

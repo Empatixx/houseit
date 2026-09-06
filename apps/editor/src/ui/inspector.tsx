@@ -5,21 +5,11 @@ import { GAP, PANEL_WIDTH, usePanelShown } from './edges'
 import { PanelContent } from './panel'
 import { useCover } from './use-cover'
 
-/** How far the panel has to be dragged towards the edge before it goes. */
 const LET_GO = 90
 
-/**
- * The panel over the plan: what is picked, and what can be said about it.
- * A card floating down the right edge, over the plan rather than beside it,
- * so folding it away moves nothing underneath — the plan stays put and Fit
- * knows what it is hidden behind. It is out while there is something to
- * show; the gear's button folds it away, and so does a drag on its edge
- * towards the side, until the next click on the plan brings it back.
- */
 export function Inspector() {
   const open = usePanelShown()
   const ref = useCover<HTMLElement>('right', open)
-  // Slid away, its left edge is at the plan's right edge: nothing of it shows.
   const away = PANEL_WIDTH + GAP
 
   return (
@@ -46,11 +36,6 @@ export function Inspector() {
   )
 }
 
-/**
- * The panel's left edge, to take hold of. Dragged towards the side, the whole
- * panel follows the pointer; let go far enough over, it folds away from where
- * it was let go. Let go short of that, it slides back.
- */
 function DragEdge({ away }: { away: number }) {
   const start = useRef<number | null>(null)
 

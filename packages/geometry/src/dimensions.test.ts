@@ -9,7 +9,6 @@ import {
 import { roomsOf } from './rooms'
 import { planWith } from './test-utils'
 
-/** A 6 by 4 room in 150 mm walls. */
 const box = () =>
   planWith([
     [0, 0, 6000, 0],
@@ -26,7 +25,6 @@ test('a room is measured between the faces of its walls, one dimension a wall', 
     .map((dimension) => dimension.length)
     .sort((one, other) => one - other)
 
-  // Six metres between centre lines, less half a wall at each end.
   expect(lengths).toEqual([3850, 3850, 5850, 5850])
 })
 
@@ -55,7 +53,6 @@ test('a wall dangling into a room is measured once, not once each way', () => {
   ])
   const room = roomsOf(doc, level)[0]!
 
-  // The south wall in two, the other three, and the stub once — not once each way.
   expect(roomDimensions(doc, level, room)).toHaveLength(6)
 })
 
@@ -81,13 +78,10 @@ test('a thing is measured to the wall faces on all four sides', () => {
   const clearances = objectClearances(doc, level, room, spot, { width: 1000, depth: 800 })
   const bySide = Object.fromEntries(clearances.map((entry) => [entry.side, entry.length]))
 
-  // West face at 75, east at 5925, south at 75, north at 3925.
   expect(bySide).toEqual({ west: 1425, east: 3425, south: 1025, north: 2025 })
 })
 
 test('a side that faces no wall gets no clearance', () => {
-  // An L: the room bends away to the north-east, so from the west leg nothing
-  // lies due east above the bend.
   const { doc, level } = planWith([
     [0, 0, 4000, 0],
     [4000, 0, 4000, 2000],
@@ -102,7 +96,6 @@ test('a side that faces no wall gets no clearance', () => {
   const clearances = objectClearances(doc, level, room, spot, { width: 500, depth: 500 })
   const east = clearances.find((entry) => entry.side === 'east')
 
-  // Due east of the thing the room runs on to the far wall at 8000.
   expect(east?.length).toBe(8000 - 75 - 1250)
 })
 

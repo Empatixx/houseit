@@ -19,16 +19,12 @@ test('every material states a real size, so a tile is the same size in any room'
   for (const material of FLOOR_MATERIALS) {
     expect(material.unit.width).toBeGreaterThan(0)
     expect(material.unit.depth).toBeGreaterThan(0)
-    // Drawn patterns are PNG; the photographs brought in from the reference are JPEG.
     expect(material.texture).toMatch(/\.(png|jpg)$/)
     expect(material.colour).toMatch(/^#[0-9a-f]{6}$/)
   }
 })
 
 test('a floor pattern repeats inside a room, or it is not a pattern', () => {
-  // A three metre repeat lays a single tile across a kitchen, and one tile of an
-  // even material is a flat grey rectangle. Rooms are three to six metres across,
-  // so the repeat has to be well inside that.
   for (const material of FLOOR_MATERIALS) {
     expect(material.unit.width, material.id).toBeLessThanOrEqual(1600)
     expect(material.unit.depth, material.id).toBeLessThanOrEqual(1600)

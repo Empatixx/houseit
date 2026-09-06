@@ -3,8 +3,6 @@ import type { Room } from '@houseit/geometry/rooms'
 import { documentStore } from '../store/store'
 import { runEdit } from './run-edit'
 
-/** What the panel does to a room, as the command an agent would give. */
-
 export function rename(room: Room, name: string): boolean {
   if (!room.name || name.trim() === room.name) return true
   return runEdit(() => documentStore.getState().apply(updateRoom, { room: room.name!, name }))

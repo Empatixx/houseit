@@ -97,15 +97,12 @@ test('a door is not hung behind the furniture already standing at that wall', ()
   const next = runScript(
     doc,
     [
-      // Three metres of sofa across the middle of the twelve metre wall.
       'add-object --room dům --type sofa-3 --against north --width 3m',
       'add-opening --kind door --room dům --side north --width 0.9m',
     ].join('\n'),
   )
   const door = openings(next)[0]!
 
-  // Anywhere but behind the sofa: a door you cannot walk through is not a door,
-  // and nothing in the drawing would have said so.
   expect(Math.abs(door.t * 12_000 - 6000)).toBeGreaterThan(1500 + 450)
 })
 
@@ -116,7 +113,6 @@ test('nor on the toilet in the room on the other side of that same wall', () => 
     doc,
     [
       CUT,
-      // Against the wall the two rooms share, halfway along it.
       'add-object --room kuchyň --type toilet-tank --against east',
       'add-opening --kind door --room dům --side west --width 0.9m',
     ].join('\n'),
@@ -127,12 +123,8 @@ test('nor on the toilet in the room on the other side of that same wall', () => 
   const b = next.nodes[wall.b]!
   const at = a.y + (b.y - a.y) * door.t
 
-  // A door has two sides and only one of them is the room it was asked for. The
-  // lavatory standing against the far face is in the way just the same.
   expect(Math.abs(at - 4500)).toBeGreaterThan((900 + 380) / 2)
 })
-
-// From here on, the same wall asked for a window instead of a door.
 
 test('a window goes into the wall on the side it was asked for', () => {
   const { doc } = floor()
@@ -247,8 +239,6 @@ test('a window is happy over the sofa, because that is where a sofa goes', () =>
   )
   const window = Object.values(next.openings)[0]!
 
-  // Doors keep clear of the furniture because a door has to open. A window does
-  // not, and making it dodge the sofa leaves a wall of windowless corners.
   expect(window.t).toBeCloseTo(0.5, 5)
 })
 
@@ -269,8 +259,6 @@ test('two doors in one small room do not swing into each other', () => {
   )
   const boxes = openings(doc).map((opening) => swingOf(doc, opening)!)
 
-  // Centred on their own walls they would both sweep the same corner, and a plan
-  // that draws two doors banging into each other is not a plan of anything.
   expect(boxes).toHaveLength(2)
   expect(clash(boxes[0]!, boxes[1]!)).toBe(false)
 })
@@ -286,7 +274,5 @@ test('a door does not swing into the furniture already standing in the room', ()
   )
   const swing = swingOf(doc, openings(doc)[0]!)!
 
-  // The vanity stands halfway along the west wall and reaches half a metre out,
-  // which is exactly where a door centred on the north wall would open.
   expect(swing.x0).toBeGreaterThan(650)
 })

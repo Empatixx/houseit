@@ -2,7 +2,6 @@ import { standingProblem } from '../standing-check'
 import { objectsIn } from '../survey'
 import { label, type Problem, type Rule } from './rule'
 
-/** Everything stands where a command would let it stand. */
 export const standing: Rule = ({ doc, level, rooms }) => {
   const problems: Problem[] = []
   for (const room of rooms) {

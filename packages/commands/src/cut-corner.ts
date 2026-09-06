@@ -17,24 +17,10 @@ export const CORNERS = {
 export type Corner = keyof typeof CORNERS
 
 export type Cut = {
-  /** Where to anchor the room being cut out, and where to move the old one to. */
   taken: { x: number; y: number }
   left: { x: number; y: number }
 }
 
-/**
- * Takes a rectangle out of one corner of a room, leaving the rest of it L-shaped.
- *
- * This is the second way a room comes into being, and the one that makes a plan
- * stop looking like a row of stripes. Where a side cut is one partition between
- * two walls, a corner cut is two meeting at a new node — which is exactly why the
- * remainder comes out with six corners instead of four.
- *
- * What it refuses is a corner that is not there: each end of the new partition has
- * to land on a wall the room actually has, at a point that wall actually reaches.
- * Cut the same corner twice and the second cut would hang in open air — but the
- * other three corners of an L are still corners, and taking one is fine.
- */
 export function cutCorner(
   draft: Draft<HouseDocument>,
   level: string,
@@ -44,7 +30,6 @@ export function cutCorner(
     width: number
     depth: number
     thickness: number
-    /** A bite out of the new room's inner corner, which makes it L-shaped. */
     notch?: { width: number; depth: number }
   },
 ): Cut {
@@ -77,8 +62,6 @@ export function cutCorner(
   const meets = at(size.width, 0)
   const turns = at(0, size.depth)
 
-  // The wall the partition lands on, not merely the longest one on that side: a
-  // side already cut into is several walls, and only one of them is under the point.
   const wallAcross = under(draft, level, room, north ? 'north' : 'south', meets)
   const wallAlong = under(draft, level, room, west ? 'west' : 'east', turns)
   if (!wallAcross || !wallAlong) {
@@ -87,9 +70,6 @@ export function cutCorner(
     )
   }
 
-  // The partition walks from one wall round to the other, going round the notch
-  // if there is one. With no notch the inner points fall together and the walk is
-  // the plain elbow a rectangular corner needs.
   const path = [
     meets,
     at(size.width, size.depth - notch.depth),
@@ -98,11 +78,6 @@ export function cutCorner(
     turns,
   ]
 
-  // Every corner of the walk is a node: one already there, or one split out
-  // of the wall under it — the room's own side, or a neighbour's wall the walk
-  // lands on. A stretch that already has a wall along it is that wall, not a
-  // second one drawn over it: a box cut the whole depth of an L's arm has its
-  // far side on the partition that is there already.
   const ends = path.map((point) => nodeAtOrNew(draft, level, point))
 
   for (let i = 0; i < ends.length - 1; i += 1) {
@@ -126,11 +101,7 @@ export function cutCorner(
   }
 
   return {
-    // The leg beside the notch runs the room's whole depth, so its middle is
-    // inside whether the room came out a rectangle or an L.
     taken: at((size.width - notch.width) / 2, size.depth / 2),
-    // The far strip runs the room's whole depth, so a point in the middle of it is
-    // inside the L wherever the corner was taken from.
     left: {
       x: Math.round((edgeX + sx * size.width + (west ? x1 : x0)) / 2),
       y: Math.round((y0 + y1) / 2),
@@ -138,7 +109,6 @@ export function cutCorner(
   }
 }
 
-/** The wall on that side of the room that runs through the point, if any does. */
 function under(
   draft: Draft<HouseDocument>,
   level: string,

@@ -4,7 +4,6 @@ import { expect, test } from 'vitest'
 import { askPlan, runScript } from './run'
 import type { RoomReport } from './survey'
 
-/** The doors, or the windows, of a room: one list of openings, told apart by kind. */
 const doorsOf = (room: RoomReport) => room.openings.filter((it) => it.kind === 'door')
 const windowsOf = (room: RoomReport) => room.openings.filter((it) => it.kind === 'window')
 
@@ -18,7 +17,6 @@ const HOUSE = [
 ].join('\n')
 
 const house = () => runScript(createEmptyDocument(), HOUSE)
-/** An opening by kind in a named room, the way the answer to putting it in gave it. */
 const openingIn = (doc: HouseDocument, name: string, kind: 'door' | 'window') =>
   askPlan(doc, `get-plan --room ${name}`).rooms[0]!.openings.find((it) => it.kind === kind)!.id
 const level = (doc: HouseDocument) => Object.keys(doc.levels)[0]!
@@ -33,12 +31,10 @@ test('a wall moved outward makes the room bigger and the room beyond it smaller'
   const after = { kitchen: report(doc, 'kitchen'), house: report(doc, 'house') }
   expect(after.kitchen.width - before.kitchen.width).toBe(1000)
   expect(before.house.width - after.house.width).toBe(1000)
-  // The house still has its rooms and its walls meet.
   expect(roomsOf(doc, level(doc))).toHaveLength(3)
 })
 
 test('the whole line moves, so the wall carrying on beyond stays straight', () => {
-  // The kitchen's east wall runs on north into the hall's partition: both move.
   const doc = runScript(house(), 'update-room --room kitchen --side east --by 500')
 
   const nodes = Object.values(doc.nodes).map((node) => node.x)
@@ -51,12 +47,10 @@ test('a door in the moved wall goes with it; a window in a stretched wall keeps 
   const doc = runScript(house(), 'update-room --room kitchen --side east --by 1m')
   const after = report(doc, 'kitchen')
 
-  // The door is in the wall that moved: the same place along it as before.
   expect(doorsOf(after).find((it) => it.side === 'east')?.along).toBeCloseTo(
     doorsOf(before).find((it) => it.side === 'east')!.along,
     2,
   )
-  // The window is in the north wall, which stretched: the same distance from the west corner.
   const was = windowsOf(before)[0]!.along * before.width
   const is = windowsOf(after)[0]!.along * after.width
   expect(Math.abs(is - was)).toBeLessThan(20)
@@ -120,11 +114,9 @@ test('a room knocked through into its neighbour is gone, and its things stand wh
   expect(names).toEqual(['hall', 'house'])
   const merged = report(doc, 'house')
   expect(merged.width).toBeGreaterThan(11_000)
-  // The fridge was against the kitchen's north wall, which is still the merged room's north wall.
   const fridge = merged.objects.find((it) => it.type === 'refrigerator')!
   expect(fridge.against).toBe('north')
   expect(fridge.at!.x).toBeLessThan(4000)
-  // The door between them went with the wall; the front door stayed.
   expect(doorsOf(merged).map((it) => it.side)).toEqual(['south'])
 })
 
@@ -152,9 +144,7 @@ test('what stands against another wall stays put when this one moves; what stand
 
   const sofa = (r: RoomReport) => r.objects.find((it) => it.type === 'sofa-3')!.at!
   const shelf = (r: RoomReport) => r.objects.find((it) => it.type === 'bookshelf')!.at!
-  // The sofa is against the south wall, which stayed: the same spot.
   expect(Math.abs(sofa(after).x - sofa(before).x)).toBeLessThan(20)
-  // The bookshelf is against the west wall, which moved a metre east: it went along.
   expect(shelf(after).x - shelf(before).x).toBeCloseTo(1000, -1)
 })
 
@@ -169,13 +159,11 @@ test('a thing against the wall that went stands free where it stood', () => {
 
   const shelf = report(doc, 'house').objects.find((it) => it.type === 'bookshelf')!
   expect(shelf.against).toBeUndefined()
-  // Its back was on the face of the partition at 4000, less half the wall.
   expect(shelf.at!.x).toBeGreaterThan(3500)
   expect(shelf.at!.x).toBeLessThan(3850)
 })
 
 test('what stood in the room knocked into stays put as well', () => {
-  // A bookshelf in the house against the partition it shares with the kitchen.
   const doc = runScript(
     house(),
     [

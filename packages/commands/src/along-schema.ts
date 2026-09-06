@@ -6,15 +6,8 @@ import { z } from 'zod'
 import { CommandError } from './command-error'
 import { parseLength } from './length'
 
-/** Where along a side: as a fraction of it, or as a length from one end of it. */
 export type Along = { fraction: number } | { length: number }
 
-/**
- * An `--along` option. `0.5` is halfway; `2.4m` or `2400` is that far from
- * the west or south end, and `-2.4m` that far from the other end. A bare
- * number no bigger than one is a fraction, which is what the editor and
- * `describe` say; anything bigger, or anything with a unit, is millimetres.
- */
 export const along = () =>
   z.union([z.number(), z.string()]).transform((value, ctx): Along => {
     const text = typeof value === 'number' ? String(value) : value.trim()
@@ -36,7 +29,6 @@ export const along = () =>
     }
   })
 
-/** The fraction of a run an `--along` lands on, refused if it is off the end of it. */
 export function fractionOf(spec: Along, run: { length: number }, what: string): number {
   if ('fraction' in spec) return spec.fraction
   const from = spec.length < 0 ? run.length + spec.length : spec.length
@@ -48,14 +40,8 @@ export function fractionOf(spec: Along, run: { length: number }, what: string): 
   return run.length === 0 ? 0 : from / run.length
 }
 
-/** Where a side was named: the side, which run of it, and the one wall of the run if one was named. */
 export type At = { side: Side; nth?: number; wall?: string }
 
-/**
- * The fraction of a room's side an `--along` lands on, or a refusal naming
- * the side. Named by wall, the along is within that wall — half way along
- * `w12`, not half way along the three walls in line with it.
- */
 export function alongSide(
   doc: HouseDocument | Draft<HouseDocument>,
   level: string,
@@ -72,7 +58,6 @@ export function alongSide(
   return run.length === 0 ? 0 : (window.from + within * (window.to - window.from)) / run.length
 }
 
-/** The stretch of a run one named wall takes up, or nothing when the whole run was meant. */
 export function windowOf(
   run: { length: number; walls: { wall: string }[] } & Parameters<typeof stretchOf>[0],
   at: At,
@@ -86,7 +71,6 @@ export function windowOf(
   return stretch
 }
 
-/** The fraction of a room's depth an `--across` lands on: 0 at the south wall, 1 at the north. */
 export function fractionAcross(
   doc: HouseDocument | Draft<HouseDocument>,
   room: Room,

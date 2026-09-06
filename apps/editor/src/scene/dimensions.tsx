@@ -15,23 +15,11 @@ import { useSelection } from '../store/selection'
 import { useDocument, usePlanDoc } from '../store/store'
 import { MM, toWorld } from './plan-coordinates'
 
-/** The violet the plan picks things out in. */
 const INK = '#714cb6'
-/** Drawn above everything: walls stand 2.8 m tall, and a dimension is read over them. */
 const ABOVE = 3200
 
-/** The little bar across each end of a dimension line, in millimetres. */
 const TICK = 110
 
-/**
- * Dimensions, the way the reference shows them: pick a room and every wall of it gets
- * its clear length, with the whole plan's width and depth outside; pick a thing
- * and it gets its distances to the walls round it. Or ask for all of them.
- * What is picked is shown by its colour, where it is drawn; this only measures.
- *
- * The numbers come from `@houseit/geometry`, so what is drawn here is what the
- * agent will be told when it asks — one source for both.
- */
 export function Dimensions() {
   const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
@@ -69,7 +57,6 @@ export function Dimensions() {
   )
 }
 
-/** The picked room, washed blue under whatever stands in it. */
 function RoomHighlight({ room, doc }: { room: Room; doc: HouseDocument }) {
   const geometry = useMemo(() => {
     const shape = new Shape()
@@ -89,15 +76,12 @@ function RoomHighlight({ room, doc }: { room: Room; doc: HouseDocument }) {
   )
 }
 
-/** A dimension: the line, a bar across each end, and the length beside its middle. */
 function DimensionLine({ dimension }: { dimension: Dimension }) {
   const { from, to, offset } = dimension
   const span = Math.hypot(to.x - from.x, to.y - from.y) || 1
   const along = { x: (to.x - from.x) / span, y: (to.y - from.y) / span }
   const bar = { x: -along.y * TICK, y: along.x * TICK }
   const middle = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }
-  // The label stands off the line on the side the offset says, in pixels, so it
-  // keeps its distance whatever the zoom.
   const shift = { x: offset.x * 12, y: -offset.y * 12 }
 
   return (
@@ -135,8 +119,6 @@ function DimensionLine({ dimension }: { dimension: Dimension }) {
   )
 }
 
-/** A dimension is told from another by where it runs. */
 const keyOf = ({ from, to }: Dimension) => `${from.x},${from.y}-${to.x},${to.y}`
 
-/** Millimetres as metres to the centimetre: 4.20 m, the way a plan is read here. */
 const metres = (length: number) => `${(length / 1000).toFixed(2)} m`

@@ -1,17 +1,11 @@
 export type Point = { x: number; y: number }
 
-/**
- * The shapes a floor can start as. Plans are drawn with +y pointing north, so
- * `depth` runs north–south and `width` east–west, with the origin at the
- * south-west corner.
- */
 export type OutlineSpec =
   | { kind: 'rectangle'; width: number; depth: number }
   | {
       kind: 'l'
       width: number
       depth: number
-      /** Bite taken out of the north-east corner. */
       notchWidth: number
       notchDepth: number
     }
@@ -28,10 +22,6 @@ function require(condition: boolean, message: string): void {
   if (!condition) throw new OutlineError(message)
 }
 
-/**
- * Corner points of a floor outline, counter-clockwise so that face detection
- * reads the enclosed area as positive.
- */
 export function outlinePoints(spec: OutlineSpec): Point[] {
   require(spec.width > 0 && spec.depth > 0, 'the building must have a positive size')
   const { width: w, depth: d } = spec
@@ -84,7 +74,6 @@ export function outlinePoints(spec: OutlineSpec): Point[] {
 
 const p = (x: number, y: number): Point => ({ x, y })
 
-/** One leg of a walk round a building: how far, and which way. */
 export type Leg = { heading: 'n' | 's' | 'e' | 'w'; length: number }
 
 const HEADINGS = {
@@ -94,17 +83,6 @@ const HEADINGS = {
   w: { x: -1, y: 0 },
 } as const
 
-/**
- * The corners of a building described by walking round it.
- *
- * This is how a footprint is actually described on site — so many metres east,
- * so many north — and it is the only way to give any shape at all without
- * naming a coordinate. The predefined kinds are a shorthand for the walks people
- * take most often; anything else is still a walk.
- *
- * The last leg back to where you started is not given: you stop when the way home
- * is a straight line, and it closes itself.
- */
 export function walkPoints(legs: Leg[]): Point[] {
   require(legs.length >= 3, 'a building needs at least three sides')
 
@@ -123,7 +101,6 @@ export function walkPoints(legs: Leg[]): Point[] {
 
   const area = shoelace(points)
   require(area !== 0, 'the walk encloses nothing')
-  // Faces are read counter-clockwise, so a walk taken the other way is turned round.
   return area > 0 ? points : points.reverse()
 }
 

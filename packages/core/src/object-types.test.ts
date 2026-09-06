@@ -26,8 +26,6 @@ test('every type has a real size, and a symbol unless it is drawn instead', () =
   for (const entry of OBJECT_TYPES) {
     expect(entry.size.width, entry.id).toBeGreaterThan(0)
     expect(entry.size.depth, entry.id).toBeGreaterThan(0)
-    // A staircase is drawn from the storey it climbs rather than read off a
-    // file, and is the only thing in the catalogue that is.
     if (isStaircase(entry.id)) {
       expect(symbolOf(entry.id), entry.id).toBeUndefined()
       continue
@@ -102,7 +100,6 @@ test('tables and rugs stand free; what has a back stands at a wall', () => {
 })
 
 test('sizes are the real ones, in millimetres', () => {
-  // A queen bed is 60 by 80 inches, give or take the frame round it.
   expect(objectType('queen-bed')?.size).toEqual({ width: 1549, depth: 2057 })
   expect(objectType('sedan')?.size.depth).toBeGreaterThan(4500)
 })

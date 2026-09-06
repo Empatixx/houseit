@@ -1,15 +1,8 @@
 import type { Surface } from '@houseit/core/surfaces'
 import { RepeatWrapping, SRGBColorSpace, type Texture, TextureLoader } from 'three'
 
-/** What a face is painted: a colour, and a photograph over it where the finish has one. */
 export type Paint = { color: string; map?: Texture; transparent?: boolean; opacity?: number }
 
-/**
- * The finishes with a grain: they borrow the floor photographs, which are the
- * wood and stone the plan already has, tinted towards the finish's own colour.
- * Everything else is its flat colour, which is what fabric and steel look like
- * from across a room anyway.
- */
 const GRAINED: Record<string, { photo: string; tint: string }> = {
   oak: { photo: 'natural-oak', tint: '#f3e4c9' },
   walnut: { photo: 'red-oak', tint: '#8c6446' },
@@ -19,7 +12,6 @@ const GRAINED: Record<string, { photo: string; tint: string }> = {
 const loader = new TextureLoader()
 const photos = new Map<string, Texture>()
 
-/** The photograph for a finish, loaded once; one repeat per face. */
 function photoOf(name: string): Texture {
   const cached = photos.get(name)
   if (cached) return cached
@@ -31,7 +23,6 @@ function photoOf(name: string): Texture {
   return texture
 }
 
-/** The paint for a thing's body in a finish, and for its frame — the darker line of the same. */
 export function paintOf(surface: Surface): { body: Paint; frame: Paint } {
   const grained = GRAINED[surface.id]
   return {
@@ -40,7 +31,6 @@ export function paintOf(surface: Surface): { body: Paint; frame: Paint } {
   }
 }
 
-/** The paints everything shares, whatever finish a thing is in. */
 export const PAINT = {
   porcelain: { color: '#f7f7f5' },
   pale: { color: '#e8edf0' },
@@ -64,7 +54,6 @@ export const PAINT = {
   red: { color: '#c8423a' },
 } as const satisfies Record<string, Paint>
 
-/** A paint a little lighter, for a cushion on a seat of the same cloth. */
 export function lighter(paint: Paint, amount = 0.1): Paint {
   const hex = paint.color.replace('#', '')
   const channel = (at: number) => {

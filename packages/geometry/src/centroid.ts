@@ -1,9 +1,5 @@
 import type { Point } from './outlines'
 
-/**
- * Area-weighted centroid. Rounded to whole millimetres like every other length,
- * and derived from the same shoelace terms as the area itself.
- */
 export function centroidOf(polygon: Point[], area: number): Point {
   let x = 0
   let y = 0

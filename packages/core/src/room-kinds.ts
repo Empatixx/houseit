@@ -1,25 +1,10 @@
-/**
- * What sort of room a room is, and what that asks of it.
- *
- * A plan does not store this yet; it is read off the name, in English or
- * Czech, the way a person reads "ložnice 2" as a bedroom. It is what the
- * checker needs to say that a bedroom without a window is a problem and a
- * hall without one is not — so the guess is kept here, in one place, for the
- * day the document carries the kind itself.
- */
-
 export type RoomKind = {
   id: string
   label: string
-  /** Below this, in square metres, the room is too small to be what it says. */
   minArea: number
-  /** Somebody lives in it, so it wants daylight. */
   needsWindow: boolean
-  /** A room the household passes through: what a bedroom must not open straight onto. */
   public: boolean
-  /** A passage: allowed to be long and thin. */
   passage: boolean
-  /** Words in a name that mean this kind, lower case, English and Czech. */
   words: string[]
 }
 
@@ -39,7 +24,6 @@ const kind = (
   words,
 })
 
-/** The kinds, most specific first: "half bath" is found before "bath". */
 export const ROOM_KINDS: RoomKind[] = [
   kind('half-bath', 'Half bath', 1.8, {}, ['half bath', 'powder', 'wc', 'toilet', 'záchod']),
   kind('walk-in', 'Walk-in closet', 2, {}, ['walk-in', 'walk in', 'closet', 'šatna', 'satna']),
@@ -103,15 +87,10 @@ export const ROOM_KINDS: RoomKind[] = [
 
 export const ROOM_KIND_IDS = ROOM_KINDS.map((kind) => kind.id)
 
-/**
- * What kind of room a room is: what it was told it is, or failing that what
- * its name says. The told kind wins, so "the snug" can be a living room.
- */
 export function roomKindOf(room: { name?: string; kind?: string }): RoomKind | undefined {
   return (room.kind !== undefined ? roomKind(room.kind) : undefined) ?? kindOf(room.name)
 }
 
-/** The kind a name says, or nothing if it says none of them. */
 export function kindOf(name: string | undefined): RoomKind | undefined {
   if (!name) return undefined
   const lower = name.toLowerCase()

@@ -27,19 +27,11 @@ import { selectionStore, useSelection } from '../store/selection'
 import { useDocument } from '../store/store'
 import { FloorSwatch, KindIcon, SurfaceSwatch } from './avatars'
 
-/**
- * What is picked, and what can be said about it: a room's name, kind and
- * floor; a thing's finish, size and turn; a door's kind and width. Every
- * field ends in the command an agent would give, through the same store —
- * the panel is another way of typing it, not another way of changing the plan.
- */
 export function PanelContent() {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
   const selected = useSelection((state) => state.selected)
 
-  // The panel is out only while something is picked, so this is what is left
-  // when the last thing is let go of, on the way to it folding away.
   if (!selected) {
     return (
       <p className="text-xs leading-5 text-muted-foreground">
@@ -166,7 +158,6 @@ const WHERE: CutRequest['where'][] = [
   'south-east',
 ]
 
-/** Cuts a new room off a side of this one, or out of a corner: `add-room`, from a form. */
 function CutRoom({ room }: { room: Room }) {
   const [where, setWhere] = useState<CutRequest['where']>('west')
   const [width, setWidth] = useState('3000')
@@ -227,7 +218,6 @@ function CutRoom({ room }: { room: Room }) {
   )
 }
 
-/** Knocks the room through into one of its neighbours, and the room is gone. */
 function KnockThrough({ room }: { room: Room }) {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
@@ -394,8 +384,6 @@ function OpeningPanel({ opening }: { opening: Opening }) {
   )
 }
 
-/** The outline of an empty floor: `floor-shape`, from a form. */
-
 function Heading({ children }: { children: ReactNode }) {
   return (
     <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -426,10 +414,6 @@ function Facts({ rows }: { rows: [string, string][] }) {
   )
 }
 
-/**
- * A text field that commits on Enter or on leaving, and goes back to what the
- * plan says when the plan refuses — the plan is the truth, not the field.
- */
 function TextField({ value, onCommit }: { value: string; onCommit: (value: string) => boolean }) {
   const [draft, setDraft] = useState(value)
   useEffect(() => setDraft(value), [value])
@@ -450,7 +434,6 @@ function TextField({ value, onCommit }: { value: string; onCommit: (value: strin
   )
 }
 
-/** Millimetres or degrees, committed the same way. */
 function NumberField({ value, onCommit }: { value: number; onCommit: (value: number) => boolean }) {
   const [draft, setDraft] = useState(String(value))
   useEffect(() => setDraft(String(value)), [value])

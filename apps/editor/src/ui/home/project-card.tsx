@@ -7,15 +7,6 @@ import { projectsStore } from '@/store/projects/projects'
 import { PlanOutline } from './plan-outline'
 import { when } from './when'
 
-/**
- * One project: what its plan looks like, what it is called, and when it was
- * last worked on. The card is the way in; the cross in its corner, which comes
- * out under the pointer, is the way to be rid of it.
- *
- * Deleting does not ask. It takes the project away and says so, with the way
- * back in the same breath — which is quicker to use than a dialog and, unlike
- * one, still there a second after the mistake.
- */
 export function ProjectCard({ project }: { project: ProjectMeta }) {
   const navigate = useNavigate()
 

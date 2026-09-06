@@ -19,30 +19,15 @@ const PARTITION_THICKNESS = 150
 
 const HEADINGS = { n: { x: 0, y: 1 }, s: { x: 0, y: -1 }, e: { x: 1, y: 0 }, w: { x: -1, y: 0 } }
 
-/**
- * Draws walls the way a hand draws them: from a point, a walk of legs, each
- * north, south, east or west — `3m s, 4m e`. The point is on the wall of a
- * room, this far along a side, or where there is nothing yet, a place on the
- * paper. Every leg is a wall; where it crosses a wall or reaches one it is
- * joined to it, and where the walk comes back on itself a room is closed.
- * Whatever rooms it closes off are named, after `--name` or numbered.
- *
- * `add-wall` is the same thing said for one wall from a room's side; this is
- * for the pencil.
- */
 export const drawWall = defineCommand({
   name: 'draw-wall',
   summary: 'Draw walls as a walk of legs from a point: on a side of a room, or on the paper',
   args: z.object({
-    /** Legs, each a length and a heading: "3m s, 4m e". */
     walk: z.string().min(1),
     room: z.string().min(1).optional(),
-    /** The side of that room it starts from; or the very wall by its id from describe. */
     side: z.enum(SIDE_NAMES).optional(),
     wall: z.string().min(1).optional(),
-    /** Where along that side the walk starts: a fraction (0 west or south, 1 the other end) or a length from that end. */
     along: along().optional(),
-    /** Or a place on the paper: "x,y" in millimetres, or with units — "0,0", "3m,4.5m". */
     at: z.string().optional(),
     name: z.string().min(1).optional(),
     material: z.enum(FLOOR_MATERIAL_IDS as [string, ...string[]]).optional(),
@@ -68,7 +53,6 @@ export const drawWall = defineCommand({
     for (const leg of legs) {
       const step = HEADINGS[leg.heading]
       let to = { x: from.x + step.x * leg.length, y: from.y + step.y * leg.length }
-      // The end of a leg let go near a wall or a node is joined to it.
       to = nearWall(draft, level, to) ?? to
       try {
         linkPoints(draft, level, from, to, args.thickness, 'draw-wall')
@@ -84,7 +68,6 @@ export const drawWall = defineCommand({
   },
 })
 
-/** Where the walk starts: on a room's side, or at a place on the paper. */
 function startOf(
   draft: Parameters<typeof roomsOf>[0],
   level: string,
@@ -113,7 +96,6 @@ function startOf(
 
 const keyOf = (room: Room) => [...room.nodes].sort().join('-')
 
-/** Whatever faces the walk closed off get records: named as asked, or numbered. */
 function nameNewFaces(
   draft: Parameters<typeof roomsOf>[0],
   level: string,

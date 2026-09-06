@@ -1,6 +1,5 @@
 import { useLeftEdge, useRightEdge } from './edges'
 
-/** Along the foot of the walk, what the hands do: the keys that walk and the drag that looks. */
 export function WalkHint() {
   const left = useLeftEdge()
   const right = useRightEdge()

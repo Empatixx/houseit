@@ -1,13 +1,4 @@
 #!/usr/bin/env bun
-/**
- * Runs a plan script without a browser and says what came of it.
- *
- * The same commands the editor runs, applied to an empty document here, so a
- * plan can be checked line by line before anybody looks at it: which line
- * failed and why, then every room with its size and every thing standing in it.
- *
- *   bun scripts/run-plan.ts apps/editor/public/plans/sample-house.txt
- */
 import { readFileSync } from 'node:fs'
 import { checkLevel } from '../packages/commands/src/checks'
 import { runScript } from '../packages/commands/src/run'
@@ -63,8 +54,6 @@ console.log(
   `${openings.filter((o) => o.kind === 'door').length} doors, ${openings.filter((o) => o.kind === 'window').length} windows, ${Object.keys(doc.objects).length} objects`,
 )
 
-// The same reading the agent gets with every command, said once at the end:
-// a room nobody can reach, a door that cannot open, a bedroom with no window.
 for (const problem of checkLevel(doc, level)) {
   console.log(`${problem.severity === 'error' ? '!' : '?'} ${problem.code}: ${problem.message}`)
 }

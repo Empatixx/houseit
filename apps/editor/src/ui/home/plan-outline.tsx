@@ -1,13 +1,5 @@
 import type { Outline } from '@/store/projects/outline'
 
-/**
- * A project's plan, small: its walls as lines, nothing else.
- *
- * The plan's y goes up the screen and an SVG's goes down it, so the whole
- * drawing is flipped rather than every line being worked out backwards. Widths
- * are in millimetres like everything else, which is what keeps a large flat and
- * a single room looking like the same drawing at two sizes.
- */
 export function PlanOutline({ outline }: { outline?: Outline }) {
   if (!outline || outline.segments.length === 0) {
     return <div className="size-full" />

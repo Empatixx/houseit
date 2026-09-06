@@ -1,13 +1,6 @@
 import { CommandError } from './command-error'
 import type { OptionSpec } from './option-spec'
 
-/**
- * A strict `--option value` parser. Written rather than taken from `node:util`
- * because commands execute inside the browser tab, where Node built-ins are
- * stubbed out silently and only fail at runtime. Knowing every option up front —
- * the schema already told us — makes it a couple of dozen lines with better
- * messages than a general-purpose parser would give.
- */
 export function parseArgv(
   command: string,
   options: OptionSpec[],

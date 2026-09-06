@@ -19,7 +19,6 @@ export function Walls() {
     }
   }
 
-  // A picked room shows as its walls going blue, so they are told which they are.
   const roomWalls = useMemo(() => {
     if (selected?.kind !== 'room') return new Set<string>()
     const room = roomsOf(doc, level).find((candidate) => candidate.id === selected.id)

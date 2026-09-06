@@ -5,14 +5,6 @@ import { useProjects } from '../store/projects/projects'
 import { GAP, useLeftEdge } from './edges'
 import { useCover } from './use-cover'
 
-/**
- * Which plan this is, and the way out of it.
- *
- * It stands to the right of the rail and moves with it, so nothing it does can
- * shift the plan. The mark on it is a house until the pointer is over it and a
- * cross once it is: one thing to click, saying both where clicking goes and
- * that the project is being left.
- */
 export function ProjectChip() {
   const open = useProjects((state) => state.open)
   const left = useLeftEdge()

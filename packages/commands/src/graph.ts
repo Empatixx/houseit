@@ -1,12 +1,6 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 import type { Draft } from 'immer'
 
-/**
- * Small truths about the wall graph that more than one command needs: which
- * walls meet at a node, whether two walls run on in a straight line, and how
- * to take a wall out without leaving a node or an opening behind.
- */
-
 export function wallsAt(
   doc: HouseDocument | Draft<HouseDocument>,
   level: string,
@@ -17,7 +11,6 @@ export function wallsAt(
   ) as Wall[]
 }
 
-/** Whether two walls sharing a node lie on one line, so a node between them is nothing. */
 export function collinear(
   doc: HouseDocument | Draft<HouseDocument>,
   one: Wall,
@@ -32,7 +25,6 @@ export function collinear(
   return Math.abs(cross) < 1e-6
 }
 
-/** Takes a wall out with everything in it, and the ends it leaves unattached. */
 export function deleteWall(draft: Draft<HouseDocument>, level: string, wallId: string): void {
   const wall = draft.walls[wallId]
   if (!wall) return
@@ -45,11 +37,6 @@ export function deleteWall(draft: Draft<HouseDocument>, level: string, wallId: s
   }
 }
 
-/**
- * Straightens a node that two walls of one line meet at, into one wall. The
- * openings of both keep their places along the joined wall. Nothing happens
- * where a third wall meets, or where the two are not in line.
- */
 export function straighten(draft: Draft<HouseDocument>, level: string, node: string): void {
   const [one, other, third] = wallsAt(draft, level, node)
   if (!one || !other || third || one.thickness !== other.thickness) return
@@ -64,7 +51,6 @@ export function straighten(draft: Draft<HouseDocument>, level: string, node: str
   const length = Math.hypot(q.x - p.x, q.y - p.y)
   if (length === 0) return
 
-  // Every opening of both, as a distance from the far end of the first.
   const distance = (wall: Wall, t: number) => {
     const a = draft.nodes[wall.a]!
     const b = draft.nodes[wall.b]!

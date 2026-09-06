@@ -90,7 +90,6 @@ test('two rugs move over for one another rather than stacking', () => {
   expect(Math.abs(one!.along - other!.along) * 6000).toBeGreaterThanOrEqual(1500)
 })
 
-/** An 8 by 6 room with a bite out of the north-east, leaving an L. */
 const ell = (bite: string) => ({
   doc: runScript(
     createEmptyDocument(),
@@ -102,16 +101,12 @@ const ell = (bite: string) => ({
 })
 
 test('a thing too big to fit inside the room is refused, not left hanging out of it', () => {
-  // The room is 6 by 4: five metres across is fine, four and a half deep is not.
   expect(() =>
     runScript(room().doc, 'add-object --room pokoj --type rug-rect --width 5m --depth 4.5m'),
   ).toThrow(/does not fit/)
 })
 
 test('a thing that would lie across the waist of an L moves to the wide part instead', () => {
-  // The bite leaves the room four metres wide along the middle, not eight. The
-  // middle is where a free-standing thing goes first; refused there, it is
-  // offered the rows above and below, and the wide part of the L takes it.
   const next = runScript(
     ell('--width 4m --depth 5m').doc,
     'add-object --room pokoj --type rug-rect --width 3m --depth 1m',
@@ -119,7 +114,6 @@ test('a thing that would lie across the waist of an L moves to the wide part ins
   const placed = things(next)!
 
   expect(placed).toHaveLength(1)
-  // Not in the middle of the room, which is where it would have crossed the bite.
   expect(placed[0]!.along).not.toBe(0.5)
 })
 
@@ -151,7 +145,6 @@ test('what the command checks is where the drawing will put it', () => {
   expect(fitsInside(doc, found, footprintOf(spot, placed))).toBe(true)
 })
 test('a spot that does not fit is passed over for the next one along', () => {
-  // Two rugs already down leaves gaps either side; the third has to pick one.
   const next = runScript(
     room().doc,
     [
@@ -218,12 +211,8 @@ test('kitchen units stand shoulder to shoulder, not spread along the wall', () =
     ].join('\n'),
   )
   const [first, second] = things(next)
-  // Six metres between the corners, less half of each wall turning them: what a
-  // thing is spread along is the clear stretch, not the centre lines.
   const apart = Math.abs(first!.along - second!.along) * (6000 - 300)
 
-  // Touching, give or take nothing: a gap in the middle of a kitchen run is not
-  // how a kitchen is built.
   expect(apart).toBeCloseTo((first!.width + second!.width) / 2, 0)
 })
 
@@ -249,8 +238,6 @@ test('two things at walls that meet do not end up in the same corner', () => {
   const next = runScript(
     doc,
     [
-      // The sofa is deep enough to reach past the middle of the room, so an
-      // armchair put in the middle of the west wall would be sitting in it.
       'add-object --room obývák --type sofa-3 --against north --width 2.6m',
       'add-object --room obývák --type club-chair --against west',
     ].join('\n'),
@@ -258,8 +245,6 @@ test('two things at walls that meet do not end up in the same corner', () => {
   const chair = Object.values(next.objects).find((thing) => thing.type === 'club-chair')
 
   expect(chair).toBeDefined()
-  // Keeping clear of what stands on your own wall was never the whole job: a wall
-  // has two ends and each of them is a corner it shares with the wall round it.
   expect(Math.abs(chair!.along - 0.5)).toBeGreaterThan(0.2)
 })
 
@@ -276,9 +261,6 @@ test('a thing can be turned, and it is checked on the shape it makes once turned
   )
   expect(Object.values(turned.objects)[0]!.rotation).toBe(45)
 
-  // On the diagonal an armchair reaches a good deal further into the room than
-  // the 838 it was cut to. A wall it stands at square on is not a wall it stands
-  // at turned, and checking it on its unturned size puts half of it in the wall.
   const narrow = room('1.5m', 'chodba')
   expect(() =>
     runScript(narrow, 'add-object --room chodba --type club-chair --against north'),

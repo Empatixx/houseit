@@ -4,11 +4,6 @@ import { Logo } from '../logo'
 import { NewProjectCard } from './new-project-card'
 import { ProjectCard } from './project-card'
 
-/**
- * What the editor opens onto: the plans there are, on the same warm paper the
- * plan itself sits on. One card is one project; the last of them is empty and
- * makes another.
- */
 export function Home() {
   const list = useProjects((state) => state.list)
 

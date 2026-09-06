@@ -3,11 +3,6 @@ import { expect, test } from 'vitest'
 import { askPlan, runScript } from './run'
 import type { OpeningReport, RoomReport } from './survey'
 
-/**
- * A house with two rooms, a door between them and a window and a sofa in one,
- * all through the commands — because what an answer says has to be what the
- * commands did, in the words the commands take.
- */
 const HOUSE = [
   'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name house',
   'add-room --material tile-white --name kitchen --from house --side west --width 4m',
@@ -28,9 +23,7 @@ const side = (report: RoomReport, which: string) => report.sides.find((it) => it
 test('every command answers about what it touched, and get-plan about the rest', () => {
   const built = askPlan(createEmptyDocument(), HOUSE)
 
-  // The script cut two rooms, so both are in the answer to building them.
   expect(built.rooms.map((it) => it.name).sort()).toEqual(['house', 'kitchen'])
-  // The outside of the house: 12 by 9 between wall centre lines, plus a wall.
   expect(built.width).toBeGreaterThan(12_000)
   expect(built.depth).toBeGreaterThan(9000)
   expect(askPlan(house(), 'get-plan').rooms).toHaveLength(2)
@@ -41,7 +34,6 @@ test('a room is said as somebody would say it: clear size, floor, what is next d
 
   expect(kitchen.floor).toBe('tile-white')
   expect(kitchen.neighbours).toEqual(['house'])
-  // Four metres between centre lines, less half a wall at each end.
   expect(kitchen.width).toBeLessThan(4000)
   expect(kitchen.width).toBeGreaterThan(3600)
   expect(kitchen.areaM2).toBeCloseTo(36, 0)
@@ -62,13 +54,9 @@ test('doors and windows are one list, told apart by kind, and a door says where 
   ])
   expect(doorsOf(kitchen)[0]!.id).toMatch(/^o\d+$/)
   expect(doorsOf(kitchen)[0]!.wall).toMatch(/^w\d+$/)
-  // The window was centred on the wall's centre line; the side's run is trimmed
-  // by a thick outer wall at one end and a thin partition at the other, so the
-  // window sits a hair off the run's middle — and that is what is said.
   expect(windowsOf(kitchen)).toHaveLength(1)
   expect(windowsOf(kitchen)[0]).toMatchObject({ side: 'north', width: 1200, sill: 900 })
   expect(windowsOf(kitchen)[0]!.along).toBeCloseTo(0.5, 1)
-  // A door has no sill and a window has no leaf; neither carries the other's field.
   expect(windowsOf(kitchen)[0]!.variant).toBeUndefined()
   expect(doorsOf(kitchen)[0]!.sill).toBeUndefined()
 })
@@ -93,9 +81,7 @@ test('what stands in a room is told the way it was put there, with where that ca
   const sofa = kitchen.objects[0]!
   expect(sofa).toMatchObject({ type: 'sofa-3', against: 'south', along: 0.5 })
   expect(sofa.at).toBeDefined()
-  // Against the south wall, so it stands low in the room.
   expect(sofa.at!.y).toBeLessThan(kitchen.box.y0 + 1500)
-  // And the room to walk round it: nothing behind, the length of the room in front.
   expect(sofa.clear!.south).toBeUndefined()
   expect(sofa.clear!.north).toBeGreaterThan(5000)
 })
@@ -113,7 +99,6 @@ test('each side of a room says what is on it and what is still free', () => {
     },
   ])
   expect(south.objects[0]!.to - south.objects[0]!.from).toBeGreaterThan(1500)
-  // A sofa in the middle leaves a stretch free either side of it.
   expect(south.free).toHaveLength(2)
   expect(south.free[0]!.from).toBe(0)
   expect(south.free[1]!.to).toBe(south.length)

@@ -8,19 +8,12 @@ import { GAP, RAIL_OPEN_WIDTH, RAIL_WIDTH } from './edges'
 import { Logo } from './logo'
 import { useCover } from './use-cover'
 
-/** The rail's tabs, top to bottom, each with its mark. Nothing is behind them yet. */
 const TABS: { id: RailTab; label: string; icon: LucideIcon }[] = [
   { id: 'rooms', label: 'Rooms', icon: LayoutListIcon },
   { id: 'issues', label: 'Issues', icon: ListChecksIcon },
   { id: 'catalogue', label: 'Catalogue', icon: LibraryBigIcon },
 ]
 
-/**
- * The rail down the plan's left edge: the mark at its head and a column of
- * tabs under it. Folded, it is the icons alone; pulled out, each has its
- * name beside it. It never goes away altogether. A drag on its edge pulls it
- * out or folds it, and it settles on whichever it is nearer when let go.
- */
 export function Rail() {
   const open = useShell((state) => state.rail)
   const tab = useShell((state) => state.tab)
@@ -63,7 +56,6 @@ export function Rail() {
   )
 }
 
-/** A tab's name in a tip beside it, while the rail is folded and the name is not shown. */
 function Named({ label, shown, children }: { label: string; shown: boolean; children: ReactNode }) {
   if (!shown) return children
   return (
@@ -74,11 +66,6 @@ function Named({ label, shown, children }: { label: string; shown: boolean; chil
   )
 }
 
-/**
- * The rail's right edge, to take hold of. Dragged, the rail is as wide as the
- * pointer makes it; let go, it settles on whichever it is nearer — pulled out
- * or folded to its icons.
- */
 function StretchEdge() {
   const start = useRef<{ x: number; width: number } | null>(null)
 
@@ -117,7 +104,6 @@ function StretchEdge() {
         const open = width > (RAIL_WIDTH + RAIL_OPEN_WIDTH) / 2
         const box = rail(event)
         if (box) {
-          // Settles from where it was let go, rather than jumping back first.
           box.style.transition = ''
           box.style.width = `${open ? RAIL_OPEN_WIDTH : RAIL_WIDTH}px`
         }

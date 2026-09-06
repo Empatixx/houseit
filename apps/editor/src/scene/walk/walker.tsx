@@ -6,28 +6,15 @@ import { EYE, headingOf, walkStore } from '../../store/walk'
 import { MM } from '../plan-coordinates'
 import { startOf } from './start'
 
-/** Walking pace and a run, in metres a second. */
 const WALK = 1.6
 const RUN = 4
-/** How fast the arrow keys turn, in radians a second. */
 const TURN = 1.8
-/** How far a pixel of drag turns the head, in radians. */
 const DRAG = 0.0045
 
-/** What the keys mean: where each one takes the walk. */
 const AHEAD: Record<string, number> = { w: 1, arrowup: 1, s: -1, arrowdown: -1 }
 const ASIDE: Record<string, number> = { d: 1, a: -1 }
 const AROUND: Record<string, number> = { arrowright: 1, arrowleft: -1 }
 
-/**
- * Somebody walking through the plan.
- *
- * W, A, S and D walk and sidestep, the arrows walk and turn, shift runs; a drag
- * on the view turns the head. The walk lives in `walkStore`, so the minimap
- * shows it and a click on the minimap moves it; the camera is put where the
- * walk says every frame. Nothing here touches the document: the walk is a way
- * of looking, and what it looks at is picked by clicking on it.
- */
 export function Walker() {
   const camera = useThree((state) => state.camera) as PerspectiveCamera
   const gl = useThree((state) => state.gl)
@@ -35,16 +22,9 @@ export function Walker() {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
   const pressed = useRef(new Set<string>())
-  /** How far up the storey being walked stands. */
   const floor = useDocument((state) => state.doc.levels[state.level]?.elevation ?? 0)
-  /** The storey the walk was last started on, so a change of storey starts it again. */
   const started = useRef<string | undefined>(undefined)
 
-  // A walk starts on clear floor in the biggest room, and starts again on every
-  // storey: the floors are not the same shape, so where you were standing
-  // downstairs is as likely as not inside a wall up here, or off the house
-  // altogether. Within a storey the walk stays where it got to, however the plan
-  // is edited underneath it.
   useEffect(() => {
     if (walkStore.getState().walker && started.current === level) return
     const start = startOf(doc, level)
@@ -53,7 +33,6 @@ export function Walker() {
     walkStore.getState().place(start.at, start.yaw)
   }, [doc, level])
 
-  // The wedge on the minimap is as wide as the view really is, side to side.
   useEffect(() => {
     const vertical = (camera.fov * Math.PI) / 360
     const horizontal = 2 * Math.atan(Math.tan(vertical) * (size.width / size.height))
@@ -89,8 +68,6 @@ export function Walker() {
     }
   }, [])
 
-  // A drag on the view turns the head; the pointer is captured so a drag that
-  // leaves the view still turns it, and let go anywhere.
   useEffect(() => {
     const view = gl.domElement
     let last: { x: number; y: number } | null = null
@@ -142,8 +119,6 @@ export function Walker() {
       aside += ASIDE[key] ?? 0
       around += AROUND[key] ?? 0
     }
-    // Frames are not all the same length, and a long one — a tab coming back —
-    // must not be a leap across the house.
     const step = Math.min(dt, 0.1)
     if (around !== 0) state.look(walker.yaw + around * TURN * step, walker.pitch)
     if (ahead !== 0 || aside !== 0) {
@@ -157,9 +132,6 @@ export function Walker() {
     }
 
     const now = walkStore.getState().walker ?? walker
-    // Eye height above the floor of the storey being walked, not above the
-    // ground: the house is drawn whole, so standing on the first floor is
-    // standing a storey up.
     camera.position.set(now.at.x * MM, (floor + EYE) * MM, -now.at.y * MM)
     camera.rotation.order = 'YXZ'
     camera.rotation.set(now.pitch, -now.yaw, 0)

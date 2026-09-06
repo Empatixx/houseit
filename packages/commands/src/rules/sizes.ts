@@ -1,7 +1,6 @@
 import { roomKindOf } from '@houseit/core/room-kinds'
 import type { Problem, Rule } from './rule'
 
-/** A room is big enough to be what it is called, and not a corridor unless it is one. */
 export const sizes: Rule = ({ reports }) => {
   const problems: Problem[] = []
   for (const room of reports) {

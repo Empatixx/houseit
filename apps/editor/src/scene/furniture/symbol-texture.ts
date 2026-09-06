@@ -1,28 +1,8 @@
 import { CanvasTexture, SRGBColorSpace, type Texture } from 'three'
 
-/**
- * A plan symbol, drawn onto a texture.
- *
- * The symbols come as line drawings: a white body with a dark line round it and
- * the odd grey accent. What a surface changes is the white — the drawing is the
- * form, the fill is the finish, exactly as a skeleton and its surface are kept
- * apart — so the file is read once, its white swapped for the surface's own
- * colour, and rasterised at a resolution the plan can zoom into.
- */
-
-/** Pixels per millimetre of the thing. A two-metre bed comes out 800 px across. */
 const DENSITY = 0.4
-/** The longest side of a symbol's texture, so a car does not cost a wall of pixels. */
 const LONGEST = 1024
 
-/**
- * What counts as the white a finish replaces.
- *
- * Not global, and that matters: `test` on a global regexp carries its
- * `lastIndex` from one call to the next, so asked about the same colour twice
- * it answers yes and then no. Every second shape of a symbol came out untinted
- * — which on a staircase is every second tread.
- */
 const WHITE = /#ffffff|#fff\b|white/i
 
 const cache = new Map<string, Promise<Texture>>()
@@ -53,13 +33,6 @@ export function symbolTexture(
   return loading
 }
 
-/**
- * The same, for a drawing that was made rather than fetched.
- *
- * A staircase has no file: how many treads it has depends on the storey it
- * climbs, so it is drawn on the spot. Everything after that is identical — the
- * white becomes the finish, and it is rasterised at the size the thing is.
- */
 export function drawnTexture(
   key: string,
   svg: string,
@@ -74,7 +47,6 @@ export function drawnTexture(
   return drawing
 }
 
-/** The white of the drawing becomes the finish; the lines stay the lines. */
 function tint(source: string, fill: string): string {
   return source.replace(/fill="([^"]*)"/g, (match, colour: string) =>
     WHITE.test(colour) ? `fill="${fill}"` : match,
@@ -99,8 +71,6 @@ function rasterise(svg: string, size: { width: number; depth: number }): Promise
         reject(new Error('no 2d context'))
         return
       }
-      // Stretched to the type's size, whatever the drawing's own proportions: the
-      // catalogue's size is the contract, and the drawing keeps to it.
       context.drawImage(image, 0, 0, width, height)
       const texture = new CanvasTexture(canvas)
       texture.colorSpace = SRGBColorSpace

@@ -10,28 +10,16 @@ import { Walls } from '../scene/walls'
 import { useDocument, usePlanDoc } from '../store/store'
 import { useWalk, walkStore } from '../store/walk'
 
-/** The violet the plan picks things out in; the walker is drawn in it. */
 const VIOLET = '#714cb6'
-/** Room left round the plan in the minimap, in millimetres. */
 const MARGIN = 600
-/** How far the wedge of what is seen reaches, in millimetres. */
 const REACH = 3000
-/** Above everything drawn, walls included, so the walker is never under a wall. */
 const OVER = 5000
 
 const WIDTH = 208
 const UP: [number, number, number] = [0, 0, -1]
 
-/** Where the minimap's camera is put: over a point, at a zoom, in world units. */
 type Fit = { x: number; z: number; zoom: number }
 
-/**
- * The plan in small, the way the plan draws it — the same floors, furniture
- * and walls, from straight above — with whoever is walking it: a dot where
- * they stand and a wedge as wide as what they see, pointing where they look.
- * A click on it moves the walk there. Nothing in it can be dragged: the small
- * plan is looked at, and the big one is edited.
- */
 export function Minimap() {
   const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
@@ -65,8 +53,6 @@ export function Minimap() {
         className="relative cursor-crosshair overflow-hidden rounded-md"
         onClick={(event) => {
           const rect = event.currentTarget.getBoundingClientRect()
-          // Pixels from the middle of the picture, which is where the camera is
-          // over; a pixel is 1/zoom of a metre, and screen down is +z.
           const dx = event.clientX - rect.left - width / 2
           const dy = event.clientY - rect.top - height / 2
           walkStore.getState().step({
@@ -95,7 +81,6 @@ export function Minimap() {
   )
 }
 
-/** Puts the camera straight over the plan, north up, at the zoom that fits it. */
 function Overhead({ fit }: { fit: Fit }) {
   const camera = useThree((state) => state.camera)
   useEffect(() => {
@@ -109,13 +94,10 @@ function Overhead({ fit }: { fit: Fit }) {
   return null
 }
 
-/** The walker on the small plan: a dot, and the wedge of what they see. */
 function Standing() {
   const walker = useWalk((state) => state.walker)
   const fov = useWalk((state) => state.fov)
 
-  // The wedge, with ahead as +y: laid flat, +y is north, and it is turned to
-  // the heading from there.
   const wedge = useMemo(() => {
     const half = (fov * Math.PI) / 360
     const shape = new Shape()

@@ -13,21 +13,6 @@ import { StairsBelow } from './stairs-below'
 import { StoreyBelow } from './storey-below'
 import { Walls } from './walls'
 
-/**
- * The plan: one orthographic camera looking straight down.
- *
- * There was a second camera here once, and there will be again — the model still
- * carries the heights a perspective view needs, a table top at 740 and a seat at
- * 420, and the parts a plan never shows, like a table's legs. What was deleted is
- * the view, not the knowledge behind it.
- */
-/**
- * Where the camera starts, held still on purpose.
- *
- * Written inline these would be a fresh array on every render, which react-three
- * would dutifully apply again — putting the camera back where it started every
- * time anything changed, and quietly undoing whatever framed the plan.
- */
 const OVERHEAD: [number, number, number] = [0, 40, 0]
 const UP: [number, number, number] = [0, 0, -1]
 

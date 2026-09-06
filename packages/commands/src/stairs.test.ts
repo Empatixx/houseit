@@ -25,7 +25,6 @@ test('a flight is as long as the storey makes it, and its length is not asked fo
     'add-object --room přízemí --type stairs-straight --against east',
   )
 
-  // Sixteen risers of 175 over a 2.8 m storey: fifteen treads at a 280 going.
   expect(stairs(doc)).toMatchObject({ width: 900, depth: 15 * 280 })
   expect(() =>
     runScript(twoStoreys(), 'add-object --room přízemí --type stairs-straight --depth 3m'),
@@ -55,7 +54,6 @@ test('a flight with no storey above it has nowhere to go, and says so', () => {
   )
 
   expect(codes(alone)).toContain('stairs.nowhere')
-  // And once there is a storey over it, there is nothing wrong with it.
   const built = runScript(alone, UPSTAIRS)
   expect(codes(built)).not.toContain('stairs.nowhere')
 })
@@ -69,7 +67,6 @@ test('a staircase is a hole in the floor above, and the room above says so', () 
   const upstairs = askPlan(doc, 'get-plan --room patro').rooms[0]!
   expect(upstairs.wells).toHaveLength(1)
   expect(upstairs.wells![0]).toMatchObject({ type: 'stairs-u' })
-  // The room downstairs has no hole in its floor; it stands on the ground.
   expect(askPlan(doc, 'get-plan --room přízemí').rooms[0]!.wells).toBeUndefined()
 })
 
@@ -80,9 +77,7 @@ test('what stands over a stairwell is told, whichever storey it was put there fr
   )
   const over = 'add-object --room patro --type dresser --against north --along 0.2'
 
-  // Said from upstairs, where the wardrobe was put.
   expect(askPlan(doc, over).problems.map((it) => it.code)).toContain('stairs.well-blocked')
-  // And said from downstairs too, where the stairs are.
   const blocked = runScript(doc, over)
   expect(codes(blocked, 'get-plan --room přízemí')).toContain('stairs.well-blocked')
 })
@@ -90,11 +85,9 @@ test('what stands over a stairwell is told, whichever storey it was put there fr
 test('a room is found on whatever storey it is on, without being told which', () => {
   const doc = twoStoreys()
 
-  // `patro` is upstairs and nobody said so; the command finds it all the same.
   expect(() =>
     runScript(doc, 'add-object --room patro --type queen-bed --against north'),
   ).not.toThrow()
-  // And a storey said is a storey meant: there is no `patro` on the ground floor.
   expect(() => runScript(doc, 'add-object --room patro --type queen-bed --level přízemí')).toThrow(
     /no storey called přízemí/,
   )

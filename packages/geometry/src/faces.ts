@@ -1,9 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 
 export type Face = {
-  /** Node ids in traversal order, counter-clockwise. A dangling wall appears twice. */
   nodes: string[]
-  /** Enclosed area in square millimetres. */
   area: number
 }
 
@@ -11,14 +9,6 @@ type HalfEdge = { from: string; to: string; key: string }
 
 const halfEdgeKey = (from: string, to: string) => `${from}>${to}`
 
-/**
- * Rooms are the bounded faces of the wall graph, found by walking half-edges:
- * arrive at a node, take the twin of the edge you came in on, then step to its
- * predecessor in counter-clockwise order. That rule traces every face exactly
- * once, interior faces counter-clockwise and the outer face clockwise — so the
- * outer face falls out simply by discarding non-positive areas, and a dangling
- * wall traversed out and back contributes nothing.
- */
 export function findFaces(doc: HouseDocument, level: string): Face[] {
   const outgoing = new Map<string, HalfEdge[]>()
 
@@ -41,7 +31,6 @@ export function findFaces(doc: HouseDocument, level: string): Face[] {
     return Math.atan2(b.y - a.y, b.x - a.x)
   }
 
-  /** Position of each half-edge within its origin's counter-clockwise fan. */
   const rank = new Map<string, number>()
   for (const [node, edges] of outgoing) {
     edges.sort((left, right) => {
@@ -68,8 +57,6 @@ export function findFaces(doc: HouseDocument, level: string): Face[] {
 
     const cycle: HalfEdge[] = []
     let edge = start
-    // The traversal is a permutation of the half-edges, so a cycle can never be
-    // longer than the whole set; the bound only guards against corrupt input.
     for (let guard = 0; guard <= all.length; guard += 1) {
       visited.add(edge.key)
       cycle.push(edge)
@@ -85,7 +72,6 @@ export function findFaces(doc: HouseDocument, level: string): Face[] {
   return faces
 }
 
-/** Shoelace formula. Positive counter-clockwise, negative for the outer face. */
 function signedArea(doc: HouseDocument, nodes: string[]): number {
   let total = 0
   for (let i = 0; i < nodes.length; i += 1) {

@@ -1,7 +1,6 @@
 import { roomKindOf } from '@houseit/core/room-kinds'
 import { doorsOf, type Problem, type Rule } from './rule'
 
-/** A bedroom or a bathroom does not open straight onto the kitchen or the living room. */
 export const privacy: Rule = ({ reports }) => {
   const problems: Problem[] = []
   const kinds = new Map(reports.map((room) => [room.name, roomKindOf(room)] as const))

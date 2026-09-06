@@ -13,13 +13,6 @@ const HEADINGS: Record<string, Leg['heading']> = {
   west: 'w',
 }
 
-/**
- * A walk round a building, written the way it would be said out loud:
- * `12m e, 8m n, 4m w, 3m n, 8m w`.
- *
- * Lengths and headings, no coordinates — the same reason every other command
- * takes none. The way home is left off; it closes itself.
- */
 export function parseWalk(source: string): Leg[] {
   const legs = source
     .split(/[,;]+/)

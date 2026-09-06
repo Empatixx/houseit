@@ -1,13 +1,6 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 import type { Room } from './rooms'
 
-/**
- * The walls that bound a room, in the order the face walks them.
- *
- * A face is a ring of nodes, not of walls, so the walls have to be looked back
- * up from consecutive pairs. A wall that dangles into the room is walked twice,
- * once in each direction, and is listed only once.
- */
 export function boundaryWallsOf(doc: HouseDocument, level: string, room: Room): Wall[] {
   const seen = new Set<string>()
   const walls: Wall[] = []

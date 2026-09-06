@@ -1,7 +1,6 @@
 import { roomKindOf } from '@houseit/core/room-kinds'
 import type { Rule } from './rule'
 
-/** A room somebody lives in has a window. */
 export const windows: Rule = ({ reports }) =>
   reports
     .filter(

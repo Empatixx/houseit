@@ -12,15 +12,6 @@ import { toolStore } from '../store/tool'
 import { floorTexture } from './floor-texture'
 import { MM } from './plan-coordinates'
 
-/**
- * A filled floor under each derived room. Without it the plan is a set of
- * disconnected outlines; with it the rooms read as rooms. Rebuilt whenever the
- * document changes, which is also whenever the faces themselves change.
- *
- * A room with a material laid gets its texture; one without stays white, so an
- * unfinished plan still reads as a drawing rather than as a mistake. The room
- * under the pointer gets a pale blue wash, so the hand knows what a click picks.
- */
 export function RoomFloors() {
   const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
@@ -31,14 +22,11 @@ export function RoomFloors() {
       const shape = new Shape()
       room.nodes.forEach((id, index) => {
         const node = doc.nodes[id]!
-        // Shapes are built in the XY plane and laid flat by the mesh rotation.
         if (index === 0) shape.moveTo(node.x * MM, node.y * MM)
         else shape.lineTo(node.x * MM, node.y * MM)
       })
       shape.closePath()
 
-      // Where the staircases from the storey below come up through this floor.
-      // The hole is not drawn anywhere: it is the staircase, seen from above.
       const pierced = wellsInRoom(doc, level, room)
       for (const well of pierced) {
         const hole = new Path()
@@ -53,11 +41,6 @@ export function RoomFloors() {
       const material = room.floor ? floorMaterial(room.floor) : undefined
       return {
         room,
-        // The material is part of the key on purpose. Laying a floor in a room
-        // that had none swaps a plain white material for one with a texture, and
-        // patching that onto the material already on screen leaves it black
-        // until the page is reloaded. Keyed this way the mesh is built afresh,
-        // with its texture from the start, exactly as it is on a reload.
         key: `${room.nodes.join('-')}-${room.floor ?? 'bare'}-${pierced.map((it) => it.object).join('-')}`,
         id: room.id,
         geometry: new ShapeGeometry(shape),
@@ -88,12 +71,9 @@ export function RoomFloors() {
           onDoubleClick={() => {
             if (toolStore.getState().armed?.kind === 'wall') finishDrawing()
           }}
-          // A click, not the end of a pan: the pointer has to have stayed put.
           onClick={(event) => {
             if (event.delta > 4) return
             event.stopPropagation()
-            // Something armed from the palette lands where the room was clicked;
-            // otherwise the click picks the room.
             const armed = toolStore.getState().armed
             if (armed) {
               const point = { x: event.point.x / MM, y: -event.point.z / MM }

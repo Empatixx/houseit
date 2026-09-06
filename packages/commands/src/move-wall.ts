@@ -13,36 +13,15 @@ import { length } from './length-schema'
 import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
 import { standingProblem } from './standing-check'
 
-/**
- * Not a command an agent has: moving the wall between two rooms is making one
- * of them bigger, and that is `update-room --side north --by 200`, which is
- * where this is called from. The editor's own wall drag calls it directly with
- * typed arguments, the way every mouse edit calls the command behind it.
- */
-
-/** A wall shorter than this is not a wall anybody can build. */
 const LEAST = 300
 
-/**
- * Moves a wall of a room: the whole line of it, so the walls that carry on
- * from its ends stay straight, and the walls that meet it end to end stretch
- * or shorten to follow. Outward makes the room bigger; a minus makes it
- * smaller, and the room on the other side the opposite.
- *
- * The doors and windows in the moved walls go with them. The ones in the
- * walls that stretch stay where they were from their far end, which is the
- * end that did not move. Whatever stands in the rooms around is checked
- * afterwards, and the move is refused if it would leave something in a wall.
- */
 export const moveWall = defineCommand({
   name: 'move-wall',
   summary: 'Move the wall on one side of a room, outward by a length or inward by a minus one',
   args: z.object({
     room: z.string().min(1),
-    /** The side to move; or the very wall by its id from describe, for an L's second wall on a side. */
     side: z.enum(SIDE_NAMES).optional(),
     wall: z.string().min(1).optional(),
-    /** How far, outward; a minus is inward. `-300`, `0.5m`. */
     by: length(),
     level: z.string().optional(),
   }),
@@ -61,8 +40,6 @@ export const moveWall = defineCommand({
     const outward = low ? -1 : 1
     const shift = args.by * outward
 
-    // The whole line: every node reached from the wall's ends along walls that
-    // run the same way.
     const moving = new Set<string>()
     const queue = walls.flatMap((wall) => [draft.walls[wall.wall]!.a, draft.walls[wall.wall]!.b])
     while (queue.length > 0) {
@@ -77,8 +54,6 @@ export const moveWall = defineCommand({
       }
     }
 
-    // The walls that meet the line end on: they stretch or shorten, and nothing
-    // may shorten to nothing or turn inside out.
     const stretching = Object.values(draft.walls).filter(
       (wall) => wall.level === level && moving.has(wall.a) !== moving.has(wall.b),
     )
@@ -98,7 +73,6 @@ export const moveWall = defineCommand({
     const wasFine = standingReport(draft, level)
     const stood = standingBefore(draft, level, moving, axis)
 
-    // Openings in the stretching walls keep their distance from the fixed end.
     for (const wall of stretching) {
       const aMoves = moving.has(wall.a)
       const fixed = draft.nodes[aMoves ? wall.b : wall.a]!
@@ -119,14 +93,8 @@ export const moveWall = defineCommand({
 
     for (const node of moving) draft.nodes[node]![axis] += shift
 
-    // Every room keeps the face it had, by the nodes that make it, and is
-    // anchored in the middle of it again — a room shrunk past its anchor would
-    // otherwise wake up as its neighbour.
     reanchor(draft, level, before)
 
-    // What stood in the rooms round the wall stays where it stood, unless it
-    // stood against the wall that moved — then it goes with it. A sofa against
-    // the east wall does not slide south because the north wall came down.
     standStill(draft, level, stood, axis, shift)
 
     const problem = standingReport(draft, level).find(
@@ -136,7 +104,6 @@ export const moveWall = defineCommand({
       throw new CommandError(`move-wall: ${problem.problem}`)
     }
 
-    // Both sides of a moved wall changed shape, so both are part of the answer.
     return {
       changed: roomsOf(draft, level)
         .filter((face) => face.id !== undefined && face.nodes.some((node) => moving.has(node)))
@@ -147,11 +114,6 @@ export const moveWall = defineCommand({
 
 type Stood = { object: string; room: string; at: Point; withWall: boolean }
 
-/**
- * Where everything stands in the rooms the moving nodes bound, and whether it
- * stands against a wall that is about to move — the wall it backs onto lies on
- * the moving line if its run is at the same place across as the moving nodes.
- */
 function standingBefore(
   draft: Draft<HouseDocument>,
   level: string,
@@ -169,7 +131,6 @@ function standingBefore(
       if (!spot) continue
       let withWall = false
       if (object.against) {
-        // Its wall is the moving one if it runs across the moving axis at the line's offset.
         const run = sideRun(draft, level, room, object.against)
         withWall =
           run !== undefined && SIDES[object.against].axis === axis && run.from[axis] === line
@@ -180,7 +141,6 @@ function standingBefore(
   return out
 }
 
-/** Puts each thing back where it stood, in the words of the room as it now is. */
 function standStill(
   draft: Draft<HouseDocument>,
   level: string,
@@ -216,7 +176,6 @@ function standStill(
   }
 }
 
-/** Which face each stored room sits in, by the nodes round it, before anything moves. */
 function footing(draft: Draft<HouseDocument>, level: string): Map<string, string> {
   const map = new Map<string, string>()
   for (const room of roomsOf(draft, level)) {
@@ -225,7 +184,6 @@ function footing(draft: Draft<HouseDocument>, level: string): Map<string, string
   return map
 }
 
-/** Puts each stored room's anchor at the middle of the face it was in. */
 export function reanchor(
   draft: Draft<HouseDocument>,
   level: string,
@@ -245,7 +203,6 @@ export function reanchor(
 
 const keyOf = (room: Room) => [...room.nodes].sort().join('-')
 
-/** What is wrong with where each thing stands, room by room. */
 function standingReport(
   draft: Draft<HouseDocument>,
   level: string,

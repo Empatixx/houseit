@@ -17,7 +17,6 @@ const kitchen = (doc: HouseDocument): RoomReport =>
 const openingsOf = (doc: HouseDocument, kind: 'door' | 'window'): OpeningReport[] =>
   kitchen(doc).openings.filter((it) => it.kind === kind)
 
-/** The ids the answer to building the house gave, in the order they went in. */
 const ids = () => askPlan(createEmptyDocument(), HOUSE).changed.filter((id) => id.startsWith('o'))
 
 test('every opening comes back with an id, and that is how the next command names it', () => {
@@ -80,10 +79,6 @@ test('a change has to say what, and an id that is not there is refused by name',
 test('a wider door moved along its wall in one line is checked at its new width', () => {
   const [door] = ids()
 
-  // Six hundred millimetres from the far end of the wall: an 800 mm leaf needs
-  // 400 of them and fits; a 2 m one needs a metre and does not. Each half of the
-  // change passes on its own — the width fits the wall somewhere, and the place
-  // fits the door it has now — and only together do they run off the end.
   expect(() => runScript(house(), `update-opening --id ${door} --width 2m`)).not.toThrow()
   expect(() => runScript(house(), `update-opening --id ${door} --along -0.6m`)).not.toThrow()
   expect(() => runScript(house(), `update-opening --id ${door} --width 2m --along -0.6m`)).toThrow(

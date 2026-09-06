@@ -13,7 +13,6 @@ test('a rectangle is anchored at its middle', () => {
 })
 
 test('a horseshoe is anchored inside one of its arms, not in the gap', () => {
-  // A U: 12 wide, 9 deep, with a 4 by 6 gap cut into the middle of the north side.
   const u = [
     { x: 0, y: 0 },
     { x: 12_000, y: 0 },

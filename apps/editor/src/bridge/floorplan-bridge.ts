@@ -22,17 +22,8 @@ declare global {
   }
 }
 
-/**
- * Room left round a room when it is framed on its own, in millimetres: enough
- * for its walls, a door swinging out of it and the dimensions along them.
- */
 const ROOM_MARGIN = 1200
 
-/**
- * The only surface the MCP server touches. Failures come back as data because the
- * server reaches this through `page.evaluate`, where a thrown error arrives as an
- * opaque string — the agent needs the message the command actually produced.
- */
 export function installFloorplanBridge(
   store: ReturnType<typeof createDocumentStore>,
   projects: typeof theProjects = theProjects,
@@ -47,14 +38,8 @@ export function installFloorplanBridge(
     }
   }
 
-  /**
-   * Nothing is worked on until a project is open, and the agent cannot open one
-   * — projects belong to the editor, not to the commands. So the refusal says
-   * what there is and where to open it, rather than only that it will not.
-   */
   const noProject = (): string => {
     const { list, refresh } = projects.getState()
-    // Asked for, so that a second attempt can name them even if this one could not.
     if (!list) void refresh()
     const ids = list?.map((project) => project.id) ?? []
     const where =
@@ -64,7 +49,6 @@ export function installFloorplanBridge(
     return `no project open — ${where}`
   }
 
-  /** The room of that name or id, and the storey it stands on. */
   const whichStorey = (name: string) => {
     const { doc } = store.getState()
     for (const storey of levelsOf(doc)) {
@@ -76,22 +60,14 @@ export function installFloorplanBridge(
     return undefined
   }
 
-  /** The part of the canvas nothing floats over, where the framing lands. */
   const clear = (): Clear => {
     const canvas = document.querySelector('canvas')
     const size = { width: canvas?.clientWidth ?? 0, height: canvas?.clientHeight ?? 0 }
     return clearOf(viewStore.getState().covers, size)
   }
 
-  /**
-   * Picks and frames what a picture should be of, the way a click and Fit
-   * would: a room is highlighted with its dimensions, a thing gets its outline
-   * and clearances, the level gets everything or nothing.
-   */
   const show = (view: ViewRequest): ShowResult => {
     const selection = selectionStore.getState()
-    // A picture for the agent is a plan, whatever the tab was looking at, and
-    // with nothing over it: the panel folds until the next click.
     modeStore.getState().setMode('2d')
     shellStore.getState().showPanel(false)
 
@@ -102,9 +78,6 @@ export function installFloorplanBridge(
       return { ok: true }
     }
 
-    // Looked for on every storey, and the one it is on is stepped onto — the
-    // same thing a person does with the storey card before looking at a room
-    // upstairs. A picture of the first floor was otherwise unaskable for.
     const found = whichStorey(view.room)
     if (!found) return { ok: false, error: `there is no room called ${view.room}` }
     if (found.level !== store.getState().level) store.getState().setLevel(found.level)
@@ -140,8 +113,6 @@ export function installFloorplanBridge(
       if (!projects.getState().open) return { ok: false, error: noProject() }
       try {
         const touched = store.getState().exec(source)
-        // Built after the transaction, off the plan as it now stands: what the
-        // agent is told is read from the same document the tab is drawing.
         const { doc, level } = store.getState()
         const answer = answerFor(
           doc,
@@ -151,9 +122,6 @@ export function installFloorplanBridge(
           touched.at,
           touched.notes,
         )
-        // And the tab goes where the command went. A command that drew on the
-        // first floor and left you looking at the ground floor would be an
-        // agent working somewhere you cannot see.
         if (answer.level !== level) store.getState().setLevel(answer.level)
         return { ok: true, answer, ...snapshot() }
       } catch (error) {

@@ -12,12 +12,6 @@ import { helpText, report, toolDescription } from './report'
 import { scriptOf } from './script-of'
 import { viewOf } from './view-of'
 
-/**
- * The same registry the MCP tool uses, reached from a terminal. Useful without an
- * agent, and it keeps the bridge honest — anything the agent can do is reachable
- * here, against the same live tab. One command as arguments, a whole script as
- * one argument or on standard input (`-`): the words are the same either way.
- */
 const USAGE = [
   'Usage:',
   '  houseit <command> [--option value …]      one command, its words as arguments',
@@ -33,8 +27,6 @@ async function main(argv: string[]): Promise<number> {
     return 0
   }
 
-  // Taken off the front, before the command begins: these say where the command
-  // runs and what to do with what it shows, and neither is part of the command.
   let picture: string | undefined
   let project: string | undefined
   while (argv[0] === '--picture' || argv[0] === '--project') {
@@ -48,7 +40,6 @@ async function main(argv: string[]): Promise<number> {
   const page = await connectToEditor()
   if (project !== undefined) await openProject(page, project)
 
-  // One command's words back into a line, or a script handed over as written.
   const source = argv[0] === '-' ? readFileSync(0, 'utf8') : scriptOf(argv)
   const result = await execOnPage(page, source)
   process.stdout.write(`${report(result)}\n`)
@@ -62,8 +53,6 @@ async function main(argv: string[]): Promise<number> {
   return result.ok ? 0 : 1
 }
 
-// The plan is written back and a browser this process started is closed, either
-// way — a failure half way through a script still leaves the plan as it stands.
 main(process.argv.slice(2))
   .then(
     (code) => code,

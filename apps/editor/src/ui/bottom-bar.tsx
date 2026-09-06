@@ -49,13 +49,6 @@ import { type Armed, toolStore, useTool } from '../store/tool'
 import { useLeftEdge, useRightEdge } from './edges'
 import { useCover } from './use-cover'
 
-/**
- * The bar along the bottom of the plan: what the next click does. Select is
- * the plain state; Furniture and Structure open upwards, a category to the
- * side, and arm what is chosen — the next click on a room puts it there.
- * It is centred on the part of the plan nothing stands over, so it moves
- * across as the rail and the panel come out and fold away.
- */
 export function BottomBar() {
   const armed = useTool((state) => state.armed)
   const label = armedLabel(armed)
@@ -131,7 +124,6 @@ function armedLabel(armed: Armed | null): string | null {
   return 'wall'
 }
 
-/** The rooms the catalogue files things under, in the order they are shown, each with its mark. */
 const CATEGORIES: { id: string; label: string; icon: LucideIcon }[] = [
   { id: 'living_room', label: 'Living room', icon: SofaIcon },
   { id: 'family_room', label: 'Family room', icon: TvIcon },
@@ -152,7 +144,6 @@ const CATEGORIES: { id: string; label: string; icon: LucideIcon }[] = [
 
 const byLabel = (one: ObjectType, other: ObjectType) => one.label.localeCompare(other.label)
 
-/** Things by the room they belong in; a thing for any room is under General only. */
 function inCategory(category: string): ObjectType[] {
   return OBJECT_TYPES.filter((type) => {
     const rooms = type.rooms ?? ['any']
@@ -193,7 +184,6 @@ function FurnitureMenu() {
             placeholder="Search furniture…"
             className="h-8 pl-8"
             onChange={(event) => setSearch(event.target.value)}
-            // The menu would otherwise take the letters as a way of jumping to items.
             onKeyDown={(event) => event.stopPropagation()}
           />
         </div>

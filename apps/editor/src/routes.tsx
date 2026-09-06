@@ -14,13 +14,6 @@ import { projectsStore, useProjects } from './store/projects/projects'
 import { documentStore } from './store/store'
 import { Home } from './ui/home/home'
 
-/**
- * The two screens there are: the projects, and one of them open.
- *
- * A project has an address of its own, so a plan can be handed to somebody and
- * come back to where it was left. Nothing else is routed — what is picked, what
- * is folded away and where the camera is looking are matters of the sitting.
- */
 export function Screens() {
   return (
     <BrowserRouter>
@@ -34,7 +27,6 @@ export function Screens() {
   )
 }
 
-/** The home screen, and the one thing that can arrive at it and not stay: `?plan=`. */
 function Landing() {
   const [params] = useSearchParams()
   const plan = params.get('plan')
@@ -54,11 +46,6 @@ function Landing() {
   return <Home />
 }
 
-/**
- * A project, open. Its plan is read out of the database into the document store
- * on the way in and written back on the way out; everything between is the
- * editor, which knows nothing about any of this.
- */
 function Project() {
   const { id } = useParams()
   const open = useProjects((state) => state.open)
@@ -88,7 +75,6 @@ function Project() {
   return <App />
 }
 
-/** The project of that name, made if there is not one. */
 async function projectOf(name: string) {
   const { list, refresh, create } = projectsStore.getState()
   if (!list) await refresh()
@@ -96,13 +82,6 @@ async function projectOf(name: string) {
   return found ?? (await create(name))
 }
 
-/**
- * A plan named in the address is drawn in place of whatever the project held.
- *
- * `?plan=house` fetches `/plans/house.txt` — a command script, the same lines the
- * agent would send — wipes the plan and runs it. That is what makes a plan a
- * thing with an address that can be handed to somebody.
- */
 function drawNamedPlan(name: string): void {
   fetch(`/plans/${encodeURIComponent(name)}.txt`)
     .then((response) => (response.ok ? response.text() : Promise.reject(response.status)))

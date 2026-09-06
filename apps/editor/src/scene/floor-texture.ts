@@ -4,23 +4,10 @@ import { RepeatWrapping, SRGBColorSpace, type Texture, TextureLoader } from 'thr
 const loader = new TextureLoader()
 const cache = new Map<string, Texture>()
 
-/**
- * The image for a floor material, loaded once and shared by every room using it.
- *
- * The repeat is what keeps the pattern honest: a `ShapeGeometry` built from plan
- * coordinates has UVs in metres, so setting the repeat to one over the material's
- * real size makes a 300 mm tile 300 mm whatever room it lands in — and, because
- * those UVs are the plan's own coordinates, boards run on across a doorway
- * instead of restarting in the next room.
- */
 export function floorTexture(material: FloorMaterial): Texture {
   const cached = cache.get(material.id)
   if (cached) return cached
 
-  // From the site root, not from where the address happens to be: a project is
-  // at /p/<id>, and a relative path there asks for /p/textures/… — which the dev
-  // server answers with index.html at status 200, and a floor whose texture is a
-  // web page renders black.
   const texture = loader.load(`/textures/${material.texture}`)
   texture.wrapS = RepeatWrapping
   texture.wrapT = RepeatWrapping

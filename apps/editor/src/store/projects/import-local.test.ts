@@ -6,7 +6,6 @@ import { importLocalPlan, LEGACY_KEY } from './import-local'
 
 const fresh = () => openProjects(new FakeIndexedDb())
 
-/** Enough of the Storage interface to stand in for localStorage, plus a sealed one. */
 const fake = (): Storage => {
   const map = new Map<string, string>()
   return {

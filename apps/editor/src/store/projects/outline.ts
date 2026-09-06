@@ -1,19 +1,8 @@
 import type { HouseDocument } from '@houseit/core/document'
 
-/** A wall, end to end: `[x0, y0, x1, y1]` in millimetres. */
 type Segment = [number, number, number, number]
 
-/**
- * A plan small enough to keep beside a project's name: its walls as centre
- * lines, moved to the origin, with the box they fill.
- *
- * Not the rooms and not the floors — a card is a thumbnail, and a plan reads
- * there as its walls or not at all. It is worked out when the plan is written
- * and stored with the name, so the home screen can draw every card without
- * reading a single document.
- */
 export type Outline = {
-  /** The box the walls fill, in millimetres. */
   width: number
   height: number
   segments: Segment[]

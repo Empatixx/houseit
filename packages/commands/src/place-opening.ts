@@ -11,23 +11,10 @@ export type { Side }
 
 export type Placement = {
   wall: string
-  /** Along the wall, 0 at end `a` and 1 at end `b`. */
   t: number
-  /**
-   * Which side of the wall the room lies on, as a sign across it. A door swings
-   * into the room it was named from, so this is what decides which way it opens.
-   */
   swing: -1 | 1
 }
 
-/**
- * Where an opening of a given width goes in the wall on one side of a room.
- *
- * Nothing here takes a position: you know the bedroom looks south, not that its
- * window starts 2.4 m from the corner. So the position is chosen — the middle of
- * the widest stretch of that wall still free. One opening centres itself and a
- * second falls beside it, without either command naming a place.
- */
 export function placeOpening(
   doc: HouseDocument,
   level: string,
@@ -36,17 +23,10 @@ export function placeOpening(
   width: number,
   what: string,
   swings = false,
-  /** An opening to leave out of the count: the one being moved is not in its own way. */
   except?: string,
-  /** Which run of the side, where it has several; left out, every wall facing that way is tried. */
   nth?: number,
-  /** The one wall of it, when a wall was named: nothing else is tried. */
   wall?: string,
 ): Placement {
-  // A side can be more than one wall, and the roomiest is only the best guess at
-  // which of them to use. Cut a hall out of a living room and its far side is two
-  // partitions of the very same length, one with the staircase along the whole of
-  // it — so every one of them is tried before the answer is no.
   const walls = wallsFacing(doc, level, room, side, what, nth)
     .filter((candidate) => wall === undefined || candidate.wall.id === wall)
     .sort((one, other) => spanOf(other) - spanOf(one))
@@ -69,8 +49,6 @@ export function placeOpening(
       ...Object.values(doc.openings)
         .filter((opening) => opening.wall === chosen.wall.id && opening.id !== except)
         .map((opening) => spanAround(opening.t * span, opening.width)),
-      // Only a door. A window has nothing to keep clear of — a sofa under a
-      // window is where a sofa goes, and the same is true of a bed and a worktop.
       ...(swings ? standingOn(doc, level, chosen, span) : []),
     ]
     const gaps = freeSpans(span, taken)
@@ -80,8 +58,6 @@ export function placeOpening(
     roomToStand = true
 
     const swing = sideSign(chosen.a, chosen.b, room.centre)
-    // The middle of a stretch first, because that is where an opening looks like
-    // it was meant to go; hard against either end only when the middle is taken.
     const tries = gaps.flatMap((free) => [
       (free.from + free.to) / 2,
       free.from + width / 2,
@@ -102,16 +78,6 @@ export function placeOpening(
   )
 }
 
-/**
- * Where an opening goes when somebody says exactly where: this far along one
- * side of a room, in the sense `add-object --along` uses, 0 at the west or
- * south end and 1 at the other. What a drag on the plan ends in, and what an
- * agent says when the middle of the free stretch is not what it wants.
- *
- * Checked the way a chosen place is checked: it has to lie in one wall of that
- * side, clear of the openings already there, and a door has to be able to open.
- * Refused with the reason, so the drag can say it.
- */
 export function placeOpeningAt(
   doc: HouseDocument,
   level: string,
@@ -152,12 +118,6 @@ export function placeOpeningAt(
   return { wall: chosen.wall.id, t: at / span, swing }
 }
 
-/**
- * Whether an opening of a width can be at a place in a wall: within the
- * wall's length, clear of the other openings in it, and — for a door that
- * swings — with nothing standing in its swing. Refused with the reason;
- * otherwise the way the door swings, towards the room it was asked from.
- */
 export function checkOpeningAt(
   doc: HouseDocument,
   level: string,
@@ -201,16 +161,8 @@ export function checkOpeningAt(
   return swing
 }
 
-/**
- * The floor a door needs to itself: the square its leaf sweeps as it opens.
- *
- * A quarter circle, boxed. The box is the more generous of the two and that is
- * the point — a door that opens to within a hand's breadth of the washbasin is a
- * door somebody squeezes past, and a drawing should not offer it.
- */
 function sweptBy(a: Point, b: Point, span: number, at: number, width: number, swing: -1 | 1): Box {
   const unit = { x: (b.x - a.x) / (span || 1), y: (b.y - a.y) / (span || 1) }
-  // A quarter turn across the wall, the way the room lies.
   const into = { x: -unit.y * swing, y: unit.x * swing }
   const hinge = { x: a.x + unit.x * (at - width / 2), y: a.y + unit.y * (at - width / 2) }
 
@@ -224,11 +176,6 @@ function sweptBy(a: Point, b: Point, span: number, at: number, width: number, sw
   )
 }
 
-/**
- * Where a door already in the plan opens, or nothing if it is a window — or a
- * door that does not swing: a sliding or pocket door runs along its wall, and a
- * garage door lifts, so the car in front of it is where the car goes.
- */
 export function swingOf(doc: HouseDocument, opening: Opening): Box | undefined {
   if (opening.kind !== 'door' || opening.variant !== 'hinged') return undefined
   const wall = doc.walls[opening.wall]
@@ -240,15 +187,6 @@ export function swingOf(doc: HouseDocument, opening: Opening): Box | undefined {
   return sweptBy(a, b, span, opening.t * span, opening.width, opening.swing)
 }
 
-/**
- * Whether a door put there could actually be opened.
- *
- * Keeping a door clear of the wall it is in was never the whole job: a door
- * sweeps a quarter of a circle out into the room, and what is standing in that
- * quarter matters as much as what is beside it. Two doors in one corner bang into
- * each other, and a door across the basin does not open at all — and the plan
- * draws both without a murmur, because nothing in the drawing knows.
- */
 function swingIsClear(
   doc: HouseDocument,
   level: string,
@@ -282,21 +220,6 @@ function swingIsClear(
     })
 }
 
-/**
- * What is already standing along that wall, as stretches of it that are spoken for.
- *
- * The other half of the bargain `place-object` keeps: furniture is kept clear of
- * the doors, so doors are kept clear of the furniture. Without it a door can be
- * hung behind the staircase — the plan draws both, quite happily, and neither the
- * drawing nor a test says a word about the door nobody can walk through.
- *
- * Everything at that wall counts, not merely what is in the room the door was
- * asked for. A door has two faces and only one of them is in that room; the
- * lavatory standing against the far face is in the way exactly as much, which is
- * how the first go at this put a door through the toilet in the bathroom next
- * door. So nothing is filtered by room or by side — what settles it is standing
- * out in front of this wall, whichever side of it that is.
- */
 function standingOn(doc: HouseDocument, level: string, chosen: Facing, span: number): Span[] {
   const rooms = new Map(
     roomsOf(doc, level)
@@ -307,10 +230,6 @@ function standingOn(doc: HouseDocument, level: string, chosen: Facing, span: num
     x: (chosen.b.x - chosen.a.x) / (span || 1),
     y: (chosen.b.y - chosen.a.y) / (span || 1),
   }
-  // How far off the wall's centre line a thing may be and still be up against it:
-  // half the wall, and a hand's breadth of room for the ones that stand a little
-  // proud. Measured against the thing's own corners rather than its middle, or a
-  // staircase at the wall round the corner counts as standing at this one.
   const reach = (doc.walls[chosen.wall.id]?.thickness ?? 0) / 2 + 120
 
   return Object.values(doc.objects)
@@ -331,11 +250,6 @@ function standingOn(doc: HouseDocument, level: string, chosen: Facing, span: num
     })
 }
 
-/**
- * The walls of a room that face one way: every one of them, at the room's edge
- * or where it steps back, or only those of one run of the side when a run is
- * named. Refused, with the side named, when there are none.
- */
 export function wallsFacing(
   doc: HouseDocument,
   level: string,
@@ -359,11 +273,6 @@ type Facing = { wall: { id: string }; a: { x: number; y: number }; b: { x: numbe
 const spanOf = ({ a, b }: { a: { x: number; y: number }; b: { x: number; y: number } }) =>
   Math.round(Math.hypot(b.x - a.x, b.y - a.y))
 
-/**
- * Which side of the wall a point lies on, positive being a quarter turn
- * counter-clockwise from the wall's own direction. A door's `swing` is this,
- * for the room it opens into.
- */
 export function sideSign(
   a: { x: number; y: number },
   b: { x: number; y: number },

@@ -2,7 +2,6 @@ import { expect, test } from 'vitest'
 import { clearOf } from '../store/view'
 import { coverOf } from './use-cover'
 
-/** A bar hanging off the foot of a canvas, laid out or not yet. */
 const bar = (size: { width: number; height: number }, top: number) =>
   ({
     offsetWidth: size.width,
@@ -20,9 +19,6 @@ test('a bar along the foot covers the height of itself, not of the canvas', () =
 })
 
 test('an element with no size yet hides nothing, rather than hiding everything', () => {
-  // The state a browser is in for the first frame after a reload: the bar is in
-  // the DOM, its size is zero, and its offsetTop has not been decided. Measured
-  // then, its reach is the whole canvas.
   expect(coverOf(bar({ width: 0, height: 0 }, 0), 'bottom')).toBeNull()
 })
 

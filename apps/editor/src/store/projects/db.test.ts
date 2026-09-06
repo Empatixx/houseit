@@ -3,7 +3,6 @@ import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
 import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
 
-/** A database of its own for each test, so nothing one leaves behind reaches the next. */
 const fresh = () => openProjects(new FakeIndexedDb())
 
 const meta = (id: string, updatedAt = 1): ProjectMeta => ({
@@ -13,7 +12,6 @@ const meta = (id: string, updatedAt = 1): ProjectMeta => ({
   updatedAt,
 })
 
-/** Puts something past the types, the way a build from another day would have left it. */
 const writeRaw = (db: ProjectsDb, id: string, value: unknown) =>
   db.write(id, value as ReturnType<typeof createEmptyDocument>)
 

@@ -10,32 +10,16 @@ import { openingById } from './openings'
 import { checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
 import { SIDE_NAMES, sideNamed } from './resolve'
 
-/**
- * Changes a door or a window that is already in: wider, higher, a pocket leaf
- * instead of a hinged one, further along its wall, or into another wall of its
- * room altogether.
- *
- * Everything said is settled at once and checked once, on what the opening
- * becomes. A wider door moved along its wall in one command is checked at its
- * new width in its new place, which is the only question worth asking — done as
- * two commands, each passes on its own and the pair can still land the door
- * across the window.
- */
 export const updateOpening = defineCommand({
   name: 'update-opening',
   summary: 'Change a door or a window: its size, its kind of leaf, or where in the wall it sits',
   args: z.object({
-    /** Its id, as the last answer gave it. The storey comes with it. */
     id: z.string().min(1),
     width: length().optional(),
     height: length().optional(),
-    /** How high off the floor a window starts. */
     sill: length().optional(),
-    /** A door's leaf. A sliding or pocket door stops swinging; a hinged one starts. */
     variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).optional(),
-    /** How far along its wall: a fraction, or a length from the west or south end. */
     along: along().optional(),
-    /** Another side of its room to move it to, or another wall by id. */
     toSide: z.enum(SIDE_NAMES).optional(),
     toWall: z.string().min(1).optional(),
   }),
@@ -106,8 +90,6 @@ export const updateOpening = defineCommand({
       target.t = spot.t
       if (door) target.swing = spot.swing
     } else if (resizing || args.variant !== undefined) {
-      // Where it already is, at what it is about to become: still inside the
-      // wall, clear of its neighbours, and able to swing if it has started to.
       refit(draft, level, room, opening, width, swings, 'update-opening')
     }
 
@@ -120,7 +102,6 @@ export const updateOpening = defineCommand({
   },
 })
 
-/** The opening at its own place, at the new width: still in the wall, clear of the rest. */
 function refit(
   draft: Draft<HouseDocument>,
   level: string,

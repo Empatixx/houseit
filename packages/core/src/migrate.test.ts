@@ -82,7 +82,6 @@ test("a v2 document's turned things keep their angle under its new name", () => 
 
   expect(doc.objects.f1).toMatchObject({ rotation: 45 })
   expect('turn' in doc.objects.f1!).toBe(false)
-  // Nothing invented for what was never turned.
   expect('rotation' in doc.objects.f2!).toBe(false)
 })
 

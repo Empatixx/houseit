@@ -7,7 +7,6 @@ import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
 const fresh = () => openProjects(new FakeIndexedDb())
 const meta: ProjectMeta = { id: 'byt', name: 'Byt', createdAt: 1, updatedAt: 1 }
 
-/** A plan with one wall in it, so there is an outline to find. */
 function withWall(): HouseDocument {
   const doc = createEmptyDocument()
   const level = Object.keys(doc.levels)[0] as string
@@ -25,12 +24,7 @@ async function started(): Promise<{ db: ProjectsDb; writer: ReturnType<typeof cr
   return { db, writer: createWriter(Promise.resolve(db)) }
 }
 
-/**
- * Real time rather than a fake clock: fake-indexeddb runs its transactions on
- * the same timers, and a faked clock stops the database dead.
- */
 const after = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-/** Enough past the delay that the write has landed, whatever the machine is doing. */
 const WRITTEN = WRITE_DELAY + 150
 
 test('an edit is written once the plan is left alone', async () => {

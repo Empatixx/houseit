@@ -2,14 +2,6 @@ import type { HouseDocument } from '@houseit/core/document'
 import type { Point } from './outlines'
 import type { Room } from './rooms'
 
-/**
- * Whether a shape lies wholly inside a room.
- *
- * Both halves are needed. Corners alone pass a table laid across the waist of an
- * L-shaped room — all four of them can be inside while the middle of it hangs out
- * over the neighbour. Crossings alone pass a table sitting entirely outside a
- * room it never touches.
- */
 export function fitsInside(doc: HouseDocument, room: Room, shape: Point[]): boolean {
   const walls = room.nodes.map((node) => doc.nodes[node]).filter((node) => node !== undefined)
   if (walls.length < 3 || shape.length < 3) return false
@@ -27,14 +19,6 @@ export function fitsInside(doc: HouseDocument, room: Room, shape: Point[]): bool
   return true
 }
 
-/**
- * How far a shape is pulled in before it is tested, in millimetres.
- *
- * Furniture is put flush against things — that is where furniture goes — and a
- * corner sitting exactly on a wall is neither in nor out as far as ray casting is
- * concerned. A hair's width settles it in favour of touching, and it is far too
- * small to let anything actually overlap through.
- */
 const TOUCHING = 1
 
 function shrink(shape: Point[], by: number): Point[] {
@@ -54,7 +38,6 @@ function shrink(shape: Point[], by: number): Point[] {
   })
 }
 
-/** Ray casting, written out because a face may repeat a vertex where a wall dangles. */
 function contains(polygon: Point[], point: Point): boolean {
   let inside = false
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
@@ -68,7 +51,6 @@ function contains(polygon: Point[], point: Point): boolean {
   return inside
 }
 
-/** Whether two segments properly cross, rather than merely touching end to end. */
 function crosses(a: Point, b: Point, c: Point, d: Point): boolean {
   const side = (p: Point, q: Point, r: Point) =>
     Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x))

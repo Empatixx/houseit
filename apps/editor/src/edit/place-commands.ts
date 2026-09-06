@@ -9,12 +9,6 @@ import { documentStore } from '../store/store'
 import type { Armed } from '../store/tool'
 import { runEdit } from './run-edit'
 
-/**
- * Puts what the palette armed where the plan was clicked, as the command an
- * agent would give: `add-object` against the nearest wall or out in the room,
- * `add-opening` in the nearest wall, each with the exact `--along` the click
- * meant. The plan checks it as it checks everything.
- */
 export function placeArmed(armed: Armed, room: Room, point: Point): boolean {
   if (!room.name) return false
   const { doc, level } = documentStore.getState()
@@ -49,7 +43,6 @@ export function placeArmed(armed: Armed, room: Room, point: Point): boolean {
   )
 }
 
-/** The same, for a click that landed on something standing in the room rather than its floor. */
 export function placeArmedIn(armed: Armed, roomId: string, point: Point): boolean {
   const { doc, level } = documentStore.getState()
   const room = roomsOf(doc, level).find((candidate) => candidate.id === roomId)

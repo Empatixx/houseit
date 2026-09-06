@@ -3,14 +3,6 @@ import { levelsOf } from '@houseit/core/levels'
 import { documentStore } from '../store/store'
 import { runEdit } from './run-edit'
 
-/**
- * What the storey card does, as the commands an agent would give.
- *
- * A storey added is stepped onto straight away — nobody adds a floor in order
- * to keep looking at the one under it — and a storey taken out leaves you on
- * whatever is nearest, since the one you were standing on has gone.
- */
-
 export function addStorey(name: string, options: { below?: boolean } = {}): boolean {
   const before = new Set(Object.keys(documentStore.getState().doc.levels))
   const made = runEdit(() =>
@@ -30,7 +22,6 @@ export function renameStorey(level: string, name: string): boolean {
   return runEdit(() => documentStore.getState().apply(updateLevel, { level, name: called }))
 }
 
-/** Moves a storey up or down the house, counting the lowest as the first. */
 export function moveStorey(level: string, storey: number): boolean {
   return runEdit(() => documentStore.getState().apply(updateLevel, { level, storey }))
 }

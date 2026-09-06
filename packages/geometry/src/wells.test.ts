@@ -6,11 +6,6 @@ import { containsPoint, roomsOf } from './rooms'
 import { footprintOf, standingAt } from './standing'
 import { stairwaysOn, wellOf, wellsIn, wellsInRoom } from './wells'
 
-/**
- * The document is built by hand here rather than through the commands, because
- * `geometry` is under `commands` and cannot reach for them. What it says is the
- * same either way: two storeys, and a straight flight on the lower one.
- */
 function house(partition?: number): { doc: HouseDocument; ground: string; upper: string } {
   const doc = createEmptyDocument()
   const ground = levelsOf(doc)[0]!.id
@@ -45,7 +40,6 @@ function house(partition?: number): { doc: HouseDocument; ground: string; upper:
     doc.rooms[room] = { id: room, level, x: 4000, y: 3500, name: level === ground ? 'down' : 'up' }
   }
 
-  // A wall across the upper storey, splitting it into a room west of it and one east.
   if (partition !== undefined) {
     const south = `n-${upper}-south`
     const north = `n-${upper}-north`
@@ -73,7 +67,6 @@ function house(partition?: number): { doc: HouseDocument; ground: string; upper:
   return { doc, ground, upper }
 }
 
-/** A straight flight standing against the east wall of the lower room. */
 function withStairs(
   doc: HouseDocument,
   ground: string,
@@ -112,8 +105,6 @@ test('the hole is inside the room above, so a floor can be cut round it', () => 
   const outline = room.nodes.map((id) => doc.nodes[id]!)
   const well = wellsIn(doc, upper)[0]!
 
-  // Every corner of the well has to fall inside the room, or the floor cannot
-  // be built with it as a hole — which is how the well came to be drawn nowhere.
   for (const corner of well.outline) {
     expect(containsPoint(outline, corner.x, corner.y), `${corner.x},${corner.y}`).toBe(true)
   }
@@ -152,8 +143,6 @@ test('the well is the top of the flight, not the whole of it: the foot stands un
   const flight = footprintOf(spot, doc.objects.f1!)
   const well = wellsIn(doc, upper)[0]!
 
-  // Against the east wall the flight climbs east, so its foot is the west end,
-  // and the first two treads there have a storey of headroom less the slab.
   const foot = Math.min(...flight.map((corner) => corner.x))
   const hole = Math.min(...well.outline.map((corner) => corner.x))
   expect(hole - foot).toBeCloseTo(2 * 280, 0)

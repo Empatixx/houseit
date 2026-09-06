@@ -8,26 +8,8 @@ import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
 import { splitWall } from './split-wall'
 
-/**
- * Putting a straight wall into a room.
- *
- * The graph is topological: a wall that only looks as if it touches another
- * shares no node with it and divides nothing. So every end of a new wall has
- * to land on a node — an existing one, or one split out of the wall it meets
- * — and that is what everything here is about. A line across a room that
- * steps in and out meets its boundary more than twice; each stretch of the
- * line that lies inside the room becomes a wall of its own, and a stretch
- * that already has a wall along it is left as it is.
- */
-
-/** How near a wall or a node the end of a wall may be let go and still be joined to it. */
 export const SNAP = 150
 
-/**
- * Cuts a room right across, along the line `axis = at`, and returns the walls
- * made. One wall for a rectangle; more where the room steps, so the cut goes
- * round the step rather than through it or into thin air.
- */
 export function partitionAlong(
   draft: Draft<HouseDocument>,
   level: string,
@@ -40,7 +22,6 @@ export function partitionAlong(
   const across: Axis = axis === 'x' ? 'y' : 'x'
   const polygon = room.nodes.map((id) => draft.nodes[id]).filter((node) => node !== undefined)
 
-  // Where the line meets the boundary: through a wall, or at a node sitting on it.
   const hits = new Map<number, Point>()
   const count = room.nodes.length
   for (let i = 0; i < count; i += 1) {
@@ -63,7 +44,6 @@ export function partitionAlong(
     const from = points[i]!
     const to = points[i + 1]!
     const middle = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }
-    // Only a stretch inside the room, and not one that is a wall already.
     if (wallUnder(draft, level, middle)) continue
     if (!containsPoint(polygon, middle.x, middle.y)) continue
     const start = nodeAt(draft, level, from, what)
@@ -76,12 +56,6 @@ export function partitionAlong(
   return made
 }
 
-/**
- * A wall from a point on a room's boundary into the room: as far as `length`,
- * or if none is given until it meets the far wall. An end let go within reach
- * of a wall or a node is joined to it; otherwise it stands free, which is a
- * wall stub and makes a nook rather than a room.
- */
 export function wallInto(
   draft: Draft<HouseDocument>,
   level: string,
@@ -121,14 +95,6 @@ export function wallInto(
   return join(draft, level, start, end, thickness)
 }
 
-/**
- * A wall along a straight line between two points, wherever they are: on a
- * wall, at a node, or out in the open. Every wall the line crosses and every
- * node it passes through becomes a joint, so a line drawn across two rooms
- * is a partition in each, meeting the walls between as a T. Stretches that
- * already have a wall along them are left as they are. An end that is not
- * on anything stands free.
- */
 export function linkPoints(
   draft: Draft<HouseDocument>,
   level: string,
@@ -143,7 +109,6 @@ export function linkPoints(
   if (length === 0) return []
   const unit = { x: dx / length, y: dy / length }
 
-  // Where along the line something is already: a node on it, or a wall across it.
   const along = new Map<number, Point>()
   along.set(0, from)
   along.set(length, to)
@@ -187,7 +152,6 @@ export function linkPoints(
   return made
 }
 
-/** The node at a point, split out of a wall if one is there, or new if nothing is. */
 export function nodeAtOrNew(draft: Draft<HouseDocument>, level: string, point: Point): string {
   const here = nodeHere(draft, level, point)
   if (here) return here
@@ -198,7 +162,6 @@ export function nodeAtOrNew(draft: Draft<HouseDocument>, level: string, point: P
   return id
 }
 
-/** The node at a point: one already there, or one split out of the wall under it. */
 export function nodeAt(
   draft: Draft<HouseDocument>,
   level: string,
@@ -212,18 +175,6 @@ export function nodeAt(
   return splitWall(draft, wall.id, { x: Math.round(point.x), y: Math.round(point.y) })
 }
 
-/**
- * The node at a point that this storey's walls hang off.
- *
- * A node carries no storey of its own — walls do — so a house of two floors
- * built on the same footprint has two nodes at every corner, one per storey.
- * Taking whichever came first attaches the upper floor's walls to the ground
- * floor's corners, and then neither storey's walls close a room: the graph is
- * one tangle wearing two floors.
- *
- * So: a node already carrying a wall on this storey, or one carrying no walls
- * at all, and otherwise none — let the caller make a fresh one.
- */
 function nodeHere(draft: Draft<HouseDocument>, level: string, point: Point): string | undefined {
   const at = Object.values(draft.nodes).filter((node) => node.x === point.x && node.y === point.y)
   if (at.length === 0) return undefined
@@ -234,7 +185,6 @@ function nodeHere(draft: Draft<HouseDocument>, level: string, point: Point): str
   return (onThisStorey ?? at.find((node) => hanging(node.id).length === 0))?.id
 }
 
-/** The wall a point lies on, if any does. */
 export function wallUnder(
   draft: Draft<HouseDocument>,
   level: string,
@@ -252,7 +202,6 @@ export function wallUnder(
   }) as Wall | undefined
 }
 
-/** A point on the nearest wall or node within reach of a point, or nothing. */
 export function nearWall(
   draft: Draft<HouseDocument>,
   level: string,
@@ -278,7 +227,6 @@ export function nearWall(
   return best?.point
 }
 
-/** Where a ray from a point on the boundary first meets the boundary again. */
 function firstWallAlong(
   draft: Draft<HouseDocument>,
   room: Room,

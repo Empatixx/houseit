@@ -5,25 +5,14 @@ import type { Draft } from 'immer'
 import { CommandError } from './command-error'
 import { wallsAt } from './graph'
 
-/**
- * Naming a wall stub: a wall with a free end, hanging off one side of a room
- * this far along it. That is the one kind of wall that can be taken out or
- * made longer on its own — a wall with both ends attached bounds rooms, and
- * goes only with the room it bounds.
- */
-
 export type Stub = {
   wall: Wall
-  /** The node on the side it hangs from. */
   root: string
-  /** The node standing free in the room. */
   tip: string
-  /** Where along the side its root is, 0 west or south and 1 the other end. */
   along: number
   length: number
 }
 
-/** The stubs hanging off one side of a room, by where they hang. */
 export function stubsOn(
   doc: HouseDocument | Draft<HouseDocument>,
   level: string,
@@ -42,7 +31,6 @@ export function stubsOn(
     const a = doc.nodes[wall.a]
     const b = doc.nodes[wall.b]
     if (!a || !b) continue
-    // A stub runs across the side, from a node on the side's line to a free end.
     const ends = [
       { id: wall.a, point: a },
       { id: wall.b, point: b },
@@ -66,7 +54,6 @@ export function stubsOn(
   return stubs.sort((one, other) => one.along - other.along)
 }
 
-/** The stub a command means: the one nearest to `along` on that side, within a hand's breadth. */
 export function stubNamed(
   doc: HouseDocument | Draft<HouseDocument>,
   level: string,

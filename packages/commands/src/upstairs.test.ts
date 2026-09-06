@@ -2,12 +2,6 @@ import { createEmptyDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
 import { askPlan, runScript } from './run'
 
-/**
- * A house of two floors on the same footprint, which is the ordinary case and
- * the one that broke: a node carries no storey, so every corner has two of
- * them, and taking whichever came first hangs the upper floor's walls off the
- * ground floor's corners.
- */
 const SAME_FOOTPRINT = [
   'add-room --shape l --width 12m --depth 10m --notch-width 4m --notch-depth 3m --material natural-oak --name přízemí',
   'add-level --name "1. patro"',
@@ -24,7 +18,6 @@ test('a storey is cut up over a storey of the very same shape', () => {
     ].join('\n'),
   )
 
-  // Each storey came apart on its own, and neither took the other with it.
   expect(
     askPlan(doc, 'get-plan --level "1. patro"')
       .rooms.map((it) => it.name)
@@ -41,7 +34,6 @@ test('the storeys keep their own corners, so neither hangs off the other', () =>
   const doc = runScript(createEmptyDocument(), SAME_FOOTPRINT)
   const levels = Object.keys(doc.levels)
 
-  // Every wall of a storey ends on nodes no other storey's walls touch.
   const nodesOf = (level: string) =>
     new Set(
       Object.values(doc.walls)

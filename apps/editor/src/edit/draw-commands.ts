@@ -9,19 +9,8 @@ import { toolStore } from '../store/tool'
 import { endPreview, previewCommand } from './preview'
 import { runEdit } from './run-edit'
 
-/**
- * The pencil. A click puts a corner down; the line to the next follows the
- * pointer square to the last corner, snapping to the walls and corners it
- * comes near. A click on the corner before, or on the first corner, or Enter,
- * finishes: the corners become one `draw-wall`, a walk of legs from where
- * the first one was — on a side of a room, if it was, or a place on the
- * paper. Escape throws the drawing away.
- */
-
-/** How near the pointer has to come to snap onto a corner, a wall, or the grid. */
 const GRID = 50
 
-/** A point the pointer means: on a corner or a wall it is near, else on the grid. */
 function snapPoint(point: Point): Point {
   const { doc, level } = documentStore.getState()
   let best: { point: Point; distance: number } | undefined
@@ -49,7 +38,6 @@ function snapPoint(point: Point): Point {
   return { x: Math.round(point.x / GRID) * GRID, y: Math.round(point.y / GRID) * GRID }
 }
 
-/** The next corner the pointer means: square to the last, then snapped along that line. */
 export function aimAt(point: Point): void {
   const { points } = drawStore.getState()
   const last = points[points.length - 1]
@@ -62,7 +50,6 @@ export function aimAt(point: Point): void {
   const square =
     Math.abs(dx) >= Math.abs(dy) ? { x: point.x, y: last.y } : { x: last.x, y: point.y }
   const snapped = snapPoint(square)
-  // Snapping may not pull the line off its axis.
   const cursor =
     Math.abs(dx) >= Math.abs(dy) ? { x: snapped.x, y: last.y } : { x: last.x, y: snapped.y }
   drawStore.getState().aim(cursor)
@@ -71,7 +58,6 @@ export function aimAt(point: Point): void {
   else endPreview()
 }
 
-/** A click: the first corner, the next one, or — on the corner before or the first — the end. */
 export function putDown(point: Point): void {
   const { points, cursor } = drawStore.getState()
   if (points.length === 0) {
@@ -81,7 +67,6 @@ export function putDown(point: Point): void {
   const corner = cursor ?? snapPoint(point)
   const last = points[points.length - 1]!
   const first = points[0]!
-  // A click on the corner before — near enough, by hand — is the end of the line.
   const near = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y) <= SNAP
   if (near(point, last) || near(corner, last)) {
     finishDrawing()
@@ -91,12 +76,10 @@ export function putDown(point: Point): void {
   if (points.length >= 2 && near(corner, first)) finishDrawing()
 }
 
-// The pencil put down is a drawing thrown away.
 toolStore.subscribe((state, previous) => {
   if (previous.armed?.kind === 'wall' && state.armed?.kind !== 'wall') cancelDrawing()
 })
 
-/** The corners as the command takes them: legs from the first one. */
 function drawArgs(points: Point[]) {
   if (points.length < 2) return undefined
   const legs: string[] = []
@@ -115,7 +98,6 @@ function drawArgs(points: Point[]) {
   return { ...startOf(points[0]!), walk: legs.join(', ') }
 }
 
-/** Where the walk starts, said as a room's side when the first corner is on one. */
 function startOf(
   first: Point,
 ): { at: string } | { room: string; side: 'north' | 'south' | 'east' | 'west'; along: number } {
@@ -154,7 +136,6 @@ function startOf(
   return { at: `${Math.round(first.x)},${Math.round(first.y)}` }
 }
 
-/** The drawing becomes walls, as one command; or nothing, if it is only a point. */
 export function finishDrawing(): void {
   const { points } = drawStore.getState()
   const args = drawArgs(points)
@@ -164,7 +145,6 @@ export function finishDrawing(): void {
   if (runEdit(() => documentStore.getState().apply(drawWall, args))) toolStore.getState().arm(null)
 }
 
-/** The drawing is thrown away. */
 export function cancelDrawing(): void {
   endPreview()
   drawStore.getState().clear()

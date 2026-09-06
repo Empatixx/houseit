@@ -20,6 +20,5 @@ test('what is not listed is taken to be about table height', () => {
 
 test('every type in the catalogue has a height of its own', () => {
   const guessed = OBJECT_TYPES.filter((type) => heightOf(type.id).height === 750).map((t) => t.id)
-  // Tables really are 740; nothing should be left at the guess by accident.
   expect(guessed).toEqual([])
 })

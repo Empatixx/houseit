@@ -2,7 +2,6 @@ import { roomKindOf } from '@houseit/core/room-kinds'
 import { objectsIn } from '../survey'
 import type { Problem, Rule } from './rule'
 
-/** A kitchen has somewhere to wash, cook and keep food. */
 export const kitchens: Rule = ({ doc, level, rooms }) => {
   const problems: Problem[] = []
   for (const room of rooms) {

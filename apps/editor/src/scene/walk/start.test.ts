@@ -16,7 +16,6 @@ const house = (...lines: string[]) => {
   return { doc, level: Object.keys(doc.levels)[0]! }
 }
 
-/** How far the start is from the nearest bit of anything standing in the room. */
 const clearanceOf = (
   doc: ReturnType<typeof house>['doc'],
   level: string,
@@ -45,8 +44,6 @@ test('an empty room starts the walk in the middle of it', () => {
 })
 
 test('a walk does not start inside the furniture', () => {
-  // A dining table in the middle is exactly where the room's label hangs, which
-  // is where the walk used to open: standing in the table, looking at a wall.
   const { doc, level } = house('add-object --room kitchen --type dining-6 --along 0.5')
 
   const start = startOf(doc, level)
@@ -59,7 +56,6 @@ test('a walk faces in towards the room rather than out at the wall behind it', (
   const { doc, level } = house('add-object --room kitchen --type dining-6 --along 0.5')
 
   const start = startOf(doc, level)!
-  // Facing the middle: a step forward is a step closer to it.
   const step = {
     x: start.at.x + Math.sin(start.yaw) * 100,
     y: start.at.y + Math.cos(start.yaw) * 100,

@@ -8,11 +8,6 @@ const room = () => runScript(createEmptyDocument(), ROOM)
 const things = (doc: HouseDocument) => Object.values(doc.objects)
 const openings = (doc: HouseDocument) => Object.values(doc.openings)
 
-/**
- * What a script put in, by id — which is what the agent has too: every command
- * answers with the ids it changed, so the id of the thing just placed is in the
- * answer to placing it.
- */
 const made = (script: string[]) => askPlan(room(), script.join('\n')).changed
 
 test('something put in a room can be taken out of it again by the id it was given', () => {
@@ -77,7 +72,6 @@ test('what went is named in the answer, along with the room it went from', () =>
   const answer = askPlan(room(), [...script, `remove-object --id ${thing}`].join('\n'))
 
   expect(answer.changed).toContain(thing)
-  // The id is gone from the plan, so the room is what is left to look at.
   expect(answer.rooms.map((room) => room.name)).toEqual(['pokoj'])
   expect(answer.rooms[0]!.objects).toEqual([])
 })

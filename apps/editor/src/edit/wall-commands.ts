@@ -11,9 +11,6 @@ import { sayError } from './notice'
 import { endPreview, previewCommand } from './preview'
 import { runEdit } from './run-edit'
 
-/** What a drag of a wall, or a button on a room, does — as the commands an agent would give. */
-
-/** What `move-wall` is asked for a wall carried this far across itself, to the nearest centimetre. */
 function wallMoveArgs(wall: Wall, shift: Point) {
   const named = nameWall(wall)
   if (!named) return undefined
@@ -23,7 +20,6 @@ function wallMoveArgs(wall: Wall, shift: Point) {
   return { room: named.room.name, side: named.side, by }
 }
 
-/** Moves a wall by however far across itself it was carried, as `move-wall` on a room it bounds. */
 export function moveWallBy(wall: Wall, shift: Point): boolean {
   const args = wallMoveArgs(wall, shift)
   if (!args) return false
@@ -31,7 +27,6 @@ export function moveWallBy(wall: Wall, shift: Point): boolean {
   return runEdit(() => documentStore.getState().apply(moveWall, args))
 }
 
-/** Shows where the wall, and the rooms round it, would come to. */
 export function previewWallMove(wall: Wall, shift: Point): void {
   const args = wallMoveArgs(wall, shift)
   if (!args || args.by === 0) {
@@ -41,17 +36,11 @@ export function previewWallMove(wall: Wall, shift: Point): void {
   previewCommand(moveWall, args)
 }
 
-/** Knocks a room through into a neighbour. */
 export function knockThrough(room: Room, into: string): boolean {
   if (!room.name) return false
   return runEdit(() => documentStore.getState().apply(removeRoom, { room: room.name!, into }))
 }
 
-/**
- * A wall the way `move-wall` names it: a room it bounds and the side of that
- * room it is on. Any room bounding it will do — moving the wall moves it for
- * both — so the first named one is taken.
- */
 export function nameWall(wall: Wall) {
   const { doc, level } = documentStore.getState()
   for (const room of roomsOf(doc, level)) {
@@ -65,11 +54,6 @@ export function nameWall(wall: Wall) {
 
 const SIDE_LIST = ['north', 'east', 'south', 'west'] as const
 
-/**
- * A wall as a stub, if it is one: hanging off one side of a named room with
- * its far end free. Named the way `remove-wall` takes it — room, side, and
- * how far along the side it hangs.
- */
 export function stubOf(
   wall: Wall,
 ): { room: Room & { name: string }; side: (typeof SIDE_LIST)[number]; stub: Stub } | undefined {
@@ -86,7 +70,6 @@ export function stubOf(
   return undefined
 }
 
-/** Takes a stub out; a wall with both ends attached is not one, and says so. */
 export function removeStub(wall: Wall): boolean {
   const found = stubOf(wall)
   if (!found) {
@@ -100,7 +83,6 @@ export function removeStub(wall: Wall): boolean {
   )
 }
 
-/** What `resize-wall` is asked for a stub pulled to a length. */
 function stubResizeArgs(wall: Wall, length: number) {
   const found = stubOf(wall)
   if (!found) return undefined
@@ -109,14 +91,12 @@ function stubResizeArgs(wall: Wall, length: number) {
   return { room: found.room.name, side: found.side, along: found.stub.along, length: rounded }
 }
 
-/** Makes a stub another length. */
 export function resizeStub(wall: Wall, length: number): boolean {
   const args = stubResizeArgs(wall, length)
   if (!args) return stubOf(wall) !== undefined
   return runEdit(() => documentStore.getState().apply(resizeWall, args))
 }
 
-/** Shows the stub at the length it is being pulled to — and the room it would close. */
 export function previewStubResize(wall: Wall, length: number): void {
   const args = stubResizeArgs(wall, length)
   if (!args) {

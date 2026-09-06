@@ -4,8 +4,6 @@ import { dirname, join, relative, resolve } from 'node:path'
 
 const require = createRequire(import.meta.url)
 
-// TODO: drop once typescript@7.1 ships the public compiler API and
-// dependency-cruiser declares support for it (see dependency-cruiser v18.1.0 release notes).
 function main() {
   let cruiserDir
   let compatDir
@@ -32,8 +30,6 @@ function main() {
   reclaimTscBin()
 }
 
-// The compat package depends on typescript@6, whose `tsc` bin wins the hoist race
-// against typescript@7 and silently downgrades every `tsc` invocation.
 function reclaimTscBin() {
   let typescriptDir
   try {

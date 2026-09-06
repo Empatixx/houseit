@@ -4,11 +4,6 @@ import { useNavigate } from 'react-router'
 import { Input } from '@/components/ui/input'
 import { projectsStore } from '@/store/projects/projects'
 
-/**
- * The empty card at the end of the row. Clicking it does not open a dialog: it
- * puts a field where the card's label was, and a name typed into that is the
- * whole of making a project — the next thing on the screen is its floor.
- */
 export function NewProjectCard() {
   const [naming, setNaming] = useState(false)
   const [name, setName] = useState('')

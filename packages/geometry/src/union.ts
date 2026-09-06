@@ -1,17 +1,7 @@
 import type { Point } from './outlines'
 
-/** A box square to the axes, by its edges. */
 export type Box = { x0: number; y0: number; x1: number; y1: number }
 
-/**
- * The outline of what a set of boxes covers between them, as rings of corners.
- *
- * The boxes are laid on a grid of every edge any of them has, each cell of
- * which is wholly covered or wholly not; the outline is then every cell edge
- * with covered on one side and not on the other, walked round with the covered
- * side kept on the left. Boxes that overlap or share an edge come out as one
- * ring; boxes apart come out as one ring each.
- */
 export function unionOfBoxes(boxes: Box[]): Point[][] {
   if (boxes.length === 0) return []
   const xs = [...new Set(boxes.flatMap((box) => [box.x0, box.x1]))].sort((a, b) => a - b)
@@ -60,7 +50,6 @@ export function unionOfBoxes(boxes: Box[]): Point[][] {
   return rings
 }
 
-/** The ring without the corners that are no corners: points on a straight run. */
 function straightened(ring: Point[]): Point[] {
   return ring.filter((point, index) => {
     const before = ring[(index + ring.length - 1) % ring.length]!

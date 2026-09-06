@@ -14,7 +14,6 @@ const box = () => {
   return { doc, room: roomsOf(doc, level)[0]! }
 }
 
-/** An L: the whole 8 x 6 less a 4 x 3 bite out of the north-east. */
 const ell = () => {
   const { doc, level } = planWith([
     [0, 0, 8000, 0],
@@ -55,7 +54,6 @@ test('a thing entirely outside the room does not', () => {
 test('a thing laid across the waist of an L is caught, corners inside or not', () => {
   const { doc, room } = ell()
 
-  // Every corner lands in the L, but the middle bridges the bite out of it.
   const bridging = rect(4000, 4500, 7000, 800)
   expect(bridging.every((corner) => corner.x <= 8000 && corner.y <= 6000)).toBe(true)
   expect(fitsInside(doc, room, bridging)).toBe(false)
@@ -70,6 +68,5 @@ test('a thing tucked into the leg of an L fits', () => {
 test('a thing standing flush against a wall is inside, not neither', () => {
   const { doc, room } = box()
 
-  // Its back is exactly on the north wall, which is where furniture goes.
   expect(fitsInside(doc, room, rect(3000, 3500, 2000, 1000))).toBe(true)
 })

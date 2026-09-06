@@ -1,15 +1,6 @@
 import { useEffect, useId, useRef } from 'react'
 import { type Cover, type Edge, viewStore } from '../store/view'
 
-/**
- * Tells the view how much of the plan the element this is put on hides, from
- * the edge of the canvas it hangs on: a panel down the right reaches in as far
- * as its left edge, a bar along the foot as far as its top. Fit reads it and
- * frames the plan in what is left.
- *
- * Measured without transforms, so a panel sliding away is still where it is
- * laid out; `active` says whether it counts at all.
- */
 export function useCover<T extends HTMLElement>(edge: Edge, active = true) {
   const id = useId()
   const ref = useRef<T>(null)
@@ -35,21 +26,11 @@ export function useCover<T extends HTMLElement>(edge: Edge, active = true) {
   return ref
 }
 
-/**
- * What an element covers, or nothing at all while it has no size.
- *
- * An element that has not been laid out yet hides nothing, but measured all the
- * same its reach from the far edge is the whole canvas — `parent.clientHeight
- * - 0` for a bar along the foot — so the plan frames into a sliver. Nobody saw
- * it in a window, where the first frame is gone before anyone looks; a headless
- * run photographs exactly that frame.
- */
 export function coverOf(element: HTMLElement, edge: Edge): Cover | null {
   if (element.offsetWidth === 0 || element.offsetHeight === 0) return null
   return { edge, extent: reachOf(element, edge) }
 }
 
-/** How far in from an edge of its parent an element reaches, in CSS pixels. */
 function reachOf(element: HTMLElement, edge: Edge): number {
   const parent = element.offsetParent as HTMLElement
   switch (edge) {

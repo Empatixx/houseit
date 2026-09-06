@@ -58,15 +58,10 @@ test('a run stops at the faces of the walls crossing it, not at their middles', 
 
   const run = sideRun(doc, level, room, 'north')!
 
-  // Six metres between the corners, but a corner is the middle of a wall a
-  // hundred and fifty thick. Half of each end belongs to the wall beside it, and
-  // anything spread along the whole six metres has its ends buried in masonry.
   expect(run.length).toBe(6000 - 150)
 })
 
 test('a side split into two walls in line is still one run', () => {
-  // A hall with a partition landing on its far side: the wall it lands on is two
-  // walls now, but the hall is one room and its side is one stretch of it.
   const { doc, level } = planWith([
     [0, 0, 6000, 0],
     [6000, 0, 6000, 3000],
@@ -79,8 +74,6 @@ test('a side split into two walls in line is still one run', () => {
 
   const run = sideRun(doc, level, room, 'north')!
 
-  // Six metres of wall, less half of each end wall — not the near half of it
-  // because a partition happens to meet it in the middle.
   expect(run.length).toBe(6000 - 150)
 })
 

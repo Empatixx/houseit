@@ -1,17 +1,7 @@
-/**
- * What a thing's symbol is filled with.
- *
- * Kept apart from the shape on purpose. A bed is one drawing — the frame, the
- * cover, the pillows — and white, linen or blue are three ways of filling it,
- * not three beds. Separating them means a new finish costs a row here and a new
- * piece of furniture costs a symbol, and neither costs the other anything.
- */
 export type Surface = {
   id: string
   label: string
-  /** The colour the drawing's white becomes. */
   fill: string
-  /** The line the shape is drawn with. Always darker than the fill. */
   line: string
 }
 

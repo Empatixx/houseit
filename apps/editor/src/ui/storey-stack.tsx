@@ -28,27 +28,6 @@ import { documentStore, useDocument } from '../store/store'
 import { GAP, useRightEdge } from './edges'
 import { useCover } from './use-cover'
 
-/**
- * The storeys of the house, at the foot of the plan's right edge.
- *
- * One card to a storey, stacked the way they stand — the top floor at the top —
- * with the one being drawn picked out. Cards rather than the parts of one
- * control, because that is what they are: separate things, each of which can be
- * picked up and put down somewhere else in the pile. So which floor you are on
- * is not something to read but something to see, and stepping between them is
- * one click on the floor you want.
- *
- * The carrying is dnd-kit's. A drag that reorders a list is not two pointer
- * handlers and a subtraction: it is capture, an activation distance, a measured
- * layout that has to be measured again after every change, keyboard
- * equivalents, and cancellation. Written by hand it worked once and then,
- * having measured the pile before the first drop and never again, would not
- * move anything a second time.
- *
- * Hovering a card says which storey it is. Renaming it and taking it out are
- * offered only on the storey you are standing on, because a bin under every
- * card the pointer passes over is a bin waiting for a slip.
- */
 export function StoreyStack() {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
@@ -57,11 +36,9 @@ export function StoreyStack() {
   const [naming, setNaming] = useState<string | null>(null)
 
   const storeys = levelsOf(doc)
-  // Top floor at the top, the way a house is drawn in section.
   const shown = [...storeys].reverse()
 
   const sensors = useSensors(
-    // Far enough that a click on a card is still a click on a card.
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
@@ -70,8 +47,6 @@ export function StoreyStack() {
     if (!over || active.id === over.id) return
     const to = shown.findIndex((storey) => storey.id === over.id)
     if (to === -1) return
-    // The pile is drawn top floor first, so a place in it counts back from the
-    // top to a storey counting up from the ground.
     moveStorey(String(active.id), shown.length - to)
   }
 
@@ -127,7 +102,6 @@ export function StoreyStack() {
 
 type StoreyProps = {
   storey: Level
-  /** Which storey it is, counting up from the ground. */
   number: number
   here: boolean
   only: boolean
@@ -146,7 +120,6 @@ function Storey({ storey, number, here, only, naming, onName }: StoreyProps) {
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
-        // Above the rest of the pile while it is carried.
         zIndex: isDragging ? 20 : undefined,
       }}
       className="group/storey relative"
@@ -167,23 +140,16 @@ function Storey({ storey, number, here, only, naming, onName }: StoreyProps) {
         )}
         onClick={() => documentStore.getState().setLevel(storey.id)}
       >
-        {/* Says the card can be carried, without a handle to aim at: the whole
-            card is the handle. */}
         <GripHorizontalIcon className="size-3 opacity-40" />
         {number}
       </button>
 
-      {/* Beside the card, not over the plan: what else this storey can be. */}
       <div
         className={cn(
-          // Padded, not margined: a gap between the card and the panel is a gap
-          // the pointer crosses, and crossing it lost the hover before you ever
-          // reached the pencil.
           'pointer-events-none absolute top-1 right-full pr-2',
           'translate-x-3 opacity-0 transition-all duration-150 ease-out',
           'group-hover/storey:pointer-events-auto group-hover/storey:translate-x-0 group-hover/storey:opacity-100',
           'group-focus-within/storey:pointer-events-auto group-focus-within/storey:translate-x-0 group-focus-within/storey:opacity-100',
-          // Nothing slides out from under a card being carried.
           isDragging && 'hidden',
         )}
       >
@@ -241,5 +207,4 @@ function Storey({ storey, number, here, only, naming, onName }: StoreyProps) {
   )
 }
 
-/** What the next storey up is called until somebody says otherwise. */
 const nameFor = (built: number) => (built === 1 ? 'First floor' : `Floor ${built}`)

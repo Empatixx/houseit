@@ -9,20 +9,12 @@ import { wallInto } from './partition'
 import { levelOf, roomNamed } from './resolve'
 import { stubNamed } from './stubs'
 
-/**
- * A wall stub — a wall hanging off one side of a room with its far end free —
- * can be taken out or made another length by itself, since nothing but the
- * room it stands in depends on it. Made long enough to reach the far wall it
- * becomes a partition, and the room is two; that is `add-wall` again.
- */
-
 export const removeWall = defineCommand({
   name: 'remove-wall',
   summary: 'Take out a wall stub hanging off one side of a room',
   args: z.object({
     room: z.string().min(1),
     side: z.enum(['north', 'south', 'east', 'west']),
-    /** Where along that side the stub hangs, 0 west or south and 1 the other end. */
     along: z.coerce.number().min(0).max(1),
     level: z.string().optional(),
   }),
@@ -31,7 +23,6 @@ export const removeWall = defineCommand({
     const room = roomNamed(draft, level, args.room, 'remove-wall')
     const stub = stubNamed(draft, level, room, args.side, args.along, 'remove-wall')
     deleteWall(draft, level, stub.wall.id)
-    // The node it hung from may now be a needless break in the side's wall.
     if (draft.nodes[stub.root]) straighten(draft, level, stub.root)
   },
 })
@@ -58,8 +49,6 @@ export const resizeWall = defineCommand({
     const from = { x: root.x, y: root.y }
     const thickness = stub.wall.thickness
 
-    // Out with the old stub, in with one of the new length from the same root —
-    // which joins the far wall if it reaches it, as a drawn one would.
     deleteWall(draft, level, stub.wall.id)
     const fresh = roomsOf(draft, level).find((candidate) => candidate.id === room.id)
     if (!fresh) throw new CommandError(`resize-wall: ${room.name} was lost`)

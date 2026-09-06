@@ -1,9 +1,5 @@
 import { DOCUMENT_VERSION, type HouseDocument, parseDocument } from './document'
 
-/**
- * Raised when stored data cannot be brought up to the current schema. Distinct
- * from a schema error: the document may be perfectly valid, just not for us.
- */
 export class MigrationError extends Error {
   constructor(message: string) {
     super(message)
@@ -11,26 +7,10 @@ export class MigrationError extends Error {
   }
 }
 
-/**
- * One step of the chain, taking the shape stored at `from` to the shape stored at
- * `from + 1`. Steps run on unvalidated data — the schema is only applied once the
- * document has reached the current version.
- */
 type Migration = (doc: Record<string, unknown>) => Record<string, unknown>
 
-/** Indexed by the version being migrated away from. */
 const MIGRATIONS: Record<number, Migration> = {
-  /**
-   * Room labels become rooms. A label was only ever a name pinned to a point;
-   * a room is a record with an id, so a floor material — and later a socket —
-   * has something lasting to belong to.
-   */
   1: ({ roomLabels, ...doc }) => ({ ...doc, rooms: roomLabels ?? {} }),
-  /**
-   * A thing's `turn` becomes its `rotation`. The angle was always a field on the
-   * object; only the word changes, so that what `update-object --rotation` sets
-   * and what the plan stores are called the same thing.
-   */
   2: (doc) => ({
     ...doc,
     objects: Object.fromEntries(
@@ -55,10 +35,6 @@ function readVersion(input: unknown): number {
   return version
 }
 
-/**
- * Brings stored data up to the current schema, then validates it. Always use this
- * to load a document; `parseDocument` alone assumes the data is already current.
- */
 export function migrateDocument(input: unknown): HouseDocument {
   let version = readVersion(input)
   if (version > DOCUMENT_VERSION) {

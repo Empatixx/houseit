@@ -10,13 +10,6 @@ import { documentStore } from '../store/store'
 import { sayError } from './notice'
 import { runEdit } from './run-edit'
 
-/**
- * What a drag or a key does to a door or a window, as the command an agent
- * would give: `update-opening`, `remove-opening`, with typed arguments through
- * the same store, refused by the same checks.
- */
-
-/** Moves an opening to where it was let go, or says why it cannot go there. */
 export function moveOpeningTo(opening: Opening, point: Point): void {
   const found = hung(opening)
   if (!found) return
@@ -29,7 +22,6 @@ export function moveOpeningTo(opening: Opening, point: Point): void {
   )
 }
 
-/** Changes a door's kind or width, or a window's width, height or sill, where it is. */
 export function setOpening(
   opening: Opening,
   fields: { variant?: string; width?: number; height?: number; sill?: number },
@@ -45,12 +37,10 @@ export function setOpening(
   )
 }
 
-/** Takes an opening out of its wall. */
 export function removeOpening(opening: Opening): void {
   runEdit(() => documentStore.getState().apply(removeOpeningCommand, { id: opening.id }))
 }
 
-/** The room and side an opening belongs to, for the panel to name it by. */
 export function whereOpening(opening: Opening) {
   const found = hung(opening)
   return found === undefined ? undefined : { room: found.room, side: found.side }

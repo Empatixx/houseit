@@ -8,46 +8,23 @@ import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
 import { importLocalPlan } from './import-local'
 import { slugOf } from './slug'
 
-/** What a project is called when it is not called anything. */
 const UNTITLED = 'Untitled'
 
-/** A project and its plan, held on to for as long as it can be put back. */
 type Removed = { meta: ProjectMeta; doc: HouseDocument | undefined }
 
 export type ProjectsState = {
-  /** Every project, most recently touched first. Undefined until they have been read. */
   list: ProjectMeta[] | undefined
-  /** The project being worked on, or null — which is what the home screen is. */
   open: ProjectMeta | null
   refresh: () => Promise<void>
   create: (name: string) => Promise<ProjectMeta>
-  /** Loads a project's plan into the editor. Undefined if there is no such project. */
   openProject: (id: string) => Promise<ProjectMeta | undefined>
-  /** Writes what is waiting, then takes the plan off the screen. */
   closeProject: () => Promise<void>
-  /**
-   * Writes what is waiting and leaves the plan where it is.
-   *
-   * For a driver that is about to close the browser it opened: the plan is held
-   * for a quarter second before it is written, and a tab shut inside that
-   * quarter second takes the last command with it.
-   */
   save: () => Promise<void>
-  /** A new name. The id it was given at the start stays what it was. */
   rename: (id: string, name: string) => Promise<void>
-  /** Gives back what it took, so that it can be put back. */
   remove: (id: string) => Promise<Removed | undefined>
   restore: (removed: Removed) => Promise<void>
 }
 
-/**
- * Which project is open, and what there is to open.
- *
- * The plan itself is not in here: it is in the document store, where every
- * command and everything drawn already looks for it. This says which project
- * that plan belongs to, and moves it in and out of the database at the two
- * moments where that happens — entering a project, and leaving one.
- */
 export function createProjectsStore(
   db: Promise<ProjectsDb>,
   docs: StoreApi<DocumentState> = documentStore,
@@ -83,14 +60,11 @@ export function createProjectsStore(
     },
 
     openProject: async (id) => {
-      // Whatever was open stops being written to before anything else moves.
       await get().closeProject()
       const database = await db
       const meta = await database.meta(id)
       if (!meta) return undefined
       docs.getState().load((await database.read(id)) ?? createEmptyDocument())
-      // Only now: while `open` is null nothing is written back, so loading a
-      // plan cannot be mistaken for editing the one that was open before.
       set({ open: meta })
       return meta
     },
@@ -137,7 +111,6 @@ export function createProjectsStore(
     },
   }))
 
-  // The open project's plan follows the document store, and nothing else does.
   docs.subscribe((state, previous) => {
     if (state.doc === previous.doc) return
     const open = store.getState().open
@@ -147,13 +120,6 @@ export function createProjectsStore(
   return store
 }
 
-/**
- * The editor's projects. Tests build their own with `createProjectsStore`.
- *
- * The plan that used to live in localStorage is lifted into the database as
- * part of opening it, so nothing can read the projects before it is one of
- * them.
- */
 export const projectsStore = createProjectsStore(
   openProjects().then(async (db) => {
     await importLocalPlan(db)

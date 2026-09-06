@@ -12,11 +12,6 @@ import { dragged } from '../drag'
 import { floorTexture } from '../floor-texture'
 import { MM } from '../plan-coordinates'
 
-/**
- * The floors, walked on: the same faces and the same photographs as in the
- * plan, lit rather than flat, and a click on one picks the room. Round the
- * house lies a pale ground, so a window looks out on something.
- */
 export function Floors({ level }: { level: string }) {
   const doc = usePlanDoc()
   const selected = useSelection((state) => state.selected)
@@ -24,9 +19,6 @@ export function Floors({ level }: { level: string }) {
   const floors = useMemo(
     () =>
       roomsOf(doc, level).map((room) => {
-        // The floor really is missing over a staircase, and it has to be missing
-        // here too: a hole you can look down through and stairs coming up out of
-        // it are the whole of how an upper storey says there is a way down.
         const pierced = wellsInRoom(doc, level, room)
         const shape = shapeOf(
           room.nodes.map((id) => doc.nodes[id]!),
@@ -60,8 +52,6 @@ export function Floors({ level }: { level: string }) {
               pick(floor.id ? { kind: 'room', id: floor.id } : null)
             }}
           >
-            {/* Lit on both sides: a floor is the ceiling of the storey under it,
-                and a ceiling you can see through is a house with no upstairs. */}
             {floor.texture ? (
               <meshLambertMaterial
                 map={floor.texture}
@@ -78,19 +68,9 @@ export function Floors({ level }: { level: string }) {
   )
 }
 
-/** What a ceiling is painted: plaster underneath, and the slab's edge where a well cuts through it. */
 const PLASTER = '#f4f3f0'
 const EDGE = '#d9d6d0'
 
-/**
- * The slab over each room: the ceiling of this storey and the floor of the
- * next, or the roof where there is no next. A house with no lid on it is a
- * doll's house, and the walk is meant to be inside a house.
- *
- * As thick as the storey's own `SLAB`, up to the top of the walls, with a hole
- * where each of this storey's staircases comes up through it — the same hole
- * the floor above is cut with, since both are the staircase seen from above.
- */
 export function Ceilings({ level }: { level: string }) {
   const doc = usePlanDoc()
   const top = doc.levels[level]?.height ?? 0
@@ -131,7 +111,6 @@ export function Ceilings({ level }: { level: string }) {
   )
 }
 
-/** A room's outline as a shape to build from, with the holes cut in it. */
 function shapeOf(outline: Point[], holes: Point[][]): Shape {
   const shape = new Shape()
   outline.forEach((corner, index) => {

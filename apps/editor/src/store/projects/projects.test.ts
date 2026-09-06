@@ -5,7 +5,6 @@ import { WRITE_DELAY } from './autosave'
 import { openProjects } from './db'
 import { createProjectsStore } from './projects'
 
-/** A store on a database of its own, with a document store of its own under it. */
 function fresh() {
   const docs = createDocumentStore()
   const store = createProjectsStore(openProjects(new FakeIndexedDb()), docs)

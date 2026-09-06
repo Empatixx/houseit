@@ -5,23 +5,11 @@ import { drawWall } from './draw-wall'
 import { applyCommand, runScript } from './run'
 import { removeWall, resizeWall } from './stub-commands'
 
-/**
- * The walls an agent cannot ask for.
- *
- * Every wall that closes a room comes from `add-room`, and that is the whole of
- * the agent's surface. These three are the editor's: the pencil draws a walk of
- * legs, and a wall stub — one with its far end free, an alcove or the arm of a T
- * — is pulled longer or taken out by its handle. They are not in the registry
- * and have no words, so they are called the way the mouse calls them, with typed
- * arguments through the same schema.
- */
-
 const FLOOR = 'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name dům'
 const level = (doc: HouseDocument) => Object.keys(doc.levels)[0]!
 const rooms = (doc: HouseDocument) => roomsOf(doc, level(doc))
 const walls = (doc: HouseDocument) => Object.values(doc.walls)
 
-/** A house with a three-metre stub hanging into it off the middle of the north wall. */
 const withStub = () =>
   applyCommand(runScript(createEmptyDocument(), FLOOR), drawWall, {
     room: 'dům',
@@ -66,7 +54,6 @@ test('a leg that stops short is a stub, and closes no room', () => {
   const doc = withStub()
 
   expect(rooms(doc)).toHaveLength(1)
-  // The outline wall it hangs from is split at its root: five outline walls and the stub.
   expect(walls(doc)).toHaveLength(6)
 })
 

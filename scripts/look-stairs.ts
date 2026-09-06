@@ -1,11 +1,4 @@
 #!/usr/bin/env bun
-/**
- * Draws every kind of staircase on one page, at a storey's height, and saves a
- * picture of it. A staircase is generated rather than stamped, so the drawing
- * is code and the only way to know it is right is to look at it.
- *
- *   bun scripts/look-stairs.ts /tmp/stairs.png [height]
- */
 import { writeFileSync } from 'node:fs'
 import { STAIR_KINDS, stairShape, stairSymbol } from '../packages/core/src/stairs'
 

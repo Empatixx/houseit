@@ -8,13 +8,6 @@ import { remove, turnBy } from './object-commands'
 import { removeOpening } from './opening-commands'
 import { removeStub } from './wall-commands'
 
-/**
- * Keys for what is picked: R turns a thing a quarter turn (shift, the other
- * way), the brackets turn it by fifteen degrees, Delete takes a thing or an
- * opening out, Escape lets go of what is picked and what the palette armed.
- * Cmd or Ctrl with Z undoes, with shift redoes. Nothing while typing into a
- * field.
- */
 export function useEditKeys(): void {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -83,5 +76,4 @@ export function useEditKeys(): void {
   }, [])
 }
 
-/** What each key turns the picked thing by, in degrees; capital R is shift and R. */
 const TURNS: Record<string, number> = { r: 90, R: -90, ']': 15, '[': -15 }

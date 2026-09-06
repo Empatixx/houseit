@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-/**
- * Empties the plan of the project open in the editor tab: what was drawn is
- * forgotten and the editor comes back on a blank floor, ready for `add-room`.
- * For starting a plan over from an agent's shell, where nothing else can reach
- * the tab.
- *
- * The project is made again under its own name rather than the document being
- * written to behind the commands' back — which is also why its address does not
- * change.
- *
- *   node scripts/reset-plan.mjs
- */
 import { EDITOR, openEditor } from './editor.mjs'
 
 const { page, close } = await openEditor()
@@ -33,7 +21,6 @@ if (!open) {
   process.exit(1)
 }
 
-// Away and back under the same name, which gives back the same address.
 await page.goto(EDITOR)
 await page.evaluate(async (name) => {
   const projects = window.__houseit.projectsStore

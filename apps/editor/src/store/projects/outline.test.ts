@@ -4,11 +4,6 @@ import { outlineOf } from './outline'
 
 const level = 'level-1'
 
-/**
- * A document with walls in it, written out by hand. Reading walls needs no
- * commands, and building the same plan through them would say nothing about
- * what the outline does with it.
- */
 function withWalls(...segments: [number, number, number, number][]): HouseDocument {
   const doc = createEmptyDocument()
   const id = Object.keys(doc.levels)[0] ?? level

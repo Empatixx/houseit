@@ -8,8 +8,6 @@ export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: {
     port: 5173,
-    // Where the system hands out no file events — an agent's shell, some
-    // containers — HOUSEIT_POLL=1 has the dev server look for changes itself.
     watch: process.env.HOUSEIT_POLL ? { usePolling: true, interval: 300 } : undefined,
   },
 })

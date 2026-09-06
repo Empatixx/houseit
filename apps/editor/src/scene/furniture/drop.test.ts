@@ -21,7 +21,6 @@ const house = () => {
 test('let go with its back near a wall, a thing goes against that wall, that far along', () => {
   const { doc, level, room, object } = house()
 
-  // Near the south wall, a quarter of the way along it.
   const drop = dropOf(doc, level, room, object, { x: 3000, y: 150 + object.depth / 2 + 100 })
 
   expect(drop.against).toBe('south')

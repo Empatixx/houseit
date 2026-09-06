@@ -9,7 +9,6 @@ const UNITS = [
 
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
 
-/** When a project was last touched, as it reads on its card: `2 days ago`. */
 export function when(at: number): string {
   const since = at - Date.now()
   for (const [unit, ms] of UNITS) {

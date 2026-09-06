@@ -41,7 +41,6 @@ test('a room told its kind is checked as that kind, whatever its name', () => {
   const doc = runScript(house(), 'update-room --room snug --kind kitchen')
   const report = askPlan(doc, 'get-plan --room snug').rooms[0]!
   expect(report.kind).toBe('kitchen')
-  // Told it is a kitchen, the snug is now owed a sink, a stove and a fridge.
   const after = askPlan(doc, 'get-plan')
   expect(after.problems.map((it) => `${it.code}:${it.room}`)).toContain('kitchen.incomplete:snug')
 })
@@ -70,15 +69,12 @@ test('a thing resized where it stands, unless it no longer fits there', () => {
 test('a size, a turn and a finish in one line are checked on the thing they make together', () => {
   const id = sofa(house()).id
 
-  // Each on its own would pass: 2.4 m fits the wall, and the sofa can turn on
-  // the spot. Turned across a 950 mm wall, a 2.4 m sofa cannot.
   expect(() => runScript(house(), `update-object --id ${id} --width 2.4m`)).not.toThrow()
   const doc = runScript(
     house(),
     `update-object --id ${id} --width 2.4m --rotation 90 --surface linen`,
   )
 
-  // Refused as one, or allowed as one — either way it is the same one check.
   expect(doc.objects[id]!.rotation).toBe(90)
   expect(doc.objects[id]!.surface).toBe('linen')
 })
@@ -88,7 +84,6 @@ test('a turn is a field of the thing, set to a number rather than nudged by one'
   const doc = runScript(house(), `update-object --id ${id} --rotation 30`)
   expect(doc.objects[id]!.rotation).toBe(30)
 
-  // And back to square on, which is no turn at all rather than a turn of zero.
   const straight = runScript(doc, `update-object --id ${id} --rotation 0`)
   expect('rotation' in straight.objects[id]!).toBe(false)
 })
@@ -120,7 +115,6 @@ test('a door made a pocket door stops swinging, and made hinged again has to be 
   const pocket = runScript(house(), `update-opening --id ${id} --variant pocket`)
   expect(pocket.openings[id]!.variant).toBe('pocket')
 
-  // Something in the swing: fine for a pocket door, not for a hinged one.
   const blocked = runScript(
     pocket,
     'add-object --room snug --type bookshelf --against east --along 0.5',

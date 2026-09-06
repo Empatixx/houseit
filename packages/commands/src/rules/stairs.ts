@@ -7,31 +7,15 @@ import { stairwaysOn, type Well } from '@houseit/geometry/wells'
 import { boxOf, clashes, clashesAny, wallBox } from '../boxes'
 import { label, type Problem, type Rule } from './rule'
 
-/**
- * A staircase has somewhere to go, and something to come up into.
- *
- * A flight is only half a thing on its own storey: the other half is the hole
- * it needs in the floor above. So it is checked against the storey overhead —
- * against a wall standing where the well is, and against whatever else is
- * standing there, since a wardrobe over a stairwell is a wardrobe in mid-air.
- *
- * Both ways round, because either half can be the one that moved. Standing on
- * the first floor and pushing a wardrobe over the stairwell is the same fault
- * as standing on the ground floor and building the stairs under the wardrobe,
- * and whoever did it last is the one who needs telling.
- */
 export const stairs: Rule = ({ doc, level }) => {
   const above = levelAbove(doc, level)
   const below = levelBelow(doc, level)
   return [
     ...stairwaysOn(doc, level).flatMap((well) => climbing(doc, well, above)),
-    // Only the blocking, for the storey underneath: whether those stairs have
-    // anywhere to go is that storey's own business and is reported there.
     ...(below ? stairwaysOn(doc, below.id).flatMap((well) => blocked(doc, well, level)) : []),
   ]
 }
 
-/** What is wrong with a flight leaving this storey, starting with having nowhere to go. */
 function climbing(doc: HouseDocument, well: Well, above: Level | undefined): Problem[] {
   if (!above) {
     return [
@@ -45,7 +29,6 @@ function climbing(doc: HouseDocument, well: Well, above: Level | undefined): Pro
   return blocked(doc, well, above.id)
 }
 
-/** Whether the hole this flight needs is where a wall or a wardrobe already is. */
 function blocked(doc: HouseDocument, well: Well, into: string): Problem[] {
   const problems: Problem[] = []
   const storey = doc.levels[into]

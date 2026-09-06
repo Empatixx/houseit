@@ -7,12 +7,9 @@ import { type Box, boxOf, clashes, clashesAny } from '../boxes'
 import { swingOf } from '../place-opening'
 import { label, type Problem, type Rule } from './rule'
 
-/** A door can be opened: nothing stands in its swing, and no other door swings into it. */
 export const doors: Rule = ({ doc, level, rooms }) => {
   const problems: Problem[] = []
   const byId = new Map(rooms.filter((room) => room.id).map((room) => [room.id!, room] as const))
-  // Only what stands on the floor is in a door's way: a door swings over a rug,
-  // and a lamp on a table is in the way only as much as the table is.
   const standing = Object.values(doc.objects)
     .filter((object) => object.level === level && layerOf(object.type) === 'floor')
     .flatMap((object) => {
@@ -52,7 +49,6 @@ export const doors: Rule = ({ doc, level, rooms }) => {
   return problems
 }
 
-/** The room a door swings into: the one holding the middle of its swing. */
 function roomOfSwing(doc: HouseDocument, rooms: Room[], box: Box): Room | undefined {
   const middle = { x: (box.x0 + box.x1) / 2, y: (box.y0 + box.y1) / 2 }
   return rooms.find((room) => {

@@ -121,13 +121,9 @@ const door: Opening = {
 test('a doorway is left open, so the floors of the two rooms meet in it', () => {
   const keys = plan([door]).map((piece) => piece.key)
 
-  // Nothing at all is drawn across the gap — no white, and no outline either.
-  // Both rooms' floors reach the middle of the wall, so a doorway filled in with
-  // anything is a doorway with a white slab lying in it.
   expect(keys).not.toContain('d1-glass')
   expect(keys).not.toContain('d1-pane')
 
-  // Nothing belonging to the wall itself is left standing in the gap.
   const inTheGap = plan([door]).filter(
     (piece) => !piece.key.startsWith('d1-') && Math.abs(piece.at - 3000) < door.width / 2,
   )
@@ -146,9 +142,6 @@ test('the leaf stands square to the wall, on the side the door swings to', () =>
 
   expect(leaf.length).toBe(door.width)
   expect(leaf.turn).toBeCloseTo(Math.PI / 2)
-  // Clear of the wall altogether: the root on the face it swings off and the tip
-  // a whole door's width into the room. Sunk into the reveal instead, the leaf is
-  // short by the thickness of the wall and reads as a door too small for its hole.
   expect(leaf.aside).toBeCloseTo(wall.thickness / 2 + door.width / 2)
 })
 
@@ -172,7 +165,6 @@ test('the swing is dashed, from the open leaf round to the far jamb', () => {
   const last = dashes[dashes.length - 1]!
 
   expect(dashes.length).toBeGreaterThan(3)
-  // It leaves the tip of the open leaf and comes back to the face it hangs on.
   expect(first.aside).toBeCloseTo(wall.thickness / 2 + door.width, -2)
   expect(last.aside).toBeCloseTo(wall.thickness / 2, -2)
 })
@@ -205,7 +197,6 @@ test('the leaf is drawn half as thick as the wall, white between two lines', () 
 
 test('the leaf sits inside the opening, its outer face flush with the jamb', () => {
   const leaf = plan([door]).find((piece) => piece.key === 'd1-leaf')!
-  // The door is centred, so its opening runs 2600..3400 of the 6000 wall.
   expect(leaf.at - leaf.thickness / 2).toBeCloseTo(2600)
 })
 
@@ -213,10 +204,6 @@ test('the swing is a quarter circle as wide as the door, the way the reference d
   const dashes = plan([door]).filter((piece) => piece.key.startsWith('d1-arc-'))
   const line = lineWeight(wall.thickness)
   const face = wall.thickness / 2
-  // A door sweeps a circle its own width, about the hinge on the face it hangs
-  // on: the tip of the open leaf and the far jamb are both a door's width away,
-  // so anything but a circle has to miss one of them. Short by half a line, so
-  // it is the drawn edge that lands on them rather than the middle of the line.
   const radius = door.width - line / 2
 
   for (const dash of dashes) {

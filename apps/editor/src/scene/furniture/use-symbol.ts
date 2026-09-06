@@ -3,14 +3,6 @@ import { useEffect, useState } from 'react'
 import type { Texture } from 'three'
 import { drawnTexture, symbolTexture } from './symbol-texture'
 
-/**
- * The rasterised symbol, once it has loaded; nothing until then, and nothing
- * for no symbol.
- *
- * A drawing given as text is used as it stands — that is a staircase, whose
- * tread count comes from the storey and so cannot live in a file. Anything else
- * names a file under `symbols/`.
- */
 export function useSymbol(
   symbol: string | { key: string; svg: string },
   surface: Surface,

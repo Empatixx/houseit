@@ -20,10 +20,8 @@ import { linkPoints, nearWall, partitionAlong } from './partition'
 import { levelOf, roomNamed, SIDE_NAMES, sideNamed, whereRoom } from './resolve'
 
 const PARTITION_THICKNESS = 150
-/** Exterior walls are heavier than the partitions that get cut into them later. */
 const EXTERIOR_THICKNESS = 300
 
-/** Plans are drawn with +y north, so the compass maps onto the axes directly. */
 const SIDES = {
   west: { axis: 'x', fromLow: true },
   east: { axis: 'x', fromLow: false },
@@ -33,64 +31,26 @@ const SIDES = {
 
 const HEADINGS = { n: { x: 0, y: 1 }, s: { x: 0, y: -1 }, e: { x: 1, y: 0 }, w: { x: -1, y: 0 } }
 
-/**
- * Every room there is, including the first one.
- *
- * With nothing to come out of, this draws the outline of the floor — a standard
- * building shape with real dimensions, or a walk round it — and the one room
- * covering it. With a room to come out of, it cuts: a strip off a side, the
- * whole way across; a box out of a corner, with a notch in its inner corner for
- * an L; any shape at all as its corners, `--points "0,0; 4m,0; 4m,3m"`, in
- * millimetres or metres from the south-west corner of the floor; or a walk of
- * legs from a point on a side, `--walk "3m s, 4m e"`, closing on whatever wall
- * it reaches.
- *
- * A room is cut out of another room, never placed beside one. Cutting settles
- * the shared partition for free: the wall goes in between two nodes split out of
- * the walls it meets, so both rooms are bounded by the one wall. Placing rooms
- * side by side instead would leave two parallel walls with a gap between them.
- *
- * That is also why there is no command for a wall. Every wall in a plan is the
- * edge of a room, and asking for the rooms is asking for the walls — one fewer
- * thing to say, and no way to say it two ways that disagree.
- */
 export const addRoom = defineCommand({
   name: 'add-room',
   summary: `Draw the floor's outline (--shape rectangle|l|u|t, or --walk), or cut a room out of a room: a strip off a --side, a box out of a --corner, --points round it, or a --walk from a side (${FLOOR_MATERIAL_IDS.join(', ')})`,
   args: z.object({
     name: z.string().min(1),
-    /** The room it is cut out of. Left out with --points, the room the first corner lies in; left out altogether, this draws the floor. */
     from: z.string().min(1).optional(),
-    /** The outline of the floor, with --width and --depth. Only where there is nothing to cut out of. */
     shape: z.enum(['rectangle', 'l', 'u', 't']).optional(),
-    /** What sort of room it is, where the name does not say. */
     kind: z.enum(ROOM_KIND_IDS as [string, ...string[]]).optional(),
-    /** A strip off this side, --width (or --depth) across. */
     side: z.enum(SIDE_NAMES).optional(),
-    /** A box out of this corner, --width by --depth. */
     corner: z.enum(Object.keys(CORNERS) as [Corner, ...Corner[]]).optional(),
     width: length().optional(),
-    /** Only a corner cut needs one: a side cut runs the whole way across. */
     depth: length().optional(),
-    /**
-     * Required, and on purpose. A room with no floor draws white, which reads as
-     * a mistake in the drawing rather than as a room nobody has decided about
-     * yet — and nobody ever goes back and decides. So it is asked for every time.
-     */
     material: z.enum(FLOOR_MATERIAL_IDS as [string, ...string[]]),
-    /** A bite out of a corner room's inner corner, or out of an l or u outline. */
     notchWidth: length().optional(),
     notchDepth: length().optional(),
-    /** A t outline's bar and stem. */
     barDepth: length().optional(),
     stemWidth: length().optional(),
-    /** Any shape, as its corners: "x,y; x,y; …" from the plan's origin, in millimetres or with units. */
     points: z.string().min(1).optional(),
-    /** Any shape, as a walk of legs from a point on --side of --from, --along it: "3m s, 4m e". */
     walk: z.string().min(1).optional(),
-    /** With --walk: where along that side it starts, a fraction or a length from the west or south end. */
     along: along().optional(),
-    /** Left out, 300 mm for an outline and 150 for a partition. */
     thickness: length().optional(),
     level: z.string().optional(),
   }),
@@ -101,7 +61,6 @@ export const addRoom = defineCommand({
       args.corner !== undefined ||
       args.points !== undefined
 
-    // Nothing to come out of: this is the floor itself, and the one room on it.
     if (!cutting) {
       const made = drawOutline(draft, levelOf(draft, args.level ?? open, 'add-room'), {
         ...args,
@@ -126,9 +85,6 @@ export const addRoom = defineCommand({
       )
     }
 
-    // A room is cut out of a room, so the storey is that room's — said or not.
-    // `--points` may name no room at all, and then it is whichever storey is
-    // meant, and the room the first corner falls in.
     if (args.points !== undefined) {
       const level =
         cut.from === undefined
@@ -146,7 +102,6 @@ export const addRoom = defineCommand({
       return named(draft, cutByWalk(draft, level, source, cut), args.kind)
     }
 
-    // A strip off the north is naturally said by its depth; either word does.
     const width = args.width ?? (args.corner === undefined ? args.depth : undefined)
     if (width === undefined) {
       throw new CommandError('add-room: a strip needs a --width or a --depth; a box needs both')
@@ -183,20 +138,12 @@ export const addRoom = defineCommand({
     }
     const at = fromLow ? low + width : high - width
 
-    // The cut runs right across, going round any step in the room: a room that
-    // is not a rectangle comes apart along the line all the same, and what is
-    // cut off may be L-shaped — which is what an L-shaped room is.
     partitionAlong(draft, level, source, axis, at, cut.thickness, 'add-room')
     const made = settleCut(draft, level, source, args.name, args.material, axis, at, fromLow)
     return named(draft, made, args.kind)
   },
 })
 
-/**
- * The outline of a floor, and the one room covering it, which every later room
- * is cut out of. A standard building shape with real dimensions — never
- * coordinates — or a walk round it for anything else.
- */
 function drawOutline(
   draft: ImmerDraft<HouseDocument>,
   level: string,
@@ -220,7 +167,6 @@ function drawOutline(
     )
   }
 
-  // A width and a depth with no shape said is a rectangle, which is what most floors are.
   const shape =
     args.shape ?? (args.walk === undefined && args.width !== undefined ? 'rectangle' : undefined)
   if ((shape === undefined) === (args.walk === undefined)) {
@@ -256,7 +202,6 @@ function drawOutline(
   return [id]
 }
 
-/** What sort of room the new one is, said here rather than in a command of its own. */
 function named(
   draft: ImmerDraft<HouseDocument>,
   made: string[],
@@ -332,7 +277,6 @@ function shoelace(points: Point[]): number {
 
 type Draft = Parameters<typeof roomsOf>[0]
 
-/** Corners as written: "x,y; x,y; …", each in millimetres or with a unit. At least three. */
 function parsePoints(source: string): Point[] {
   const points = source
     .split(/[;\n]+/)
@@ -347,11 +291,6 @@ function parsePoints(source: string): Point[] {
   return points
 }
 
-/**
- * Walls round the corners given, each joined to whatever it crosses, and the
- * face they close is the room. Corners near a wall land on it, so "4m,3m"
- * meets a wall drawn at 3 m rather than standing 20 mm off it.
- */
 function cutByPoints(
   draft: Draft,
   level: string,
@@ -399,11 +338,6 @@ function cutByPoints(
   )
 }
 
-/**
- * A walk of legs from a point on a side of the room, each a wall, the last
- * one let go on whatever wall it reaches. The smaller of what it leaves
- * either side of it is the new room.
- */
 function cutByWalk(
   draft: Draft,
   level: string,
@@ -434,8 +368,6 @@ function cutByWalk(
     x: Math.round(run.from.x + (run.to.x - run.from.x) * fraction),
     y: Math.round(run.from.y + (run.to.y - run.from.y) * fraction),
   }
-  // A run stops at the faces of the walls at its ends; a walk from its very
-  // end starts at the corner itself.
   let from = nearWall(draft, level, start) ?? start
   let drew = false
   for (const leg of parseWalk(args.walk ?? '')) {
@@ -455,13 +387,6 @@ function cutByWalk(
   return settlePieces(draft, level, source, outline, args.name, args.material, undefined)
 }
 
-/**
- * After walls have been drawn through a room: which of the pieces it came
- * apart into is the new room, and which keeps the old name. Told by a test on
- * a piece's anchor — inside the corners drawn — or, for a walk, the smaller
- * piece. The old record moves into the biggest of the rest, and any further
- * pieces are numbered after whichever name they belong to.
- */
 function settlePieces(
   draft: Draft,
   level: string,
@@ -517,17 +442,9 @@ function settlePieces(
       }
       return id
     })
-  // The room it came out of changed shape too, so it is part of the answer.
   return [...made, ...spare, source.id]
 }
 
-/**
- * After a cut right across: whatever lies on the near side of the line is the
- * new room, whatever lies beyond keeps the old name — decided by where each
- * face is, not by where an old anchor happened to fall. A stepped room can
- * come apart into more than two faces; the extra ones on the near side are
- * numbered after the new name.
- */
 function settleCut(
   draft: Draft,
   level: string,
@@ -586,10 +503,6 @@ function settleCut(
   return [...made, ...spare, ...(source.id === undefined ? [] : [source.id])]
 }
 
-/**
- * Records the room that was cut out and moves the one it came from into what is
- * left, rather than letting an old anchor decide which half keeps the name.
- */
 function settle(
   draft: Draft,
   level: string,

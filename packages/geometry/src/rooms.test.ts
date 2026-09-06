@@ -2,7 +2,6 @@ import { expect, test } from 'vitest'
 import { roomsOf } from './rooms'
 import { planWith } from './test-utils'
 
-/** Two rooms side by side, sharing the partition at x = 4000. */
 function twoRooms() {
   return planWith([
     [0, 0, 4000, 0],
@@ -61,7 +60,6 @@ test('a label keeps its room after the partition it sits beside moves', () => {
   const { doc, level } = twoRooms()
   doc.rooms.r1 = label('r1', level, 1000, 1500, 'kitchen')
 
-  // Slide the shared partition from x = 4000 to x = 2000.
   for (const node of Object.values(doc.nodes)) {
     if (node.x === 4000) node.x = 2000
   }

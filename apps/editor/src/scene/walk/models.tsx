@@ -10,20 +10,6 @@ import { Shape } from 'three'
 import { MM } from '../plan-coordinates'
 import { lighter, PAINT, type Paint } from './finish'
 
-/**
- * The furniture, modelled: each type built up from slabs, drums and balls in
- * the thing's own frame — the floor under its middle at the origin, x across
- * it, y up, and +z its back, the side that goes against a wall — in millimetres,
- * the way the rest of the plan is said. A bed is a frame, a mattress, a duvet,
- * pillows and a headboard; a kitchen is runs of cabinets under a worktop with
- * handles along the front. Nothing here is a model from a file: what it costs
- * to add a thing is a few lines saying what it is made of.
- *
- * Built one at a time, and looked at — in the walk, from a couple of metres
- * off, the way `look.mjs` looks at a symbol from above.
- */
-
-/** What a builder is handed: the thing's size and height, and its paints. */
 export type Part = {
   w: number
   d: number
@@ -34,12 +20,8 @@ export type Part = {
 
 type Builder = (part: Part) => ReactNode
 
-/** So many positions, each worked out from its number: what a row of things is keyed by. */
 const along = (count: number, at: (i: number) => number): number[] =>
   Array.from({ length: count }, (_, i) => at(i))
-
-// ---------------------------------------------------------------------------
-// Primitives
 
 function Finish({ paint }: { paint: Paint }) {
   return (
@@ -56,17 +38,14 @@ function Finish({ paint }: { paint: Paint }) {
 type SlabProps = {
   x?: number
   z?: number
-  /** Its underside above the thing's base. */
   base?: number
   w: number
   h: number
   d: number
   paint: Paint
-  /** Turned about its own middle, in radians. */
   turn?: number
 }
 
-/** A box, said by where its underside is: the way a slab is put down on something. */
 function Slab({ x = 0, z = 0, base = 0, w, h, d, paint, turn = 0 }: SlabProps) {
   return (
     <mesh position={[x * MM, (base + h / 2) * MM, z * MM]} rotation={[0, turn, 0]}>
@@ -78,7 +57,6 @@ function Slab({ x = 0, z = 0, base = 0, w, h, d, paint, turn = 0 }: SlabProps) {
 
 type LeanProps = {
   x?: number
-  /** Where its middle line starts and ends, as (z, y) in the thing's frame. */
   from: [number, number]
   to: [number, number]
   w: number
@@ -86,7 +64,6 @@ type LeanProps = {
   paint: Paint
 }
 
-/** A slab leaning: said by the two points its middle line runs between. */
 function Lean({ x = 0, from, to, w, thick, paint }: LeanProps) {
   const dz = to[0] - from[0]
   const dy = to[1] - from[1]
@@ -107,16 +84,13 @@ type DrumProps = {
   z?: number
   base?: number
   r: number
-  /** A different radius at the top makes a cone: a lampshade, a flowerpot. */
   top?: number
   h: number
   paint: Paint
-  /** Longer one way than the other: an oval bowl. */
   stretch?: number
   open?: boolean
 }
 
-/** A cylinder standing on its end. */
 function Drum({ x = 0, z = 0, base = 0, r, top, h, paint, stretch = 1, open = false }: DrumProps) {
   return (
     <mesh position={[x * MM, (base + h / 2) * MM, z * MM]} scale={[1, 1, stretch]}>
@@ -133,11 +107,9 @@ type DiscProps = {
   r: number
   thick: number
   paint: Paint
-  /** Which way its face points: out of the front, or out of the side. */
   facing?: 'front' | 'side'
 }
 
-/** A cylinder lying down, its face out: a wheel, a porthole. */
 function Disc({ x = 0, y, z = 0, r, thick, paint, facing = 'front' }: DiscProps) {
   const rotation: [number, number, number] =
     facing === 'front' ? [Math.PI / 2, 0, 0] : [0, 0, Math.PI / 2]
@@ -181,7 +153,6 @@ type LegsProps = {
   z?: number
 }
 
-/** Four legs under the corners of a top. */
 function Legs({ w, d, h, inset = 60, thick = 50, paint, x = 0, z = 0 }: LegsProps) {
   const dx = w / 2 - inset - thick / 2
   const dz = d / 2 - inset - thick / 2
@@ -196,7 +167,6 @@ function Legs({ w, d, h, inset = 60, thick = 50, paint, x = 0, z = 0 }: LegsProp
   )
 }
 
-/** Something turned and put somewhere, in millimetres, with its own builder inside. */
 function Put({
   x = 0,
   z = 0,
@@ -214,9 +184,6 @@ function Put({
     </group>
   )
 }
-
-// ---------------------------------------------------------------------------
-// Bedroom
 
 const bed: Builder = ({ w, d, body, frame }) => {
   const two = w > 1200
@@ -283,7 +250,6 @@ const crib: Builder = ({ w, d, body, frame }) => (
   </>
 )
 
-/** A cabinet: a plinth, a body, and handles on the front in columns and rows. */
 function cabinet(part: Part, columns = 1, rows = 1, height = part.h): ReactNode {
   const { w, d, body, frame } = part
   const handles: ReactNode[] = []
@@ -414,13 +380,6 @@ const consoleMirror: Builder = ({ w, d, body, frame }) => (
   </>
 )
 
-// ---------------------------------------------------------------------------
-// Living
-
-/**
- * A sofa: feet, a base, arms, a back, and on the base as many seat cushions
- * as it seats, each with a back cushion leaning on the back behind it.
- */
 const sofa: Builder = ({ w, d, body, frame }) => {
   const arm = Math.min(200, w * 0.12)
   const back = 200
@@ -527,7 +486,6 @@ const bench: Builder = ({ w, d, body, frame }) => (
   </>
 )
 
-/** A top on four legs; inset from the footprint where chairs take the rest. */
 function table(part: Part, inset = 0): ReactNode {
   const { w, d, h, body, frame } = part
   return (
@@ -552,7 +510,6 @@ const chair = (body: Paint, frame: Paint): ReactNode => (
   </>
 )
 
-/** Where the chairs go round a table: so many a side, their backs outward. */
 function seats(w: number, d: number, long: number, ends: number): [number, number, number][] {
   const out: [number, number, number][] = []
   const near = 230
@@ -605,7 +562,6 @@ const officeDesk: Builder = ({ w, d, h, body, frame }) => (
 const officeDeskL: Builder = (p) => {
   const { w, d, h, body, frame } = p
   const run = 800
-  // The leg is on the left of the drawing, which is the thing's own right.
   return (
     <>
       <Slab base={h - 40} h={40} w={w} d={run} z={d / 2 - run / 2} paint={body} />
@@ -684,10 +640,6 @@ const bar: Builder = (p) => {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Kitchen
-
-/** A run of base cabinets under a worktop, its front at -z, with handles along it. */
 function run(
   p: Part,
   {
@@ -741,7 +693,6 @@ const kitchenL =
   (p) => {
     const { w, d } = p
     const deep = Math.min(650, d / 2)
-    // The leg is on the left of the drawing, which is the thing's own right.
     return (
       <>
         {run(p, { z: d / 2 - deep / 2, d: deep, upper })}
@@ -864,9 +815,6 @@ const hvac: Builder = ({ w, d, h }) => (
   </>
 )
 
-// ---------------------------------------------------------------------------
-// Bathroom and laundry
-
 const toilet: Builder = ({ w, d }) => {
   const bowl = d - 250
   const r = (w - 80) / 2
@@ -976,9 +924,6 @@ const washerStack: Builder = ({ w, d }) => (
   </>
 )
 
-// ---------------------------------------------------------------------------
-// Odds and ends
-
 const plant: Builder = ({ w, h }) => (
   <>
     <Drum r={w * 0.2} top={w * 0.25} h={h * 0.32} paint={PAINT.terracotta} open />
@@ -1007,12 +952,6 @@ const tableLamp: Builder = ({ h, frame }) => (
   </>
 )
 
-/**
- * A car, front at -z: a body to the belt line, a greenhouse on it with the
- * windscreen and rear window leaning at the car's own angles, pillars, a
- * roof, wheels showing under the sills, lights and bumpers at both ends.
- * An SUV is the same, taller and squarer at the back.
- */
 const car = (suv: boolean): Builder => {
   return ({ w, d, body }) => {
     const front = -d / 2
@@ -1140,22 +1079,6 @@ const car = (suv: boolean): Builder => {
   }
 }
 
-/**
- * A flight, built from the treads the plan draws.
- *
- * Not a straight run of slabs whatever the kind, which is what it was: a winder
- * came out as a ramp through its own wall, and a spiral as a box. The treads are
- * `treadsOf`, so the flight climbed here is the flight drawn from above, right
- * down to how many steps it takes and which way round the corner it turns.
- *
- * Each step is a block one riser tall standing on the one below, so the flight
- * is open underneath the way a stair is — not a solid mass down to the floor,
- * which made an L a wooden wall and the space under the stairs no space at all.
- *
- * `h` is the storey it climbs — the walk hands a staircase its floor-to-floor
- * height, not the catalogue's — so the last tread is one riser under the floor
- * above and the floor above is the step onto it.
- */
 const staircase =
   (kind: StairKind): Builder =>
   ({ w, h, body, frame }) => {
@@ -1182,7 +1105,6 @@ const staircase =
   }
 
 type StepProps = {
-  /** The tread, in the drawing's frame: x from its left edge, y from its top. */
   outline: Point[]
   size: { width: number; depth: number }
   base: number
@@ -1190,20 +1112,10 @@ type StepProps = {
   paint: Paint
 }
 
-/**
- * One step of a flight: the tread's outline, stood up as a block.
- *
- * The drawing is laid on the plan turned half round to put its top, the back,
- * against the wall — so the drawing's left is the thing's right, which is +x
- * here, and its top is +z. Built any other way the flight in the walk is the
- * mirror image of the flight on the plan, and climbs into the corner the well
- * was not cut in.
- */
 function Step({ outline, size, base, h, paint }: StepProps) {
   const shape = new Shape()
   outline.forEach((point, index) => {
     const x = (size.width / 2 - point.x) * MM
-    // Drawn flat in x and y and stood up by a quarter turn, which takes y to -z.
     const y = (point.y - size.depth / 2) * MM
     if (index === 0) shape.moveTo(x, y)
     else shape.lineTo(x, y)
@@ -1304,9 +1216,6 @@ const bbq: Builder = ({ w, d }) => (
   </>
 )
 
-// ---------------------------------------------------------------------------
-// The catalogue, by type
-
 const BUILDERS: Record<string, Builder> = {
   'cal-king-bed': bed,
   'king-bed': bed,
@@ -1402,10 +1311,8 @@ const BUILDERS: Record<string, Builder> = {
   bbq,
 }
 
-/** Whether a type has a model of its own; without one it is drawn as its box with its symbol on top. */
 export const modelled = (type: string): boolean => type in BUILDERS
 
-/** The model of a thing, in its own frame; nothing for a type without one. */
 export function Model({ type, part }: { type: string; part: Part }) {
   const build = BUILDERS[type]
   return build ? <>{build(part)}</> : null

@@ -3,17 +3,10 @@ import type { Point } from '@houseit/geometry/outlines'
 import type { Room } from '@houseit/geometry/rooms'
 import { sideRun } from '@houseit/geometry/sides'
 
-/** Where a door or window was let go, said the way `move-door` takes it. */
 export type OpeningDrop = { toSide: Side; along: number }
 
 const SIDES: Side[] = ['north', 'east', 'south', 'west']
 
-/**
- * What a drag of an opening means: the side of the room whose wall the point
- * is nearest, and how far along it. An opening lives in a wall, so there is
- * no free-standing case — let go in the middle of the room, it goes to the
- * nearest wall, which is what a hand that let go early meant.
- */
 export function openingDropOf(
   doc: HouseDocument,
   level: string,

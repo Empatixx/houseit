@@ -3,11 +3,6 @@ import { expect, test } from 'vitest'
 import { describeCommands, REGISTRY } from './registry'
 import { runScript } from './run'
 
-/**
- * The agent only ever sees the command line. Anything it cannot reach from a
- * command string might as well not exist, so what is registered, what is
- * described and what actually runs all have to agree.
- */
 test('every command is described, with every option it takes', () => {
   const help = describeCommands()
 
@@ -21,7 +16,6 @@ test('every command is described, with every option it takes', () => {
 
 test('every command is reachable by the name it is described under', () => {
   for (const command of REGISTRY.values()) {
-    // Run it with nothing: whatever comes back must not be "no such command".
     const failed = attempt(command.name)
     expect(failed, command.name).not.toMatch(/unknown command/i)
   }

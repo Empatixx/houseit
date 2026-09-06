@@ -20,11 +20,7 @@ test('a thing given a turn is turned where it stands, and set back by what it th
   const straight = standingAt(doc, level, room, square)!
   const quarter = standingAt(doc, level, room, { ...square, rotation: 90 })!
 
-  // A quarter turn about its own middle, on top of the way it faces at that wall.
   expect(quarter.turn - straight.turn).toBeCloseTo(Math.PI / 2)
-  // And set back by a thousand rather than four hundred, because turned side-on
-  // that is what it now reaches into the room. Left at its own depth, half of a
-  // turned thing stands inside the wall.
   expect(straight.at.y - quarter.at.y).toBeCloseTo((1000 - 400) / 2)
 })
 
@@ -39,9 +35,6 @@ test('a turned footprint is the corners where they actually are', () => {
 
 test('the parts of a thing lie where its drawing puts them, not in its mirror image', () => {
   const { doc, level, room } = only()
-  // A corner sofa's chaise is on the right of its drawing. Against the south
-  // wall the drawing is turned half round to put its back on the wall, and the
-  // chaise comes out on the west — which is where the click has to find it.
   const sofa = { type: 'sofa-l', against: 'south' as const, along: 0.5, width: 3000, depth: 1800 }
   const spot = standingAt(doc, level, room, sofa)!
 

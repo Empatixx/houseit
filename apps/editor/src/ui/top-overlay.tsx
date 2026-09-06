@@ -14,14 +14,6 @@ import { Minimap } from './minimap'
 import { ModeTabs } from './mode-tabs'
 import { useCover } from './use-cover'
 
-/**
- * What floats over the plan's top right corner: one small card with the two
- * arrows that take an edit back and forward, another with the gear for what
- * the plan shows and the button for the panel, and under them the tabs for
- * the plan from above or walked through. The panel floats over the same
- * corner, so while it is out the cards stand to the left of it.
- * Walking through the plan, the minimap hangs under the tabs.
- */
 export function TopOverlay() {
   const canUndo = useDocument((state) => state.canUndo)
   const canRedo = useDocument((state) => state.canRedo)

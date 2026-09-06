@@ -8,30 +8,16 @@ import { length } from './length-schema'
 import { moveWall } from './move-wall'
 import { SIDE_NAMES, whereRoom } from './resolve'
 
-/**
- * Changes a room that is already cut: its name, what sort of room it is, its
- * floor, and how big it is.
- *
- * Bigger is a wall moved, and a wall moved is one room made bigger and the room
- * on the other side made smaller — which is why it is said of the room and not
- * of the wall. `--side north --by 200` pushes the whole line of that side out
- * by 200 mm, taking the doors and windows in it along and refusing the move if
- * anything would end up inside a wall.
- */
 export const updateRoom = defineCommand({
   name: 'update-room',
   summary: `Change a room: its name, its kind (${ROOM_KIND_IDS.join(', ')}), its floor, or how big it is`,
   args: z.object({
     room: z.string().min(1),
-    /** What to call it. No two rooms on a level may share a name. */
     name: z.string().trim().min(1).optional(),
-    /** What sort of room it is, where the name does not say. */
     kind: z.enum(ROOM_KIND_IDS as [string, ...string[]]).optional(),
     material: z.enum(FLOOR_MATERIAL_IDS as [string, ...string[]]).optional(),
-    /** With --by: the side to move. Or the very wall by its id, for an L's second wall on a side. */
     side: z.enum(SIDE_NAMES).optional(),
     wall: z.string().min(1).optional(),
-    /** How far to move that side, outward; a minus is inward. `-300`, `0.5m`. */
     by: length().optional(),
     level: z.string().optional(),
   }),
@@ -58,8 +44,6 @@ export const updateRoom = defineCommand({
       if (taken) throw new CommandError(`update-room: there is already a room called ${args.name}`)
     }
 
-    // The wall first: it can be refused, and a room renamed by a command that
-    // then refuses the move would be renamed in a plan that never changed.
     const changed =
       args.by === undefined
         ? [room.id]

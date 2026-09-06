@@ -1,28 +1,8 @@
 #!/usr/bin/env node
-/**
- * Puts one object alone in a room of its own and takes its picture.
- *
- * Furniture is tuned by looking at it, and looking at it in a furnished plan does
- * not work: the thing is forty pixels across, half under a rug, and every guess
- * about what is wrong with it is a guess. So this builds a throwaway plan through
- * the very same CLI the agent has — a room barely bigger than the object, nothing
- * else in it — frames it, and saves a picture big enough to see what is actually
- * drawn.
- *
- * It works in a project of its own called `look`, made for the occasion and taken
- * away afterwards, and puts you back in whichever project you were in. The plan
- * you were working on is never touched.
- *
- *   node scripts/look.mjs --type media-unit --surface walnut --out /tmp/tv.png
- *   node scripts/look.mjs --type sofa-3 --surface grey --against north
- */
 import { EDITOR, openEditor } from './editor.mjs'
 
-/** The throwaway project this works in. */
 const LOOK = 'look'
-/** Floor left round the object, so it is framed and not cropped. */
 const MARGIN = 700
-/** Options handed straight on to `add-object`. */
 const PASSED = ['surface', 'against', 'width', 'depth', 'seats']
 
 const args = parse(process.argv.slice(2))
@@ -35,9 +15,6 @@ const { page, close } = await openEditor()
 
 const kept = await page.evaluate(() => window.__houseit?.projectsStore.getState().open?.id ?? null)
 try {
-  // A generous room first, only to be told how big the thing turns out to be, then
-  // the same thing again in a room cut to fit it. The size comes from the plan
-  // rather than from the catalogue, so --width and --depth are accounted for too.
   const measured = await build(page, 20_000, 20_000, args)
   const room = {
     width: measured.width + MARGIN * 2,
@@ -51,15 +28,12 @@ try {
   await page.screenshot({ path: out })
   console.log(`${args.type}: ${measured.width} by ${measured.depth} mm — ${out}`)
 } finally {
-  // Back where you were first, then the throwaway project away.
   await page.goto(kept ? `${EDITOR}/p/${kept}` : EDITOR)
   await page.evaluate((id) => window.__houseit.projectsStore.getState().remove(id), LOOK)
   await close()
 }
 
-/** Makes the throwaway project afresh and draws a room with the one thing in it, through the CLI. */
 async function build(page, width, depth, args) {
-  // From the home screen, where nothing is open and nothing can be written to.
   await page.goto(EDITOR)
   await page.waitForFunction(() => typeof window.__houseit?.projectsStore?.getState === 'function')
   const id = await page.evaluate(async (name) => {
