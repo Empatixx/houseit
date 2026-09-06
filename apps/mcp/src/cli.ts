@@ -8,7 +8,7 @@ import {
   pictureOf,
   showOnPage,
 } from './editor-page'
-import { helpText, report, toolDescription } from './report'
+import { guidelinesText, helpText, report, toolDescription } from './report'
 import { scriptOf } from './script-of'
 import { viewOf } from './view-of'
 
@@ -19,9 +19,14 @@ const USAGE = [
   '  houseit - < script.txt                     the same from standard input',
   '  houseit --picture out.jpg get-plan         with a picture of what it answered about',
   '  houseit --project byt-praha get-plan       in that plan, made if there is none yet',
+  '  houseit guidelines                         how a flat or a house goes together',
 ].join('\n')
 
 async function main(argv: string[]): Promise<number> {
+  if (argv[0] === 'guidelines') {
+    process.stdout.write(`${guidelinesText()}\n`)
+    return 0
+  }
   if (argv.length === 0 || argv[0] === '--help' || argv[0] === 'help') {
     process.stdout.write(`${USAGE}\n\n${toolDescription()}\n\nCommands:\n\n${helpText()}\n`)
     return 0

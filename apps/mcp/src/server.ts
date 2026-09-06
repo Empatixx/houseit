@@ -9,7 +9,7 @@ import {
   pictureOf,
   showOnPage,
 } from './editor-page'
-import { helpText, report, toolDescription } from './report'
+import { guidelinesText, helpText, report, toolDescription } from './report'
 import { viewOf } from './view-of'
 
 const server = new McpServer({ name: 'houseit', version: '0.1.0' })
@@ -25,7 +25,7 @@ server.registerTool(
       command: z
         .string()
         .describe(
-          'One or more commands, one per line, applied as a single transaction. `help` for the list.',
+          'One or more commands, one per line, applied as a single transaction. `help` for the list, `guidelines` for how a dwelling goes together.',
         ),
     },
   },
@@ -33,6 +33,9 @@ server.registerTool(
     try {
       if (command.trim() === 'help') {
         return { content: [{ type: 'text', text: helpText() }] }
+      }
+      if (command.trim() === 'guidelines') {
+        return { content: [{ type: 'text', text: guidelinesText() }] }
       }
 
       const page = await connectToEditor()

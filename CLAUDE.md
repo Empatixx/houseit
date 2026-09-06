@@ -212,9 +212,13 @@ know code that draws is right is to look at it.
 way: it names no command, no object type and no floor material. A description is
 part of the prompt, and a prompt that changes throws away the cache of every
 conversation using it — so a new sofa in the catalogue would make every agent
-everywhere start again from cold. The command list is `floorplan("help")`, which is
-an answer and is cached like any other. There is a test that fails if a catalogue
-word reaches the description.
+everywhere start again from cold. There is a test that fails if a catalogue word
+reaches the description.
+
+What it may name is a word that is not going to change: `floorplan("help")` for the
+command list and `floorplan("guidelines")` for how a dwelling goes together. Both
+are answers, cached like any other, and both can grow without the description
+moving. Adding the second cost one cache flush, once, on purpose.
 
 ## A plan belongs to a project
 

@@ -3,7 +3,7 @@ import type { Answer } from '@houseit/commands/answer'
 import type { RoomReport } from '@houseit/commands/survey'
 import { createEmptyDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
-import { compactJson, helpText, report, toolDescription } from './report'
+import { compactJson, guidelinesText, helpText, report, toolDescription } from './report'
 
 const ok = (answer: Partial<Answer>, project?: string): ExecResult => ({
   ok: true,
@@ -53,6 +53,15 @@ test('the tool description never names a command or a catalogue, so it cannot ch
   expect(description).not.toContain('sofa-3')
   expect(description).not.toContain('natural-oak')
   expect(description).toContain('help')
+  expect(description).toContain('guidelines')
+})
+
+test('the guidelines say what each disposition holds and what the standard asks', () => {
+  const text = guidelinesText()
+
+  for (const id of ['1+kk', '2+kk', '3+kk', '3+1', '5+kk']) expect(text).toContain(id)
+  expect(text).toContain('obytné místnosti')
+  expect(text).toContain('146/2024')
 })
 
 test('the command list is there for the asking, with the options on it', () => {

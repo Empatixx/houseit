@@ -1,4 +1,5 @@
 import type { ExecResult } from '@houseit/bridge/contract'
+import { guidelinesText as guidelines } from '@houseit/commands/guidelines'
 import { describeCommands } from '@houseit/commands/registry'
 
 export function report(result: ExecResult): string {
@@ -30,10 +31,16 @@ export function toolDescription(): string {
     'and stands on it and the stretches still free — and everything now wrong with',
     'the plan. update and remove take the --id the answer gave. Nothing has to be',
     'asked for; get-plan is only for the rooms a command did not touch.',
+    '',
+    'Call it with `guidelines` on its own before laying a dwelling out: how the',
+    'rooms of a flat or a house go together, what each size of dwelling holds, and',
+    'the dimensions every plan here is checked against.',
   ].join('\n')
 }
 
 export const helpText = describeCommands
+
+export const guidelinesText = guidelines
 
 const LINE = 100
 
