@@ -8,6 +8,7 @@ import { shellStore } from './store/shell'
 import { BottomBar } from './ui/bottom-bar'
 import { usePanelShown } from './ui/edges'
 import { Inspector } from './ui/inspector'
+import { ModeTabs } from './ui/mode-tabs'
 import { ProjectChip } from './ui/project-chip'
 import { Rail } from './ui/rail'
 import { StoreyStack } from './ui/storey-stack'
@@ -29,6 +30,7 @@ export function App() {
         <SidebarInset className="relative min-h-0 overflow-hidden rounded-2xl border bg-background shadow-sm">
           {mode === '2d' ? <PlanScene /> : <WalkScene />}
           <TopOverlay />
+          <ModeTabs />
           {mode === '2d' ? <BottomBar /> : <WalkHint />}
           <Inspector />
           <Rail />

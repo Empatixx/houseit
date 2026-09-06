@@ -16,6 +16,9 @@ type ViewState = {
   step: number
   factor: number
   zoomBy: (factor: number) => void
+  /** How far the plan is turned on screen, clockwise, in degrees. */
+  spin: number
+  spinTo: (spin: number) => void
   covers: Record<string, Cover>
   cover: (id: string, cover: Cover | null) => void
 }
@@ -27,6 +30,8 @@ export const viewStore = createStore<ViewState>()((set) => ({
   step: 0,
   factor: 1,
   zoomBy: (factor) => set((state) => ({ step: state.step + 1, factor })),
+  spin: 0,
+  spinTo: (spin) => set({ spin: ((spin % 360) + 360) % 360 }),
   covers: {},
   cover: (id, cover) =>
     set((state) => {

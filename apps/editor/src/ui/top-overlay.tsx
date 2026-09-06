@@ -17,9 +17,9 @@ import { useMode } from '../store/mode'
 import { selectionStore, useSelection } from '../store/selection'
 import { documentStore, useDocument } from '../store/store'
 import { viewStore } from '../store/view'
+import { Compass } from './compass'
 import { usePanelShown, useRightEdge } from './edges'
 import { Minimap } from './minimap'
-import { ModeTabs } from './mode-tabs'
 import { useCover } from './use-cover'
 
 export function TopOverlay() {
@@ -113,7 +113,7 @@ export function TopOverlay() {
           </Tooltip>
         </div>
       </div>
-      <ModeTabs />
+      {walking ? null : <Compass />}
       {walking ? null : <Scale />}
       {walking ? <Minimap /> : null}
     </div>
