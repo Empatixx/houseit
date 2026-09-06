@@ -13,7 +13,6 @@ type ViewState = {
   box: ViewBox | null
   asked: number
   frame: (box: ViewBox | null) => void
-  /** Counts up so the scene knows a new step was asked for, even at the same factor. */
   step: number
   factor: number
   zoomBy: (factor: number) => void
