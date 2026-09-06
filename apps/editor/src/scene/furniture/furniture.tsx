@@ -9,7 +9,7 @@ import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { piecesOf, type Spot, standingAt, turnOf } from '@houseit/geometry/standing'
 import { Line } from '@react-three/drei'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Texture } from 'three'
 import { aimAt, putDown } from '../../edit/draw-commands'
 import { moveTo, turnTo } from '../../edit/object-commands'
@@ -93,7 +93,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   const plain = useSymbol(symbol, surface, object)
   const marked = useSymbol(picked ? symbol : '', pickedSurface(surface), object, PICKED_HATCH)
   const drag = useDrag(object, spot)
-  const spin = useSpin(object, spot)
+  const spin = useSpin(object, spot, picked)
   if (!plain) return null
 
   const texture = (picked ? marked : undefined) ?? plain
@@ -268,7 +268,7 @@ function Ghost({ object, spot, at, texture, stack }: GhostProps) {
   )
 }
 
-function useSpin(object: HouseObject, spot: Spot) {
+function useSpin(object: HouseObject, spot: Spot, picked: boolean) {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null
   const grabbed = useRef<number | null>(null)
   const following = useRef(false)
@@ -288,12 +288,20 @@ function useSpin(object: HouseObject, spot: Spot) {
 
   const signed = (degrees: number) => (degrees > 180 ? degrees - 360 : degrees)
 
-  const settle = (degrees: number | null) => {
+  const drop = () => {
     grabbed.current = null
     following.current = false
     setOpen(false)
     setPreview(null)
     if (controls) controls.enabled = true
+  }
+
+  useEffect(() => {
+    if (!picked) drop()
+  }, [picked])
+
+  const settle = (degrees: number | null) => {
+    drop()
     if (degrees !== null && signed(degrees) !== (object.rotation ?? 0))
       turnTo(object, signed(degrees))
   }
@@ -316,6 +324,7 @@ function useSpin(object: HouseObject, spot: Spot) {
   const move = (event: ThreeEvent<PointerEvent>) => {
     const from = grabbed.current
     if (from === null) return
+    event.stopPropagation()
     const now = pointOnPlan(event.ray)
     if (!now) return
     setPreview(base + (angleTo(now, from) * Math.PI) / 180)
