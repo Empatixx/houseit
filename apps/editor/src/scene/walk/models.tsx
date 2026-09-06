@@ -1,3 +1,5 @@
+import { modelFileOf } from '@houseit/core/imported'
+import { Suspense } from 'react'
 import { bathtub, shower, toilet, vanity, washerPair, washerStack } from './models/bathroom'
 import {
   bed,
@@ -13,6 +15,7 @@ import {
   nightstand,
   plainBox,
 } from './models/bedroom'
+import { Brought } from './models/brought'
 import { car } from './models/car'
 import { bbq, column, floorLamp, pictureFrame, plant, railing, tableLamp } from './models/fittings'
 import { exerciseBike, gymBench, treadmill, weightRack } from './models/gym'
@@ -128,9 +131,18 @@ const BUILDERS: Record<string, Builder> = {
   bbq,
 }
 
-export const modelled = (type: string): boolean => type in BUILDERS
+export const modelled = (type: string): boolean =>
+  type in BUILDERS || modelFileOf(type) !== undefined
 
 export function Model({ type, part }: { type: string; part: Part }) {
+  const file = modelFileOf(type)
+  if (file) {
+    return (
+      <Suspense fallback={null}>
+        <Brought file={file} part={part} />
+      </Suspense>
+    )
+  }
   const build = BUILDERS[type]
   return build ? <>{build(part)}</> : null
 }

@@ -1,3 +1,4 @@
+import { IMPORTED_TYPES } from './imported'
 import { CATALOG_OBJECT_TYPES } from './catalog'
 
 export type ObjectType = {
@@ -40,9 +41,21 @@ const STAIRS: readonly ObjectType[] = [
   rooms: ['any'],
 }))
 
+const IMPORTED: readonly ObjectType[] = IMPORTED_TYPES.map((type) => ({
+  id: type.id,
+  label: type.label,
+  size: { width: type.size.width, depth: type.size.depth },
+  surfaces: type.surfaces ?? ['white'],
+  stands: type.stands ?? 'free',
+  ...(type.layer === undefined ? {} : { layer: type.layer }),
+  ...(type.rooms === undefined ? {} : { rooms: type.rooms }),
+  symbol: '',
+}))
+
 export const OBJECT_TYPES: readonly ObjectType[] = [
   ...CATALOG_OBJECT_TYPES.filter((type) => !type.id.startsWith('stairs-')),
   ...STAIRS,
+  ...IMPORTED,
 ]
 
 export const OBJECT_TYPE_IDS = OBJECT_TYPES.map((entry) => entry.id)

@@ -1,3 +1,4 @@
+import { importedType } from './imported'
 export type Height = {
   height: number
   base: number
@@ -106,5 +107,10 @@ const HEIGHTS: Record<string, Partial<Height>> = {
 
 export function heightOf(type: string): Height {
   const known = HEIGHTS[type]
-  return { height: known?.height ?? DEFAULT, base: known?.base ?? 0, glass: known?.glass }
+  const brought = importedType(type)?.size.height
+  return {
+    height: known?.height ?? brought ?? DEFAULT,
+    base: known?.base ?? 0,
+    glass: known?.glass,
+  }
 }

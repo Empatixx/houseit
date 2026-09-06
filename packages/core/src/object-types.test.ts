@@ -1,4 +1,6 @@
 import { expect, test } from 'vitest'
+import { heightOf } from './heights'
+import { IMPORTED_TYPES, importedType } from './imported'
 import { layerOf, OBJECT_TYPE_IDS, OBJECT_TYPES, objectType, symbolOf } from './object-types'
 import { isStaircase, STAIR_KINDS, stairKind } from './stairs'
 import { SURFACE_IDS, surfaceOf } from './surfaces'
@@ -26,7 +28,7 @@ test('every type has a real size, and a symbol unless it is drawn instead', () =
   for (const entry of OBJECT_TYPES) {
     expect(entry.size.width, entry.id).toBeGreaterThan(0)
     expect(entry.size.depth, entry.id).toBeGreaterThan(0)
-    if (isStaircase(entry.id)) {
+    if (isStaircase(entry.id) || importedType(entry.id)) {
       expect(symbolOf(entry.id), entry.id).toBeUndefined()
       continue
     }
@@ -102,4 +104,16 @@ test('tables and rugs stand free; what has a back stands at a wall', () => {
 test('sizes are the real ones, in millimetres', () => {
   expect(objectType('queen-bed')?.size).toEqual({ width: 1549, depth: 2057 })
   expect(objectType('sedan')?.size.depth).toBeGreaterThan(4500)
+})
+
+test('a type brought in as a model is a type like any other, and says where its model is', () => {
+  for (const brought of IMPORTED_TYPES) {
+    const entry = OBJECT_TYPES.find((candidate) => candidate.id === brought.id)
+
+    expect(entry, brought.id).toBeDefined()
+    expect(entry!.size).toEqual({ width: brought.size.width, depth: brought.size.depth })
+    expect(brought.size.height).toBeGreaterThan(0)
+    expect(brought.model).toMatch(/^[a-z0-9-]+\.glb$/)
+    expect(heightOf(brought.id).height).toBe(brought.size.height)
+  }
 })

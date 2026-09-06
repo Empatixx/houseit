@@ -1,4 +1,5 @@
 import type { HouseObject } from '@houseit/core/document'
+import { importedType, outlineSymbol } from '@houseit/core/imported'
 import { type Layer, layerOf, symbolOf } from '@houseit/core/object-types'
 import { stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
 import { type Surface, surfaceOf } from '@houseit/core/surfaces'
@@ -25,6 +26,9 @@ function drawingOf(
   level: string,
   object: { type: string; width: number },
 ): { key: string; svg: string } | undefined {
+  const brought = importedType(object.type)
+  if (brought) return { key: `imported:${brought.id}`, svg: outlineSymbol(brought) }
+
   const kind = stairKind(object.type)
   if (!kind) return undefined
   const height = doc.levels[level]?.height ?? 2800
