@@ -99,20 +99,8 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   const turn = spin.preview ?? spot.turn
   const tint = picked ? EMPHASIS.picked.tint : hovered ? EMPHASIS.hovered.tint : '#ffffff'
 
-  const across = { x: Math.cos(turn), y: Math.sin(turn) }
-  const along = { x: -Math.sin(turn), y: Math.cos(turn) }
-  const corners = [-1, 1].flatMap((side) =>
-    [-1, 1].map((end) => ({
-      x: at.x + (across.x * side * object.width + along.x * end * object.depth) / 2,
-      y: at.y + (across.y * side * object.width + along.y * end * object.depth) / 2,
-    })),
-  )
-  const corner = corners.reduce((best, one) => (one.x + one.y > best.x + best.y ? one : best))
-  const away = Math.hypot(corner.x - at.x, corner.y - at.y) || 1
-  const grip = {
-    x: corner.x + ((corner.x - at.x) / away) * 280,
-    y: corner.y + ((corner.y - at.y) / away) * 280,
-  }
+  const reach = (Math.hypot(object.width, object.depth) / 2 + 280) * Math.SQRT1_2
+  const grip = { x: at.x + reach, y: at.y + reach }
 
   const on = (event: ThreeEvent<PointerEvent | MouseEvent>) => {
     const where = { x: event.point.x / MM, y: -event.point.z / MM }
