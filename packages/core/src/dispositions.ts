@@ -1,15 +1,8 @@
 export type Disposition = {
   id: string
-  /** Habitable rooms: what the number in front of the plus counts. */
   rooms: number
   kitchen: 'kitchenette' | 'separate'
-  /** Typical floor area of a new build, in m². */
   area: { from: number; to: number }
-  /**
-   * Where the range comes from. `market` was measured in the 2025/26 Czech
-   * new-build market; `stepped` continues the same step past the sizes anybody
-   * publishes figures for, and should be treated as a sketch.
-   */
   source: 'market' | 'stepped'
   who: string
 }
@@ -100,30 +93,16 @@ export const DISPOSITIONS: Disposition[] = [
 export const dispositionOf = (id: string): Disposition | undefined =>
   DISPOSITIONS.find((candidate) => candidate.id === id.toLowerCase().replace(/\s+/g, ''))
 
-/**
- * What the standard asks of a dwelling, in m² and mm.
- *
- * ČSN 73 4301 and, since 1 July 2024, vyhláška 146/2024 Sb., which replaced
- * 268/2009 and 501/2006 under the new building act.
- */
 export const STANDARD = {
-  /** A habitable room at all. */
   habitableRoom: 8,
-  /** The one room of a one-room flat, which has to hold everything. */
   onlyRoom: 16,
-  /** At this and above, a kitchen counts as a habitable room rather than a corner. */
   kitchenAsRoom: 12,
-  /** From this many habitable rooms the wc wants a room of its own, not a corner of the bathroom. */
   separateWcFrom: 3,
-  /** A living room grows with the flat: 1-2 rooms, 3-4, and 5 or more. */
   livingRoom: { small: 16, medium: 18, large: 20 },
-  /** Clear width of a passage; 1200 where anything stands along it. */
   passage: 1000,
-  /** Clear floor in front of a door, so there is somewhere to stand to open it. */
   approach: 600,
   ceiling: { habitable: 2500, service: 2200 },
 } as const
 
-/** How many habitable rooms a dwelling of this many rooms is, as the notation counts them. */
 export const notationFor = (rooms: number, kitchen: 'kitchenette' | 'separate'): string =>
   `${rooms}+${kitchen === 'kitchenette' ? 'kk' : '1'}`

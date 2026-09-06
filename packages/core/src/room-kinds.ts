@@ -2,7 +2,6 @@ export type RoomKind = {
   id: string
   label: string
   minArea: number
-  /** Clear width the standard wants, in mm, where it asks for one. */
   minWidth?: number
   needsWindow: boolean
   public: boolean
