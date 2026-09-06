@@ -13,6 +13,10 @@ type ViewState = {
   box: ViewBox | null
   asked: number
   frame: (box: ViewBox | null) => void
+  /** Counts up so the scene knows a new step was asked for, even at the same factor. */
+  step: number
+  factor: number
+  zoomBy: (factor: number) => void
   covers: Record<string, Cover>
   cover: (id: string, cover: Cover | null) => void
 }
@@ -21,6 +25,9 @@ export const viewStore = createStore<ViewState>()((set) => ({
   box: null,
   asked: 0,
   frame: (box) => set((state) => ({ box, asked: state.asked + 1 })),
+  step: 0,
+  factor: 1,
+  zoomBy: (factor) => set((state) => ({ step: state.step + 1, factor })),
   covers: {},
   cover: (id, cover) =>
     set((state) => {

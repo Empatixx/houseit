@@ -1,10 +1,18 @@
-import { Maximize2Icon, Redo2Icon, SettingsIcon, Undo2Icon } from 'lucide-react'
+import {
+  Maximize2Icon,
+  MinusIcon,
+  PlusIcon,
+  Redo2Icon,
+  SettingsIcon,
+  Undo2Icon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { ZOOM } from '../scene/zooming'
 import { useMode } from '../store/mode'
 import { selectionStore, useSelection } from '../store/selection'
 import { documentStore, useDocument } from '../store/store'
@@ -106,7 +114,41 @@ export function TopOverlay() {
         </div>
       </div>
       <ModeTabs />
+      {walking ? null : <Scale />}
       {walking ? <Minimap /> : null}
+    </div>
+  )
+}
+
+function Scale() {
+  return (
+    <div className="glass pointer-events-auto flex w-10 flex-col items-center gap-0.5 rounded-xl border py-1">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Closer"
+            onClick={() => viewStore.getState().zoomBy(ZOOM.step)}
+          >
+            <PlusIcon />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left">Closer</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Further"
+            onClick={() => viewStore.getState().zoomBy(1 / ZOOM.step)}
+          >
+            <MinusIcon />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left">Further</TooltipContent>
+      </Tooltip>
     </div>
   )
 }

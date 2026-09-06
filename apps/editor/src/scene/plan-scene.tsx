@@ -12,6 +12,7 @@ import { RoomFloors } from './room-floors'
 import { StairsBelow } from './stairs-below'
 import { StoreyBelow } from './storey-below'
 import { Walls } from './walls'
+import { Zooming } from './zooming'
 
 const OVERHEAD: [number, number, number] = [0, 40, 0]
 const UP: [number, number, number] = [0, 0, -1]
@@ -26,7 +27,7 @@ export function PlanScene() {
       onPointerMissed={() => selectionStore.getState().select(null)}
     >
       <OrthographicCamera makeDefault position={OVERHEAD} zoom={45} up={UP} near={0.1} far={200} />
-      <OrbitControls makeDefault enableRotate={false} enableZoom={false} enableDamping={false} />
+      <OrbitControls makeDefault enableRotate={false} enableDamping={false} />
 
       <color attach="background" args={['#f4f4f5']} />
 
@@ -41,6 +42,7 @@ export function PlanScene() {
       <Dimensions />
       <Drawing />
       <FitToPlan />
+      <Zooming />
     </Canvas>
   )
 }
