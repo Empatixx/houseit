@@ -55,15 +55,42 @@ test('there is something to open it with, at a handle height', () => {
   expect(handle.base).toBeLessThan(1200)
 })
 
+const panels = (pieces: ReturnType<typeof doorPieces>) =>
+  pieces.filter((piece) => /-(leaf|near|far|panel)$/.test(piece.key))
+
 test('a sliding door is two panels in the wall, a pocket door one', () => {
-  const sliding = doorPieces({ ...door, variant: 'sliding', width: 1600 }, wall, 3000)
-  const pocket = doorPieces({ ...door, variant: 'pocket' }, wall, 3000)
+  const sliding = panels(doorPieces({ ...door, variant: 'sliding', width: 1600 }, wall, 3000))
+  const pocket = panels(doorPieces({ ...door, variant: 'pocket' }, wall, 3000))
 
   expect(sliding).toHaveLength(2)
   expect(sliding.every((piece) => piece.turn === 0)).toBe(true)
   expect(sliding.map((piece) => piece.length)).toEqual([800, 800])
   expect(pocket).toHaveLength(1)
   expect(pocket[0]!.length).toBe(door.width)
+})
+
+test('the reveal is lined: a jamb each side and a soffit over', () => {
+  const pieces = doorPieces(door, wall, 3000)
+  const jambs = pieces.filter((piece) => piece.key.includes('-jamb-'))
+  const soffit = pieces.find((piece) => piece.key.endsWith('-soffit'))!
+
+  expect(jambs).toHaveLength(2)
+  expect(jambs.every((jamb) => jamb.thickness === wall.thickness)).toBe(true)
+  expect(jambs.every((jamb) => jamb.height === door.height)).toBe(true)
+  expect(jambs.map((jamb) => jamb.at).sort((a, b) => a - b)).toEqual([
+    3000 - (door.width - 40) / 2,
+    3000 + (door.width - 40) / 2,
+  ])
+  expect(soffit.base + soffit.height).toBe(door.height)
+  expect(soffit.thickness).toBe(wall.thickness)
+})
+
+test('what stands in the wall stops under the soffit', () => {
+  for (const variant of ['sliding', 'pocket', 'garage'] as const) {
+    for (const panel of panels(doorPieces({ ...door, variant }, wall, 3000))) {
+      expect(panel.base + panel.height, variant).toBeLessThan(door.height)
+    }
+  }
 })
 
 test('a window grows no door', () => {
