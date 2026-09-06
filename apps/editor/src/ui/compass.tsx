@@ -10,6 +10,8 @@ const RING = 62
 const TICK = 7
 const MARK = 17
 const NEAR = 4
+const BAND = 0.15
+const GLOW = 0.22
 
 const round = (spin: number) => {
   const nearest = (Math.round(spin / 15) * 15) % 360
@@ -109,8 +111,8 @@ export function Compass() {
                 d={sweep(spin, RING)}
                 fill="none"
                 stroke="var(--primary)"
-                strokeWidth={4}
-                strokeLinecap="round"
+                strokeOpacity={GLOW}
+                strokeWidth={RING * BAND * 2}
               />
             )}
             <line {...spoke(0, MARK)} stroke="var(--primary)" strokeWidth={3.5} />

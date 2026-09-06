@@ -1,12 +1,14 @@
 import type { Point } from '@houseit/geometry/outlines'
 import { Html, Line } from '@react-three/drei'
+import { DoubleSide } from 'three'
 import { EMPHASIS } from '../../store/hover'
-import { toWorld } from '../plan-coordinates'
+import { MM, toWorld } from '../plan-coordinates'
 
 const INK = EMPHASIS.picked.line
 const FAINT = '#a1a1aa'
-const ARROW = 190
 const TICKS = 24
+const BAND = 0.15
+const GLOW = 0.22
 
 const spot = (centre: Point, angle: number, radius: number): Point => ({
   x: centre.x + Math.cos(angle) * radius,
@@ -26,31 +28,35 @@ const run = (centre: Point, from: number, to: number, radius: number, height: nu
     return toWorld(at.x, at.y, height)
   })
 
-const HEAD = -Math.PI / 4
-const BARB = 150
-
 export function Turner({ at, height }: { at: Point; height: number }) {
-  const tip = spot(at, HEAD, ARROW)
-  const back = { x: -Math.sin(HEAD) * BARB, y: Math.cos(HEAD) * BARB }
-  const barb = (turn: number) => {
-    const cos = Math.cos(turn)
-    const sin = Math.sin(turn)
-    return toWorld(tip.x + back.x * cos - back.y * sin, tip.y + back.x * sin + back.y * cos, height)
-  }
-
   return (
-    <>
-      <Line
-        points={run(at, (7 * Math.PI) / 8, HEAD, ARROW, height, 28)}
-        color={INK}
-        lineWidth={2}
-      />
-      <Line
-        points={[barb(Math.PI / 6), toWorld(tip.x, tip.y, height), barb(-Math.PI / 6)]}
-        color={INK}
-        lineWidth={2}
-      />
-    </>
+    <Html
+      position={toWorld(at.x, at.y, height)}
+      center
+      zIndexRange={[8, 5]}
+      style={{ pointerEvents: 'none' }}
+    >
+      <div
+        className="pointer-events-none flex size-9 select-none items-center justify-center rounded-full border border-black/10 bg-white shadow-sm"
+        style={{ color: INK }}
+      >
+        <svg
+          width={24}
+          height={24}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M 4.53 12.65 A 7.5 7.5 0 1 1 11.35 19.47" />
+          <path d="M 6.63 9.02 L 4.53 12.65 L 1.83 9.44" />
+          <path d="M 14.56 22.17 L 11.35 19.47 L 14.98 17.37" />
+        </svg>
+      </div>
+    </Html>
   )
 }
 
@@ -72,11 +78,25 @@ export function Dial({ centre, height, base, turn, radius }: DialProps) {
         <Line key={at} points={mark(at, radius * 0.09)} color={FAINT} lineWidth={1} />
       ))}
       {degrees === 0 ? null : (
-        <Line
-          points={run(centre, base + Math.PI / 2, base + Math.PI / 2 + swept, radius, height)}
-          color={INK}
-          lineWidth={3}
-        />
+        <mesh position={toWorld(centre.x, centre.y, height)} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry
+            args={[
+              radius * (1 - BAND) * MM,
+              radius * (1 + BAND) * MM,
+              96,
+              1,
+              base + Math.PI / 2,
+              swept,
+            ]}
+          />
+          <meshBasicMaterial
+            color={INK}
+            side={DoubleSide}
+            transparent
+            opacity={GLOW}
+            depthWrite={false}
+          />
+        </mesh>
       )}
       <Line points={mark(base, radius * 0.22)} color={INK} lineWidth={2.5} />
       <Line points={mark(turn, radius * 0.22)} color={INK} lineWidth={2.5} />

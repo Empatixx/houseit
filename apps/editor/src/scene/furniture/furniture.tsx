@@ -183,7 +183,20 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
               radius={Math.hypot(object.width, object.depth) / 2 + 520}
             />
           ) : null}
-          <Turner at={grip} height={ABOVE} />
+          {spin.open ? (
+            <mesh
+              position={toWorld(at.x, at.y, ABOVE)}
+              rotation={[-Math.PI / 2, 0, 0]}
+              onPointerMove={spin.move}
+              onPointerUp={spin.up}
+            >
+              <circleGeometry
+                args={[(Math.hypot(object.width, object.depth) / 2 + 900) * MM, 40]}
+              />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+          ) : null}
+          {spin.open ? null : <Turner at={grip} height={ABOVE} />}
           <mesh
             position={toWorld(grip.x, grip.y, ABOVE)}
             rotation={[-Math.PI / 2, 0, 0]}
@@ -191,7 +204,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
             onPointerMove={spin.move}
             onPointerUp={spin.up}
           >
-            <circleGeometry args={[0.26, 20]} />
+            <circleGeometry args={[0.3, 20]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>
         </>
