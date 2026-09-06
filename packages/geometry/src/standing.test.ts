@@ -38,8 +38,16 @@ test('the parts of a thing lie where its drawing puts them, not in its mirror im
   const sofa = { type: 'sofa-l', against: 'south' as const, along: 0.5, width: 3000, depth: 1800 }
   const spot = standingAt(doc, level, room, sofa)!
 
-  const [, chaise] = piecesOf(spot, sofa)
+  const pieces = piecesOf(spot, sofa)
+  const sideOf = (towards: -1 | 1) =>
+    pieces.reduce((sum, piece) => {
+      const xs = piece.map((corner) => corner.x)
+      const ys = piece.map((corner) => corner.y)
+      const from = towards < 0 ? Math.min(...xs) : Math.max(spot.at.x, Math.min(...xs))
+      const to = towards < 0 ? Math.min(spot.at.x, Math.max(...xs)) : Math.max(...xs)
+      return sum + Math.max(0, to - from) * (Math.max(...ys) - Math.min(...ys))
+    }, 0)
 
-  expect(chaise).toBeDefined()
-  for (const corner of chaise!) expect(corner.x).toBeLessThanOrEqual(spot.at.x + 1)
+  expect(pieces.length).toBeGreaterThan(1)
+  expect(sideOf(-1)).toBeGreaterThan(sideOf(1))
 })
