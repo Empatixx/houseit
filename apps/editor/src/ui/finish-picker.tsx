@@ -2,10 +2,12 @@ import { SearchIcon } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
 export type Choice = { id: string; label: string; picture?: string; colour?: string }
+
+const BESIDE = 24
 
 type FinishRowProps = {
   icon: ReactNode
@@ -28,65 +30,67 @@ export function FinishRow({ icon, label, title, chosen, choices, onPick }: Finis
   }
 
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="flex items-center gap-2 text-xs text-muted-foreground [&>svg]:size-3.5">
-        {icon}
-        {label}
-      </span>
-      <Popover open={open} onOpenChange={show}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            aria-label={`${label}: ${chosen?.label ?? 'not chosen'}`}
-            className="rounded-4xl focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-          >
-            <Badge
-              variant={chosen ? 'secondary' : 'outline'}
-              className="cursor-pointer gap-1.5 has-[img]:pl-1"
+    <Popover open={open} onOpenChange={show}>
+      <PopoverAnchor asChild>
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 text-xs text-muted-foreground [&>svg]:size-3.5">
+            {icon}
+            {label}
+          </span>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label={`${label}: ${chosen?.label ?? 'not chosen'}`}
+              className="rounded-4xl focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
             >
-              {chosen ? <Swatch choice={chosen} /> : null}
-              {chosen?.label ?? 'Choose'}
-            </Badge>
-          </button>
-        </PopoverTrigger>
-        <PopoverContent side="left" align="start" sideOffset={12} className="w-72 p-0">
-          <div className="flex flex-col gap-2 px-3 pt-3 pb-2">
-            <h3 className="text-sm font-semibold">{title}</h3>
-            <div className="relative">
-              <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                autoFocus
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder={`Search ${label.toLowerCase()}`}
-                aria-label={`Search ${label.toLowerCase()}`}
-                className="h-8 pl-8 text-xs"
-              />
-            </div>
-          </div>
-          <div className="grid max-h-80 grid-cols-2 gap-3 overflow-auto px-3 pb-3">
-            {shown.map((choice) => (
-              <button
-                key={choice.id}
-                type="button"
-                aria-pressed={choice.id === chosen?.id}
-                onClick={() => {
-                  onPick(choice.id)
-                  show(false)
-                }}
-                className="group flex flex-col gap-1.5 text-left focus-visible:outline-none"
+              <Badge
+                variant={chosen ? 'secondary' : 'outline'}
+                className="cursor-pointer gap-1.5 has-[img]:pl-1"
               >
-                <Picture choice={choice} picked={choice.id === chosen?.id} />
-                <span className="truncate text-xs">{choice.label}</span>
-              </button>
-            ))}
-            {shown.length === 0 ? (
-              <p className="col-span-2 text-xs text-muted-foreground">Nothing called that.</p>
-            ) : null}
+                {chosen ? <Swatch choice={chosen} /> : null}
+                {chosen?.label ?? 'Choose'}
+              </Badge>
+            </button>
+          </PopoverTrigger>
+        </div>
+      </PopoverAnchor>
+      <PopoverContent side="left" align="start" sideOffset={BESIDE} className="w-72 p-0">
+        <div className="flex flex-col gap-2 px-3 pt-3 pb-2">
+          <h3 className="text-sm font-semibold">{title}</h3>
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              autoFocus
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={`Search ${label.toLowerCase()}`}
+              aria-label={`Search ${label.toLowerCase()}`}
+              className="h-8 pl-8 text-xs"
+            />
           </div>
-        </PopoverContent>
-      </Popover>
-    </div>
+        </div>
+        <div className="grid max-h-80 grid-cols-2 gap-3 overflow-auto px-3 pb-3">
+          {shown.map((choice) => (
+            <button
+              key={choice.id}
+              type="button"
+              aria-pressed={choice.id === chosen?.id}
+              onClick={() => {
+                onPick(choice.id)
+                show(false)
+              }}
+              className="group flex flex-col gap-1.5 text-left focus-visible:outline-none"
+            >
+              <Picture choice={choice} picked={choice.id === chosen?.id} />
+              <span className="truncate text-xs">{choice.label}</span>
+            </button>
+          ))}
+          {shown.length === 0 ? (
+            <p className="col-span-2 text-xs text-muted-foreground">Nothing called that.</p>
+          ) : null}
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
 
