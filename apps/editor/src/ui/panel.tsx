@@ -1,4 +1,3 @@
-import { surveyRoom } from '@houseit/commands/survey'
 import type { HouseObject, Opening, Wall } from '@houseit/core/document'
 import { FLOOR_MATERIALS } from '@houseit/core/floor-materials'
 import { objectType } from '@houseit/core/object-types'
@@ -17,12 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { finish, remove, resize, roomOf, turnTo } from '../edit/object-commands'
 import { removeOpening, setOpening, whereOpening } from '../edit/opening-commands'
 import { layFloor, rename, setKind } from '../edit/room-commands'
-import { type CutRequest, cutRoom } from '../edit/shape-commands'
-import { knockThrough, nameWall } from '../edit/wall-commands'
+import { nameWall } from '../edit/wall-commands'
 import { selectionStore, useSelection } from '../store/selection'
 import { useDocument } from '../store/store'
 import { FloorSwatch, KindIcon, SurfaceSwatch } from './avatars'
@@ -140,118 +137,7 @@ function RoomPanel({ room }: { room: Room }) {
           ['Area', `${(room.area / 1_000_000).toFixed(1)} m²`],
         ]}
       />
-      <Separator />
-      <CutRoom room={room} />
-      <KnockThrough room={room} />
     </>
-  )
-}
-
-const WHERE: CutRequest['where'][] = [
-  'west',
-  'east',
-  'north',
-  'south',
-  'north-west',
-  'north-east',
-  'south-west',
-  'south-east',
-]
-
-function CutRoom({ room }: { room: Room }) {
-  const [where, setWhere] = useState<CutRequest['where']>('west')
-  const [width, setWidth] = useState('3000')
-  const [depth, setDepth] = useState('3000')
-  const [name, setName] = useState('')
-  const corner = where.includes('-')
-  return (
-    <div className="flex flex-col gap-3">
-      <Heading>Cut off a room</Heading>
-      <Field label="Where">
-        <Select value={where} onValueChange={(value) => setWhere(value as CutRequest['where'])}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {WHERE.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option.includes('-') ? `${option} corner` : `${option} side`}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      <div className="grid grid-cols-2 gap-2">
-        <Field label="Width (mm)">
-          <Input inputMode="numeric" value={width} onChange={(e) => setWidth(e.target.value)} />
-        </Field>
-        <Field label="Depth (mm)">
-          <Input
-            inputMode="numeric"
-            value={corner ? depth : ''}
-            disabled={!corner}
-            placeholder={corner ? '' : 'right across'}
-            onChange={(e) => setDepth(e.target.value)}
-          />
-        </Field>
-      </div>
-      <Field label="Name">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="new room" />
-      </Field>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          const done = cutRoom(room, {
-            where,
-            width: Number(width),
-            ...(corner ? { depth: Number(depth) } : {}),
-            name: name.trim() || 'room',
-            material: room.floor ?? 'natural-oak',
-          })
-          if (done) setName('')
-        }}
-      >
-        Cut
-      </Button>
-    </div>
-  )
-}
-
-function KnockThrough({ room }: { room: Room }) {
-  const doc = useDocument((state) => state.doc)
-  const level = useDocument((state) => state.level)
-  const neighbours = surveyRoom(doc, level, room).neighbours
-  const [into, setInto] = useState('')
-  if (neighbours.length === 0) return null
-  return (
-    <Field label="Knock through into">
-      <div className="flex gap-1">
-        <Select value={into} onValueChange={setInto}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="—" />
-          </SelectTrigger>
-          <SelectContent>
-            {neighbours.map((name) => (
-              <SelectItem key={name} value={name}>
-                {name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          disabled={into === ''}
-          onClick={() => {
-            if (knockThrough(room, into)) selectionStore.getState().select(null)
-          }}
-        >
-          Go
-        </Button>
-      </div>
-    </Field>
   )
 }
 

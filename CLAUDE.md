@@ -220,6 +220,23 @@ command list and `floorplan("guidelines")` for how a dwelling goes together. Bot
 are answers, cached like any other, and both can grow without the description
 moving. Adding the second cost one cache flush, once, on purpose.
 
+## Do not switch the MCP server on to try something
+
+The tool list is part of the prompt. Attaching the MCP server to a session that
+did not have it, or turning it on to test a change, rewrites that list and
+throws away every cached token in the conversation — the next request is paid
+for from cold, at full price, and a long session is expensive to restart.
+
+So during development the plan is driven from the CLI. `apps/mcp/dist/cli.js` is
+the same registry, the same bridge and the same tab as the tool, and running it
+changes nothing about the prompt. Anything the tool can do is reachable there,
+which is the reason it exists.
+
+Where the server itself has to be exercised — the tool description, the way an
+answer is returned, the picture that rides along — say so first, say what it
+costs, and let whoever is paying decide. Handing the prompt to a separate agent
+is usually the answer: its cache is nobody's loss.
+
 ## A plan belongs to a project
 
 The editor opens on a home screen of cards, one to a plan, and a plan is worked on

@@ -2,6 +2,7 @@ import { moveWall } from '@houseit/commands/move-wall'
 import { removeRoom } from '@houseit/commands/remove-room'
 import { removeWall, resizeWall } from '@houseit/commands/stub-commands'
 import { type Stub, stubsOn } from '@houseit/commands/stubs'
+import { surveyRoom } from '@houseit/commands/survey'
 import type { Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
@@ -36,9 +37,32 @@ export function previewWallMove(wall: Wall, shift: Point): void {
   previewCommand(moveWall, args)
 }
 
-export function knockThrough(room: Room, into: string): boolean {
+export function knockThroughToBiggest(room: Room): boolean {
   if (!room.name) return false
-  return runEdit(() => documentStore.getState().apply(removeRoom, { room: room.name!, into }))
+  const { doc, level } = documentStore.getState()
+  const rooms = roomsOf(doc, level)
+  const neighbours = surveyRoom(doc, level, room)
+    .neighbours.map((name) => rooms.find((candidate) => candidate.name === name))
+    .filter((candidate) => candidate !== undefined && candidate.name !== undefined)
+    .map((candidate) => candidate as Room & { name: string })
+    .sort((one, other) => other.area - one.area)
+
+  if (neighbours.length === 0) {
+    sayError('there is nothing next door to knock this room through into')
+    return false
+  }
+
+  let refused = ''
+  for (const into of neighbours) {
+    try {
+      documentStore.getState().apply(removeRoom, { room: room.name, into: into.name })
+      return true
+    } catch (error) {
+      refused ||= error instanceof Error ? error.message : String(error)
+    }
+  }
+  sayError(refused)
+  return false
 }
 
 export function nameWall(wall: Wall) {

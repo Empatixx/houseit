@@ -1,3 +1,4 @@
+import { roomsOf } from '@houseit/geometry/rooms'
 import { useEffect } from 'react'
 import { drawStore } from '../store/draw'
 import { selectionStore } from '../store/selection'
@@ -6,7 +7,7 @@ import { toolStore } from '../store/tool'
 import { cancelDrawing, finishDrawing } from './draw-commands'
 import { remove, turnBy } from './object-commands'
 import { removeOpening } from './opening-commands'
-import { removeStub } from './wall-commands'
+import { knockThroughToBiggest, removeStub } from './wall-commands'
 
 export function useEditKeys(): void {
   useEffect(() => {
@@ -53,6 +54,16 @@ export function useEditKeys(): void {
         if (wall && (event.key === 'Delete' || event.key === 'Backspace')) {
           event.preventDefault()
           if (removeStub(wall)) selectionStore.getState().select(null)
+        }
+        return
+      }
+      if (selected?.kind === 'room') {
+        const room = roomsOf(documentStore.getState().doc, documentStore.getState().level).find(
+          (candidate) => candidate.id === selected.id,
+        )
+        if (room && (event.key === 'Delete' || event.key === 'Backspace')) {
+          event.preventDefault()
+          if (knockThroughToBiggest(room)) selectionStore.getState().select(null)
         }
         return
       }
