@@ -17,6 +17,18 @@ const round = (spin: number) => {
 
 const nearestTick = (spin: number) => (Math.round(spin / 15) * 15) % 360
 
+const corner = (spin: number, radius: number) => {
+  const radians = (spin * Math.PI) / 180
+  return { x: Math.sin(radians) * radius, y: -Math.cos(radians) * radius }
+}
+
+const sweep = (spin: number, radius: number) => {
+  const to = corner(spin, radius)
+  return `M 0 ${-radius} A ${radius} ${radius} 0 ${spin > 180 ? 1 : 0} 1 ${to.x} ${to.y}`
+}
+
+const wedge = (spin: number, radius: number) => `${sweep(spin, radius)} L 0 0 Z`
+
 export function Compass() {
   const spin = useView((state) => state.spin)
   const dial = useRef<SVGSVGElement>(null)
@@ -90,6 +102,28 @@ export function Compass() {
                 />
               )
             })}
+            {spin === 0 ? null : (
+              <>
+                <path d={wedge(spin, RING - 16)} fill="var(--primary)" opacity={0.16} />
+                <path
+                  d={sweep(spin, RING - 16)}
+                  fill="none"
+                  stroke="var(--primary)"
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                  opacity={0.75}
+                />
+              </>
+            )}
+            <line
+              x1={0}
+              y1={-RING + 12}
+              x2={0}
+              y2={-RING + 26}
+              stroke="var(--muted-foreground)"
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+            />
             <line
               x1={0}
               y1={0}
