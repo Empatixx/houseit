@@ -32,10 +32,10 @@ export function Drawing() {
             toWorld(guide.to.x, guide.to.y, ABOVE),
           ]}
           color={EMPHASIS.picked.line}
-          lineWidth={1.5}
+          lineWidth={3}
           dashed
-          dashSize={0.05}
-          gapSize={0.08}
+          dashSize={0.07}
+          gapSize={0.09}
         />
       ))}
       {keyed.map(({ corner, key }) => (
