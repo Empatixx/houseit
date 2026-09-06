@@ -1,4 +1,5 @@
 import type { HouseDocument, HouseObject, Opening, Side, Wall } from '@houseit/core/document'
+import { PARTS, type Part } from '@houseit/core/finishes'
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
 import { interiorSize, objectClearances, planExtent } from '@houseit/geometry/dimensions'
 import type { Point } from '@houseit/geometry/outlines'
@@ -67,6 +68,23 @@ export type SideReport = {
   free: Span[]
 }
 
+function dressingOf(
+  record:
+    | { style?: string; walls?: string; ceiling?: string; doors?: string; windows?: string }
+    | undefined,
+): { style?: string; finishes?: Partial<Record<Part, string>> } {
+  if (!record) return {}
+  const finishes: Partial<Record<Part, string>> = {}
+  for (const part of PARTS) {
+    const finish = record[part]
+    if (finish !== undefined) finishes[part] = finish
+  }
+  return {
+    ...(record.style === undefined ? {} : { style: record.style }),
+    ...(Object.keys(finishes).length === 0 ? {} : { finishes }),
+  }
+}
+
 export type RoomReport = {
   id?: string
   name?: string
@@ -76,6 +94,8 @@ export type RoomReport = {
   depth: number
   box: { x0: number; y0: number; x1: number; y1: number }
   floor?: string
+  style?: string
+  finishes?: Partial<Record<Part, string>>
   neighbours: string[]
   walls: WallReport[]
   sides: SideReport[]
@@ -157,6 +177,7 @@ export function surveyRoom(
     ...interiorSize(doc, level, room),
     box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) },
     ...(room.floor === undefined ? {} : { floor: room.floor }),
+    ...dressingOf(room.id === undefined ? undefined : doc.rooms[room.id]),
     neighbours,
     walls: walls.flatMap((wall) => {
       const place = runOfWall(doc, level, room, wall.id)

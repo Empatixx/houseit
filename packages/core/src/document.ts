@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { FINISH_IDS, STYLE_IDS } from './finishes'
 import { HostSchema } from './host'
 import { ROOM_KIND_IDS } from './room-kinds'
 
@@ -49,6 +50,11 @@ export const RoomSchema = z.object({
   name: z.string(),
   floor: z.string().optional(),
   kind: z.enum(ROOM_KIND_IDS as [string, ...string[]]).optional(),
+  style: z.enum(STYLE_IDS as [string, ...string[]]).optional(),
+  walls: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
+  ceiling: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
+  doors: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
+  windows: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
 })
 
 export const SideSchema = z.enum(['north', 'south', 'east', 'west'])

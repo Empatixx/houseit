@@ -1,10 +1,19 @@
 import type { HouseObject, Opening, Wall } from '@houseit/core/document'
-import { FLOOR_MATERIALS } from '@houseit/core/floor-materials'
+import { finishesFor, finishOf, type Part, STYLES, styleOf } from '@houseit/core/finishes'
+import { FLOOR_MATERIALS, floorMaterial } from '@houseit/core/floor-materials'
 import { objectType } from '@houseit/core/object-types'
 import { ROOM_KINDS, roomKindOf } from '@houseit/core/room-kinds'
 import { SURFACES } from '@houseit/core/surfaces'
 import { interiorSize } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import {
+  BlindsIcon,
+  BrickWallIcon,
+  DoorOpenIcon,
+  LayersIcon,
+  PaletteIcon,
+  PanelTopIcon,
+} from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,13 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import { finish, remove, resize, roomOf, turnTo } from '../edit/object-commands'
 import { removeOpening, setOpening, whereOpening } from '../edit/opening-commands'
-import { layFloor, rename, setKind } from '../edit/room-commands'
+import { layFloor, setFinish, setKind, setStyle } from '../edit/room-commands'
 import { nameWall } from '../edit/wall-commands'
 import { selectionStore, useSelection } from '../store/selection'
 import { useDocument } from '../store/store'
-import { FloorSwatch, KindIcon, SurfaceSwatch } from './avatars'
+import { KindIcon, SurfaceSwatch } from './avatars'
+import { type Choice, FinishRow } from './finish-picker'
 
 export function PanelContent() {
   const doc = useDocument((state) => state.doc)
@@ -78,18 +89,30 @@ function WallPanel({ wall }: { wall: Wall }) {
   )
 }
 
+const FLOOR_CHOICES: Choice[] = FLOOR_MATERIALS.map((material) => ({
+  id: material.id,
+  label: material.label,
+  picture: `textures/${material.texture}`,
+}))
+
+const WEARS: { part: Part; label: string; icon: ReactNode }[] = [
+  { part: 'walls', label: 'Walls', icon: <BrickWallIcon /> },
+  { part: 'ceiling', label: 'Ceiling', icon: <PanelTopIcon /> },
+  { part: 'doors', label: 'Doors', icon: <DoorOpenIcon /> },
+  { part: 'windows', label: 'Windows', icon: <BlindsIcon /> },
+]
+
 function RoomPanel({ room }: { room: Room }) {
   const doc = useDocument((state) => state.doc)
   const level = useDocument((state) => state.level)
   const size = interiorSize(doc, level, room)
   const kind = roomKindOf(room)
+  const record = room.id === undefined ? undefined : doc.rooms[room.id]
+  const floor = floorMaterial(room.floor ?? '')
 
   return (
     <>
       <Heading>Room</Heading>
-      <Field label="Name">
-        <TextField value={room.name ?? ''} onCommit={(name) => rename(room, name)} />
-      </Field>
       <Field label="Kind">
         <Select
           value={room.kind ?? 'none'}
@@ -112,31 +135,43 @@ function RoomPanel({ room }: { room: Room }) {
           </SelectContent>
         </Select>
       </Field>
-      <Field label="Floor">
-        <Select value={room.floor ?? 'bare'} onValueChange={(value) => layFloor(room, value)}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="bare">
-              <FloorSwatch id={undefined} />
-              bare
-            </SelectItem>
-            {FLOOR_MATERIALS.map((material) => (
-              <SelectItem key={material.id} value={material.id}>
-                <FloorSwatch id={material.id} />
-                {material.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
       <Facts
         rows={[
-          ['Clear size', `${size.width} × ${size.depth} mm`],
+          ['Width', `${size.width} mm`],
+          ['Depth', `${size.depth} mm`],
           ['Area', `${(room.area / 1_000_000).toFixed(1)} m²`],
         ]}
       />
+      <Separator />
+      <Heading>Design preference</Heading>
+      <FinishRow
+        icon={<PaletteIcon />}
+        label="Style"
+        title="Add style"
+        chosen={styleOf(record?.style)}
+        choices={STYLES}
+        onPick={(id) => setStyle(room, id)}
+      />
+      <Heading>Fine-tuning</Heading>
+      <FinishRow
+        icon={<LayersIcon />}
+        label="Floor"
+        title="Add finish"
+        chosen={FLOOR_CHOICES.find((choice) => choice.id === floor?.id)}
+        choices={FLOOR_CHOICES}
+        onPick={(id) => layFloor(room, id)}
+      />
+      {WEARS.map(({ part, label, icon }) => (
+        <FinishRow
+          key={part}
+          icon={icon}
+          label={label}
+          title="Add finish"
+          chosen={finishOf(record?.[part])}
+          choices={finishesFor(part)}
+          onPick={(id) => setFinish(room, part, id)}
+        />
+      ))}
     </>
   )
 }
@@ -297,26 +332,6 @@ function Facts({ rows }: { rows: [string, string][] }) {
         </div>
       ))}
     </dl>
-  )
-}
-
-function TextField({ value, onCommit }: { value: string; onCommit: (value: string) => boolean }) {
-  const [draft, setDraft] = useState(value)
-  useEffect(() => setDraft(value), [value])
-  const commit = () => {
-    if (draft === value) return
-    if (!onCommit(draft)) setDraft(value)
-  }
-  return (
-    <Input
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') (event.target as HTMLInputElement).blur()
-        if (event.key === 'Escape') setDraft(value)
-      }}
-    />
   )
 }
 

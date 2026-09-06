@@ -1,4 +1,3 @@
-import { floorMaterial } from '@houseit/core/floor-materials'
 import { surfaceOf } from '@houseit/core/surfaces'
 import {
   BathIcon,
@@ -21,24 +20,6 @@ import {
   WashingMachineIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-export function FloorSwatch({ id }: { id: string | undefined }) {
-  const material = id ? floorMaterial(id) : undefined
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-block size-4 shrink-0 rounded-full border border-black/10 bg-muted bg-cover bg-center"
-      style={
-        material
-          ? {
-              backgroundImage: `url(textures/${material.texture})`,
-              backgroundColor: material.colour,
-            }
-          : undefined
-      }
-    />
-  )
-}
 
 export function SurfaceSwatch({ id }: { id: string }) {
   const surface = surfaceOf(id)
