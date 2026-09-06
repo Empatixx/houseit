@@ -2,6 +2,7 @@ import type { Point } from '@houseit/geometry/outlines'
 import { Html, Line } from '@react-three/drei'
 import { DoubleSide } from 'three'
 import { EMPHASIS } from '../../store/hover'
+import { useView } from '../../store/view'
 import { MM, toWorld } from '../plan-coordinates'
 
 const INK = EMPHASIS.picked.line
@@ -9,6 +10,7 @@ const FAINT = '#a1a1aa'
 const TICKS = 24
 const BAND = 0.09
 const GLOW = 0.22
+const CLEAR = 6
 
 const spot = (centre: Point, angle: number, radius: number): Point => ({
   x: centre.x + Math.cos(angle) * radius,
@@ -60,8 +62,12 @@ export function Turner({ at, height }: { at: Point; height: number }) {
 type DialProps = { centre: Point; height: number; base: number; turn: number; radius: number }
 
 export function Dial({ centre, height, base, turn, radius }: DialProps) {
+  const spin = useView((state) => state.spin)
   const swept = short(turn - base)
   const degrees = Math.abs(Math.round((swept * 180) / Math.PI))
+  const heading = turn + (spin * Math.PI) / 180
+  const out = { x: -Math.sin(heading), y: -Math.cos(heading) }
+  const anchor = facing(centre, turn, radius * (1 + BAND))
   const mark = (at: number, reach: number) => {
     const outer = facing(centre, at, radius)
     const inner = facing(centre, at, radius - reach)
@@ -98,14 +104,17 @@ export function Dial({ centre, height, base, turn, radius }: DialProps) {
       <Line points={mark(base, radius * 0.22)} color={INK} lineWidth={2.5} />
       <Line points={mark(turn, radius * 0.22)} color={INK} lineWidth={2.5} />
       <Html
-        position={toWorld(centre.x, centre.y, height)}
+        position={toWorld(anchor.x, anchor.y, height)}
         center
         zIndexRange={[8, 5]}
         style={{ pointerEvents: 'none' }}
       >
         <div
           className="pointer-events-none select-none whitespace-nowrap rounded bg-white/90 px-1 text-[11px] font-medium leading-4"
-          style={{ color: INK }}
+          style={{
+            color: INK,
+            transform: `translate(${out.x * CLEAR}px, ${out.y * CLEAR}px) translate(${out.x * 50}%, ${out.y * 50}%)`,
+          }}
         >
           {degrees}°
         </div>
