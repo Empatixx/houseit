@@ -1,6 +1,7 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
-import { askPlan, runScript } from './run'
+import { askPlan } from './answer'
+import { runScript } from './run'
 
 const ROOM = 'add-room --shape rectangle --width 6m --depth 5m --material natural-oak --name kuchyň'
 const room = () => runScript(createEmptyDocument(), ROOM)

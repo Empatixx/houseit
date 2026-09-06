@@ -1,6 +1,7 @@
 import { createEmptyDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
-import { askPlan, runScript } from './run'
+import { askPlan } from './answer'
+import { runScript } from './run'
 
 const SAME_FOOTPRINT = [
   'add-room --shape l --width 12m --depth 10m --notch-width 4m --notch-depth 3m --material natural-oak --name přízemí',

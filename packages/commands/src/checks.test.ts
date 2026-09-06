@@ -1,6 +1,6 @@
 import { createEmptyDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
-import { askPlan } from './run'
+import { askPlan } from './answer'
 
 const check = (script: string) => askPlan(createEmptyDocument(), script)
 const codes = (script: string) => check(script).problems.map((problem) => problem.code)

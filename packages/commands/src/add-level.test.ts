@@ -2,7 +2,8 @@ import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { levelsOf } from '@houseit/core/levels'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
-import { askPlan, runScript } from './run'
+import { askPlan } from './answer'
+import { runScript } from './run'
 
 const GROUND =
   'add-room --shape rectangle --width 10m --depth 8m --material natural-oak --name obývák'

@@ -1,6 +1,7 @@
 import { createEmptyDocument } from '@houseit/core/document'
 import { expect, test } from 'vitest'
-import { askPlan, runScript } from './run'
+import { askPlan } from './answer'
+import { runScript } from './run'
 
 test('a third storey is cut up over two that are already there', () => {
   const doc = runScript(

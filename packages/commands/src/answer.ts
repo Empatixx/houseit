@@ -2,7 +2,10 @@ import type { HouseDocument } from '@houseit/core/document'
 import { flightOf, levelsOf } from '@houseit/core/levels'
 import { planExtent } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { produce } from 'immer'
+import { applyScript } from './apply-script'
 import { checkLevel, type Problem } from './checks'
+import type { Touched } from './define-command'
 import { roomOfOpening } from './openings'
 import { type RoomReport, surveyRoom } from './survey'
 
@@ -91,4 +94,19 @@ function roomBehind(
     return room ? { room, level } : undefined
   }
   return undefined
+}
+
+export function askPlan(doc: HouseDocument, source: string, open?: string): Answer {
+  let touched: Touched = { changed: [], shown: [] }
+  const next = produce(doc, (draft) => {
+    touched = applyScript(draft, source, open)
+  })
+  return answerFor(
+    next,
+    open ?? levelsOf(next)[0]!.id,
+    touched.changed,
+    touched.shown,
+    touched.at,
+    touched.notes,
+  )
 }

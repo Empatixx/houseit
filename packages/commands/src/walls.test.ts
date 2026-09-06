@@ -1,7 +1,8 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
-import { askPlan, runScript } from './run'
+import { askPlan } from './answer'
+import { runScript } from './run'
 import type { RoomReport } from './survey'
 
 const doorsOf = (room: RoomReport) => room.openings.filter((it) => it.kind === 'door')

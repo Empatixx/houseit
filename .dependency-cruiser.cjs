@@ -21,6 +21,17 @@ module.exports = {
       to: { path: 'node_modules/(react|react-dom|three|@react-three)' },
     },
     {
+      name: 'commands-do-not-read-back',
+      comment:
+        'The read model — survey, answer, checks and the rules — is built on top of the ' +
+        'commands, never the other way round. A command that reached for it would put the ' +
+        'reading and the doing in a loop, and it was that loop which let `checks` grow into ' +
+        'one file that did everything.',
+      severity: 'error',
+      from: { path: '^packages/commands/src/(?!survey\\.ts|answer\\.ts|checks\\.ts|rules/)' },
+      to: { path: '^packages/commands/src/(survey\\.ts|answer\\.ts|checks\\.ts|rules/)' },
+    },
+    {
       name: 'no-circular',
       severity: 'error',
       from: {},
