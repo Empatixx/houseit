@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# Takes the comments out before anything leaves the machine.
+#
+# A push sends commits, not files, so a hook cannot strip what is already
+# committed and send that instead: the refs were resolved before it ran. What it
+# does instead is strip, commit the stripping, and stop — the second push sends
+# both commits. That is one extra push and no rewritten history, which is the
+# trade the other way round: rewriting would put every future push behind
+# --force and make an existing clone unmergeable.
+#
+# Installed with:  git config core.hooksPath .githooks
+#
+set -e
+
+# Anything uncommitted would be indistinguishable from the stripping afterwards,
+# and there would be no way back if the stripped tree turned out not to compile.
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "pre-push: commit or stash first — nothing is stripped over uncommitted work" >&2
+  exit 1
+fi
+
+node scripts/strip-comments.mjs
+bunx biome format --write . >/dev/null
+
+if git diff --quiet; then
+  exit 0
+fi
+
+# The stripped tree has to be the same program. A directive comment taken out by
+# mistake shows up here and nowhere else, so the tree goes back and the push
+# stops rather than sending something that does not build.
+if ! bun run typecheck >/dev/null 2>&1 || ! bun run lint >/dev/null 2>&1; then
+  git checkout -- .
+  echo "pre-push: the stripped tree does not build; nothing changed, nothing pushed" >&2
+  exit 1
+fi
+
+git add -A
+git commit --no-verify -m "Strip comments" >/dev/null
+echo "pre-push: comments stripped and committed. Run git push again to send it." >&2
+exit 1
