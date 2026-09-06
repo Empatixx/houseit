@@ -71,9 +71,9 @@ export function Compass() {
         <div className="flex flex-col items-center gap-2">
           <svg
             ref={dial}
-            width={168}
-            height={168}
-            viewBox="-84 -84 168 168"
+            width={150}
+            height={150}
+            viewBox="-75 -75 150 150"
             aria-label="Angle"
             className="cursor-grab touch-none select-none active:cursor-grabbing"
             onPointerDown={(event) => {
@@ -85,7 +85,6 @@ export function Compass() {
             }}
           >
             <title>Angle</title>
-            <circle r={RING + 12} fill="var(--card)" stroke="var(--border)" />
             <circle
               r={RING}
               fill="none"
