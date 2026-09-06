@@ -15,7 +15,6 @@ const round = (spin: number) => {
   return apart < NEAR ? nearest : spin
 }
 
-/** The tick the needle is nearest, which is the one drawn in the primary colour. */
 const nearestTick = (spin: number) => (Math.round(spin / 15) * 15) % 360
 
 export function Compass() {
@@ -55,7 +54,6 @@ export function Compass() {
       </Tooltip>
       <PopoverContent align="end" side="left" className="w-auto">
         <div className="flex flex-col items-center gap-2">
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: the dial is dragged, and the buttons below set it */}
           <svg
             ref={dial}
             width={168}

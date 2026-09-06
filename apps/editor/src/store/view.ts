@@ -16,7 +16,6 @@ type ViewState = {
   step: number
   factor: number
   zoomBy: (factor: number) => void
-  /** How far the plan is turned on screen, clockwise, in degrees. */
   spin: number
   spinTo: (spin: number) => void
   covers: Record<string, Cover>
