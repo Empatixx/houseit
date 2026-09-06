@@ -4,7 +4,7 @@ import { aimAt, finishDrawing, putDown } from '../edit/draw-commands'
 import { toolStore, useTool } from '../store/tool'
 import { MM } from './plan-coordinates'
 
-const CELL = 1
+const CELL = 0.5
 
 export function DotGrid() {
   const drawing = useTool((state) => state.armed?.kind === 'wall')
@@ -16,7 +16,7 @@ export function DotGrid() {
         side: DoubleSide,
         uniforms: {
           cell: { value: CELL },
-          ink: { value: [0.8, 0.8, 0.83] },
+          ink: { value: [0.62, 0.62, 0.67] },
         },
         vertexShader: `
           varying vec2 vPlan;
@@ -34,7 +34,7 @@ export function DotGrid() {
             vec2 cellPos = vPlan / cell;
             vec2 nearest = floor(cellPos + 0.5);
             float pixel = fwidth(vPlan.x);
-            float radius = 1.7 * pixel;
+            float radius = 2.0 * pixel;
             float distance = length((cellPos - nearest) * cell);
             float alpha = 1.0 - smoothstep(radius - pixel, radius + pixel, distance);
             if (alpha < 0.01) discard;
