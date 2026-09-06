@@ -7,6 +7,8 @@ import { useView, viewStore } from '../store/view'
 
 const TICKS = Array.from({ length: 24 }, (_, index) => index * 15)
 const RING = 62
+const TICK = 7
+const MARK = 17
 const NEAR = 4
 
 const round = (spin: number) => {
@@ -15,19 +17,21 @@ const round = (spin: number) => {
   return apart < NEAR ? nearest : spin
 }
 
-const nearestTick = (spin: number) => (Math.round(spin / 15) * 15) % 360
-
 const corner = (spin: number, radius: number) => {
   const radians = (spin * Math.PI) / 180
   return { x: Math.sin(radians) * radius, y: -Math.cos(radians) * radius }
+}
+
+const spoke = (spin: number, reach: number) => {
+  const from = corner(spin, RING)
+  const to = corner(spin, RING - reach)
+  return { x1: from.x, y1: from.y, x2: to.x, y2: to.y }
 }
 
 const sweep = (spin: number, radius: number) => {
   const to = corner(spin, radius)
   return `M 0 ${-radius} A ${radius} ${radius} 0 ${spin > 180 ? 1 : 0} 1 ${to.x} ${to.y}`
 }
-
-const wedge = (spin: number, radius: number) => `${sweep(spin, radius)} L 0 0 Z`
 
 export function Compass() {
   const spin = useView((state) => state.spin)
@@ -43,7 +47,6 @@ export function Compass() {
     viewStore.getState().spinTo(round((degrees + 360) % 360))
   }
 
-  const marked = nearestTick(spin)
   const showing = Math.round(spin)
 
   return (
@@ -82,61 +85,50 @@ export function Compass() {
             }}
           >
             <title>Angle</title>
-            <circle r={RING + 10} fill="var(--card)" stroke="var(--border)" />
-            {TICKS.map((tick) => {
-              const on = tick === marked
-              const long = on || tick % 90 === 0 ? 12 : 7
-              const radians = (tick * Math.PI) / 180
-              const sin = Math.sin(radians)
-              const cos = Math.cos(radians)
-              return (
-                <line
-                  key={tick}
-                  x1={sin * RING}
-                  y1={-cos * RING}
-                  x2={sin * (RING - long)}
-                  y2={-cos * (RING - long)}
-                  stroke={on ? 'var(--primary)' : 'var(--muted-foreground)'}
-                  strokeWidth={on || tick % 90 === 0 ? 2.5 : 1}
-                  opacity={on || tick % 90 === 0 ? 1 : 0.45}
-                />
-              )
-            })}
+            <circle r={RING + 12} fill="var(--card)" stroke="var(--border)" />
+            <circle
+              r={RING}
+              fill="none"
+              stroke="var(--muted-foreground)"
+              strokeWidth={1}
+              opacity={0.25}
+            />
+            {TICKS.map((tick) => (
+              <line
+                key={tick}
+                {...spoke(tick, TICK)}
+                stroke="var(--muted-foreground)"
+                strokeWidth={1.5}
+                opacity={0.45}
+              />
+            ))}
             {spin === 0 ? null : (
-              <>
-                <path d={wedge(spin, RING - 16)} fill="var(--primary)" opacity={0.16} />
-                <path
-                  d={sweep(spin, RING - 16)}
-                  fill="none"
-                  stroke="var(--primary)"
-                  strokeWidth={4}
-                  strokeLinecap="round"
-                  opacity={0.75}
-                />
-              </>
+              <path
+                d={sweep(spin, RING)}
+                fill="none"
+                stroke="var(--primary)"
+                strokeWidth={4}
+                strokeLinecap="round"
+              />
+            )}
+            <line {...spoke(0, MARK)} stroke="var(--primary)" strokeWidth={3.5} />
+            {spin === 0 ? null : (
+              <line {...spoke(spin, MARK)} stroke="var(--primary)" strokeWidth={3.5} />
             )}
             <line
               x1={0}
-              y1={-RING + 12}
-              x2={0}
-              y2={-RING + 26}
-              stroke="var(--muted-foreground)"
-              strokeWidth={1.5}
-              strokeDasharray="3 3"
-            />
-            <line
-              x1={0}
               y1={0}
-              x2={Math.sin((spin * Math.PI) / 180) * (RING - 14)}
-              y2={-Math.cos((spin * Math.PI) / 180) * (RING - 14)}
+              x2={corner(spin, RING - MARK - 4).x}
+              y2={corner(spin, RING - MARK - 4).y}
               stroke="var(--primary)"
-              strokeWidth={3}
+              strokeWidth={2.5}
               strokeLinecap="round"
+              opacity={0.55}
             />
             <circle r={3.5} fill="var(--primary)" />
             <text
               x={0}
-              y={30}
+              y={32}
               textAnchor="middle"
               fontSize={20}
               fill="var(--foreground)"
