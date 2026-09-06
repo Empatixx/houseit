@@ -16,7 +16,7 @@ import { useDocument, usePlanDoc } from '../store/store'
 import { MM, toWorld } from './plan-coordinates'
 
 const INK = '#714cb6'
-const ABOVE = 3200
+export const ABOVE = 3200
 
 const TICK = 110
 
@@ -74,7 +74,7 @@ function RoomHighlight({ room, doc }: { room: Room; doc: HouseDocument }) {
   )
 }
 
-function DimensionLine({ dimension }: { dimension: Dimension }) {
+export function DimensionLine({ dimension }: { dimension: Dimension }) {
   const { from, to, offset } = dimension
   const span = Math.hypot(to.x - from.x, to.y - from.y) || 1
   const along = { x: (to.x - from.x) / span, y: (to.y - from.y) / span }

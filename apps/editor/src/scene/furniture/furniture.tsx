@@ -3,9 +3,11 @@ import { importedType, outlineSymbol } from '@houseit/core/imported'
 import { type Layer, layerOf, symbolOf } from '@houseit/core/object-types'
 import { stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
 import { type Surface, surfaceOf } from '@houseit/core/surfaces'
+import type { Dimension } from '@houseit/geometry/dimensions'
 import type { Point } from '@houseit/geometry/outlines'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { piecesOf, type Spot, standingAt, turnOf } from '@houseit/geometry/standing'
+import { Line } from '@react-three/drei'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import { aimAt, putDown } from '../../edit/draw-commands'
@@ -16,6 +18,7 @@ import { EMPHASIS, hoverStore, useHover } from '../../store/hover'
 import { useSelection } from '../../store/selection'
 import { useDocument, usePlanDoc } from '../../store/store'
 import { toolStore } from '../../store/tool'
+import { ABOVE, DimensionLine } from '../dimensions'
 import { dragged, pointOnPlan } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
 import { symbolHeight } from './stacking'
@@ -104,6 +107,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
 
   return (
     <>
+      {drag.live ? <Ghost object={object} spot={spot} at={at} /> : null}
       <mesh
         position={toWorld(at.x, at.y, symbolHeight(stack))}
         rotation={[-Math.PI / 2, 0, turn + Math.PI]}
@@ -164,6 +168,41 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
           <meshBasicMaterial color={EMPHASIS.picked.line} />
         </mesh>
       ) : null}
+    </>
+  )
+}
+
+const GHOST = '#a1a1aa'
+
+function Ghost({ object, spot, at }: { object: HouseObject; spot: Spot; at: Point }) {
+  const across = Math.round(at.x - spot.at.x)
+  const down = Math.round(at.y - spot.at.y)
+  const corner = { x: at.x, y: spot.at.y }
+
+  const legs: Dimension[] = []
+  if (across !== 0) {
+    legs.push({ from: spot.at, to: corner, length: Math.abs(across), offset: { x: 0, y: 1 } })
+  }
+  if (down !== 0) {
+    legs.push({ from: corner, to: at, length: Math.abs(down), offset: { x: 1, y: 0 } })
+  }
+
+  return (
+    <>
+      {piecesOf(spot, object).map((piece) => (
+        <Line
+          key={`${piece[0]?.x},${piece[0]?.y}`}
+          points={[...piece, piece[0]!].map((point) => toWorld(point.x, point.y, ABOVE))}
+          color={GHOST}
+          lineWidth={1}
+        />
+      ))}
+      {legs.map((leg) => (
+        <DimensionLine
+          key={`${leg.from.x},${leg.from.y}-${leg.to.x},${leg.to.y}`}
+          dimension={leg}
+        />
+      ))}
     </>
   )
 }
