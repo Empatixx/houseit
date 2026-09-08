@@ -21,7 +21,7 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
     ...ceilingPieces(doc, level),
     ...wallPieces(doc, level),
     ...furniturePieces(doc, level),
-  ]
+  ].map((piece, index) => (piece.name ? piece : { ...piece, name: `piece-${index}` }))
 }
 
 export function worldOf(doc: HouseDocument): World {

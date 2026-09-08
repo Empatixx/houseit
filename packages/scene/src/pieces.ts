@@ -26,10 +26,15 @@ export type Piece = {
   roll?: number
   paint: Finish
   of?: Owner
+  name?: string
 }
 
 export const owned = (of: Owner, pieces: Piece[]): Piece[] =>
-  pieces.map((piece) => ({ ...piece, of: piece.of ?? of }))
+  pieces.map((piece, index) => ({
+    ...piece,
+    of: piece.of ?? of,
+    name: piece.name ?? `${of.kind}-${of.id}-${index}`,
+  }))
 
 export type SlabProps = {
   x?: number

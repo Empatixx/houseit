@@ -1,5 +1,6 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
+import { INK, planPieces, type WallPiece } from '@houseit/scene/wall-pieces'
 import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import type { Group, OrthographicCamera } from 'three'
@@ -20,7 +21,6 @@ import { useSelection } from '../store/selection'
 import { toolStore, useTool } from '../store/tool'
 import { dragged, pointOnPlan } from './drag'
 import { MM, toWorld } from './plan-coordinates'
-import { INK, planPieces, type WallPiece } from '@houseit/scene/wall-pieces'
 
 type WallMeshProps = {
   wall: Wall

@@ -33,3 +33,17 @@ test('a storey carries its walls, its floors, its lid and what stands on it', ()
   expect(built.filter((piece) => piece.body.kind === 'sheet').length).toBe(1)
   expect(built.filter((piece) => piece.body.kind === 'prism').length).toBe(1)
 })
+
+test('every piece has a name of its own, so what is drawn can be told apart', () => {
+  const { doc, level } = planWith([
+    [0, 0, 4000, 0],
+    [4000, 0, 4000, 3000],
+    [4000, 3000, 0, 3000],
+    [0, 3000, 0, 0],
+  ])
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room' }
+
+  const names = worldOf(doc).storeys[0]!.pieces.map((piece) => piece.name)
+  expect(names.every(Boolean)).toBe(true)
+  expect(new Set(names).size).toBe(names.length)
+})
