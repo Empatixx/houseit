@@ -63,3 +63,25 @@ test('a house with nothing in it still reaches somewhere, so nothing divides by 
   expect(world.bounds.max.x).toBeGreaterThan(world.bounds.min.x)
   expect(world.bounds.max.z).toBeGreaterThan(world.bounds.min.z)
 })
+
+test('a storey carries what is lit on it as well as what stands on it', () => {
+  const { doc, level } = planWith([
+    [0, 0, 4000, 0],
+    [4000, 0, 4000, 3000],
+    [4000, 3000, 0, 3000],
+    [0, 3000, 0, 0],
+  ])
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room' }
+  doc.objects.o1 = {
+    id: 'o1',
+    level,
+    room: 'r1',
+    type: 'floor-lamp',
+    along: 0.5,
+    width: 400,
+    depth: 400,
+    surface: 'grey',
+  } as never
+
+  expect(worldOf(doc).storeys[0]!.lights).toHaveLength(1)
+})

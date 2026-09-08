@@ -22,6 +22,7 @@ export const tableLamp: Builder = ({ h, frame }) => [
   drum({ r: 90, h: 20, paint: frame }),
   drum({ base: 20, r: 12, h: h - 240, paint: frame }),
   drum({ base: h - 220, r: 170, top: 100, h: 220, paint: PAINT.shade, open: true }),
+  drum({ base: h - 150, r: 34, h: 50, paint: PAINT.lamp }),
 ]
 
 export const column: Builder = ({ w, d, h }) => [slab({ h, w, d, paint: PAINT.wall })]

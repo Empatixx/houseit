@@ -29,7 +29,7 @@ export function floorPieces(doc: HouseDocument, level: string): Piece[] {
       holes: pierced.map((well) => corners(well.outline)),
       paint: laidIn(room.floor),
     })
-    const named = { ...laid, name: `floor-${room.nodes.join('-')}` }
+    const named = { ...laid, name: `floor-${room.nodes.join('-')}`, casts: false }
     return room.id ? { ...named, of: { kind: 'room' as const, id: room.id } } : named
   })
 }
@@ -51,7 +51,7 @@ export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
       holes: holes.map((hole) => corners(hole.outline)),
       paint: { colour: PLASTER },
     })
-    const named = { ...lid, name: `lid-${room.nodes.join('-')}` }
+    const named = { ...lid, name: `lid-${room.nodes.join('-')}`, casts: false }
     return room.id ? { ...named, of: { kind: 'room' as const, id: room.id } } : named
   })
 }

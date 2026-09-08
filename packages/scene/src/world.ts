@@ -2,6 +2,7 @@ import type { HouseDocument } from '@houseit/core/document'
 import { levelsOf } from '@houseit/core/levels'
 import { ceilingPieces, floorPieces } from './floors'
 import { furniturePieces } from './furniture'
+import { type Light, lightsOn } from './lights'
 import type { Piece } from './pieces'
 import { wallPieces } from './walls'
 
@@ -9,6 +10,7 @@ export type Storey = {
   level: string
   elevation: number
   pieces: Piece[]
+  lights: Light[]
 }
 
 export type Reach = { min: { x: number; z: number }; max: { x: number; z: number } }
@@ -49,6 +51,7 @@ export function worldOf(doc: HouseDocument): World {
       level: storey.id,
       elevation: storey.elevation,
       pieces: storeyOf(doc, storey.id),
+      lights: lightsOn(doc, storey.id),
     })),
   }
 }

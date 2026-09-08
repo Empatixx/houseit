@@ -52,3 +52,10 @@ test('a storey has a lid, and it sits under the top of its walls', () => {
   expect(lid.body.thickness).toBe(SLAB)
   expect(lid.at.y).toBeCloseTo(top - SLAB / 2)
 })
+
+test('no flat slab stops the sun, because a plan walked through is lit from above', () => {
+  const { doc, level } = room()
+
+  expect(ceilingPieces(doc, level)[0]?.casts).toBe(false)
+  expect(floorPieces(doc, level)[0]?.casts).toBe(false)
+})

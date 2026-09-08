@@ -53,7 +53,7 @@ export function StandingPiece({ piece, tint, onPick }: PieceProps) {
     return (
       <Flat
         body={body}
-        shadows={!seeThrough(paint)}
+        shadows={piece.casts !== false && !seeThrough(paint)}
         at={[place[0], place[1] - drop, place[2]]}
         rotation={[tilt - QUARTER, turn, roll, 'YXZ']}
         material={materialOf(paint, sided(body))}
@@ -64,7 +64,7 @@ export function StandingPiece({ piece, tint, onPick }: PieceProps) {
 
   return (
     <mesh
-      castShadow={!seeThrough(paint)}
+      castShadow={piece.casts !== false && !seeThrough(paint)}
       receiveShadow
       position={place}
       rotation={[tilt, turn, roll, 'YXZ']}

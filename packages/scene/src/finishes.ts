@@ -34,7 +34,7 @@ export const PAINT = {
   felt: { colour: '#3f7a4f' },
   canvas: { colour: '#d8cbb6' },
   wall: { colour: '#f1f0ed' },
-  lamp: { colour: '#fff4d6' },
+  lamp: { colour: '#fff4d6', glow: 2.4 },
   red: { colour: '#c8423a' },
 } as const satisfies Record<string, Finish>
 

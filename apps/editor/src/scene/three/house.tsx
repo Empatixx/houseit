@@ -20,6 +20,19 @@ export function House({ picking = true }: { picking?: boolean }) {
     <>
       {world.storeys.map((storey) => (
         <group key={storey.level} position={[0, storey.elevation * MM, 0]}>
+          {storey.lights.map((light) => (
+            <pointLight
+              key={light.of}
+              castShadow
+              position={[light.at.x * MM, light.at.y * MM, light.at.z * MM]}
+              color={light.colour}
+              intensity={light.power * 14}
+              distance={14}
+              decay={2}
+              shadow-mapSize={[1024, 1024]}
+              shadow-bias={-0.002}
+            />
+          ))}
           {storey.pieces.map((piece) => (
             <StandingPiece
               key={piece.name}

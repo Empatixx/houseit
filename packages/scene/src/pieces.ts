@@ -4,6 +4,7 @@ export type Finish = {
   repeat?: { x: number; y: number }
   opacity?: number
   roughness?: number
+  glow?: number
 }
 
 export type Corner = { x: number; z: number }
@@ -28,6 +29,7 @@ export type Piece = {
   paint: Finish
   of?: Owner
   name?: string
+  casts?: boolean
 }
 
 export const owned = (of: Owner, pieces: Piece[]): Piece[] =>

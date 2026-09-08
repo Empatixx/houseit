@@ -13,7 +13,9 @@ const SYMBOL_LIFT = 3
 
 type Standing = { object: HouseObject; spot: Spot; surface: Surface; symbol: string }
 
-export function furniturePieces(doc: HouseDocument, level: string): Piece[] {
+export type Placed = Standing & { rest: number }
+
+export function placedOn(doc: HouseDocument, level: string): Placed[] {
   const rooms = new Map(
     roomsOf(doc, level)
       .filter((room) => room.id)
@@ -31,9 +33,13 @@ export function furniturePieces(doc: HouseDocument, level: string): Piece[] {
       return [{ object, spot, surface, symbol }]
     })
 
+  return standing.map((thing) => ({ ...thing, rest: restOf(thing, standing) }))
+}
+
+export function furniturePieces(doc: HouseDocument, level: string): Piece[] {
   const storey = doc.levels[level]?.height
-  return standing.flatMap((thing) =>
-    stood(thing, restOf(thing, standing), isStaircase(thing.object.type) ? storey : undefined),
+  return placedOn(doc, level).flatMap((thing) =>
+    stood(thing, thing.rest, isStaircase(thing.object.type) ? storey : undefined),
   )
 }
 

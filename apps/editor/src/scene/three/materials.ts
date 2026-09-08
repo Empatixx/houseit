@@ -32,7 +32,7 @@ export function textureOf(path: string, repeat?: { x: number; y: number }): Text
 const materials = new Map<string, Material>()
 
 const keyOf = (finish: Finish, sided: boolean) =>
-  `${finish.colour}|${finish.texture ?? ''}|${finish.repeat?.x ?? 1}:${finish.repeat?.y ?? 1}|${finish.opacity ?? 1}|${finish.roughness ?? MATT}|${sided}`
+  `${finish.colour}|${finish.texture ?? ''}|${finish.repeat?.x ?? 1}:${finish.repeat?.y ?? 1}|${finish.opacity ?? 1}|${finish.roughness ?? MATT}|${finish.glow ?? 0}|${sided}`
 
 export function materialOf(finish: Finish, sided = false): Material {
   const key = keyOf(finish, sided)
@@ -45,6 +45,8 @@ export function materialOf(finish: Finish, sided = false): Material {
     map: finish.texture ? textureOf(finish.texture, finish.repeat) : null,
     roughness: finish.roughness ?? MATT,
     metalness: 0,
+    emissive: finish.glow ? finish.colour : '#000000',
+    emissiveIntensity: finish.glow ?? 0,
     transparent: opacity < 1,
     opacity,
     depthWrite: opacity >= 1,
