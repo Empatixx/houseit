@@ -137,6 +137,19 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/scene": {
+      "name": "@houseit/scene",
+      "version": "0.0.0",
+      "dependencies": {
+        "@houseit/core": "workspace:*",
+        "@houseit/geometry": "workspace:*",
+      },
+      "devDependencies": {
+        "@houseit/typescript-config": "workspace:*",
+        "@houseit/vitest-config": "workspace:*",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/typescript-config": {
       "name": "@houseit/typescript-config",
       "version": "0.0.0",
@@ -298,6 +311,8 @@
     "@houseit/geometry": ["@houseit/geometry@workspace:packages/geometry"],
 
     "@houseit/mcp": ["@houseit/mcp@workspace:apps/mcp"],
+
+    "@houseit/scene": ["@houseit/scene@workspace:packages/scene"],
 
     "@houseit/typescript-config": ["@houseit/typescript-config@workspace:packages/typescript-config"],
 

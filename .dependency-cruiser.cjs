@@ -4,11 +4,11 @@ module.exports = {
     {
       name: 'logic-runs-in-the-browser',
       comment:
-        'core, geometry and commands all execute inside the browser tab, so they must not ' +
+        'core, geometry, scene and commands all execute inside the browser tab, so they must not ' +
         'reach for Node built-ins. Bundlers stub these out silently and the failure only ' +
         'shows up at runtime.',
       severity: 'error',
-      from: { path: '^packages/(core|geometry|commands)/src' },
+      from: { path: '^packages/(core|geometry|commands|scene)/src' },
       to: { dependencyTypes: ['core'] },
     },
     {
@@ -17,7 +17,7 @@ module.exports = {
         'The library packages stay free of React, three.js and the DOM. That is what keeps ' +
         'them testable without a browser and the renderer cheap to replace.',
       severity: 'error',
-      from: { path: '^packages/(core|geometry|commands)/src' },
+      from: { path: '^packages/(core|geometry|commands|scene)/src' },
       to: { path: 'node_modules/(react|react-dom|three|@react-three)' },
     },
     {
