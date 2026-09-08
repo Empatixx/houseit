@@ -9,19 +9,20 @@ import {
 } from 'three'
 
 const REACH = 400
-const TILE = 4
-const WEAVE = 1024
+const TILE = 6
+const WEAVE = 2048
 const PATCHES = 128
-const OVERLAP = 24
+const OVERLAP = 32
 
 type Tone = [number, number, number]
 
-const SHADE: Tone = [44, 62, 30]
-const BLADE: Tone = [104, 132, 60]
-const STRAW: Tone = [140, 146, 80]
+const EARTH: Tone = [52, 60, 34]
+const SHADE: Tone = [62, 92, 40]
+const BLADE: Tone = [102, 140, 56]
+const STRAW: Tone = [162, 174, 94]
 
-const STRANDS = 24000
-const TONES = 7
+const STRANDS = 200000
+const TONES = 9
 
 function rolls(seed: number) {
   let state = seed >>> 0
@@ -65,10 +66,9 @@ function turf() {
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
 
-  const broad = field(4, 3571)
-  const clump = field(16, 9137)
-  const fleck = field(48, 4441)
-  const dry = field(3, 2287)
+  const tuft = field(13, 9137)
+  const grain = field(44, 4441)
+  const speck = field(160, 7717)
 
   const picture = ctx.createImageData(WEAVE, WEAVE)
   const pixels = picture.data
@@ -76,9 +76,9 @@ function turf() {
     for (let x = 0; x < WEAVE; x++) {
       const u = x / WEAVE
       const v = y / WEAVE
-      const lit = broad(u, v) * 0.42 + clump(u, v) * 0.36 + fleck(u, v) * 0.22
-      const green = mix(SHADE, BLADE, lit * lit * (3 - 2 * lit))
-      const tint = mix(green, STRAW, Math.max(0, dry(u, v) - 0.55) * 0.5)
+      const lit = tuft(u, v) * 0.34 + grain(u, v) * 0.36 + speck(u, v) * 0.3
+      const soil = mix(EARTH, SHADE, Math.min(1, lit * 1.7))
+      const tint = mix(soil, BLADE, Math.max(0, lit - 0.38) * 1.5)
       const at = (y * WEAVE + x) * 4
       pixels[at] = tint[0]
       pixels[at + 1] = tint[1]
@@ -93,22 +93,29 @@ function turf() {
   ctx.lineCap = 'round'
   for (let tone = 0; tone < TONES; tone++) {
     const step = tone / (TONES - 1)
-    const paint = mix(SHADE, STRAW, step)
+    const paint = mix(mix(EARTH, SHADE, 0.5), STRAW, step * step)
     ctx.strokeStyle = `rgb(${paint[0] | 0}, ${paint[1] | 0}, ${paint[2] | 0})`
-    ctx.globalAlpha = 0.1 + Math.abs(step - 0.5) * 0.22
-    ctx.lineWidth = 0.8 + roll() * 0.8
+    ctx.globalAlpha = 0.28 + (1 - step) * 0.24
+    ctx.lineWidth = 0.7 + step * 1.1
     ctx.beginPath()
     for (let i = 0; i < STRANDS / TONES; i++) {
       const x = roll() * WEAVE
       const y = roll() * WEAVE
-      const angle = roll() * Math.PI * 2
-      const long = 5 + roll() * 11
+      const lie = grain(x / WEAVE, y / WEAVE)
+      const angle = (roll() * 0.7 + lie * 0.3) * Math.PI * 2
+      const long = 6 + roll() * 16
+      const bend = (roll() - 0.5) * 0.7
       const dx = Math.cos(angle) * long
       const dy = Math.sin(angle) * long
       for (const ox of wraps(x)) {
         for (const oy of wraps(y)) {
           ctx.moveTo(x + ox, y + oy)
-          ctx.lineTo(x + dx + ox, y + dy + oy)
+          ctx.quadraticCurveTo(
+            x + ox + dx * 0.5 - dy * bend * 0.5,
+            y + oy + dy * 0.5 + dx * bend * 0.5,
+            x + ox + dx,
+            y + oy + dy,
+          )
         }
       }
     }
@@ -118,17 +125,25 @@ function turf() {
   return canvas
 }
 
+const TILTS = [0.7, 2.31]
+
 function lawn() {
   const geometry = new PlaneGeometry(REACH, REACH, PATCHES, PATCHES)
   const sweep = field(8, 1277)
   const worn = field(26, 6011)
   const across = PATCHES + 1
   const colours = new Float32Array(across * across * 3)
+  const askew = (u: number, v: number, tilt: number): [number, number] => [
+    u * Math.cos(tilt) - v * Math.sin(tilt),
+    u * Math.sin(tilt) + v * Math.cos(tilt),
+  ]
   for (let i = 0; i < across * across; i++) {
     const u = (i % across) / PATCHES
     const v = Math.floor(i / across) / PATCHES
-    const lift = sweep(u, v) * 0.62 + worn(u, v) * 0.38
-    const shade = 0.82 + lift * 0.34
+    const wide = askew(u, v, TILTS[0] ?? 0)
+    const close = askew(u, v, TILTS[1] ?? 0)
+    const lift = sweep(wide[0], wide[1]) * 0.62 + worn(close[0], close[1]) * 0.38
+    const shade = 0.8 + lift * 0.4
     colours[i * 3] = shade * (0.94 + lift * 0.14)
     colours[i * 3 + 1] = shade
     colours[i * 3 + 2] = shade * (1.06 - lift * 0.16)
