@@ -20,7 +20,7 @@ import { useSelection } from '../store/selection'
 import { toolStore, useTool } from '../store/tool'
 import { dragged, pointOnPlan } from './drag'
 import { MM, toWorld } from './plan-coordinates'
-import { INK, planPieces, type WallPiece } from './wall-pieces'
+import { INK, planPieces, type WallPiece } from '@houseit/scene/wall-pieces'
 
 type WallMeshProps = {
   wall: Wall

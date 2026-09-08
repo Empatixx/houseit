@@ -1,6 +1,7 @@
 export type Finish = {
   colour: string
   texture?: string
+  repeat?: { x: number; y: number }
   opacity?: number
 }
 
@@ -11,7 +12,11 @@ export type Body =
   | { kind: 'drum'; radius: number; top: number; height: number; open: boolean; stretch: number }
   | { kind: 'ball'; radius: number }
   | { kind: 'prism'; outline: Corner[]; holes: Corner[][]; thickness: number }
+  | { kind: 'sheet'; outline: Corner[]; holes: Corner[][] }
+  | { kind: 'symbol'; file: string; width: number; depth: number }
   | { kind: 'model'; file: string; width: number; height: number; depth: number }
+
+export type Owner = { kind: 'wall' | 'opening' | 'room' | 'object'; id: string }
 
 export type Piece = {
   body: Body
@@ -20,7 +25,11 @@ export type Piece = {
   tilt?: number
   roll?: number
   paint: Finish
+  of?: Owner
 }
+
+export const owned = (of: Owner, pieces: Piece[]): Piece[] =>
+  pieces.map((piece) => ({ ...piece, of: piece.of ?? of }))
 
 export type SlabProps = {
   x?: number
@@ -146,16 +155,16 @@ export function legs({ w, d, h, inset = 60, thick = 50, paint, x = 0, z = 0 }: L
   )
 }
 
-export type PutProps = { x?: number; z?: number; turn?: number }
+export type PutProps = { x?: number; y?: number; z?: number; turn?: number }
 
-export function put({ x = 0, z = 0, turn = 0 }: PutProps, pieces: Piece[]): Piece[] {
+export function put({ x = 0, y = 0, z = 0, turn = 0 }: PutProps, pieces: Piece[]): Piece[] {
   const cos = Math.cos(turn)
   const sin = Math.sin(turn)
   return pieces.map((piece) => ({
     ...piece,
     at: {
       x: x + piece.at.x * cos + piece.at.z * sin,
-      y: piece.at.y,
+      y: y + piece.at.y,
       z: z - piece.at.x * sin + piece.at.z * cos,
     },
     turn: turn + (piece.turn ?? 0),
@@ -202,4 +211,15 @@ export function model({ file, w, h, d, paint }: ModelProps): Piece {
     at: { x: 0, y: h / 2, z: 0 },
     paint,
   }
+}
+
+export type SheetProps = {
+  base?: number
+  outline: Corner[]
+  holes?: Corner[][]
+  paint: Finish
+}
+
+export function sheet({ base = 0, outline, holes = [], paint }: SheetProps): Piece {
+  return { body: { kind: 'sheet', outline, holes }, at: { x: 0, y: base, z: 0 }, paint }
 }

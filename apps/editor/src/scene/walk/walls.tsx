@@ -5,8 +5,8 @@ import { useSelection } from '../../store/selection'
 import { usePlanDoc } from '../../store/store'
 import { dragged } from '../drag'
 import { MM, toWorld } from '../plan-coordinates'
-import { solidPieces, type WallPiece } from '../wall-pieces'
-import { doorPieces } from './doors'
+import { solidPieces, type WallPiece } from '@houseit/scene/wall-pieces'
+import { doorPieces } from '@houseit/scene/doors'
 
 const PAINT = {
   wall: '#f1f0ed',

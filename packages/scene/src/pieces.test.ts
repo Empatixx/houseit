@@ -84,3 +84,9 @@ test('a thing already turned keeps its own turn on top of the one it is put unde
 
   expect(twice?.turn).toBeCloseTo(0.75)
 })
+
+test('put lifts everything under it, because a thing can stand on another thing', () => {
+  const [raised] = put({ y: 700 }, [slab({ w: 10, h: 100, d: 10, paint: WHITE })])
+
+  expect(raised?.at.y).toBe(750)
+})

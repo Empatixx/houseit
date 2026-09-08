@@ -1,0 +1,64 @@
+import type { Opening } from '@houseit/core/document'
+import { planWith } from '@houseit/geometry/test-utils'
+import { expect, test } from 'vitest'
+import { wallPieces } from './walls'
+
+const room = () =>
+  planWith([
+    [0, 0, 4000, 0],
+    [4000, 0, 4000, 3000],
+    [4000, 3000, 0, 3000],
+    [0, 3000, 0, 0],
+  ])
+
+const opening = (over: Partial<Opening> & Pick<Opening, 'id' | 'wall' | 'kind'>): Opening => ({
+  t: 0.5,
+  variant: 'hinged',
+  width: 900,
+  height: 2000,
+  sillHeight: 0,
+  hinge: 'a',
+  swing: 1,
+  ...over,
+})
+
+test('a blank wall is one solid piece', () => {
+  const { doc, level } = room()
+
+  const one = wallPieces(doc, level).filter((piece) => piece.of?.id === 'w1')
+  expect(one).toHaveLength(1)
+})
+
+test('a wall with a door in it is the pieces the hole leaves, plus what stands in the hole', () => {
+  const { doc, level } = room()
+  doc.openings.o1 = opening({ id: 'o1', wall: 'w1', kind: 'door' })
+
+  const built = wallPieces(doc, level)
+  expect(built.filter((piece) => piece.of?.id === 'w1').length).toBeGreaterThan(1)
+  expect(built.some((piece) => piece.of?.kind === 'opening' && piece.of.id === 'o1')).toBe(true)
+})
+
+test('a window is glazed, and the pane is the only see-through thing in the wall', () => {
+  const { doc, level } = room()
+  doc.openings.o1 = opening({ id: 'o1', wall: 'w1', kind: 'window', sillHeight: 900, height: 1200 })
+
+  const panes = wallPieces(doc, level).filter((piece) => (piece.paint.opacity ?? 1) < 1)
+  expect(panes).toHaveLength(1)
+  expect(panes[0]?.of).toEqual({ kind: 'opening', id: 'o1' })
+})
+
+test('a piece of a wall stands where the wall does and lies along it', () => {
+  const { doc, level } = room()
+
+  const south = wallPieces(doc, level).find((piece) => piece.of?.id === 'w1')!
+  expect(south.at.x).toBeCloseTo(2000)
+  expect(south.at.z).toBeCloseTo(0)
+  expect(south.turn).toBeCloseTo(0)
+})
+
+test('a wall standing on another storey is not this storey business', () => {
+  const { doc, level } = room()
+  doc.walls.w1!.level = 'somewhere-else'
+
+  expect(wallPieces(doc, level).some((piece) => piece.of?.id === 'w1')).toBe(false)
+})
