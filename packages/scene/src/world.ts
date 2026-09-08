@@ -11,8 +11,26 @@ export type Storey = {
   pieces: Piece[]
 }
 
+export type Reach = { min: { x: number; z: number }; max: { x: number; z: number } }
+
 export type World = {
   storeys: Storey[]
+  bounds: Reach
+}
+
+const ALONE = 4000
+
+export function reachOf(doc: HouseDocument): Reach {
+  const nodes = Object.values(doc.nodes)
+  if (nodes.length === 0) {
+    return { min: { x: -ALONE, z: -ALONE }, max: { x: ALONE, z: ALONE } }
+  }
+  const xs = nodes.map((node) => node.x)
+  const zs = nodes.map((node) => -node.y + 0)
+  return {
+    min: { x: Math.min(...xs), z: Math.min(...zs) },
+    max: { x: Math.max(...xs), z: Math.max(...zs) },
+  }
 }
 
 export function storeyOf(doc: HouseDocument, level: string): Piece[] {
@@ -26,6 +44,7 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
 
 export function worldOf(doc: HouseDocument): World {
   return {
+    bounds: reachOf(doc),
     storeys: levelsOf(doc).map((storey) => ({
       level: storey.id,
       elevation: storey.elevation,

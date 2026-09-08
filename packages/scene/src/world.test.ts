@@ -47,3 +47,19 @@ test('every piece has a name of its own, so what is drawn can be told apart', ()
   expect(names.every(Boolean)).toBe(true)
   expect(new Set(names).size).toBe(names.length)
 })
+
+test('the world knows how far the house reaches, because the sun has to cover it', () => {
+  const { doc } = planWith([
+    [0, 0, 4000, 0],
+    [4000, 0, 4000, 3000],
+  ])
+
+  expect(worldOf(doc).bounds).toEqual({ min: { x: 0, z: -3000 }, max: { x: 4000, z: 0 } })
+})
+
+test('a house with nothing in it still reaches somewhere, so nothing divides by nought', () => {
+  const world = worldOf(createEmptyDocument())
+
+  expect(world.bounds.max.x).toBeGreaterThan(world.bounds.min.x)
+  expect(world.bounds.max.z).toBeGreaterThan(world.bounds.min.z)
+})

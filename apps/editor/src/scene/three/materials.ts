@@ -3,12 +3,14 @@ import {
   DoubleSide,
   FrontSide,
   type Material,
-  MeshLambertMaterial,
+  MeshStandardMaterial,
   RepeatWrapping,
   SRGBColorSpace,
   type Texture,
   TextureLoader,
 } from 'three'
+
+const MATT = 0.9
 
 const loader = new TextureLoader()
 const photos = new Map<string, Texture>()
@@ -27,28 +29,29 @@ export function textureOf(path: string, repeat?: { x: number; y: number }): Text
   return texture
 }
 
-const lambert = (finish: Finish, sided: boolean): Material => {
-  const opacity = finish.opacity ?? 1
-  return new MeshLambertMaterial({
-    color: finish.colour,
-    map: finish.texture ? textureOf(finish.texture, finish.repeat) : null,
-    transparent: opacity < 1,
-    opacity,
-    depthWrite: opacity >= 1,
-    side: sided ? DoubleSide : FrontSide,
-  })
-}
-
 const materials = new Map<string, Material>()
 
 const keyOf = (finish: Finish, sided: boolean) =>
-  `${finish.colour}|${finish.texture ?? ''}|${finish.repeat?.x ?? 1}:${finish.repeat?.y ?? 1}|${finish.opacity ?? 1}|${sided}`
+  `${finish.colour}|${finish.texture ?? ''}|${finish.repeat?.x ?? 1}:${finish.repeat?.y ?? 1}|${finish.opacity ?? 1}|${finish.roughness ?? MATT}|${sided}`
 
 export function materialOf(finish: Finish, sided = false): Material {
   const key = keyOf(finish, sided)
   const cached = materials.get(key)
   if (cached) return cached
-  const made = lambert(finish, sided)
+
+  const opacity = finish.opacity ?? 1
+  const made = new MeshStandardMaterial({
+    color: finish.colour,
+    map: finish.texture ? textureOf(finish.texture, finish.repeat) : null,
+    roughness: finish.roughness ?? MATT,
+    metalness: 0,
+    transparent: opacity < 1,
+    opacity,
+    depthWrite: opacity >= 1,
+    side: sided ? DoubleSide : FrontSide,
+  })
   materials.set(key, made)
   return made
 }
+
+export const seeThrough = (finish: Finish): boolean => (finish.opacity ?? 1) < 1

@@ -3,6 +3,7 @@ export type Finish = {
   texture?: string
   repeat?: { x: number; y: number }
   opacity?: number
+  roughness?: number
 }
 
 export type Corner = { x: number; z: number }

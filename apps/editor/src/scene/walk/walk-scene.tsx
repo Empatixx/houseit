@@ -8,7 +8,7 @@ import { Walker } from './walker'
 
 export function WalkScene() {
   return (
-    <Canvas flat dpr={[1, 2]}>
+    <Canvas shadows dpr={[1, 2]}>
       <PerspectiveCamera makeDefault fov={70} near={0.05} far={300} position={[0, EYE * MM, 0]} />
       <color attach="background" args={[SKY]} />
       <Lighting />

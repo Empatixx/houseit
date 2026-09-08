@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { type BufferGeometry, ExtrudeGeometry, Path, Shape, ShapeGeometry } from 'three'
 import { MM } from '../plan-coordinates'
 import { Brought } from './brought'
-import { materialOf } from './materials'
+import { materialOf, seeThrough } from './materials'
 import { SymbolPlate } from './symbol-plate'
 
 const QUARTER = Math.PI / 2
@@ -53,6 +53,7 @@ export function StandingPiece({ piece, tint, onPick }: PieceProps) {
     return (
       <Flat
         body={body}
+        shadows={!seeThrough(paint)}
         at={[place[0], place[1] - drop, place[2]]}
         rotation={[tilt - QUARTER, turn, roll, 'YXZ']}
         material={materialOf(paint, sided(body))}
@@ -63,6 +64,8 @@ export function StandingPiece({ piece, tint, onPick }: PieceProps) {
 
   return (
     <mesh
+      castShadow={!seeThrough(paint)}
+      receiveShadow
       position={place}
       rotation={[tilt, turn, roll, 'YXZ']}
       scale={body.kind === 'drum' ? [1, 1, body.stretch] : undefined}
@@ -87,15 +90,18 @@ type FlatProps = {
   at: [number, number, number]
   rotation: [number, number, number, 'YXZ']
   material: ReturnType<typeof materialOf>
+  shadows: boolean
   onPick?: (event: ThreeEvent<MouseEvent>) => void
 }
 
-function Flat({ body, at, rotation, material, onPick }: FlatProps) {
+function Flat({ body, at, rotation, material, shadows, onPick }: FlatProps) {
   const geometry = useMemo(() => flatGeometry(body), [body])
   useEffect(() => () => geometry.dispose(), [geometry])
 
   return (
     <mesh
+      castShadow={shadows}
+      receiveShadow
       geometry={geometry}
       material={material}
       position={at}
