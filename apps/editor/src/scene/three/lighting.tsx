@@ -3,9 +3,7 @@ import { useMemo } from 'react'
 import { usePlanDoc } from '../../store/store'
 import { MM } from '../plan-coordinates'
 
-export const SKY = '#e9edf2'
-
-const OVERHEAD = { x: -0.32, y: 1, z: 0.42 }
+export const OVERHEAD = { x: -0.32, y: 1, z: 0.42 }
 const MARGIN = 6000
 
 export function Lighting() {

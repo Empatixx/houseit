@@ -6,8 +6,9 @@ import { useEffect } from 'react'
 import { MM } from '../scene/plan-coordinates'
 import { Ground } from '../scene/three/ground'
 import { House } from '../scene/three/house'
-import { Lighting, SKY } from '../scene/three/lighting'
+import { Lighting } from '../scene/three/lighting'
 import { Shading } from '../scene/three/shading'
+import { Sky } from '../scene/three/sky'
 import { usePlanDoc } from '../store/store'
 import { EYE } from '../store/walk'
 
@@ -28,7 +29,7 @@ export function CameraView({ spot, level, onReady }: CameraViewProps) {
       <Canvas flat shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }}>
         <PerspectiveCamera makeDefault fov={FOV} near={0.05} far={300} />
         <Eye spot={spot} floor={floor} onReady={onReady} />
-        <color attach="background" args={[SKY]} />
+        <Sky />
         <Lighting />
         <Ground />
         <House picking={false} />
