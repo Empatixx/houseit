@@ -4,10 +4,14 @@ export type Finish = {
   opacity?: number
 }
 
+export type Corner = { x: number; z: number }
+
 export type Body =
   | { kind: 'box'; width: number; height: number; depth: number }
   | { kind: 'drum'; radius: number; top: number; height: number; open: boolean; stretch: number }
   | { kind: 'ball'; radius: number }
+  | { kind: 'prism'; outline: Corner[]; holes: Corner[][]; thickness: number }
+  | { kind: 'model'; file: string; width: number; height: number; depth: number }
 
 export type Piece = {
   body: Body
@@ -156,4 +160,46 @@ export function put({ x = 0, z = 0, turn = 0 }: PutProps, pieces: Piece[]): Piec
     },
     turn: turn + (piece.turn ?? 0),
   }))
+}
+
+export type PrismProps = {
+  x?: number
+  z?: number
+  base?: number
+  outline: Corner[]
+  holes?: Corner[][]
+  thickness: number
+  paint: Finish
+}
+
+export function prism({
+  x = 0,
+  z = 0,
+  base = 0,
+  outline,
+  holes = [],
+  thickness,
+  paint,
+}: PrismProps): Piece {
+  return {
+    body: { kind: 'prism', outline, holes, thickness },
+    at: { x, y: base + thickness / 2, z },
+    paint,
+  }
+}
+
+export type ModelProps = {
+  file: string
+  w: number
+  h: number
+  d: number
+  paint: Finish
+}
+
+export function model({ file, w, h, d, paint }: ModelProps): Piece {
+  return {
+    body: { kind: 'model', file, width: w, height: h, depth: d },
+    at: { x: 0, y: h / 2, z: 0 },
+    paint,
+  }
 }

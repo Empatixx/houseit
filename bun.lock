@@ -142,7 +142,6 @@
       "version": "0.0.0",
       "dependencies": {
         "@houseit/core": "workspace:*",
-        "@houseit/geometry": "workspace:*",
       },
       "devDependencies": {
         "@houseit/typescript-config": "workspace:*",

@@ -18,8 +18,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@houseit/core": "workspace:*",
-    "@houseit/geometry": "workspace:*"
+    "@houseit/core": "workspace:*"
   },
   "devDependencies": {
     "@houseit/typescript-config": "workspace:*",
