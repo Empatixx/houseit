@@ -93,7 +93,7 @@ export function picture(
     context.fillText(room.name, spot.x, spot.y - LINE)
     context.font = AREA
     context.fillStyle = '#737373'
-    context.fillText(`${(room.area / 1_000_000).toFixed(1)} m²`, spot.x, spot.y + LINE)
+    context.fillText(`${(room.clear / 1_000_000).toFixed(1)} m²`, spot.x, spot.y + LINE)
   }
   return canvas.toDataURL('image/jpeg', 0.85)
 }

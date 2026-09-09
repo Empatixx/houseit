@@ -21,7 +21,7 @@ export function RoomAnnotations() {
         >
           <div className="pointer-events-none select-none whitespace-nowrap text-center leading-tight">
             <div className="text-sm font-medium text-neutral-900">{room.name ?? 'unnamed'}</div>
-            <div className="text-xs text-neutral-500">{squareMetres(room.area)} m²</div>
+            <div className="text-xs text-neutral-500">{squareMetres(room.clear)} m²</div>
           </div>
         </Html>
       ))}

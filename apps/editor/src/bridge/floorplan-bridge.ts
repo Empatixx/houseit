@@ -33,7 +33,7 @@ export function installFloorplanBridge(
     const open = projects.getState().open
     return {
       document: doc,
-      rooms: roomsOf(doc, level).map((room) => ({ name: room.name, area: room.area })),
+      rooms: roomsOf(doc, level).map((room) => ({ name: room.name, area: room.clear })),
       project: open ? { id: open.id, name: open.name } : undefined,
     }
   }

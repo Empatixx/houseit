@@ -173,7 +173,7 @@ export function surveyRoom(
     ...(room.id === undefined ? {} : { id: room.id }),
     ...(room.name === undefined ? {} : { name: room.name }),
     ...(room.kind === undefined ? {} : { kind: room.kind }),
-    areaM2: Math.round(room.area / 10_000) / 100,
+    areaM2: Math.round(room.clear / 10_000) / 100,
     ...interiorSize(doc, level, room),
     box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) },
     ...(room.floor === undefined ? {} : { floor: room.floor }),

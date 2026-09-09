@@ -8,6 +8,8 @@ import { viewStore } from '../store/view'
 import { installFloorplanBridge } from './floorplan-bridge'
 
 const floor = 'add-room --material natural-oak --shape rectangle --width 12m --depth 9m --name dům'
+const WALL = 300
+const CLEAR = (12_000 - WALL) * (9000 - WALL)
 
 async function bridgeOn(store = createDocumentStore()) {
   const projects = createProjectsStore(() => openProjects(new FakeIndexedDb()), store)
@@ -34,7 +36,7 @@ test('exec reports the rooms the command produced', async () => {
   const result = (await bridgeOn()).exec(floor)
 
   expect(result.ok).toBe(true)
-  expect(result.ok && result.rooms).toEqual([{ name: 'dům', area: 12_000 * 9000 }])
+  expect(result.ok && result.rooms).toEqual([{ name: 'dům', area: CLEAR }])
 })
 
 test('exec returns the failure as data rather than throwing across the boundary', async () => {
@@ -59,7 +61,7 @@ test('getPlan reports the document and its derived rooms', async () => {
 
   const plan = bridge.getPlan()
 
-  expect(plan.rooms).toEqual([{ name: 'dům', area: 12_000 * 9000 }])
+  expect(plan.rooms).toEqual([{ name: 'dům', area: CLEAR }])
   expect(Object.keys(plan.document.walls)).toHaveLength(4)
 })
 

@@ -150,7 +150,7 @@ function RoomPanel({ room }: { room: Room }) {
         rows={[
           ['Width', `${size.width} mm`],
           ['Depth', `${size.depth} mm`],
-          ['Area', `${(room.area / 1_000_000).toFixed(1)} m²`],
+          ['Area', `${(room.clear / 1_000_000).toFixed(1)} m²`],
         ]}
       />
       <Separator />
