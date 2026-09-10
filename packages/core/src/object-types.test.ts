@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import { heightOf } from './heights'
-import { IMPORTED_TYPES, importedType } from './imported'
+import { IMPORTED_TYPES, importedType, modelFileOf } from './imported'
+import { CATALOG_OBJECT_TYPES } from './catalog'
 import { layerOf, OBJECT_TYPE_IDS, OBJECT_TYPES, objectType, symbolOf } from './object-types'
 import { isStaircase, STAIR_KINDS, stairKind } from './stairs'
 import { SURFACE_IDS, surfaceOf } from './surfaces'
@@ -24,17 +25,26 @@ test('every type is finished in surfaces that exist', () => {
   }
 })
 
+const catalogued = (id: string) => CATALOG_OBJECT_TYPES.some((type) => type.id === id)
+
 test('every type has a real size, and a symbol unless it is drawn instead', () => {
   for (const entry of OBJECT_TYPES) {
     expect(entry.size.width, entry.id).toBeGreaterThan(0)
     expect(entry.size.depth, entry.id).toBeGreaterThan(0)
-    if (isStaircase(entry.id) || importedType(entry.id)) {
+    if (isStaircase(entry.id) || (importedType(entry.id) && !catalogued(entry.id))) {
       expect(symbolOf(entry.id), entry.id).toBeUndefined()
       continue
     }
     expect(entry.symbol, entry.id).toMatch(/^[a-z0-9-]+\.svg$/)
     expect(symbolOf(entry.id)).toBe(entry.symbol)
   }
+})
+
+test('a type that only borrows a model keeps the symbol the plan draws it with', () => {
+  const borrowed = IMPORTED_TYPES.filter((type) => catalogued(type.id))
+
+  expect(borrowed.length).toBeGreaterThan(0)
+  for (const type of borrowed) expect(symbolOf(type.id), type.id).toMatch(/\.svg$/)
 })
 
 test('every kind of staircase is in the catalogue, and every staircase is a kind', () => {
@@ -115,5 +125,29 @@ test('a type brought in as a model is a type like any other, and says where its 
     expect(brought.size.height).toBeGreaterThan(0)
     expect(brought.model).toMatch(/^[a-z0-9-]+\.glb$/)
     expect(heightOf(brought.id).height).toBe(brought.size.height)
+  }
+})
+
+test('a brought model for a type the catalogue already has does not make a second type', () => {
+  const twice = OBJECT_TYPE_IDS.filter((id, nth) => OBJECT_TYPE_IDS.indexOf(id) !== nth)
+
+  expect(twice).toEqual([])
+})
+
+test('a brought model still answers for a type the catalogue already has', () => {
+  for (const brought of IMPORTED_TYPES) {
+    expect(modelFileOf(brought.id)).toBe(brought.model)
+    expect(objectType(brought.id)).toBeDefined()
+  }
+})
+
+test('a brought model is declared at the size the catalogue places it at, so it is not stretched twice', () => {
+  for (const brought of IMPORTED_TYPES) {
+    const type = objectType(brought.id)!
+    expect([brought.id, type.size.width, type.size.depth]).toEqual([
+      brought.id,
+      brought.size.width,
+      brought.size.depth,
+    ])
   }
 })
