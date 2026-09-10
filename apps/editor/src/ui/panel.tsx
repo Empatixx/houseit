@@ -1,5 +1,5 @@
 import type { HouseObject, Opening, Wall } from '@houseit/core/document'
-import { finishesFor, finishOf, type Part, STYLES, styleOf } from '@houseit/core/finishes'
+import { finishesFor, finishOf, isColour, type Part, STYLES, styleOf } from '@houseit/core/finishes'
 import { FLOOR_MATERIALS, floorMaterial } from '@houseit/core/floor-materials'
 import { CAMERA, objectType } from '@houseit/core/object-types'
 import { ROOM_KINDS, roomKindOf } from '@houseit/core/room-kinds'
@@ -187,8 +187,9 @@ function RoomPanel({ room }: { room: Room }) {
           icon={icon}
           label={label}
           title="Add finish"
-          chosen={finishOf(record?.[part])}
+          chosen={wornAs(record?.[part])}
           choices={finishesFor(part)}
+          own
           onPick={(id) => setFinish(room, part, id)}
         />
       ))}
@@ -492,4 +493,10 @@ function NumberField({ value, onCommit }: { value: number; onCommit: (value: num
 function settle(object: HouseObject, degrees: number): void {
   turnTo(object, degrees)
   stopTurning()
+}
+
+function wornAs(worn: string | undefined): Choice | undefined {
+  if (worn === undefined) return undefined
+  if (isColour(worn)) return { id: worn, label: worn.toUpperCase(), colour: worn }
+  return finishOf(worn)
 }

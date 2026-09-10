@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { FINISH_IDS, STYLE_IDS } from './finishes'
+import { FINISH_IDS, isColour, STYLE_IDS } from './finishes'
 import { HostSchema } from './host'
 import { ROOM_KIND_IDS } from './room-kinds'
 
@@ -42,6 +42,13 @@ export const OpeningSchema = z.object({
   swing: z.union([z.literal(-1), z.literal(1)]).default(1),
 })
 
+const worn = z
+  .string()
+  .refine(
+    (said) => isColour(said) || FINISH_IDS.includes(said),
+    'not a finish, nor a #rrggbb colour',
+  )
+
 export const RoomSchema = z.object({
   id,
   level: id,
@@ -51,10 +58,10 @@ export const RoomSchema = z.object({
   floor: z.string().optional(),
   kind: z.enum(ROOM_KIND_IDS as [string, ...string[]]).optional(),
   style: z.enum(STYLE_IDS as [string, ...string[]]).optional(),
-  walls: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
-  ceiling: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
-  doors: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
-  windows: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
+  walls: worn.optional(),
+  ceiling: worn.optional(),
+  doors: worn.optional(),
+  windows: worn.optional(),
 })
 
 export const SideSchema = z.enum(['north', 'south', 'east', 'west'])

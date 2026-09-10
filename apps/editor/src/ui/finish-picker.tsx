@@ -29,10 +29,13 @@ type FinishRowProps = {
   title: string
   chosen: Choice | undefined
   choices: readonly Choice[]
+  own?: boolean
   onPick: (id: string) => void
 }
 
-export function FinishRow({ icon, label, title, chosen, choices, onPick }: FinishRowProps) {
+const PLAIN = '#c8b8a0'
+
+export function FinishRow({ icon, label, title, chosen, choices, own, onPick }: FinishRowProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const wanted = search.trim().toLowerCase()
@@ -103,6 +106,18 @@ export function FinishRow({ icon, label, title, chosen, choices, onPick }: Finis
             <p className="col-span-2 text-xs text-muted-foreground">Nothing called that.</p>
           ) : null}
         </div>
+        {own ? (
+          <label className="flex items-center gap-2 border-t px-3 py-2.5 text-xs">
+            <input
+              type="color"
+              value={chosen?.colour ?? PLAIN}
+              aria-label={`A colour of your own for ${label.toLowerCase()}`}
+              onChange={(event) => onPick(event.target.value)}
+              className="size-6 shrink-0 cursor-pointer rounded border bg-transparent"
+            />
+            <span className="text-muted-foreground">A colour of your own</span>
+          </label>
+        ) : null}
       </PopoverContent>
     </Popover>
   )
