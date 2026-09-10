@@ -11,6 +11,7 @@ import { Inspector } from './ui/inspector'
 import { ModeTabs } from './ui/mode-tabs'
 import { ProjectChip } from './ui/project-chip'
 import { Rail } from './ui/rail'
+import { RailPanel } from './ui/rail-panel'
 import { StoreyStack } from './ui/storey-stack'
 import { TopOverlay } from './ui/top-overlay'
 import { WalkHint } from './ui/walk-hint'
@@ -34,6 +35,7 @@ export function App() {
           {mode === '2d' ? <BottomBar /> : <WalkHint />}
           <Inspector />
           <Rail />
+          <RailPanel />
           <ProjectChip />
           <StoreyStack />
         </SidebarInset>
