@@ -57,7 +57,7 @@ export const CAMERA = 'camera'
 const LOOKING: ObjectType = {
   id: CAMERA,
   label: 'Camera',
-  size: { width: 300, depth: 300 },
+  size: { width: 700, depth: 700 },
   surfaces: ['white'],
   stands: 'free',
   layer: 'over',

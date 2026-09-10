@@ -8,6 +8,7 @@ import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { dropOf } from '../scene/furniture/drop'
 import { documentStore } from '../store/store'
 import { sayError } from './notice'
+import { endPreview, previewCommand } from './preview'
 import { runEdit } from './run-edit'
 
 export function moveTo(object: HouseObject, centre: Point): void {
@@ -21,13 +22,19 @@ export function turnBy(object: HouseObject, degrees: number): void {
   turnTo(object, whole((object.rotation ?? 0) + degrees))
 }
 
+export function turningTo(object: HouseObject, degrees: number): void {
+  previewCommand(updateObject, { id: object.id, rotation: whole(degrees) })
+}
+
+export const stopTurning = endPreview
+
 export function turnTo(object: HouseObject, degrees: number): boolean {
   return runEdit(() =>
     documentStore.getState().apply(updateObject, { id: object.id, rotation: whole(degrees) }),
   )
 }
 
-const whole = (degrees: number) => Math.round(degrees) % 360
+const whole = (degrees: number) => ((Math.round(degrees) % 360) + 360) % 360
 
 export function finish(object: HouseObject, surface: string): boolean {
   return runEdit(() => documentStore.getState().apply(updateObject, { id: object.id, surface }))

@@ -29,14 +29,23 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { sayError } from '../edit/notice'
-import { finish, placeCamera, remove, resize, roomOf, turnTo } from '../edit/object-commands'
+import {
+  finish,
+  placeCamera,
+  remove,
+  resize,
+  roomOf,
+  stopTurning,
+  turningTo,
+  turnTo,
+} from '../edit/object-commands'
 import { removeOpening, setOpening, whereOpening } from '../edit/opening-commands'
 import { pick } from '../edit/pick'
 import { layFloor, setFinish, setKind, setStyle } from '../edit/room-commands'
 import { promptFor, type Visualised, visualise } from '../edit/visualise'
 import { nameWall } from '../edit/wall-commands'
 import { selectionStore, useSelection } from '../store/selection'
-import { useDocument } from '../store/store'
+import { useDocument, usePlanDoc } from '../store/store'
 import { KindIcon } from './avatars'
 import { CameraView } from './camera-view'
 import { type Choice, FinishRow } from './finish-picker'
@@ -205,10 +214,11 @@ function RoomPanel({ room }: { room: Room }) {
 }
 
 function CameraPanel({ object }: { object: HouseObject }) {
-  const doc = useDocument((state) => state.doc)
+  const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
-  const room = roomOf(object)
-  const spot = room ? standingAt(doc, level, room, object) : undefined
+  const live = doc.objects[object.id] ?? object
+  const room = roomOf(live)
+  const spot = room ? standingAt(doc, level, room, live) : undefined
   const record = room?.id === undefined ? undefined : doc.rooms[room.id]
   const suggested = promptFor(record)
   const [prompt, setPrompt] = useState('')
@@ -235,9 +245,19 @@ function CameraPanel({ object }: { object: HouseObject }) {
       <Heading>Camera</Heading>
       {spot ? <CameraView spot={spot} level={level} onReady={ready} /> : null}
       <Field label="Turn (°)">
-        <NumberField
-          value={object.rotation ?? 0}
-          onCommit={(rotation) => turnTo(object, rotation)}
+        <NumberField value={live.rotation ?? 0} onCommit={(rotation) => turnTo(object, rotation)} />
+        <input
+          type="range"
+          min={0}
+          max={359}
+          step={1}
+          value={live.rotation ?? 0}
+          aria-label="Turn the camera"
+          onChange={(event) => turningTo(object, Number(event.target.value))}
+          onPointerUp={(event) => settle(object, Number(event.currentTarget.value))}
+          onKeyUp={(event) => settle(object, Number(event.currentTarget.value))}
+          onBlur={(event) => settle(object, Number(event.currentTarget.value))}
+          className="w-full accent-primary"
         />
       </Field>
       <Facts rows={[['Room', room?.name ?? '—']]} />
@@ -467,4 +487,9 @@ function NumberField({ value, onCommit }: { value: number; onCommit: (value: num
       }}
     />
   )
+}
+
+function settle(object: HouseObject, degrees: number): void {
+  turnTo(object, degrees)
+  stopTurning()
 }
