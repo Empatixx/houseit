@@ -4,6 +4,7 @@ import { SLAB } from '@houseit/core/levels'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { holesIn, stairwaysOn, wellsInRoom } from '@houseit/geometry/wells'
+import { paintFor } from './dressing'
 import { type Corner, type Finish, type Piece, prism, sheet } from './pieces'
 
 const BARE = '#f7f7f5'
@@ -49,7 +50,7 @@ export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
       thickness: SLAB,
       outline: corners(outline),
       holes: holes.map((hole) => corners(hole.outline)),
-      paint: { colour: PLASTER },
+      paint: paintFor(room.id === undefined ? undefined : doc.rooms[room.id]?.ceiling, PLASTER),
     })
     const named = { ...lid, name: `lid-${room.nodes.join('-')}`, casts: false }
     return room.id ? { ...named, of: { kind: 'room' as const, id: room.id } } : named

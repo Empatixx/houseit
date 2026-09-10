@@ -29,7 +29,10 @@ test('a storey carries its walls, its floors, its lid and what stands on it', ()
   doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room' }
 
   const built = worldOf(doc).storeys[0]!.pieces
-  expect(built.filter((piece) => piece.of?.kind === 'wall').length).toBe(4)
+  const walls = new Set(
+    built.filter((piece) => piece.of?.kind === 'wall').map((piece) => piece.of?.id),
+  )
+  expect(walls.size).toBe(4)
   expect(built.filter((piece) => piece.body.kind === 'sheet').length).toBe(1)
   expect(built.filter((piece) => piece.body.kind === 'prism').length).toBe(1)
 })

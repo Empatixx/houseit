@@ -22,11 +22,15 @@ const opening = (over: Partial<Opening> & Pick<Opening, 'id' | 'wall' | 'kind'>)
   ...over,
 })
 
-test('a blank wall is one solid piece', () => {
+test('a blank wall is two halves, one for each room it divides, so they can differ', () => {
   const { doc, level } = room()
 
-  const one = wallPieces(doc, level).filter((piece) => piece.of?.id === 'w1')
-  expect(one).toHaveLength(1)
+  const built = wallPieces(doc, level).filter((piece) => piece.of?.id === 'w1')
+  const depths = built.map((piece) => (piece.body.kind === 'box' ? piece.body.depth : 0))
+  const thickness = doc.walls.w1!.thickness
+
+  expect(built).toHaveLength(2)
+  expect(depths).toEqual([thickness / 2, thickness / 2])
 })
 
 test('a wall with a door in it is the pieces the hole leaves, plus what stands in the hole', () => {
@@ -50,10 +54,17 @@ test('a window is glazed, and the pane is the only see-through thing in the wall
 test('a piece of a wall stands where the wall does and lies along it', () => {
   const { doc, level } = room()
 
-  const south = wallPieces(doc, level).find((piece) => piece.of?.id === 'w1')!
-  expect(south.at.x).toBeCloseTo(2000)
-  expect(south.at.z).toBeCloseTo(0)
-  expect(south.turn).toBeCloseTo(0)
+  const halves = wallPieces(doc, level).filter((piece) => piece.of?.id === 'w1')
+  const thickness = doc.walls.w1!.thickness
+
+  for (const half of halves) {
+    expect(half.at.x).toBeCloseTo(2000)
+    expect(half.turn).toBeCloseTo(0)
+  }
+  expect(halves.map((half) => half.at.z).sort((one, other) => one - other)).toEqual([
+    -thickness / 4,
+    thickness / 4,
+  ])
 })
 
 test('a wall standing on another storey is not this storey business', () => {

@@ -20,7 +20,7 @@ export function textureOf(path: string, repeat?: { x: number; y: number }): Text
   const cached = photos.get(key)
   if (cached) return cached
 
-  const texture = loader.load(`/textures/${path}`)
+  const texture = loader.load(path.startsWith('/') ? path : `/textures/${path}`)
   texture.wrapS = RepeatWrapping
   texture.wrapT = RepeatWrapping
   texture.colorSpace = SRGBColorSpace
