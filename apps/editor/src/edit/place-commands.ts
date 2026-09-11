@@ -7,12 +7,13 @@ import { dropOf } from '../scene/furniture/drop'
 import { openingDropOf } from '../scene/opening-drop'
 import { documentStore } from '../store/store'
 import type { Armed } from '../store/tool'
+import { roomRef } from './room-ref'
 import { runEdit } from './run-edit'
 
 export function placeArmed(armed: Armed, room: Room, point: Point): boolean {
-  if (!room.name) return false
+  const name = roomRef(room)
+  if (name === undefined) return false
   const { doc, level } = documentStore.getState()
-  const name = room.name
 
   if (armed.kind === 'object') {
     const type = objectType(armed.type)

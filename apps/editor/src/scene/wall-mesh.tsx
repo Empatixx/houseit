@@ -28,9 +28,10 @@ type WallMeshProps = {
   doc: HouseDocument
   degrees: Map<string, number>
   ofPickedRoom: boolean
+  pickedRoom?: string
 }
 
-export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
+export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallMeshProps) {
   const plainly = usePlain()
   const chosen = useSelection((state) => state.selected)
   const noticed = useHover((state) => state.hovered)
@@ -168,9 +169,9 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
               wall.id,
               (carried) => {
                 endPreview()
-                if (carried) moveWallBy(wall, carried.shift)
+                if (carried) moveWallBy(wall, carried.shift, pickedRoom)
               },
-              (carried) => previewWallMove(wall, carried.shift),
+              (carried) => previewWallMove(wall, carried.shift, pickedRoom),
             )
           }
         />

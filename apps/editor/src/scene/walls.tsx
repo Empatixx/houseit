@@ -37,6 +37,7 @@ export function Walls() {
           doc={doc}
           degrees={degrees}
           ofPickedRoom={roomWalls.has(wall.id)}
+          pickedRoom={selected?.kind === 'room' ? selected.id : undefined}
         />
       ))}
     </>

@@ -9,6 +9,7 @@ import { dropOf } from '../scene/furniture/drop'
 import { documentStore } from '../store/store'
 import { sayError } from './notice'
 import { endPreview, previewCommand } from './preview'
+import { roomRef } from './room-ref'
 import { runEdit } from './run-edit'
 
 export function moveTo(object: HouseObject, centre: Point): void {
@@ -74,8 +75,8 @@ const CAMERA_SPOTS: [number, number][] = [
 ]
 
 export function placeCamera(room: Room): string | undefined {
-  if (!room.name) return undefined
-  const name = room.name
+  const name = roomRef(room)
+  if (name === undefined) return undefined
   let refused = ''
   for (const [along, across] of CAMERA_SPOTS) {
     const before = new Set(Object.keys(documentStore.getState().doc.objects))
