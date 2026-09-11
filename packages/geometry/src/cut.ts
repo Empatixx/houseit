@@ -38,18 +38,3 @@ export function crossingsOf(
 
   return crossings
 }
-
-export function sideIsStraight(
-  doc: HouseDocument,
-  room: Room,
-  axis: Axis,
-  at: number,
-  far: number,
-): boolean {
-  return room.nodes.every((id) => {
-    const point = doc.nodes[id]
-    if (!point) return true
-    const beyond = far > at ? point[axis] > at : point[axis] < at
-    return !beyond || point[axis] === far
-  })
-}

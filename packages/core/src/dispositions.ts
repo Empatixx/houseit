@@ -90,9 +90,6 @@ export const DISPOSITIONS: Disposition[] = [
   },
 ]
 
-export const dispositionOf = (id: string): Disposition | undefined =>
-  DISPOSITIONS.find((candidate) => candidate.id === id.toLowerCase().replace(/\s+/g, ''))
-
 export const STANDARD = {
   habitableRoom: 8,
   onlyRoom: 16,
@@ -103,6 +100,3 @@ export const STANDARD = {
   approach: 600,
   ceiling: { habitable: 2500, service: 2200 },
 } as const
-
-export const notationFor = (rooms: number, kitchen: 'kitchenette' | 'separate'): string =>
-  `${rooms}+${kitchen === 'kitchenette' ? 'kk' : '1'}`
