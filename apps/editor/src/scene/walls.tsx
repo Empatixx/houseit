@@ -3,12 +3,15 @@ import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { useSelection } from '../store/selection'
 import { useDocument, usePlanDoc } from '../store/store'
+import { usePlain } from './plain'
 import { WallMesh } from './wall-mesh'
 
 export function Walls() {
   const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
-  const selected = useSelection((state) => state.selected)
+  const plainly = usePlain()
+  const chosen = useSelection((state) => state.selected)
+  const selected = plainly ? null : chosen
 
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
 
@@ -34,6 +37,7 @@ export function Walls() {
           doc={doc}
           degrees={degrees}
           ofPickedRoom={roomWalls.has(wall.id)}
+          pickedRoom={selected?.kind === 'room' ? selected.id : undefined}
         />
       ))}
     </>

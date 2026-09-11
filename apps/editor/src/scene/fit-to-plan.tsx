@@ -1,6 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
-import type { OrthographicCamera, Vector3 } from 'three'
+import { type OrthographicCamera, Vector3 } from 'three'
 import { useDocument } from '../store/store'
 import { clearOf, useView, type ViewBox, viewStore } from '../store/view'
 import { MM } from './plan-coordinates'
@@ -22,6 +22,22 @@ export function FitToPlan() {
   const camera = useThree((state) => state.camera)
   const controls = useThree((state) => state.controls) as Controls | null
   const size = useThree((state) => state.size)
+  const gl = useThree((state) => state.gl)
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    const hook = (window as unknown as { __houseit?: Record<string, unknown> }).__houseit
+    if (!hook) return
+    hook.toScreen = (x: number, y: number, up = 0) => {
+      const box = gl.domElement.getBoundingClientRect()
+      const point = new Vector3(x * MM, up * MM, -y * MM).project(camera)
+      return {
+        x: box.left + ((point.x + 1) / 2) * box.width,
+        y: box.top + ((1 - point.y) / 2) * box.height,
+      }
+    }
+  }, [camera, gl])
+
   const framed = useRef('')
   const held = useRef<Framing | null>(null)
 

@@ -6,16 +6,20 @@ import { Path, Shape, ShapeGeometry } from 'three'
 import { aimAt, finishDrawing, putDown } from '../edit/draw-commands'
 import { pick } from '../edit/pick'
 import { placeArmed } from '../edit/place-commands'
+import { wallUnder } from '../edit/wall-under'
 import { hoverStore, useHover } from '../store/hover'
 import { useDocument, usePlanDoc } from '../store/store'
 import { toolStore } from '../store/tool'
 import { floorTexture } from './floor-texture'
+import { usePlain } from './plain'
 import { MM } from './plan-coordinates'
 
 export function RoomFloors() {
   const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
-  const hovered = useHover((state) => state.hovered)
+  const plainly = usePlain()
+  const noticed = useHover((state) => state.hovered)
+  const hovered = plainly ? null : noticed
 
   const floors = useMemo(() => {
     return roomsOf(doc, level).map((room) => {
@@ -86,7 +90,13 @@ export function RoomFloors() {
               }
               return
             }
-            pick(floor.id ? { kind: 'room', id: floor.id } : null)
+            if (!floor.id) {
+              pick(null)
+              return
+            }
+            const here = { x: event.point.x / MM, y: -event.point.z / MM }
+            const edge = wallUnder(doc, level, floor.room, here)
+            pick(edge ? { kind: 'wall', id: edge } : { kind: 'room', id: floor.id })
           }}
         >
           {floor.texture ? (

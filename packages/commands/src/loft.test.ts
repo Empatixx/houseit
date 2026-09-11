@@ -23,7 +23,10 @@ test('a third storey is cut up over two that are already there', () => {
 
   const loft = askPlan(cut, 'get-plan --level "2. patro"').rooms
   expect(loft.map((it) => it.name).sort()).toEqual(['ateliér', 'podkroví', 'podkroví 2'])
-  expect(loft.reduce((total, room) => total + room.areaM2, 0)).toBeCloseTo(12 * 6, 0)
+  const gross = 12 * 6
+  const clear = loft.reduce((total, room) => total + room.areaM2, 0)
+  expect(clear).toBeLessThan(gross)
+  expect(clear).toBeGreaterThan(gross - 8)
   expect(askPlan(cut, 'get-plan --level "1. patro"').rooms).toHaveLength(2)
   expect(askPlan(cut, 'get-plan --level "Ground floor"').rooms).toHaveLength(1)
 })

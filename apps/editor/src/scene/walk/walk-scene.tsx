@@ -16,7 +16,7 @@ export function WalkScene() {
       <Sky />
       <Lighting />
       <Ground />
-      <House />
+      <House picking={false} />
       <Walker />
       <Shading />
     </Canvas>

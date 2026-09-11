@@ -20,7 +20,8 @@ import { useSelection } from '../../store/selection'
 import { useDocument, usePlanDoc } from '../../store/store'
 import { toolStore } from '../../store/tool'
 import { ABOVE, DimensionLine } from '../dimensions'
-import { dragged, pointOnPlan } from '../drag'
+import { dragged, pointOnPlan, pointUnder } from '../drag'
+import { usePlain } from '../plain'
 import { MM, toWorld } from '../plan-coordinates'
 import { symbolHeight } from './stacking'
 import { Dial, Turner } from './turning'
@@ -84,12 +85,15 @@ type GlyphProps = {
 }
 
 function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
-  const picked = useSelection(
+  const plainly = usePlain()
+  const chosen = useSelection(
     (state) => state.selected?.kind === 'object' && state.selected.id === object.id,
   )
-  const hovered = useHover(
+  const picked = chosen && !plainly
+  const noticed = useHover(
     (state) => state.hovered?.kind === 'object' && state.hovered.id === object.id,
   )
+  const hovered = noticed && !plainly
   const plain = useSymbol(symbol, surface, object)
   const marked = useSymbol(picked ? symbol : '', pickedSurface(surface), object, PICKED_HATCH)
   const drag = useDrag(object, spot)
@@ -153,11 +157,8 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
         onPointerMove={(event) => {
           if (toolStore.getState().armed?.kind === 'wall') {
             aimAt({ x: event.point.x / MM, y: -event.point.z / MM })
-            return
           }
-          drag.move(event)
         }}
-        onPointerUp={drag.up}
       >
         <planeGeometry args={[object.width * MM, object.depth * MM]} />
         <meshBasicMaterial
@@ -358,6 +359,8 @@ type Carried = { from: Point; shift: Point }
 
 function useDrag(object: HouseObject, spot: Spot) {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null
+  const camera = useThree((state) => state.camera)
+  const canvas = useThree((state) => state.gl.domElement)
   const held = useRef<Carried | null>(null)
   const [shift, setShift] = useState<Point>({ x: 0, y: 0 })
 
@@ -369,27 +372,30 @@ function useDrag(object: HouseObject, spot: Spot) {
     ;(event.target as Element).setPointerCapture(event.pointerId)
     held.current = { from, shift: { x: 0, y: 0 } }
     if (controls) controls.enabled = false
+
+    const follow = (native: PointerEvent) => {
+      const carried = held.current
+      if (!carried) return
+      const now = pointUnder(native, canvas, camera)
+      if (!now) return
+      carried.shift = { x: now.x - carried.from.x, y: now.y - carried.from.y }
+      setShift(carried.shift)
+    }
+    const done = () => {
+      window.removeEventListener('pointermove', follow)
+      window.removeEventListener('pointerup', done)
+      window.removeEventListener('pointercancel', done)
+      const carried = held.current
+      held.current = null
+      setShift({ x: 0, y: 0 })
+      if (controls) controls.enabled = true
+      if (!carried || Math.hypot(carried.shift.x, carried.shift.y) < 30) return
+      moveTo(object, { x: spot.at.x + carried.shift.x, y: spot.at.y + carried.shift.y })
+    }
+    window.addEventListener('pointermove', follow)
+    window.addEventListener('pointerup', done)
+    window.addEventListener('pointercancel', done)
   }
 
-  const move = (event: ThreeEvent<PointerEvent>) => {
-    const carried = held.current
-    if (!carried) return
-    const now = pointOnPlan(event.ray)
-    if (!now) return
-    carried.shift = { x: now.x - carried.from.x, y: now.y - carried.from.y }
-    setShift(carried.shift)
-  }
-
-  const up = (event: ThreeEvent<PointerEvent>) => {
-    const carried = held.current
-    if (!carried) return
-    ;(event.target as Element).releasePointerCapture(event.pointerId)
-    held.current = null
-    setShift({ x: 0, y: 0 })
-    if (controls) controls.enabled = true
-    if (Math.hypot(carried.shift.x, carried.shift.y) < 30) return
-    moveTo(object, { x: spot.at.x + carried.shift.x, y: spot.at.y + carried.shift.y })
-  }
-
-  return { shift, live: held.current !== null, down, move, up }
+  return { shift, live: held.current !== null, down }
 }

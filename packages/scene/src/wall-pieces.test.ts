@@ -140,23 +140,23 @@ test('the wall each side of a doorway is outlined, so the jambs show', () => {
 test('the leaf stands square to the wall, on the side the door swings to', () => {
   const leaf = plan([door]).find((piece) => piece.key === 'd1-leaf')!
 
-  expect(leaf.length).toBe(door.width)
+  expect(leaf.length).toBe(door.width + wall.thickness)
   expect(leaf.turn).toBeCloseTo(Math.PI / 2)
-  expect(leaf.aside).toBeCloseTo(wall.thickness / 2 + door.width / 2)
+  expect(leaf.aside).toBeCloseTo(door.width / 2)
 })
 
-test('the leaf is as long in the room as the hole is wide', () => {
+test('the leaf starts at the far face, so it stands in the doorway and not against it', () => {
   const leaf = plan([door]).find((piece) => piece.key === 'd1-leaf')!
   const face = wall.thickness / 2
 
-  expect(leaf.aside! - leaf.length / 2).toBeCloseTo(face)
+  expect(leaf.aside! - leaf.length / 2).toBeCloseTo(-face)
   expect(leaf.aside! + leaf.length / 2).toBeCloseTo(face + door.width)
 })
 
 test('a door swinging the other way puts its leaf on the other side', () => {
   const leaf = plan([{ ...door, swing: -1 }]).find((piece) => piece.key === 'd1-leaf')!
 
-  expect(leaf.aside).toBeCloseTo(-(wall.thickness / 2 + door.width / 2))
+  expect(leaf.aside).toBeCloseTo(-door.width / 2)
 })
 
 test('the swing is dashed, from the open leaf round to the far jamb', () => {

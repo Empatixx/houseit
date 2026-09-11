@@ -1,4 +1,4 @@
-import { LayoutListIcon, LibraryBigIcon, ListChecksIcon, type LucideIcon } from 'lucide-react'
+import { EyeIcon, LayoutListIcon, ListChecksIcon, type LucideIcon } from 'lucide-react'
 import { type ReactNode, type PointerEvent as ReactPointerEvent, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -9,9 +9,9 @@ import { Logo } from './logo'
 import { useCover } from './use-cover'
 
 const TABS: { id: RailTab; label: string; icon: LucideIcon }[] = [
-  { id: 'rooms', label: 'Rooms', icon: LayoutListIcon },
+  { id: 'plan', label: 'Plan', icon: LayoutListIcon },
   { id: 'issues', label: 'Issues', icon: ListChecksIcon },
-  { id: 'catalogue', label: 'Catalogue', icon: LibraryBigIcon },
+  { id: 'view', label: 'View', icon: EyeIcon },
 ]
 
 export function Rail() {

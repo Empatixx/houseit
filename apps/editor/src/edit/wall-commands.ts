@@ -6,30 +6,27 @@ import { surveyRoom } from '@houseit/commands/survey'
 import type { Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
-import { SIDES, sideOfWall } from '@houseit/geometry/sides'
 import { documentStore } from '../store/store'
 import { sayError } from './notice'
 import { endPreview, previewCommand } from './preview'
+import { roomRef } from './room-ref'
 import { runEdit } from './run-edit'
+import { wallMoveArgsOf, wallNamedBy } from './wall-move'
 
-function wallMoveArgs(wall: Wall, shift: Point) {
-  const named = nameWall(wall)
-  if (!named) return undefined
-  const { axis, low } = SIDES[named.side]
-  const outward = low ? -1 : 1
-  const by = Math.round((shift[axis] * outward) / 10) * 10
-  return { room: named.room.name, side: named.side, by }
+function wallMoveArgs(wall: Wall, shift: Point, roomId?: string) {
+  const { doc, level } = documentStore.getState()
+  return wallMoveArgsOf(doc, level, wall, shift, roomId)
 }
 
-export function moveWallBy(wall: Wall, shift: Point): boolean {
-  const args = wallMoveArgs(wall, shift)
+export function moveWallBy(wall: Wall, shift: Point, roomId?: string): boolean {
+  const args = wallMoveArgs(wall, shift, roomId)
   if (!args) return false
   if (args.by === 0) return true
   return runEdit(() => documentStore.getState().apply(moveWall, args))
 }
 
-export function previewWallMove(wall: Wall, shift: Point): void {
-  const args = wallMoveArgs(wall, shift)
+export function previewWallMove(wall: Wall, shift: Point, roomId?: string): void {
+  const args = wallMoveArgs(wall, shift, roomId)
   if (!args || args.by === 0) {
     endPreview()
     return
@@ -55,7 +52,9 @@ export function knockThroughToBiggest(room: Room): boolean {
   let refused = ''
   for (const into of neighbours) {
     try {
-      documentStore.getState().apply(removeRoom, { room: room.name, into: into.name })
+      documentStore
+        .getState()
+        .apply(removeRoom, { room: roomRef(room) ?? room.name, into: roomRef(into) ?? into.name })
       return true
     } catch (error) {
       refused ||= error instanceof Error ? error.message : String(error)
@@ -65,15 +64,11 @@ export function knockThroughToBiggest(room: Room): boolean {
   return false
 }
 
-export function nameWall(wall: Wall) {
+export function nameWall(wall: Wall, roomId?: string) {
   const { doc, level } = documentStore.getState()
-  for (const room of roomsOf(doc, level)) {
-    if (!room.name) continue
-    const side = sideOfWall(doc, level, room, wall.id)
-    if (side) return { room: { ...room, name: room.name }, side }
-  }
-  sayError('this wall bounds no named room, so nothing can be said about it')
-  return undefined
+  const named = wallNamedBy(doc, level, wall, roomId)
+  if (!named) sayError('this wall bounds no named room, so nothing can be said about it')
+  return named
 }
 
 const SIDE_LIST = ['north', 'east', 'south', 'west'] as const
@@ -101,9 +96,11 @@ export function removeStub(wall: Wall): boolean {
     return false
   }
   return runEdit(() =>
-    documentStore
-      .getState()
-      .apply(removeWall, { room: found.room.name, side: found.side, along: found.stub.along }),
+    documentStore.getState().apply(removeWall, {
+      room: roomRef(found.room) ?? found.room.name,
+      side: found.side,
+      along: found.stub.along,
+    }),
   )
 }
 
@@ -112,7 +109,12 @@ function stubResizeArgs(wall: Wall, length: number) {
   if (!found) return undefined
   const rounded = Math.max(10, Math.round(length / 10) * 10)
   if (rounded === found.stub.length) return undefined
-  return { room: found.room.name, side: found.side, along: found.stub.along, length: rounded }
+  return {
+    room: roomRef(found.room) ?? found.room.name,
+    side: found.side,
+    along: found.stub.along,
+    length: rounded,
+  }
 }
 
 export function resizeStub(wall: Wall, length: number): boolean {

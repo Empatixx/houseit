@@ -57,7 +57,7 @@ export const CAMERA = 'camera'
 const LOOKING: ObjectType = {
   id: CAMERA,
   label: 'Camera',
-  size: { width: 300, depth: 300 },
+  size: { width: 700, depth: 700 },
   surfaces: ['white'],
   stands: 'free',
   layer: 'over',
@@ -65,10 +65,16 @@ const LOOKING: ObjectType = {
   rooms: ['any'],
 }
 
-export const OBJECT_TYPES: readonly ObjectType[] = [
+const CATALOGUED: readonly ObjectType[] = [
   ...CATALOG_OBJECT_TYPES.filter((type) => !type.id.startsWith('stairs-')),
   ...STAIRS,
-  ...IMPORTED,
+]
+
+const known = new Set(CATALOGUED.map((type) => type.id))
+
+export const OBJECT_TYPES: readonly ObjectType[] = [
+  ...CATALOGUED,
+  ...IMPORTED.filter((type) => !known.has(type.id)),
   LOOKING,
 ]
 

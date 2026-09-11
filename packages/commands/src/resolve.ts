@@ -93,10 +93,4 @@ export function thingById(
   return { object: object as HouseObject, room: room as Room & { id: string }, level }
 }
 
-export const newest = <T extends { id: string }>(entries: T[]): T | undefined =>
-  entries.reduce<T | undefined>(
-    (best, next) => (best === undefined || order(next.id) > order(best.id) ? next : best),
-    undefined,
-  )
-
 export const order = (id: string) => Number.parseInt(id.replace(/^\D+/, ''), 10) || 0

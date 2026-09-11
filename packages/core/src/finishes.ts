@@ -45,3 +45,17 @@ export const styleOf = (id: string | undefined): Style | undefined =>
   STYLES.find((style) => style.id === id)
 
 export const BATHROOM_KINDS: readonly string[] = ['bathroom', 'half-bath']
+
+const COLOUR = /^#[0-9a-f]{6}$/i
+
+export const isColour = (worn: string): boolean => COLOUR.test(worn)
+
+export function wornAs(worn: string, part: Part): string {
+  if (isColour(worn)) return worn.toLowerCase()
+  if (finishesFor(part).some((finish) => finish.id === worn)) return worn
+  throw new Error(
+    `${part}: ${worn} is no finish for ${part} — name one of ${finishesFor(part)
+      .map((finish) => finish.id)
+      .join(', ')}, or give a colour of your own as #rrggbb`,
+  )
+}

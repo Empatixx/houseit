@@ -22,6 +22,7 @@ export type StandingPiece = {
   thickness: number
   base: number
   colour: string
+  takesFinish?: boolean
 }
 
 export function doorPieces(opening: Opening, wall: Wall, centre: number): StandingPiece[] {
@@ -44,6 +45,7 @@ export function doorPieces(opening: Opening, wall: Wall, centre: number): Standi
         thickness: LEAF,
         base: 0,
         colour: DOOR_PAINT.garage,
+        takesFinish: true,
       },
     ]
   }
@@ -69,6 +71,7 @@ export function doorPieces(opening: Opening, wall: Wall, centre: number): Standi
         thickness: LEAF,
         base: 0,
         colour: DOOR_PAINT.leaf,
+        takesFinish: true,
       })),
     ]
   }
@@ -90,6 +93,7 @@ export function doorPieces(opening: Opening, wall: Wall, centre: number): Standi
       thickness: LEAF,
       base: 0,
       colour: DOOR_PAINT.leaf,
+      takesFinish: true,
     },
     {
       key: `${opening.id}-handle`,

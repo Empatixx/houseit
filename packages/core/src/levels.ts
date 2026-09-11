@@ -15,10 +15,6 @@ export function levelBelow(doc: HouseDocument, level: string): Level | undefined
   return at <= 0 ? undefined : stack[at - 1]
 }
 
-export function storeyOf(doc: HouseDocument, level: string): number {
-  return levelsOf(doc).findIndex((candidate) => candidate.id === level) + 1
-}
-
 const RISER = { least: 150, most: 200, wanted: 175 }
 
 export function flightOf(height: number): { risers: number; riser: number; going: number } {

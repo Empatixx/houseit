@@ -19,7 +19,8 @@ import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
 import { usePreview } from '../store/preview'
 import { useSelection } from '../store/selection'
 import { toolStore, useTool } from '../store/tool'
-import { dragged, pointOnPlan } from './drag'
+import { dragged, pointOnPlan, pointUnder } from './drag'
+import { usePlain } from './plain'
 import { MM, toWorld } from './plan-coordinates'
 
 type WallMeshProps = {
@@ -27,11 +28,15 @@ type WallMeshProps = {
   doc: HouseDocument
   degrees: Map<string, number>
   ofPickedRoom: boolean
+  pickedRoom?: string
 }
 
-export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
-  const selected = useSelection((state) => state.selected)
-  const hovered = useHover((state) => state.hovered)
+export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallMeshProps) {
+  const plainly = usePlain()
+  const chosen = useSelection((state) => state.selected)
+  const noticed = useHover((state) => state.hovered)
+  const selected = plainly ? null : chosen
+  const hovered = plainly ? null : noticed
   const carry = useCarry()
   const [pull, setPull] = useState(0)
   const previewing = usePreview((state) => state.doc !== null)
@@ -129,20 +134,18 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
             }}
             onPointerDown={(event) => {
               if (toolStore.getState().armed?.kind === 'wall' || !opening) return
-              carry.down(event, opening.id)
+              carry.down(event, opening.id, (carried) => {
+                if (!carried || !centre) return
+                moveOpeningTo(opening, {
+                  x: centre.x + carried.shift.x,
+                  y: centre.y + carried.shift.y,
+                })
+              })
             }}
             onPointerMove={(event) => {
               if (toolStore.getState().armed?.kind === 'wall') {
                 aimAt({ x: event.point.x / MM, y: -event.point.z / MM })
-                return
               }
-              carry.move(event)
-            }}
-            onPointerUp={(event) => {
-              const carried = carry.up(event)
-              if (!carried || !opening || !centre) return
-              const { shift } = carried
-              moveOpeningTo(opening, { x: centre.x + shift.x, y: centre.y + shift.y })
             }}
           >
             <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
@@ -160,16 +163,17 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
         <Knob
           at={{ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }}
           height={wall.height + 60}
-          onDown={(event) => carry.down(event, wall.id)}
-          onMove={(event) => {
-            const carried = carry.move(event)
-            if (carried) previewWallMove(wall, carried.shift)
-          }}
-          onUp={(event) => {
-            const carried = carry.up(event)
-            endPreview()
-            if (carried) moveWallBy(wall, carried.shift)
-          }}
+          onDown={(event) =>
+            carry.down(
+              event,
+              wall.id,
+              (carried) => {
+                endPreview()
+                if (carried) moveWallBy(wall, carried.shift, pickedRoom)
+              },
+              (carried) => previewWallMove(wall, carried.shift, pickedRoom),
+            )
+          }
         />
       ) : null}
 
@@ -224,11 +228,9 @@ type KnobProps = {
   at: Point
   height: number
   onDown: (event: ThreeEvent<PointerEvent>) => void
-  onMove: (event: ThreeEvent<PointerEvent>) => void
-  onUp: (event: ThreeEvent<PointerEvent>) => void
 }
 
-function Knob({ at, height, onDown, onMove, onUp }: KnobProps) {
+function Knob({ at, height, onDown }: KnobProps) {
   const group = useRef<Group>(null)
   useFrame(({ camera }) => {
     group.current?.scale.setScalar(KNOB / (camera as OrthographicCamera).zoom)
@@ -239,8 +241,6 @@ function Knob({ at, height, onDown, onMove, onUp }: KnobProps) {
       position={toWorld(at.x, at.y, height)}
       rotation={[-Math.PI / 2, 0, 0]}
       onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={onUp}
       onClick={(event) => event.stopPropagation()}
     >
       <mesh>
@@ -267,10 +267,19 @@ type Held = { id: string; from: Point; shift: Point }
 
 function useCarry() {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null
+  const camera = useThree((state) => state.camera)
+  const canvas = useThree((state) => state.gl.domElement)
   const live = useRef<Held | null>(null)
   const [held, setHeld] = useState<Held | null>(null)
 
-  const down = (event: ThreeEvent<PointerEvent>, id: string) => {
+  const letGo = useRef<(() => void) | null>(null)
+
+  const down = (
+    event: ThreeEvent<PointerEvent>,
+    id: string,
+    end?: (carried: { from: Point; shift: Point } | undefined) => void,
+    onward?: (carried: Held) => void,
+  ) => {
     if (event.button !== 0) return
     const from = pointOnPlan(event.ray)
     if (!from) return
@@ -279,22 +288,35 @@ function useCarry() {
     live.current = { id, from, shift: { x: 0, y: 0 } }
     setHeld(live.current)
     if (controls) controls.enabled = false
+
+    const follow = (native: PointerEvent) => {
+      const carried = live.current
+      if (!carried) return
+      const now = pointUnder(native, canvas, camera)
+      if (!now) return
+      live.current = { ...carried, shift: { x: now.x - carried.from.x, y: now.y - carried.from.y } }
+      setHeld(live.current)
+      onward?.(live.current)
+    }
+    const done = () => {
+      forget()
+      const carried = live.current
+      if (!carried) return
+      end?.(dropped(carried))
+    }
+    const forget = () => {
+      window.removeEventListener('pointermove', follow)
+      window.removeEventListener('pointerup', done)
+      window.removeEventListener('pointercancel', done)
+      letGo.current = null
+    }
+    letGo.current = forget
+    window.addEventListener('pointermove', follow)
+    window.addEventListener('pointerup', done)
+    window.addEventListener('pointercancel', done)
   }
 
-  const move = (event: ThreeEvent<PointerEvent>): Held | undefined => {
-    const carried = live.current
-    if (!carried) return undefined
-    const now = pointOnPlan(event.ray)
-    if (!now) return carried
-    live.current = { ...carried, shift: { x: now.x - carried.from.x, y: now.y - carried.from.y } }
-    setHeld(live.current)
-    return live.current
-  }
-
-  const up = (event: ThreeEvent<PointerEvent>): { from: Point; shift: Point } | undefined => {
-    const carried = live.current
-    if (!carried) return undefined
-    ;(event.target as Element).releasePointerCapture(event.pointerId)
+  const dropped = (carried: Held) => {
     live.current = null
     setHeld(null)
     if (controls) controls.enabled = true
@@ -309,5 +331,5 @@ function useCarry() {
     if (controls) controls.enabled = true
   }
 
-  return { held, down, move, up, hold, release }
+  return { held, down, hold, release }
 }

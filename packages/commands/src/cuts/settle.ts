@@ -48,6 +48,7 @@ export function settlePieces(
       ...anchor,
       name: index === 0 ? name : `${name} ${index + 1}`,
       floor: material,
+      loop: [],
     }
     return id
   })
@@ -61,6 +62,7 @@ export function settlePieces(
         ...anchor,
         name: `${source.name ?? 'room'} ${index + 2}`,
         floor: source.floor ?? material,
+        loop: [],
       }
       return id
     })
@@ -98,6 +100,7 @@ export function settleCut(
       ...inside(face),
       name: index === 0 ? name : `${name} ${index + 1}`,
       floor: material,
+      loop: [],
     }
     return id
   })
@@ -119,6 +122,7 @@ export function settleCut(
         ...inside(face),
         name: `${source.name ?? 'room'} ${index + 2}`,
         floor: source.floor ?? material,
+        loop: [],
       }
       return id
     })
@@ -135,7 +139,7 @@ export function settle(
   left: { x: number; y: number },
 ): string[] {
   const id = allocateId(draft.rooms, 'r')
-  draft.rooms[id] = { id, level, x: taken.x, y: taken.y, name, floor: material }
+  draft.rooms[id] = { id, level, x: taken.x, y: taken.y, name, floor: material, loop: [] }
 
   const previous = source.id ? draft.rooms[source.id] : undefined
   if (previous) {

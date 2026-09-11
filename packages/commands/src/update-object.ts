@@ -24,7 +24,7 @@ import { canStand, standingProblem, takenBy } from './standing-check'
 
 export const updateObject = defineCommand({
   name: 'update-object',
-  summary: 'Change a thing in its room: where it stands, its size, its turn, its finish',
+  summary: `Change a thing in its room: where it stands, its size, its turn, its finish (${SURFACE_IDS.join(', ')})`,
   args: z.object({
     id: z.string().min(1),
     against: z.enum(SIDE_NAMES).optional(),

@@ -1,5 +1,5 @@
 import { addObject } from '@houseit/commands/add-object'
-import { addOpening } from '@houseit/commands/add-opening'
+import { addOpening, openingWidth } from '@houseit/commands/add-opening'
 import { objectType } from '@houseit/core/object-types'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
@@ -7,12 +7,13 @@ import { dropOf } from '../scene/furniture/drop'
 import { openingDropOf } from '../scene/opening-drop'
 import { documentStore } from '../store/store'
 import type { Armed } from '../store/tool'
+import { roomRef } from './room-ref'
 import { runEdit } from './run-edit'
 
 export function placeArmed(armed: Armed, room: Room, point: Point): boolean {
-  if (!room.name) return false
+  const name = roomRef(room)
+  if (name === undefined) return false
   const { doc, level } = documentStore.getState()
-  const name = room.name
 
   if (armed.kind === 'object') {
     const type = objectType(armed.type)
@@ -23,7 +24,13 @@ export function placeArmed(armed: Armed, room: Room, point: Point): boolean {
     )
   }
 
-  const drop = openingDropOf(doc, level, room, point)
+  const drop = openingDropOf(
+    doc,
+    level,
+    room,
+    point,
+    armed.kind === 'door' ? openingWidth('door', armed.variant) : openingWidth('window'),
+  )
   if (!drop) return false
   if (armed.kind === 'door') {
     return runEdit(() =>

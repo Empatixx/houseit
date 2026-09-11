@@ -1,5 +1,7 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
+import { roomsOf } from '@houseit/geometry/rooms'
 import { doorPieces } from './doors'
+import { besideWall, type Dressed, paintFor } from './dressing'
 import { owned, type Piece } from './pieces'
 import { solidPieces } from './wall-pieces'
 
@@ -9,6 +11,7 @@ const PAINT = {
 } as const
 
 const PANE = 40
+const SUNK = 30
 
 export function wallPieces(doc: HouseDocument, level: string): Piece[] {
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
@@ -16,10 +19,19 @@ export function wallPieces(doc: HouseDocument, level: string): Piece[] {
   for (const wall of walls) {
     for (const node of [wall.a, wall.b]) degrees.set(node, (degrees.get(node) ?? 0) + 1)
   }
-  return walls.flatMap((wall) => standingWall(doc, wall, degrees))
+  const dressed: Dressed[] = roomsOf(doc, level).map((room) => ({
+    outline: room.nodes.map((id) => doc.nodes[id]!),
+    worn: room.id === undefined ? undefined : doc.rooms[room.id],
+  }))
+  return walls.flatMap((wall) => standingWall(doc, wall, degrees, dressed))
 }
 
-function standingWall(doc: HouseDocument, wall: Wall, degrees: Map<string, number>): Piece[] {
+function standingWall(
+  doc: HouseDocument,
+  wall: Wall,
+  degrees: Map<string, number>,
+  dressed: Dressed[],
+): Piece[] {
   const a = doc.nodes[wall.a]
   const b = doc.nodes[wall.b]
   if (!a || !b) return []
@@ -44,23 +56,37 @@ function standingWall(doc: HouseDocument, wall: Wall, degrees: Map<string, numbe
     return { x: on.x, y: up, z: -on.y }
   }
 
+  const built = solidPieces(wall, openings, length, growA, span)
+  const worn = besideWall(dressed, a, b, wall.thickness)
+
   const solids = owned(
     { kind: 'wall', id: wall.id },
-    solidPieces(wall, openings, length, growA, span).map((piece) => ({
-      body: {
-        kind: 'box' as const,
-        width: piece.length,
-        height: piece.height,
-        depth: piece.thickness,
-      },
-      at: standing(piece.at, 0, wall.baseOffset + piece.base + piece.height / 2),
-      turn: angle,
-      paint: { colour: PAINT.wall },
-    })),
+    built.flatMap((piece) => {
+      const sunk = piece.base === 0 ? SUNK : 0
+      return ([1, -1] as const).map((side, nth) => ({
+        body: {
+          kind: 'box' as const,
+          width: piece.length,
+          height: piece.height + sunk,
+          depth: piece.thickness / 2,
+        },
+        at: standing(
+          piece.at,
+          (side * piece.thickness) / 4,
+          wall.baseOffset + piece.base - sunk + (piece.height + sunk) / 2,
+        ),
+        turn: angle,
+        paint: paintFor(worn[nth]?.walls, PAINT.wall, {
+          width: piece.length,
+          height: piece.height,
+        }),
+      }))
+    }),
   )
 
-  const leaves = openings.flatMap((opening) =>
-    owned(
+  const leaves = openings.flatMap((opening) => {
+    const into = opening.kind === 'door' ? worn[opening.swing > 0 ? 0 : 1] : undefined
+    return owned(
       { kind: 'opening', id: opening.id },
       doorPieces(opening, wall, growA + opening.t * span).map((piece) => ({
         body: {
@@ -71,10 +97,12 @@ function standingWall(doc: HouseDocument, wall: Wall, degrees: Map<string, numbe
         },
         at: standing(piece.at, piece.aside, wall.baseOffset + piece.base + piece.height / 2),
         turn: angle + piece.turn,
-        paint: { colour: piece.colour },
+        paint: piece.takesFinish
+          ? paintFor(into?.doors, piece.colour, { width: piece.length, height: piece.height })
+          : { colour: piece.colour },
       })),
-    ),
-  )
+    )
+  })
 
   const panes = openings
     .filter((opening) => opening.kind === 'window')

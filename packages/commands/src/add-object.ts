@@ -14,7 +14,7 @@ import { canStand, standingProblem, takenBy } from './standing-check'
 
 export const addObject = defineCommand({
   name: 'add-object',
-  summary: `Put something in a room (${OBJECT_TYPE_IDS.join(', ')})`,
+  summary: `Put something in a room (${OBJECT_TYPE_IDS.join(', ')}), in a finish (${SURFACE_IDS.join(', ')})`,
   args: z.object({
     room: z.string().min(1),
     type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]),

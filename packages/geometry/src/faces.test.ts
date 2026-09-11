@@ -1,5 +1,5 @@
+import { findFaces } from '@houseit/core/faces'
 import { expect, test } from 'vitest'
-import { findFaces } from './faces'
 import { areasOf, planWith } from './test-utils'
 
 test('four walls closing a rectangle make one room of the enclosed area', () => {
@@ -94,4 +94,23 @@ test('walls on another level are not part of this level rooms', () => {
   doc.walls.w1!.level = 'some-other-level'
 
   expect(findFaces(doc, level)).toEqual([])
+})
+
+test('a face names the walls it is bounded by, in step with its nodes', () => {
+  const { doc, level } = planWith([
+    [0, 0, 4000, 0],
+    [4000, 0, 4000, 3000],
+    [4000, 3000, 0, 3000],
+    [0, 3000, 0, 0],
+  ])
+
+  const face = findFaces(doc, level)[0]!
+
+  expect(face.walls).toHaveLength(face.nodes.length)
+  for (let i = 0; i < face.walls.length; i += 1) {
+    const wall = doc.walls[face.walls[i]!]!
+    const from = face.nodes[i]!
+    const to = face.nodes[(i + 1) % face.nodes.length]!
+    expect([wall.a, wall.b].sort()).toEqual([from, to].sort())
+  }
 })

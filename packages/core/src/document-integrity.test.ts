@@ -67,7 +67,7 @@ test('accepts a room anchored to a point on a level', () => {
   const { level, ...doc } = documentWithOneWall()
   const withLabel = {
     ...doc,
-    rooms: { r1: { id: 'r1', level, x: 2000, y: 1500, name: 'kitchen' } },
+    rooms: { r1: { id: 'r1', level, x: 2000, y: 1500, name: 'kitchen', loop: [] } },
   }
 
   expect(parseDocument(withLabel).rooms.r1?.name).toBe('kitchen')

@@ -14,8 +14,6 @@ export type OutlineSpec =
 
 export type OutlineKind = OutlineSpec['kind']
 
-export const OUTLINE_KINDS: OutlineKind[] = ['rectangle', 'l', 'u', 't']
-
 class OutlineError extends Error {}
 
 function require(condition: boolean, message: string): void {

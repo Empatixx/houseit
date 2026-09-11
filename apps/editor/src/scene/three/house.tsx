@@ -37,7 +37,7 @@ export function House({ picking = true }: { picking?: boolean }) {
             <StandingPiece
               key={piece.name}
               piece={piece}
-              tint={tintOf(piece, selected)}
+              tint={picking ? tintOf(piece, selected) : undefined}
               onPick={picking ? picker(piece.of) : undefined}
             />
           ))}

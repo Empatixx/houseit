@@ -197,7 +197,8 @@ function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPi
   const towards = opening.hinge === 'a' ? 1 : -1
   const leaf = wall.thickness / 2
   const stile = hinge + (towards * leaf) / 2
-  const stands = swing * (width / 2 + face)
+  const reach = width + wall.thickness
+  const stands = swing * (reach / 2 - face)
 
   const pieces: WallPiece[] = [
     {
@@ -206,7 +207,7 @@ function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPi
       at: stile,
       aside: stands,
       turn: QUARTER,
-      length: width,
+      length: reach,
       thickness: leaf,
       base: 4,
       height,
@@ -217,7 +218,7 @@ function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPi
       at: stile,
       aside: stands,
       turn: QUARTER,
-      length: width - 2 * line,
+      length: reach - 2 * line,
       thickness: leaf - 2 * line,
       base: 6,
       height,

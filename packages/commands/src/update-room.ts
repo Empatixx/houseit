@@ -1,10 +1,10 @@
 import {
   BATHROOM_KINDS,
-  finishesFor,
   PARTS,
   type Part,
   STYLE_IDS,
   styleOf,
+  wornAs,
 } from '@houseit/core/finishes'
 import { FLOOR_MATERIAL_IDS } from '@houseit/core/floor-materials'
 import { ROOM_KIND_IDS, roomKindOf } from '@houseit/core/room-kinds'
@@ -17,11 +17,21 @@ import { moveWall } from './move-wall'
 import { SIDE_NAMES, whereRoom } from './resolve'
 
 const wearing = (part: Part) =>
-  z.enum(finishesFor(part).map((finish) => finish.id) as [string, ...string[]]).optional()
+  z
+    .string()
+    .transform((said, ctx) => {
+      try {
+        return wornAs(said, part)
+      } catch (error) {
+        ctx.addIssue({ code: 'custom', message: (error as Error).message })
+        return z.NEVER
+      }
+    })
+    .optional()
 
 export const updateRoom = defineCommand({
   name: 'update-room',
-  summary: `Change a room: its name, its kind (${ROOM_KIND_IDS.join(', ')}), its floor, its style (${STYLE_IDS.join(', ')}) or what its walls, ceiling, doors and windows are finished in, or how big it is`,
+  summary: `Change a room: its name, its kind (${ROOM_KIND_IDS.join(', ')}), its floor, its style (${STYLE_IDS.join(', ')}) or what its walls, ceiling, doors and windows are finished in (a named finish or a colour of your own as #rrggbb), or how big it is`,
   args: z.object({
     room: z.string().min(1),
     name: z.string().trim().min(1).optional(),

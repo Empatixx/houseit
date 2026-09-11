@@ -13,7 +13,7 @@ import { runEdit } from './run-edit'
 export function moveOpeningTo(opening: Opening, point: Point): void {
   const found = hung(opening)
   if (!found) return
-  const drop = openingDropOf(found.doc, found.level, found.room, point)
+  const drop = openingDropOf(found.doc, found.level, found.room, point, opening.width)
   if (!drop) return
   runEdit(() =>
     documentStore

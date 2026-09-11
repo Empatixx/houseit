@@ -1,4 +1,5 @@
 import { DOCUMENT_VERSION, type HouseDocument, parseDocument } from './document'
+import { loopsFor } from './loops'
 
 export class MigrationError extends Error {
   constructor(message: string) {
@@ -22,6 +23,20 @@ const MIGRATIONS: Record<number, Migration> = {
       ),
     ),
   }),
+  3: (doc) => {
+    const levels = Object.keys((doc.levels ?? {}) as Record<string, unknown>)
+    const rooms = (doc.rooms ?? {}) as Record<string, Record<string, unknown>>
+    const found = new Map<string, string[]>()
+    for (const level of levels) {
+      for (const [id, loop] of loopsFor(doc as unknown as HouseDocument, level)) found.set(id, loop)
+    }
+    return {
+      ...doc,
+      rooms: Object.fromEntries(
+        Object.entries(rooms).map(([id, room]) => [id, { ...room, loop: found.get(id) ?? [] }]),
+      ),
+    }
+  },
 }
 
 function readVersion(input: unknown): number {

@@ -22,6 +22,15 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     rooms: ['bedroom', 'walk-in', 'any'],
     model: 'wardrobe.glb',
   },
+  {
+    id: 'bathtub',
+    label: 'Bathtub',
+    size: { width: 1549, depth: 838, height: 550 },
+    surfaces: ['white'],
+    stands: 'wall',
+    rooms: ['bathroom', 'any'],
+    model: 'bathtub.glb',
+  },
 ]
 
 export const importedType = (id: string): ImportedType | undefined =>

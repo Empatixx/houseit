@@ -1,12 +1,15 @@
 import { z } from 'zod'
-import { FINISH_IDS, STYLE_IDS } from './finishes'
+import { closes } from './closes'
+import { FINISH_IDS, isColour, STYLE_IDS } from './finishes'
 import { HostSchema } from './host'
 import { ROOM_KIND_IDS } from './room-kinds'
 
-export const DOCUMENT_VERSION = 3
+export const DOCUMENT_VERSION = 4
 
 const mm = z.number().int()
 const id = z.string().min(1)
+
+export const DOOR_VARIANTS = ['hinged', 'sliding', 'pocket', 'garage'] as const
 
 export const DisciplineSchema = z.enum(['architecture', 'electrical', 'plumbing', 'hvac'])
 
@@ -34,7 +37,7 @@ export const OpeningSchema = z.object({
   wall: id,
   t: z.number().min(0).max(1),
   kind: z.enum(['door', 'window']),
-  variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).default('hinged'),
+  variant: z.enum(DOOR_VARIANTS).default('hinged'),
   width: mm.positive(),
   height: mm.positive(),
   sillHeight: mm.nonnegative(),
@@ -42,19 +45,27 @@ export const OpeningSchema = z.object({
   swing: z.union([z.literal(-1), z.literal(1)]).default(1),
 })
 
+const worn = z
+  .string()
+  .refine(
+    (said) => isColour(said) || FINISH_IDS.includes(said),
+    'not a finish, nor a #rrggbb colour',
+  )
+
 export const RoomSchema = z.object({
   id,
   level: id,
   x: mm,
   y: mm,
   name: z.string(),
+  loop: z.array(id),
   floor: z.string().optional(),
   kind: z.enum(ROOM_KIND_IDS as [string, ...string[]]).optional(),
   style: z.enum(STYLE_IDS as [string, ...string[]]).optional(),
-  walls: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
-  ceiling: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
-  doors: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
-  windows: z.enum(FINISH_IDS as [string, ...string[]]).optional(),
+  walls: worn.optional(),
+  ceiling: worn.optional(),
+  doors: worn.optional(),
+  windows: worn.optional(),
 })
 
 export const SideSchema = z.enum(['north', 'south', 'east', 'west'])
@@ -146,6 +157,17 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
     checkReference(doc.levels, wall.level, at('level'), `wall ${wall.id}`, ctx)
     checkReference(doc.nodes, wall.a, at('a'), `wall ${wall.id}`, ctx)
     checkReference(doc.nodes, wall.b, at('b'), `wall ${wall.id}`, ctx)
+  }
+
+  for (const room of Object.values(doc.rooms)) {
+    const at = ['rooms', room.id, 'loop']
+    checkReference(doc.levels, room.level, ['rooms', room.id, 'level'], `room ${room.id}`, ctx)
+    for (const wall of room.loop) {
+      checkReference(doc.walls, wall, at, `room ${room.id}`, ctx)
+    }
+    if (room.loop.length > 0 && !closes(doc.walls, room.loop)) {
+      ctx.addIssue({ code: 'custom', path: at, message: `room ${room.id} is not walled all round` })
+    }
   }
 
   for (const opening of Object.values(doc.openings)) {

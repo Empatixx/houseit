@@ -20,6 +20,7 @@ const label = (id: string, level: string, x: number, y: number, name: string) =>
   x,
   y,
   name,
+  loop: [],
 })
 
 test('a room takes the name of the label that falls inside it', () => {

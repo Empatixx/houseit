@@ -37,7 +37,7 @@ test('a room is said as somebody would say it: clear size, floor, what is next d
   expect(kitchen.neighbours).toEqual(['house'])
   expect(kitchen.width).toBeLessThan(4000)
   expect(kitchen.width).toBeGreaterThan(3600)
-  expect(kitchen.areaM2).toBeCloseTo(36, 0)
+  expect(kitchen.areaM2).toBeCloseTo(32.8, 0)
   expect(kitchen.walls.map((wall) => wall.side).sort()).toEqual(['east', 'north', 'south', 'west'])
 })
 
