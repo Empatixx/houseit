@@ -13,7 +13,7 @@ export function previewCommand<C extends TypedCommand>(command: C, args: ArgsOf<
   try {
     previewStore.getState().show(applyCommand(doc, command, args))
   } catch (error) {
-    previewStore.getState().show(doc)
+    previewStore.getState().clear()
     previewStore.getState().refuse(error instanceof Error ? error.message : String(error))
   }
 }

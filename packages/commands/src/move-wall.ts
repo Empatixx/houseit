@@ -10,6 +10,7 @@ import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { wallsAt } from './graph'
 import { length } from './length-schema'
+import { rebind } from './rebind'
 import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
 import { standingProblem } from './standing-check'
 
@@ -43,7 +44,13 @@ export const moveWall = defineCommand({
     const { moving, steps } =
       at.wall === undefined
         ? { moving: wholeSide(draft, level, walls, axis), steps: [] }
-        : onlyWall(draft, level, at.wall, axis)
+        : onlyWall(draft, level, at.wall, axis, shift)
+
+    if (steps.length > 0 && Math.abs(shift) < LEAST) {
+      throw new CommandError(
+        `move-wall: ${Math.abs(args.by)} mm would step this wall out of line by less than the ${LEAST} mm a wall has to be`,
+      )
+    }
 
     const stretching = Object.values(draft.walls).filter(
       (wall) => wall.level === level && moving.has(wall.a) !== moving.has(wall.b),
@@ -62,6 +69,11 @@ export const moveWall = defineCommand({
           )
         }
         squashed.push(wall.id)
+        if (squashed.length > 1) {
+          throw new CommandError(
+            `move-wall: ${Math.abs(args.by)} mm ${args.by > 0 ? 'outward' : 'inward'} would squash the room beyond it flat`,
+          )
+        }
         continue
       }
       if (Math.sign(after) !== Math.sign(before) || Math.abs(after) < LEAST) {
@@ -71,6 +83,9 @@ export const moveWall = defineCommand({
       }
     }
 
+    const walled = Object.values(draft.rooms)
+      .filter((it) => it.level === level && it.loop.length > 0)
+      .map((it) => ({ id: it.id, name: it.name }))
     const wasFine = standingReport(draft, level)
     const stood = standingBefore(draft, level, moving, axis)
 
@@ -112,6 +127,14 @@ export const moveWall = defineCommand({
     for (const id of squashed) collapse(draft, level, id)
 
     standStill(draft, level, stood, axis, shift)
+
+    rebind(draft, level)
+    const lost = walled.find((it) => (draft.rooms[it.id]?.loop.length ?? 0) === 0)
+    if (lost) {
+      throw new CommandError(
+        `move-wall: ${Math.abs(args.by)} mm ${args.by > 0 ? 'outward' : 'inward'} would leave ${lost.name} with no walls round it`,
+      )
+    }
 
     const problem = standingReport(draft, level).find(
       (it) => !wasFine.some((was) => was.object === it.object && was.problem === it.problem),
@@ -170,14 +193,16 @@ function onlyWall(
   level: string,
   id: string,
   axis: 'x' | 'y',
+  shift: number,
 ): { moving: Set<string>; steps: Step[] } {
   const wall = draft.walls[id]!
   const moving = new Set<string>()
   const steps: Step[] = []
 
   for (const node of [wall.a, wall.b]) {
-    const alongside = wallsAt(draft, level, node).some(
-      (other) => other.id !== id && draft.nodes[other.a]![axis] === draft.nodes[other.b]![axis],
+    const others = wallsAt(draft, level, node).filter((other) => other.id !== id)
+    const alongside = others.some(
+      (other) => draft.nodes[other.a]![axis] === draft.nodes[other.b]![axis],
     )
     if (!alongside) {
       moving.add(node)
@@ -190,6 +215,14 @@ function onlyWall(
     else wall.b = made
     moving.add(made)
     steps.push({ from: node, to: made, like: id })
+
+    for (const other of others) {
+      const far = draft.nodes[other.a === node ? other.b : other.a]!
+      const reach = far[axis] - here[axis]
+      if (Math.sign(reach) !== Math.sign(shift) || Math.abs(reach) < Math.abs(shift)) continue
+      if (other.a === node) other.a = made
+      else other.b = made
+    }
   }
 
   return { moving, steps }
