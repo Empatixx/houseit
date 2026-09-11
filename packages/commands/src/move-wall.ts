@@ -1,6 +1,6 @@
 import type { HouseDocument, Side } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
-import { roomsOf } from '@houseit/geometry/rooms'
+import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { SIDES, sideRun, wallsOnSide } from '@houseit/geometry/sides'
 import { standingAt } from '@houseit/geometry/standing'
 import type { Draft } from 'immer'
@@ -15,6 +15,8 @@ import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
 import { standingProblem } from './standing-check'
 
 const LEAST = 300
+const STEPS = 24
+const GRAIN = 1_000_000
 
 export const moveWall = defineCommand({
   name: 'move-wall',
@@ -76,7 +78,7 @@ export const moveWall = defineCommand({
         }
         continue
       }
-      if (Math.sign(after) !== Math.sign(before) || Math.abs(after) < LEAST) {
+      if (Math.abs(after) < LEAST) {
         throw new CommandError(
           `move-wall: ${Math.abs(args.by)} mm ${args.by > 0 ? 'outward' : 'inward'} would leave the wall at ${fixed[across]} on the ${at.side} side ${Math.abs(after)} mm long`,
         )
@@ -98,12 +100,11 @@ export const moveWall = defineCommand({
       const newLength = Math.abs(moved[axis] + shift - fixed[axis])
       for (const opening of Object.values(draft.openings)) {
         if (opening.wall !== wall.id) continue
-        const fromFixed = (aMoves ? 1 - opening.t : opening.t) * oldLength
-        if (fromFixed + opening.width / 2 > newLength) {
-          throw new CommandError(
-            `move-wall: the ${opening.kind} in the wall at ${fixed[across]} would be pushed off its end`,
-          )
-        }
+        const room = Math.max(0, newLength - opening.width)
+        const fromFixed = Math.min(
+          Math.max((aMoves ? 1 - opening.t : opening.t) * oldLength, opening.width / 2),
+          room + opening.width / 2,
+        )
         opening.t = aMoves ? 1 - fromFixed / newLength : fromFixed / newLength
       }
     }
@@ -129,6 +130,13 @@ export const moveWall = defineCommand({
     standStill(draft, level, stood, axis, shift)
 
     rebind(draft, level)
+    const areas = new Map(roomsOf(draft, level).map((face) => [face.id, face.area] as const))
+    const flattened = walled.find((it) => (areas.get(it.id) ?? 0) <= 0)
+    if (flattened) {
+      throw new CommandError(
+        `move-wall: ${Math.abs(args.by)} mm ${args.by > 0 ? 'outward' : 'inward'} would move this wall clean through ${flattened.name ?? 'the room beyond it'}`,
+      )
+    }
     const lost = walled.find((it) => (draft.rooms[it.id]?.loop.length ?? 0) === 0)
     if (lost) {
       throw new CommandError(
@@ -136,12 +144,7 @@ export const moveWall = defineCommand({
       )
     }
 
-    const problem = standingReport(draft, level).find(
-      (it) => !wasFine.some((was) => was.object === it.object && was.problem === it.problem),
-    )
-    if (problem) {
-      throw new CommandError(`move-wall: ${problem.problem}`)
-    }
+    carryStragglers(draft, level, stood, axis, shift, wasFine)
 
     return {
       changed: roomsOf(draft, level)
@@ -257,6 +260,34 @@ function standingBefore(
   return out
 }
 
+function placeAt(
+  draft: Draft<HouseDocument>,
+  level: string,
+  room: Room,
+  object: Draft<HouseDocument>['objects'][string],
+  at: Point,
+): void {
+  if (object.against) {
+    const run = sideRun(draft, level, room, object.against)
+    if (!run || run.length === 0) return
+    const unit = {
+      x: (run.to.x - run.from.x) / run.length,
+      y: (run.to.y - run.from.y) / run.length,
+    }
+    const along = ((at.x - run.from.x) * unit.x + (at.y - run.from.y) * unit.y) / run.length
+    object.along = Math.round(Math.min(1, Math.max(0, along)) * GRAIN) / GRAIN
+    return
+  }
+  const xs = room.nodes.map((node) => draft.nodes[node]?.x ?? 0)
+  const ys = room.nodes.map((node) => draft.nodes[node]?.y ?? 0)
+  const low = Math.min(...xs)
+  const south = Math.min(...ys)
+  const width = Math.max(1, Math.max(...xs) - low)
+  const depth = Math.max(1, Math.max(...ys) - south)
+  object.along = Math.round(Math.min(1, Math.max(0, (at.x - low) / width)) * GRAIN) / GRAIN
+  object.across = Math.round(Math.min(1, Math.max(0, (at.y - south) / depth)) * GRAIN) / GRAIN
+}
+
 function standStill(
   draft: Draft<HouseDocument>,
   level: string,
@@ -269,26 +300,48 @@ function standStill(
     const object = draft.objects[was.object]
     const room = rooms.get(was.room)
     if (!object || !room) continue
-    const at = was.withWall ? { ...was.at, [axis]: was.at[axis] + shift } : was.at
-    if (object.against) {
-      const run = sideRun(draft, level, room, object.against)
-      if (!run || run.length === 0) continue
-      const unit = {
-        x: (run.to.x - run.from.x) / run.length,
-        y: (run.to.y - run.from.y) / run.length,
-      }
-      const along = ((at.x - run.from.x) * unit.x + (at.y - run.from.y) * unit.y) / run.length
-      object.along = Math.round(Math.min(1, Math.max(0, along)) * 1000) / 1000
-      continue
+    placeAt(
+      draft,
+      level,
+      room,
+      object,
+      was.withWall ? { ...was.at, [axis]: was.at[axis] + shift } : was.at,
+    )
+  }
+}
+
+function carryStragglers(
+  draft: Draft<HouseDocument>,
+  level: string,
+  stood: Stood[],
+  axis: 'x' | 'y',
+  shift: number,
+  wasFine: { object: string; problem: string }[],
+): void {
+  const settled = (id: string) =>
+    standingReport(draft, level).find(
+      (it) =>
+        it.object === id && !wasFine.some((was) => was.object === id && was.problem === it.problem),
+    ) === undefined
+  const rooms = new Map(roomsOf(draft, level).map((room) => [room.id, room] as const))
+  for (const was of stood) {
+    const object = draft.objects[was.object]
+    const room = rooms.get(was.room)
+    if (!object || !room || settled(was.object)) continue
+    const along = object.along
+    const across = object.across
+    const low = Math.min(...room.nodes.map((node) => draft.nodes[node]?.[axis] ?? 0))
+    const high = Math.max(...room.nodes.map((node) => draft.nodes[node]?.[axis] ?? 0))
+    const tries = [was.at[axis] + shift]
+    for (let i = 0; i <= STEPS; i += 1) tries.push(low + ((high - low) * i) / STEPS)
+    for (const here of tries) {
+      placeAt(draft, level, room, object, { ...was.at, [axis]: Math.round(here) })
+      if (settled(was.object)) break
     }
-    const xs = room.nodes.map((node) => draft.nodes[node]?.x ?? 0)
-    const ys = room.nodes.map((node) => draft.nodes[node]?.y ?? 0)
-    const low = Math.min(...xs)
-    const south = Math.min(...ys)
-    const width = Math.max(1, Math.max(...xs) - low)
-    const depth = Math.max(1, Math.max(...ys) - south)
-    object.along = Math.round(Math.min(1, Math.max(0, (at.x - low) / width)) * 1000) / 1000
-    object.across = Math.round(Math.min(1, Math.max(0, (at.y - south) / depth)) * 1000) / 1000
+    if (settled(was.object)) continue
+    object.along = along
+    if (across === undefined) delete object.across
+    else object.across = across
   }
 }
 

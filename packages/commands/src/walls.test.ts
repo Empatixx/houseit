@@ -2,6 +2,7 @@ import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
 import { askPlan } from './answer'
+import { checkLevel } from './checks'
 import { runScript } from './run'
 import type { RoomReport } from './survey'
 
@@ -59,11 +60,11 @@ test('a door in the moved wall goes with it; a window in a stretched wall keeps 
 
 test('a wall cannot be moved through the room on the other side', () => {
   expect(() => runScript(house(), 'update-room --room kitchen --side east --by 9m')).toThrow(
-    /would leave the wall/,
+    /clean through/,
   )
 })
 
-test('a wall cannot be moved so that what stands in the room no longer fits', () => {
+test('a wall moves past what stands in the room, and the plan says what no longer fits', () => {
   const doc = runScript(
     house(),
     [
@@ -73,9 +74,14 @@ test('a wall cannot be moved so that what stands in the room no longer fits', ()
     ].join('\n'),
   )
 
-  expect(() => runScript(doc, 'update-room --room kitchen --side east --by -2.5m')).toThrow(
-    /refrigerator|stove/,
-  )
+  const moved = runScript(doc, 'update-room --room kitchen --side east --by -2.5m')
+  expect(report(moved, 'kitchen').width).toBeLessThan(report(doc, 'kitchen').width)
+
+  const said = checkLevel(moved, level(moved))
+    .filter((problem) => problem.code === 'object.misplaced')
+    .map((problem) => problem.message)
+    .join(' ')
+  expect(said).toMatch(/refrigerator|stove/)
 })
 
 test('rooms keep their names when a wall moves past an anchor', () => {
@@ -94,10 +100,20 @@ test('rooms keep their names when a wall moves past an anchor', () => {
   expect(report(doc, 'kitchen').width).toBeLessThan(1000)
 })
 
-test('a window that would be pushed off the end of its wall stops the move', () => {
-  expect(() => runScript(house(), 'update-room --room kitchen --side east --by -3.5m')).toThrow(
-    /window .* pushed off its end/,
-  )
+test('a window slides along its wall rather than stopping the move', () => {
+  const doc = runScript(house(), 'update-room --room kitchen --side east --by -3.5m')
+
+  expect(report(doc, 'kitchen').width).toBeLessThan(report(house(), 'kitchen').width)
+  for (const opening of Object.values(doc.openings)) {
+    const wall = doc.walls[opening.wall]!
+    const span = Math.hypot(
+      doc.nodes[wall.b]!.x - doc.nodes[wall.a]!.x,
+      doc.nodes[wall.b]!.y - doc.nodes[wall.a]!.y,
+    )
+    if (span < opening.width) continue
+    expect(opening.t * span).toBeGreaterThanOrEqual(opening.width / 2 - 1)
+    expect(opening.t * span).toBeLessThanOrEqual(span - opening.width / 2 + 1)
+  }
 })
 
 test('a room knocked through into its neighbour is gone, and its things stand where they stood', () => {
