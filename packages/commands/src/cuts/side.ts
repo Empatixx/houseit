@@ -1,4 +1,5 @@
 import type { Axis } from '@houseit/geometry/cut'
+import { crossingsOf } from '@houseit/geometry/cut'
 import type { Room } from '@houseit/geometry/rooms'
 import { CommandError } from '../command-error'
 import { partitionAlong } from '../partition'
@@ -41,6 +42,14 @@ export function cutBySide(
     )
   }
   const at = fromLow ? low + width : high - width
+
+  const crossings = crossingsOf(draft, level, source, axis, at)
+  if (crossings.length !== 2) {
+    const pieces = Math.max(2, Math.round(crossings.length / 2))
+    throw new CommandError(
+      `add-room: a strip off the ${args.side} of ${args.from ?? source.name ?? 'the floor'} would fall in ${pieces} pieces, because that side is broken — cut from a side that runs straight, or draw the room with --walk`,
+    )
+  }
 
   partitionAlong(draft, level, source, axis, at, args.thickness, 'add-room')
   return settleCut(draft, level, source, args.name, args.material, axis, at, fromLow)
