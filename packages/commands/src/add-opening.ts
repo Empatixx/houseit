@@ -11,6 +11,9 @@ const WINDOW = { width: 1200, height: 1500, sill: 900 }
 
 const DOOR_WIDTHS = { hinged: 800, sliding: 1520, pocket: 810, garage: 2740 } as const
 
+export const openingWidth = (kind: 'door' | 'window', variant?: keyof typeof DOOR_WIDTHS) =>
+  kind === 'window' ? WINDOW.width : DOOR_WIDTHS[variant ?? 'hinged']
+
 export const addOpening = defineCommand({
   name: 'add-opening',
   summary: 'Put a door or a window in a wall of a room: on a side of it, or in a wall by id',
