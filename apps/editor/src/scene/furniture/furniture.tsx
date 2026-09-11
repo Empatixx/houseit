@@ -21,6 +21,7 @@ import { useDocument, usePlanDoc } from '../../store/store'
 import { toolStore } from '../../store/tool'
 import { ABOVE, DimensionLine } from '../dimensions'
 import { dragged, pointOnPlan } from '../drag'
+import { usePlain } from '../plain'
 import { MM, toWorld } from '../plan-coordinates'
 import { symbolHeight } from './stacking'
 import { Dial, Turner } from './turning'
@@ -84,12 +85,15 @@ type GlyphProps = {
 }
 
 function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
-  const picked = useSelection(
+  const plainly = usePlain()
+  const chosen = useSelection(
     (state) => state.selected?.kind === 'object' && state.selected.id === object.id,
   )
-  const hovered = useHover(
+  const picked = chosen && !plainly
+  const noticed = useHover(
     (state) => state.hovered?.kind === 'object' && state.hovered.id === object.id,
   )
+  const hovered = noticed && !plainly
   const plain = useSymbol(symbol, surface, object)
   const marked = useSymbol(picked ? symbol : '', pickedSurface(surface), object, PICKED_HATCH)
   const drag = useDrag(object, spot)

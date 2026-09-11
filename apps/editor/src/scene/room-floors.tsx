@@ -10,12 +10,15 @@ import { hoverStore, useHover } from '../store/hover'
 import { useDocument, usePlanDoc } from '../store/store'
 import { toolStore } from '../store/tool'
 import { floorTexture } from './floor-texture'
+import { usePlain } from './plain'
 import { MM } from './plan-coordinates'
 
 export function RoomFloors() {
   const doc = usePlanDoc()
   const level = useDocument((state) => state.level)
-  const hovered = useHover((state) => state.hovered)
+  const plainly = usePlain()
+  const noticed = useHover((state) => state.hovered)
+  const hovered = plainly ? null : noticed
 
   const floors = useMemo(() => {
     return roomsOf(doc, level).map((room) => {

@@ -4,6 +4,7 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import { Shape } from 'three'
 import { Furniture } from '../scene/furniture/furniture'
+import { Plain } from '../scene/plain'
 import { MM, toWorld } from '../scene/plan-coordinates'
 import { RoomFloors } from '../scene/room-floors'
 import { Walls } from '../scene/walls'
@@ -71,9 +72,11 @@ export function Minimap() {
           />
           <Overhead fit={fit} />
           <color attach="background" args={['#f4f4f5']} />
-          <RoomFloors />
-          <Furniture />
-          <Walls />
+          <Plain value={true}>
+            <RoomFloors />
+            <Furniture />
+            <Walls />
+          </Plain>
           <Standing />
         </Canvas>
       </div>

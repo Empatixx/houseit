@@ -22,7 +22,7 @@ export function WalkHint() {
           <Key>←</Key>
           <Key>→</Key> turn
         </span>
-        <span>drag to look · click to pick</span>
+        <span>drag to look</span>
       </div>
     </div>
   )

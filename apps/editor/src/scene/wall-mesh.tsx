@@ -20,6 +20,7 @@ import { usePreview } from '../store/preview'
 import { useSelection } from '../store/selection'
 import { toolStore, useTool } from '../store/tool'
 import { dragged, pointOnPlan } from './drag'
+import { usePlain } from './plain'
 import { MM, toWorld } from './plan-coordinates'
 
 type WallMeshProps = {
@@ -30,8 +31,11 @@ type WallMeshProps = {
 }
 
 export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
-  const selected = useSelection((state) => state.selected)
-  const hovered = useHover((state) => state.hovered)
+  const plainly = usePlain()
+  const chosen = useSelection((state) => state.selected)
+  const noticed = useHover((state) => state.hovered)
+  const selected = plainly ? null : chosen
+  const hovered = plainly ? null : noticed
   const carry = useCarry()
   const [pull, setPull] = useState(0)
   const previewing = usePreview((state) => state.doc !== null)
@@ -160,7 +164,12 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom }: WallMeshProps) {
         <Knob
           at={{ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }}
           height={wall.height + 60}
-          onDown={(event) => carry.down(event, wall.id)}
+          onDown={(event) =>
+            carry.down(event, wall.id, (carried) => {
+              endPreview()
+              if (carried) moveWallBy(wall, carried.shift)
+            })
+          }
           onMove={(event) => {
             const carried = carry.move(event)
             if (carried) previewWallMove(wall, carried.shift)
@@ -270,7 +279,13 @@ function useCarry() {
   const live = useRef<Held | null>(null)
   const [held, setHeld] = useState<Held | null>(null)
 
-  const down = (event: ThreeEvent<PointerEvent>, id: string) => {
+  const letGo = useRef<(() => void) | null>(null)
+
+  const down = (
+    event: ThreeEvent<PointerEvent>,
+    id: string,
+    end?: (carried: { from: Point; shift: Point } | undefined) => void,
+  ) => {
     if (event.button !== 0) return
     const from = pointOnPlan(event.ray)
     if (!from) return
@@ -279,6 +294,29 @@ function useCarry() {
     live.current = { id, from, shift: { x: 0, y: 0 } }
     setHeld(live.current)
     if (controls) controls.enabled = false
+
+    const done = () => {
+      forget()
+      const carried = live.current
+      if (!carried) return
+      end?.(dropped(carried))
+    }
+    const forget = () => {
+      window.removeEventListener('pointerup', done)
+      window.removeEventListener('pointercancel', done)
+      letGo.current = null
+    }
+    letGo.current = forget
+    window.addEventListener('pointerup', done)
+    window.addEventListener('pointercancel', done)
+  }
+
+  const dropped = (carried: Held) => {
+    live.current = null
+    setHeld(null)
+    if (controls) controls.enabled = true
+    if (Math.hypot(carried.shift.x, carried.shift.y) < 30) return undefined
+    return { from: carried.from, shift: carried.shift }
   }
 
   const move = (event: ThreeEvent<PointerEvent>): Held | undefined => {
@@ -295,11 +333,8 @@ function useCarry() {
     const carried = live.current
     if (!carried) return undefined
     ;(event.target as Element).releasePointerCapture(event.pointerId)
-    live.current = null
-    setHeld(null)
-    if (controls) controls.enabled = true
-    if (Math.hypot(carried.shift.x, carried.shift.y) < 30) return undefined
-    return { from: carried.from, shift: carried.shift }
+    letGo.current?.()
+    return dropped(carried)
   }
 
   const hold = () => {
