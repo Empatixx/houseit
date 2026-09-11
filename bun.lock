@@ -153,6 +153,18 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/takeoff": {
+      "name": "@houseit/takeoff",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "^4.5.2",
+      },
+      "devDependencies": {
+        "@houseit/typescript-config": "workspace:*",
+        "@houseit/vitest-config": "workspace:*",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/typescript-config": {
       "name": "@houseit/typescript-config",
       "version": "0.0.0",
@@ -316,6 +328,8 @@
     "@houseit/mcp": ["@houseit/mcp@workspace:apps/mcp"],
 
     "@houseit/scene": ["@houseit/scene@workspace:packages/scene"],
+
+    "@houseit/takeoff": ["@houseit/takeoff@workspace:packages/takeoff"],
 
     "@houseit/typescript-config": ["@houseit/typescript-config@workspace:packages/typescript-config"],
 
