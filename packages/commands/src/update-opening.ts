@@ -1,4 +1,5 @@
 import type { HouseDocument, Opening } from '@houseit/core/document'
+import { DOOR_VARIANTS } from '@houseit/core/document'
 import type { Room } from '@houseit/geometry/rooms'
 import type { Draft } from 'immer'
 import { z } from 'zod'
@@ -12,7 +13,7 @@ import { SIDE_NAMES, sideNamed } from './resolve'
 
 export const updateOpening = defineCommand({
   name: 'update-opening',
-  summary: 'Change a door or a window: its size, its kind of leaf, or where in the wall it sits',
+  summary: `Change a door or a window: its size, its kind of leaf (${DOOR_VARIANTS.join(', ')}), or where in the wall it sits`,
   args: z.object({
     id: z.string().min(1),
     width: length().optional(),

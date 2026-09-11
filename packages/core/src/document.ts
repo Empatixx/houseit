@@ -9,6 +9,8 @@ export const DOCUMENT_VERSION = 4
 const mm = z.number().int()
 const id = z.string().min(1)
 
+export const DOOR_VARIANTS = ['hinged', 'sliding', 'pocket', 'garage'] as const
+
 export const DisciplineSchema = z.enum(['architecture', 'electrical', 'plumbing', 'hvac'])
 
 export const LevelSchema = z.object({
@@ -35,7 +37,7 @@ export const OpeningSchema = z.object({
   wall: id,
   t: z.number().min(0).max(1),
   kind: z.enum(['door', 'window']),
-  variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).default('hinged'),
+  variant: z.enum(DOOR_VARIANTS).default('hinged'),
   width: mm.positive(),
   height: mm.positive(),
   sillHeight: mm.nonnegative(),

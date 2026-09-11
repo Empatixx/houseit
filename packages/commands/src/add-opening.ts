@@ -1,3 +1,4 @@
+import { DOOR_VARIANTS } from '@houseit/core/document'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
 import { along, alongSide } from './along-schema'
@@ -16,13 +17,13 @@ export const openingWidth = (kind: 'door' | 'window', variant?: keyof typeof DOO
 
 export const addOpening = defineCommand({
   name: 'add-opening',
-  summary: 'Put a door or a window in a wall of a room: on a side of it, or in a wall by id',
+  summary: `Put a door or a window in a wall of a room: on a side of it, or in a wall by id — a door with a leaf that is ${DOOR_VARIANTS.join(', ')}`,
   args: z.object({
     room: z.string().min(1),
     kind: z.enum(['door', 'window']),
     side: z.enum(SIDE_NAMES).optional(),
     wall: z.string().min(1).optional(),
-    variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).default('hinged'),
+    variant: z.enum(DOOR_VARIANTS).default('hinged'),
     width: length().optional(),
     height: length().optional(),
     sill: length().optional(),
