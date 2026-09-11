@@ -1,6 +1,6 @@
+import { findFaces } from '@houseit/core/faces'
 import { expect, test } from 'vitest'
 import { clearAreaOf, clearOutline } from './clear'
-import { findFaces } from './faces'
 import { planWith } from './test-utils'
 
 const SQUARE = planWith([

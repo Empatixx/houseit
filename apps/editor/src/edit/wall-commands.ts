@@ -18,7 +18,7 @@ function wallMoveArgs(wall: Wall, shift: Point) {
   const { axis, low } = SIDES[named.side]
   const outward = low ? -1 : 1
   const by = Math.round((shift[axis] * outward) / 10) * 10
-  return { room: named.room.name, side: named.side, by }
+  return { room: named.room.name, wall: wall.id, by }
 }
 
 export function moveWallBy(wall: Wall, shift: Point): boolean {

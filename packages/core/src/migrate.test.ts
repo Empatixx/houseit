@@ -30,7 +30,7 @@ test('a v1 document turns its room labels into rooms', () => {
     nodes: {},
     walls: {},
     openings: {},
-    roomLabels: { r1: { id: 'r1', level, x: 2000, y: 1500, name: 'kuchyň' } },
+    roomLabels: { r1: { id: 'r1', level, x: 2000, y: 1500, name: 'kuchyň', loop: [] } },
     devices: {},
     circuits: {},
   }
@@ -38,7 +38,7 @@ test('a v1 document turns its room labels into rooms', () => {
   const doc = migrateDocument(v1)
 
   expect(doc.version).toBe(DOCUMENT_VERSION)
-  expect(doc.rooms.r1).toEqual({ id: 'r1', level, x: 2000, y: 1500, name: 'kuchyň' })
+  expect(doc.rooms.r1).toEqual({ id: 'r1', level, x: 2000, y: 1500, name: 'kuchyň', loop: [] })
   expect('roomLabels' in doc).toBe(false)
 })
 
@@ -50,7 +50,7 @@ test("a v2 document's turned things keep their angle under its new name", () => 
     nodes: {},
     walls: {},
     openings: {},
-    rooms: { r1: { id: 'r1', level, x: 2000, y: 1500, name: 'obývák' } },
+    rooms: { r1: { id: 'r1', level, x: 2000, y: 1500, name: 'obývák', loop: [] } },
     objects: {
       f1: {
         id: 'f1',

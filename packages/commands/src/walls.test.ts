@@ -178,3 +178,60 @@ test('what stood in the room knocked into stays put as well', () => {
   expect(shelf.at!.x).toBeGreaterThan(4100)
   expect(shelf.at!.x).toBeLessThan(4500)
 })
+
+test('a wall named on its own moves alone, and a step closes the gap it leaves', () => {
+  const start = house()
+  const south = report(start, 'kitchen').sides.find((side) => side.side === 'south')!
+  const wall = south.walls[0]!.id
+
+  const doc = runScript(start, `update-room --room kitchen --wall ${wall} --by 500`)
+
+  const kitchen = report(doc, 'kitchen')
+  const outer = report(doc, 'house')
+  expect(kitchen.depth - report(start, 'kitchen').depth).toBe(500)
+  expect(outer.depth).toBe(report(start, 'house').depth)
+  expect(roomsOf(doc, level(doc))).toHaveLength(3)
+})
+
+test('every room keeps its name and floor when one wall steps out', () => {
+  const start = house()
+  const wall = report(start, 'kitchen').sides.find((side) => side.side === 'south')!.walls[0]!.id
+
+  const doc = runScript(start, `update-room --room kitchen --wall ${wall} --by 500`)
+
+  expect(
+    Object.values(doc.rooms)
+      .map((room) => room.name)
+      .sort(),
+  ).toEqual(
+    Object.values(start.rooms)
+      .map((room) => room.name)
+      .sort(),
+  )
+  for (const room of Object.values(doc.rooms)) {
+    expect(room.floor).toBe(start.rooms[room.id]!.floor)
+    expect(room.loop.length).toBeGreaterThan(2)
+  }
+})
+
+test('a step pushed back the way it came is taken out again', () => {
+  const start = house()
+  const wall = report(start, 'kitchen').sides.find((side) => side.side === 'south')!.walls[0]!.id
+  const out = runScript(start, `update-room --room kitchen --wall ${wall} --by 500`)
+  const stepped = Object.keys(out.walls).length
+
+  const back = runScript(out, `update-room --room kitchen --wall ${wall} --by -500`)
+
+  expect(Object.keys(back.walls).length).toBe(stepped - 1)
+  expect(report(back, 'kitchen').depth).toBe(report(start, 'kitchen').depth)
+  expect(
+    Object.values(back.rooms)
+      .map((room) => room.name)
+      .sort(),
+  ).toEqual(
+    Object.values(start.rooms)
+      .map((room) => room.name)
+      .sort(),
+  )
+  expect(roomsOf(back, level(back))).toHaveLength(3)
+})

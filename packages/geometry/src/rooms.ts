@@ -1,7 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { type Face, findFaces } from '@houseit/core/faces'
 import { centroidOf } from './centroid'
 import { clearAreaOf } from './clear'
-import { type Face, findFaces } from './faces'
 
 import type { Point } from './outlines'
 
@@ -19,7 +19,12 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
 
   return findFaces(doc, level).map((face) => {
     const polygon = face.nodes.map((id) => doc.nodes[id]!)
-    const found = stored.find((candidate) => containsPoint(polygon, candidate.x, candidate.y))
+    const walls = new Set(face.walls)
+    const found =
+      stored.find(
+        (candidate) =>
+          candidate.loop.length === walls.size && candidate.loop.every((id) => walls.has(id)),
+      ) ?? stored.find((candidate) => containsPoint(polygon, candidate.x, candidate.y))
     const room: Room = {
       ...face,
       clear: clearAreaOf(doc, level, face.nodes),

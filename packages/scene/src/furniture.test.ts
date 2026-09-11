@@ -10,7 +10,7 @@ const house = () => {
     [4000, 3000, 0, 3000],
     [0, 3000, 0, 0],
   ])
-  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room' }
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room', loop: [] }
   return { doc, level }
 }
 

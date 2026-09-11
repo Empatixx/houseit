@@ -37,7 +37,14 @@ function house(partition?: number): { doc: HouseDocument; ground: string; upper:
       }
     })
     const room = `r-${level}`
-    doc.rooms[room] = { id: room, level, x: 4000, y: 3500, name: level === ground ? 'down' : 'up' }
+    doc.rooms[room] = {
+      id: room,
+      level,
+      x: 4000,
+      y: 3500,
+      name: level === ground ? 'down' : 'up',
+      loop: [],
+    }
   }
 
   if (partition !== undefined) {
@@ -61,8 +68,9 @@ function house(partition?: number): { doc: HouseDocument; ground: string; upper:
       x: partition + 500,
       y: 3500,
       name: 'east',
+      loop: [],
     }
-    doc.rooms.west = { id: 'west', level: upper, x: 500, y: 3500, name: 'west' }
+    doc.rooms.west = { id: 'west', level: upper, x: 500, y: 3500, name: 'west', loop: [] }
   }
   return { doc, ground, upper }
 }

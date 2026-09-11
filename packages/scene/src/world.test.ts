@@ -26,7 +26,7 @@ test('a storey carries its walls, its floors, its lid and what stands on it', ()
     [4000, 3000, 0, 3000],
     [0, 3000, 0, 0],
   ])
-  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room' }
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room', loop: [] }
 
   const built = worldOf(doc).storeys[0]!.pieces
   const walls = new Set(
@@ -44,7 +44,7 @@ test('every piece has a name of its own, so what is drawn can be told apart', ()
     [4000, 3000, 0, 3000],
     [0, 3000, 0, 0],
   ])
-  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room' }
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room', loop: [] }
 
   const names = worldOf(doc).storeys[0]!.pieces.map((piece) => piece.name)
   expect(names.every(Boolean)).toBe(true)
@@ -74,7 +74,7 @@ test('a storey carries what is lit on it as well as what stands on it', () => {
     [4000, 3000, 0, 3000],
     [0, 3000, 0, 0],
   ])
-  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room' }
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room', loop: [] }
   doc.objects.o1 = {
     id: 'o1',
     level,

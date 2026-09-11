@@ -60,7 +60,15 @@ export function drawOutline(
   if (area === 0) throw new CommandError('add-room: that shape encloses nothing')
   const centre = anchorInside(points, shoelace(points) / 2)
   const id = allocateId(draft.rooms, 'r')
-  draft.rooms[id] = { id, level, x: centre.x, y: centre.y, name: args.name, floor: args.material }
+  draft.rooms[id] = {
+    id,
+    level,
+    x: centre.x,
+    y: centre.y,
+    name: args.name,
+    floor: args.material,
+    loop: [],
+  }
   return [id]
 }
 

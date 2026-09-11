@@ -127,6 +127,7 @@ function nameNewFaces(
       ...anchor,
       name: chosen,
       ...(material ? { floor: material } : {}),
+      loop: [],
     }
   })
 }

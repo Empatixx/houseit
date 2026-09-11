@@ -4,6 +4,7 @@ import type { z } from 'zod'
 import { CommandError } from './command-error'
 import { flagOf, type OptionSpec } from './option-spec'
 import { parseArgv } from './parse-argv'
+import { rebindAll } from './rebind'
 
 export type Touched = { changed: string[]; shown: string[]; at?: string; notes?: string[] }
 
@@ -79,7 +80,9 @@ export function defineCommand<Args extends z.ZodObject>(
         .join('; ')
       throw new CommandError(`${definition.name}: ${detail}`)
     }
-    return definition.run(draft, result.data as z.infer<Args>, open) as Change | undefined
+    const change = definition.run(draft, result.data as z.infer<Args>, open) as Change | undefined
+    rebindAll(draft)
+    return change
   }
 
   return {

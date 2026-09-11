@@ -33,7 +33,7 @@ test('a floor laid in a material wears its picture, tiled at the size the materi
   const { doc, level } = room()
   const id = FLOOR_MATERIAL_IDS[0]!
   const material = floorMaterial(id)!
-  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room', floor: id }
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'room', floor: id, loop: [] }
 
   const laid = floorPieces(doc, level)[0]!
   expect(laid.paint.texture).toBe(material.texture)
