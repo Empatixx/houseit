@@ -13,7 +13,13 @@ export type Body =
   | { kind: 'box'; width: number; height: number; depth: number }
   | { kind: 'drum'; radius: number; top: number; height: number; open: boolean; stretch: number }
   | { kind: 'ball'; radius: number }
-  | { kind: 'prism'; outline: Corner[]; holes: Corner[][]; thickness: number }
+  | {
+      kind: 'prism'
+      outline: Corner[]
+      holes: Corner[][]
+      thickness: number
+      slope?: { x: number; z: number; offset: number; both?: boolean }
+    }
   | { kind: 'sheet'; outline: Corner[]; holes: Corner[][] }
   | { kind: 'symbol'; file: string; width: number; depth: number }
   | { kind: 'model'; file: string; width: number; height: number; depth: number }

@@ -1,10 +1,15 @@
 import { z } from 'zod'
 import { closes } from './closes'
+import { ColumnSchema } from './column'
+import { RampSchema, ShaftSchema } from './connections'
+import { ExteriorSchema } from './exterior'
 import { FINISH_IDS, isColour, STYLE_IDS } from './finishes'
 import { HostSchema } from './host'
+import { FrameSchema, PanelsSchema } from './opening-assembly'
+import { RoofSchema } from './roof'
 import { ROOM_KIND_IDS } from './room-kinds'
 
-export const DOCUMENT_VERSION = 4
+export const DOCUMENT_VERSION = 5
 
 const mm = z.number().int()
 const id = z.string().min(1)
@@ -17,6 +22,11 @@ export const LevelSchema = z.object({
   id,
   name: z.string(),
   elevation: mm,
+  slabThickness: mm.positive().optional(),
+  columns: z.array(ColumnSchema).optional(),
+  shafts: z.array(ShaftSchema).optional(),
+  ramps: z.array(RampSchema).optional(),
+  roofs: z.array(RoofSchema).optional(),
   height: mm.positive(),
 })
 
@@ -28,22 +38,50 @@ export const WallSchema = z.object({
   a: id,
   b: id,
   thickness: mm.positive(),
+  exterior: ExteriorSchema.optional(),
   baseOffset: mm,
   height: mm.positive(),
 })
 
-export const OpeningSchema = z.object({
-  id,
-  wall: id,
-  t: z.number().min(0).max(1),
-  kind: z.enum(['door', 'window']),
-  variant: z.enum(DOOR_VARIANTS).default('hinged'),
-  width: mm.positive(),
-  height: mm.positive(),
-  sillHeight: mm.nonnegative(),
-  hinge: z.enum(['a', 'b']).default('a'),
-  swing: z.union([z.literal(-1), z.literal(1)]).default(1),
-})
+export const OpeningSchema = z
+  .object({
+    id,
+    wall: id,
+    t: z.number().min(0).max(1),
+    kind: z.enum(['door', 'window', 'assembly']),
+    panels: PanelsSchema.optional(),
+    frame: FrameSchema.optional(),
+    variant: z.enum(DOOR_VARIANTS).default('hinged'),
+    width: mm.positive(),
+    height: mm.positive(),
+    sillHeight: mm.nonnegative(),
+    hinge: z.enum(['a', 'b']).default('a'),
+    swing: z.union([z.literal(-1), z.literal(1)]).default(1),
+  })
+  .superRefine((opening, ctx) => {
+    const fail = (message: string) => ctx.addIssue({ code: 'custom', message })
+    if (opening.kind === 'assembly' && (!opening.panels || !opening.frame))
+      fail('an assembly needs panels and a frame')
+    if (opening.kind !== 'assembly' && opening.panels) fail('panels belong to an assembly')
+    if (!opening.panels) return
+    let area = 0
+    for (const [i, p] of opening.panels.entries()) {
+      if (p.x + p.width > opening.width || p.z + p.height > opening.height)
+        fail('panel extends outside the opening')
+      if (p.kind === 'door' && p.z + opening.sillHeight !== 0)
+        fail('an assembly door must start at the floor')
+      area += p.width * p.height
+      for (const q of opening.panels.slice(i + 1))
+        if (
+          p.x < q.x + q.width &&
+          q.x < p.x + p.width &&
+          p.z < q.z + q.height &&
+          q.z < p.z + p.height
+        )
+          fail('assembly panels overlap')
+    }
+    if (area !== opening.width * opening.height) fail('panels must cover the opening exactly')
+  })
 
 const worn = z
   .string()
@@ -144,6 +182,17 @@ function checkReference(
 
 export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   checkKeysMatchIds(doc.levels, 'levels', ctx)
+  for (const level of Object.values(doc.levels)) {
+    for (const connection of [...(level.shafts ?? []), ...(level.ramps ?? [])]) {
+      checkReference(
+        doc.levels,
+        connection.to,
+        ['levels', level.id, connection.id],
+        'vertical connection',
+        ctx,
+      )
+    }
+  }
   checkKeysMatchIds(doc.nodes, 'nodes', ctx)
   checkKeysMatchIds(doc.walls, 'walls', ctx)
   checkKeysMatchIds(doc.openings, 'openings', ctx)

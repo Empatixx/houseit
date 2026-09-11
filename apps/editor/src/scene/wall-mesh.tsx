@@ -25,13 +25,14 @@ import { MM, toWorld } from './plan-coordinates'
 
 type WallMeshProps = {
   wall: Wall
+  outside?: 1 | -1 | undefined
   doc: HouseDocument
   degrees: Map<string, number>
   ofPickedRoom: boolean
   pickedRoom?: string
 }
 
-export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallMeshProps) {
+export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom, outside }: WallMeshProps) {
   const plainly = usePlain()
   const chosen = useSelection((state) => state.selected)
   const noticed = useHover((state) => state.hovered)
@@ -74,7 +75,7 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallM
   const length = span + growA + growB
 
   const openings = Object.values(doc.openings).filter((opening) => opening.wall === wall.id)
-  const pieces = planPieces(wall, openings, length, growA, span)
+  const pieces = planPieces(wall, openings, length, growA, span, outside)
   const angle = Math.atan2(dy, dx)
 
   const wallEmphasis: Emphasis | undefined =

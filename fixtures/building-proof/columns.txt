@@ -1,0 +1,17 @@
+update-level --name "1.NP" --height 3550
+add-room --name Kavárna --kind cafe --width 12000 --depth 8000 --material ceramic-tile
+add-room --from Kavárna --side east --width 3000 --name Přípravna --kind preparation-kitchen --material vinyl
+add-room --from Přípravna --side north --depth 3000 --name Úklid --kind cleaner-store --material epoxy
+update-room --room Kavárna --exterior '{"layers":[{"name":"ETICS","thickness":200}],"colour":"#d7d7d5","bands":[{"from":0,"to":1100,"colour":"#383e42"}]}'
+update-room --room Přípravna --exterior '{"layers":[{"name":"ETICS","thickness":200}],"colour":"#d7d7d5","bands":[{"from":0,"to":1100,"colour":"#383e42"}]}'
+update-room --room Úklid --exterior '{"layers":[{"name":"ETICS","thickness":200}],"colour":"#d7d7d5","bands":[{"from":0,"to":1100,"colour":"#383e42"}]}'
+add-opening --room Kavárna --kind window --side south --width 5500 --height 2000 --sill 500
+add-opening --room Kavárna --kind door --side east --width 1000 --height 2100
+add-opening --room Úklid --kind door --side south --width 800 --height 2100
+add-opening --room Přípravna --kind door --side south --width 1000 --height 2100
+update-level --slab-thickness 250 --roofs '[{"name":"Planted wing","outline":[{"x":-200,"y":-200},{"x":12200,"y":-200},{"x":12200,"y":8200},{"x":-200,"y":8200}],"finish":"planted","depth":180,"parapet":{"height":500,"thickness":300,"colour":"#d7d7d5"},"fall":{"percent":2,"towards":"south"},"drains":[{"x":6000,"y":0,"diameter":150}]}]'
+add-column --x 3000 --y 4000 --width 400 --depth 400 --colour "#b9b9b5"
+add-column --x 6000 --y 4000 --width 400 --depth 400 --colour "#b9b9b5"
+update-column --column col2 --width 500
+update-level --height 3850
+update-level --height 3550

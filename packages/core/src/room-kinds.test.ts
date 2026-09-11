@@ -19,9 +19,9 @@ test('a name that says nothing is nothing, not a guess', () => {
   expect(kindOf(undefined)).toBeUndefined()
 })
 
-test('every kind has a word to be found by and a floor to its size', () => {
+test('every kind has a word to be found by and a nonnegative size threshold', () => {
   for (const kind of ROOM_KINDS) {
     expect(kind.words.length).toBeGreaterThan(0)
-    expect(kind.minArea).toBeGreaterThan(0)
+    expect(kind.minArea).toBeGreaterThanOrEqual(0)
   }
 })

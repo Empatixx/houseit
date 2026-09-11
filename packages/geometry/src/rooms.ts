@@ -27,7 +27,11 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
       ) ?? stored.find((candidate) => containsPoint(polygon, candidate.x, candidate.y))
     const room: Room = {
       ...face,
-      clear: clearAreaOf(doc, level, face.nodes),
+      clear:
+        clearAreaOf(doc, level, face.nodes) -
+        (doc.levels[level]?.columns ?? [])
+          .filter((c) => containsPoint(polygon, c.x, c.y))
+          .reduce((sum, c) => sum + c.width * c.depth, 0),
       centre: centroidOf(polygon, face.area),
     }
     return found

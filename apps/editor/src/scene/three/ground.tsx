@@ -1,12 +1,18 @@
+import { excavations } from '@houseit/geometry/excavation'
+import type { Point } from '@houseit/geometry/outlines'
 import { useThree } from '@react-three/fiber'
 import { useMemo } from 'react'
 import {
   BufferAttribute,
   CanvasTexture,
+  Path,
   PlaneGeometry,
   RepeatWrapping,
+  Shape,
+  ShapeGeometry,
   SRGBColorSpace,
 } from 'three'
+import { useDocument } from '../../store/store'
 
 const REACH = 400
 const TILE = 6
@@ -127,19 +133,38 @@ function turf() {
 
 const TILTS = [0.7, 2.31]
 
-function lawn() {
-  const geometry = new PlaneGeometry(REACH, REACH, PATCHES, PATCHES)
+function lawn(holes: Point[][]) {
+  const shape = new Shape()
+  shape.moveTo(-REACH / 2, -REACH / 2)
+  shape.lineTo(REACH / 2, -REACH / 2)
+  shape.lineTo(REACH / 2, REACH / 2)
+  shape.lineTo(-REACH / 2, REACH / 2)
+  shape.closePath()
+  for (const ring of holes) {
+    const path = new Path()
+    ring.forEach((p, i) => {
+      if (i === 0) path.moveTo(p.x / 1000, p.y / 1000)
+      else path.lineTo(p.x / 1000, p.y / 1000)
+    })
+    path.closePath()
+    shape.holes.push(path)
+  }
+  const geometry = holes.length
+    ? new ShapeGeometry(shape)
+    : new PlaneGeometry(REACH, REACH, PATCHES, PATCHES)
   const sweep = field(8, 1277)
   const worn = field(26, 6011)
-  const across = PATCHES + 1
-  const colours = new Float32Array(across * across * 3)
+  const positions = geometry.getAttribute('position')
+  const uv = geometry.getAttribute('uv')
+  const colours = new Float32Array(positions.count * 3)
   const askew = (u: number, v: number, tilt: number): [number, number] => [
     u * Math.cos(tilt) - v * Math.sin(tilt),
     u * Math.sin(tilt) + v * Math.cos(tilt),
   ]
-  for (let i = 0; i < across * across; i++) {
-    const u = (i % across) / PATCHES
-    const v = Math.floor(i / across) / PATCHES
+  for (let i = 0; i < positions.count; i++) {
+    const u = positions.getX(i) / REACH + 0.5
+    const v = positions.getY(i) / REACH + 0.5
+    uv.setXY(i, u, v)
     const wide = askew(u, v, TILTS[0] ?? 0)
     const close = askew(u, v, TILTS[1] ?? 0)
     const lift = sweep(wide[0], wide[1]) * 0.62 + worn(close[0], close[1]) * 0.38
@@ -154,7 +179,8 @@ function lawn() {
 
 export function Ground() {
   const gl = useThree((state) => state.gl)
-  const geometry = useMemo(lawn, [])
+  const doc = useDocument((state) => state.doc)
+  const geometry = useMemo(() => lawn(excavations(doc)), [doc])
   const grass = useMemo(() => {
     const texture = new CanvasTexture(turf())
     texture.wrapS = RepeatWrapping

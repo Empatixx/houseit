@@ -1,6 +1,7 @@
 import { STANDARD } from '@houseit/core/dispositions'
 import type { Opening, Wall } from '@houseit/core/document'
 import { layerOf } from '@houseit/core/object-types'
+import { openingsIn } from '@houseit/core/opening-parts'
 import type { Box } from '@houseit/geometry/boxes'
 import { boxOf } from '@houseit/geometry/boxes'
 import type { Point } from '@houseit/geometry/outlines'
@@ -22,7 +23,7 @@ export const approach: Rule = ({ doc, level, rooms }) => {
       return spot ? [{ object, room, boxes: piecesOf(spot, object).map(boxOf) }] : []
     })
 
-  for (const opening of Object.values(doc.openings)) {
+  for (const opening of openingsIn(doc)) {
     if (opening.kind !== 'door' || opening.variant === 'garage') continue
     const wall = doc.walls[opening.wall]
     if (!wall || wall.level !== level) continue

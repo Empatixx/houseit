@@ -1,5 +1,6 @@
 import type { HouseDocument, Side } from '@houseit/core/document'
 import { type Layer, layerOf } from '@houseit/core/object-types'
+import { openingsIn } from '@houseit/core/opening-parts'
 import type { Room } from '@houseit/geometry/rooms'
 import { type SideRun, sideRun, sideRuns } from '@houseit/geometry/sides'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
@@ -140,7 +141,7 @@ function occupied(
     x: (run.to.x - run.from.x) / (run.length || 1),
     y: (run.to.y - run.from.y) / (run.length || 1),
   }
-  const doors = Object.values(doc.openings)
+  const doors = openingsIn(doc)
     .filter((opening) => opening.kind === 'door' && doc.walls[opening.wall]?.level === level)
     .flatMap((opening) => {
       const wall = doc.walls[opening.wall]!

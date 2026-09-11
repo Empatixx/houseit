@@ -1,4 +1,5 @@
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
+import { exteriorSides } from '@houseit/geometry/exterior'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
 import { useSelection } from '../store/selection'
@@ -15,6 +16,7 @@ export function Walls() {
 
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
 
+  const outside = exteriorSides(doc, level)
   const degrees = new Map<string, number>()
   for (const wall of walls) {
     for (const node of [wall.a, wall.b]) {
@@ -34,6 +36,7 @@ export function Walls() {
         <WallMesh
           key={wall.id}
           wall={wall}
+          outside={outside.get(wall.id)}
           doc={doc}
           degrees={degrees}
           ofPickedRoom={roomWalls.has(wall.id)}

@@ -1,4 +1,4 @@
-import type { HouseDocument } from '@houseit/core/document'
+import type { HouseDocument, Level } from '@houseit/core/document'
 import { flightOf, levelsOf } from '@houseit/core/levels'
 import { planExtent } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
@@ -15,6 +15,11 @@ export type StoreyReport = {
   storey: number
   height: number
   elevation: number
+  slabThickness?: number
+  roofs?: Level['roofs']
+  shafts?: Level['shafts']
+  ramps?: Level['ramps']
+  columns?: (NonNullable<Level['columns']>[number] & { height: number })[]
   risers: number
   rooms: number
   open?: true
@@ -54,6 +59,18 @@ export function answerFor(
       name: storey.name,
       storey: index + 1,
       height: storey.height,
+      ...(storey.shafts ? { shafts: storey.shafts } : {}),
+      ...(storey.ramps ? { ramps: storey.ramps } : {}),
+      ...(storey.columns
+        ? {
+            columns: storey.columns.map((c) => ({
+              ...c,
+              height: storey.height - (storey.slabThickness ?? 250),
+            })),
+          }
+        : {}),
+      ...(storey.slabThickness === undefined ? {} : { slabThickness: storey.slabThickness }),
+      ...(storey.roofs === undefined ? {} : { roofs: storey.roofs }),
       elevation: storey.elevation,
       risers: flightOf(storey.height).risers,
       rooms: roomsOf(doc, storey.id).length,

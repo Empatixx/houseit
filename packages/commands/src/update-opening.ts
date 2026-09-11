@@ -1,11 +1,13 @@
 import type { HouseDocument, Opening } from '@houseit/core/document'
-import { DOOR_VARIANTS } from '@houseit/core/document'
+import { DOOR_VARIANTS, OpeningSchema } from '@houseit/core/document'
+import { FrameSchema, PanelsSchema } from '@houseit/core/opening-assembly'
 import type { Room } from '@houseit/geometry/rooms'
 import type { Draft } from 'immer'
 import { z } from 'zod'
 import { along, alongSide } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
+import { json } from './json-schema'
 import { length } from './length-schema'
 import { openingById } from './openings'
 import { checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
@@ -16,6 +18,8 @@ export const updateOpening = defineCommand({
   summary: `Change a door or a window: its size, its kind of leaf (${DOOR_VARIANTS.join(', ')}), or where in the wall it sits`,
   args: z.object({
     id: z.string().min(1),
+    panels: json(PanelsSchema).optional(),
+    frame: json(FrameSchema).optional(),
     width: length().optional(),
     height: length().optional(),
     sill: length().optional(),
@@ -39,7 +43,13 @@ export const updateOpening = defineCommand({
       args.toSide !== undefined || args.toWall !== undefined || args.along !== undefined
     const resizing =
       args.width !== undefined || args.height !== undefined || args.sill !== undefined
-    if (!moving && !resizing && args.variant === undefined) {
+    if (
+      !moving &&
+      !resizing &&
+      args.variant === undefined &&
+      args.panels === undefined &&
+      args.frame === undefined
+    ) {
       throw new CommandError(
         'update-opening: say what to change — --width, --height, --sill, --variant, --along, --to-side or --to-wall',
       )
@@ -99,6 +109,9 @@ export const updateOpening = defineCommand({
     target.variant = variant
     if (args.height !== undefined) target.height = args.height
     if (args.sill !== undefined) target.sillHeight = args.sill
+    if (args.panels !== undefined) target.panels = args.panels
+    if (args.frame !== undefined) target.frame = args.frame
+    OpeningSchema.parse(target)
     return { changed: [opening.id] }
   },
 })

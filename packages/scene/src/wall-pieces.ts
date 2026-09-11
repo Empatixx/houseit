@@ -1,4 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
+import { openingParts } from '@houseit/core/opening-parts'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 
 export const INK = {
@@ -33,7 +34,11 @@ export function planPieces(
   length: number,
   growA: number,
   span: number,
+  outside?: 1 | -1,
 ): WallPiece[] {
+  openings = openings.flatMap((o) =>
+    openingParts(o, span).filter((p) => !o.panels || p.sillHeight < 1500),
+  )
   const line = lineWeight(wall.thickness)
   const inner = wall.thickness - 2 * line
   const holes = openings.map((opening) => spanAround(growA + opening.t * span, opening.width))
@@ -63,11 +68,28 @@ export function planPieces(
     })
   }
 
+  if (wall.exterior && outside !== undefined) {
+    const thickness = wall.exterior.layers.reduce((sum, layer) => sum + layer.thickness, 0)
+    for (const solid of freeSpans(length, holes)) {
+      const extendA = solid.from === 0 ? thickness : 0
+      const extendB = solid.to === length ? thickness : 0
+      pieces.push({
+        key: `exterior-${solid.from}`,
+        colour: '#aeb3ac',
+        at: middleOf(solid) + (extendB - extendA) / 2,
+        length: solid.to - solid.from + extendA + extendB,
+        thickness,
+        aside: (outside * (wall.thickness + thickness)) / 2,
+        base: 0,
+        height: wall.height,
+      })
+    }
+  }
   openings.forEach((opening, index) => {
     const hole = holes[index]!
     const before = pieces.length
     drawOpening(opening, hole, line, inner, wall, pieces)
-    for (const piece of pieces.slice(before)) piece.opening = opening.id
+    for (const piece of pieces.slice(before)) piece.opening = opening.id.split('-panel-')[0]!
   })
 
   return pieces
@@ -82,6 +104,17 @@ function drawOpening(
   pieces: WallPiece[],
 ): void {
   if (opening.kind === 'window') {
+    if (opening.frame)
+      for (const at of [hole.from + opening.frame.face / 2, hole.to - opening.frame.face / 2])
+        pieces.push({
+          key: `${opening.id}-stile-${at}`,
+          colour: INK.outline,
+          at,
+          length: opening.frame.face,
+          thickness: opening.frame.depth,
+          base: 6,
+          height: wall.height,
+        })
     pieces.push(
       {
         key: `${opening.id}-glass`,

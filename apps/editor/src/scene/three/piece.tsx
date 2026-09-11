@@ -113,9 +113,25 @@ function Flat({ body, at, rotation, material, shadows, onPick }: FlatProps) {
 
 function flatGeometry(body: Extract<Body, { kind: 'prism' | 'sheet' }>): BufferGeometry {
   const shape = shapeOf(body.outline, body.holes)
-  return body.kind === 'prism'
-    ? new ExtrudeGeometry(shape, { depth: body.thickness * MM, bevelEnabled: false })
-    : new ShapeGeometry(shape)
+  const geometry =
+    body.kind === 'prism'
+      ? new ExtrudeGeometry(shape, { depth: body.thickness * MM, bevelEnabled: false })
+      : new ShapeGeometry(shape)
+  if (body.kind === 'prism' && body.slope) {
+    const positions = geometry.getAttribute('position')
+    for (let i = 0; i < positions.count; i += 1) {
+      positions.setZ(
+        i,
+        positions.getZ(i) +
+          (body.slope.both ? 1 : positions.getZ(i) / (body.thickness * MM)) *
+            (positions.getX(i) * body.slope.x -
+              positions.getY(i) * body.slope.z +
+              body.slope.offset * MM),
+      )
+    }
+    geometry.computeVertexNormals()
+  }
+  return geometry
 }
 
 function shapeOf(outline: Corner[], holes: Corner[][]): Shape {

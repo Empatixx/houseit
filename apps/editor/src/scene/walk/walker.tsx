@@ -1,7 +1,8 @@
+import { walkClear, walkSurface } from '@houseit/geometry/walking'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
-import type { PerspectiveCamera } from 'three'
-import { useDocument } from '../../store/store'
+import type { OrthographicCamera, PerspectiveCamera } from 'three'
+import { documentStore, useDocument } from '../../store/store'
 import { EYE, headingOf, walkStore } from '../../store/walk'
 import { MM } from '../plan-coordinates'
 import { startOf } from './start'
@@ -26,7 +27,11 @@ export function Walker() {
   const started = useRef<string | undefined>(undefined)
 
   useEffect(() => {
-    if (walkStore.getState().walker && started.current === level) return
+    if (
+      walkStore.getState().inspection ||
+      (walkStore.getState().walker && started.current === level)
+    )
+      return
     const start = startOf(doc, level)
     if (!start) return
     started.current = level
@@ -108,6 +113,23 @@ export function Walker() {
 
   useFrame((_, dt) => {
     const state = walkStore.getState()
+    if (state.inspection) {
+      const view = state.inspection
+      camera.position.set(...view.at)
+      camera.up.set(
+        0,
+        view.at[0] === view.target[0] && view.at[2] === view.target[2] ? 0 : 1,
+        view.at[0] === view.target[0] && view.at[2] === view.target[2] ? -1 : 0,
+      )
+      camera.lookAt(...view.target)
+      if (view.orthographic) {
+        const ortho = camera as unknown as OrthographicCamera
+        ortho.zoom = Math.min(size.width, size.height) / view.span
+        ortho.updateProjectionMatrix()
+      }
+      return
+    }
+    camera.up.set(0, 1, 0)
     const walker = state.walker
     if (!walker) return
     const keys = pressed.current
@@ -125,14 +147,22 @@ export function Walker() {
       const pace = (keys.has('shift') ? RUN : WALK) * 1000 * step
       const heading = headingOf(walker.yaw)
       const right = { x: heading.y, y: -heading.x }
-      state.step({
+      const destination = {
         x: walker.at.x + (heading.x * ahead + right.x * aside) * pace,
         y: walker.at.y + (heading.y * ahead + right.y * aside) * pace,
-      })
+      }
+      const surface = walkSurface(doc, destination, walker.height ?? floor)
+      if (surface && walkClear(doc, surface.level, destination)) {
+        state.step(destination, surface.height)
+        if (surface.level !== level) {
+          started.current = surface.level
+          documentStore.getState().setLevel(surface.level)
+        }
+      }
     }
 
     const now = walkStore.getState().walker ?? walker
-    camera.position.set(now.at.x * MM, (floor + EYE) * MM, -now.at.y * MM)
+    camera.position.set(now.at.x * MM, ((now.height ?? floor) + EYE) * MM, -now.at.y * MM)
     camera.rotation.order = 'YXZ'
     camera.rotation.set(now.pitch, -now.yaw, 0)
   })

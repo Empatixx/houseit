@@ -3,8 +3,8 @@
 ## Everything goes through the CLI, and that is the test
 
 An agent gets at this plan through one door: the commands in `packages/commands`,
-reached over MCP. There are thirteen — `add`, `update` and `remove` for a level,
-a room, an opening and an object, and `get-plan` — and every change is made the
+reached over MCP. The dwelling commands are `add`, `update` and `remove` for a level,
+a room, an opening and an object, and `get-plan`; building commands add columns, shafts and ramps. Every change is made the
 way an agent would have to make it, never by writing to the document. If
 something cannot be said as a command, that is the bug, and it is the bug to fix.
 
@@ -419,3 +419,34 @@ if one throws, the draft is discarded and the document is untouched.
 bun run test        # vitest through turbo; `bun test` at the root is not it
 bun run typecheck && bun run lint && bun run depcruise && bun run knip
 ```
+
+## Building vocabulary
+
+`add-room --boundary` accepts a measured wall-centre chain as JSON, each corner
+with the thickness of its outgoing wall. It reuses and splits shared walls,
+refuses inconsistent thicknesses and overlapping rooms, and assigns exactly one
+face. It is the way in from construction documentation; there is still no
+independent wall command. Prefer relative cuts for ordinary design.
+
+`update-room --exterior` dresses exterior walls with named layers and colour
+bands measured above the storey's floor. The outside comes from the wall graph.
+`update-level --roofs` takes explicit roof patches with finish, depth, parapet,
+fall and drains; `--slab-thickness` controls the soffit.
+
+Structural columns use `add-column`, `update-column`, `remove-column`. Their grid
+coordinates belong to a level and their height follows the soffit. Shafts and
+ramps use `add-shaft` / `remove-shaft` and `add-ramp` / `remove-ramp`, each with a
+lower host level and an upper destination. Their slab holes are derived, just
+like stair wells. Walking follows the ramp and stair surfaces and refuses walls,
+fixed glazing, columns and unsupported holes.
+
+An `add-opening --kind assembly` is one product with rectangular fixed and door
+panels and a frame. Panels must tile the opening exactly without overlaps. The
+plan, 3D and traversal derive its parts from that one record.
+
+The driver's `window.floorplan.show({view: 'north'})` also supports south, east,
+west, roof and overview. It changes only the camera, never the document. These
+views exist to compare a model against its elevations and roof drawing.
+
+Rebuild specimens through `scripts/building-proof.mjs fixtures/building-proof/<name>.txt`.
+The fixtures are capability specimens, not the real building or acceptance data.

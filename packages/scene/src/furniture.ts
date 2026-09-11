@@ -39,7 +39,15 @@ export function placedOn(doc: HouseDocument, level: string): Placed[] {
 export function furniturePieces(doc: HouseDocument, level: string): Piece[] {
   const storey = doc.levels[level]?.height
   return placedOn(doc, level).flatMap((thing) =>
-    stood(thing, thing.rest, isStaircase(thing.object.type) ? storey : undefined),
+    stood(
+      thing,
+      thing.rest,
+      isStaircase(thing.object.type)
+        ? storey
+        : thing.object.type === 'column'
+          ? (storey ?? 2800) - (doc.levels[level]?.slabThickness ?? 250)
+          : undefined,
+    ),
   )
 }
 

@@ -5,7 +5,7 @@
       "entry": ["scripts/*.mjs"],
       "project": ["scripts/*.mjs"],
       "ignoreDependencies": ["playwright-core"],
-      "ignoreBinaries": ["sips"]
+      "ignoreBinaries": ["sips", "pdftocairo", "pdftotext"]
     },
     "packages/core": {
       "entry": ["src/**/*.ts"],

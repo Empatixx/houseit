@@ -11,6 +11,7 @@ export class MigrationError extends Error {
 type Migration = (doc: Record<string, unknown>) => Record<string, unknown>
 
 const MIGRATIONS: Record<number, Migration> = {
+  4: (doc) => doc,
   1: ({ roomLabels, ...doc }) => ({ ...doc, rooms: roomLabels ?? {} }),
   2: (doc) => ({
     ...doc,

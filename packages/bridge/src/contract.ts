@@ -16,6 +16,7 @@ export type ExecResult =
   | { ok: false; error: string }
 
 export type ViewRequest = {
+  view?: 'plan' | 'overview' | 'north' | 'south' | 'east' | 'west' | 'roof'
   room?: string
   object?: string
   dimensions?: boolean

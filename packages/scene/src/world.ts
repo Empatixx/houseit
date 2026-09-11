@@ -1,9 +1,11 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { levelsOf } from '@houseit/core/levels'
+import { connectionPieces } from './connections'
 import { ceilingPieces, floorPieces } from './floors'
 import { furniturePieces } from './furniture'
 import { type Light, lightsOn } from './lights'
-import type { Piece } from './pieces'
+import { type Piece, slab } from './pieces'
+import { roofPieces } from './roofs'
 import { wallPieces } from './walls'
 
 export type Storey = {
@@ -37,8 +39,21 @@ export function reachOf(doc: HouseDocument): Reach {
 
 export function storeyOf(doc: HouseDocument, level: string): Piece[] {
   return [
+    ...(doc.levels[level]?.columns ?? []).map((column) => ({
+      ...slab({
+        x: column.x,
+        z: -column.y,
+        w: column.width,
+        d: column.depth,
+        h: doc.levels[level]!.height - (doc.levels[level]!.slabThickness ?? 250),
+        paint: { colour: column.colour },
+      }),
+      name: `column-${column.id}`,
+    })),
+    ...connectionPieces(doc, level),
     ...floorPieces(doc, level),
     ...ceilingPieces(doc, level),
+    ...roofPieces(doc, level),
     ...wallPieces(doc, level),
     ...furniturePieces(doc, level),
   ].map((piece, index) => (piece.name ? piece : { ...piece, name: `piece-${index}` }))

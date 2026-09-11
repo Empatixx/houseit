@@ -71,6 +71,17 @@ export function standingProblem(
       )
     })
   if (buried) return 'it would stand in a wall'
+  const column = (doc.levels[level]?.columns ?? []).find((c) =>
+    clashesAny(boxes, [
+      {
+        x0: c.x - c.width / 2,
+        y0: c.y - c.depth / 2,
+        x1: c.x + c.width / 2,
+        y1: c.y + c.depth / 2,
+      },
+    ]),
+  )
+  if (column) return `it would stand in structural column ${column.id}`
 
   const layer = layerOf(shape.type)
   const inTheWay = Object.values(doc.objects)

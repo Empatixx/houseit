@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { selectionStore } from '../store/selection'
 import { useShown } from '../store/shown'
 import { useTool } from '../store/tool'
+import { Columns } from './columns'
 import { Dimensions } from './dimensions'
 import { DotGrid } from './dot-grid'
 import { Drawing } from './drawing'
@@ -42,6 +43,7 @@ export function PlanScene() {
       {shown.floors ? <RoomFloors /> : null}
       {shown.furniture ? <Furniture /> : null}
       <Walls />
+      <Columns />
       {shown.labels ? <RoomAnnotations /> : null}
       <Dimensions />
       <Drawing />

@@ -24,6 +24,8 @@ export type WallReport = {
   side: Side
   nth?: number
   length: number
+  thickness: number
+  exterior?: Wall['exterior']
 }
 
 export type OpeningReport = {
@@ -34,6 +36,8 @@ export type OpeningReport = {
   along: number
   width: number
   height: number
+  panels?: Opening['panels']
+  frame?: Opening['frame']
   variant?: Opening['variant']
   sill?: number
   to?: string
@@ -156,7 +160,9 @@ export function surveyRoom(
       along: alongSide(doc, level, room, side, wall, opening.t),
       width: opening.width,
       height: opening.height,
-      ...(opening.kind === 'door'
+      ...(opening.panels ? { panels: opening.panels } : {}),
+      ...(opening.frame ? { frame: opening.frame } : {}),
+      ...(opening.kind === 'door' || opening.panels?.some((p) => p.kind === 'door')
         ? { variant: opening.variant, to: across ? (across.name ?? '(unnamed)') : 'outside' }
         : { sill: opening.sillHeight }),
     })
@@ -190,6 +196,8 @@ export function surveyRoom(
           side: place.side,
           ...(place.of > 1 ? { nth: place.nth } : {}),
           length: Math.round(Math.hypot(b.x - a.x, b.y - a.y)),
+          thickness: wall.thickness,
+          ...(wall.exterior ? { exterior: wall.exterior } : {}),
         },
       ]
     }),
