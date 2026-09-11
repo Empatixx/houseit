@@ -88,3 +88,44 @@ test("a v2 document's turned things keep their angle under its new name", () => 
 test('a room carries no floor until one is set', () => {
   expect(migrateDocument({ ...createEmptyDocument(), version: DOCUMENT_VERSION }).rooms).toEqual({})
 })
+
+test('a v3 plan is given the walls round each of its rooms', () => {
+  const level = 'l1'
+  const at = (id: string, x: number, y: number) => [id, { id, x, y }] as const
+  const wall = (id: string, a: string, b: string) =>
+    [id, { id, level, a, b, thickness: 150, baseOffset: 0, height: 2600 }] as const
+
+  const v3 = {
+    ...createEmptyDocument(),
+    version: 3,
+    levels: { [level]: { id: level, name: 'Ground floor', storey: 1, elevation: 0, height: 2800 } },
+    nodes: Object.fromEntries([
+      at('n1', 0, 0),
+      at('n2', 6000, 0),
+      at('n3', 6000, 4000),
+      at('n4', 0, 4000),
+      at('n5', 3000, 0),
+      at('n6', 3000, 4000),
+    ]),
+    walls: Object.fromEntries([
+      wall('w1', 'n1', 'n5'),
+      wall('w2', 'n5', 'n2'),
+      wall('w3', 'n2', 'n3'),
+      wall('w4', 'n3', 'n6'),
+      wall('w5', 'n6', 'n4'),
+      wall('w6', 'n4', 'n1'),
+      wall('w7', 'n5', 'n6'),
+    ]),
+    rooms: {
+      r1: { id: 'r1', level, x: 1500, y: 2000, name: 'hala', floor: 'ash' },
+      r2: { id: 'r2', level, x: 4500, y: 2000, name: 'kuchyň', floor: 'beech' },
+    },
+  }
+
+  const doc = migrateDocument(v3)
+
+  expect([...doc.rooms.r1!.loop].sort()).toEqual(['w1', 'w5', 'w6', 'w7'])
+  expect([...doc.rooms.r2!.loop].sort()).toEqual(['w2', 'w3', 'w4', 'w7'])
+  expect(doc.rooms.r1!.name).toBe('hala')
+  expect(doc.rooms.r2!.floor).toBe('beech')
+})
