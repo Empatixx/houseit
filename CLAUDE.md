@@ -371,6 +371,48 @@ Left out, it fills its rectangle.
 `scripts/make-glb.mjs` writes the one that is committed, so an asset in the tree
 can be rebuilt and read rather than being a binary nobody can account for.
 
+## What must not be broken
+
+Each of these is held by a test, and each was chosen for a reason the code does
+not show on its own.
+
+**The wall graph is topological, not geometric.** A wall that merely crosses
+another on screen shares no node with it and therefore divides nothing. Anything
+adding walls must split the walls it meets — `partition.ts` calls `splitWall` at
+every crossing, which is what makes two rooms share one wall instead of standing
+beside each other with a gap. The test that pins it asserts the two rooms' areas
+still add up to the whole floor, which is impossible unless the wall is shared.
+
+**A cut comes off a straight side.** Two crossings do not promise a rectangle:
+cutting the north off an L-shaped floor meets the boundary exactly twice and
+leaves a shallow tail running under the notch. `sideIsStraight` in
+`geometry/cut.ts` refuses that rather than drawing a room nobody asked for.
+
+**A door swings into the room it was named from.** It is the one thing a door
+needs that a window does not, and the room is the only place the answer can come
+from — so the side is worked out when the door is placed and stored on the
+opening. It cannot be worked out later: a room is a face of the wall graph, and a
+face has no lasting identity.
+
+**Where an opening lands is chosen for you.** `place-opening.ts` puts it in the
+middle of the widest stretch of that wall still free, so one command centres a
+door and a second falls beside it without either naming a position. `--along`
+overrides that with a fraction or a length, and is the exception rather than the
+way.
+
+**Coordinates are an output of the design, not an input.** Nobody on a site knows
+the kitchen starts at x=4500; they know it is west of the living room and 3.6 m
+wide. Commands name rooms and compass sides. `add-room --points` takes literal
+corners and is the one way round it — reach for it last.
+
+**Nothing floats.** A fixture anchors to a host — a wall at `{ t, z, side }` or a
+level at `{ x, y, z }`, in `core/host.ts` — never to a room, whose extent moves
+under it, and never to nothing. It is what will let an electrical layout survive
+a change of disposition.
+
+**A script is one transaction.** Every line runs inside a single Immer `produce`;
+if one throws, the draft is discarded and the document is untouched.
+
 ## Checks
 
 ```bash
