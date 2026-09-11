@@ -1,0 +1,9 @@
+update-level --name "1.NP" --height 3670
+add-level --name "1.PP" --height 3295 --below
+add-room --level "1.PP" --name "001 Schodišťový prostor" --kind stairwell --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":250},{"x":6250,"y":0,"thickness":250},{"x":6250,"y":6250,"thickness":250},{"x":0,"y":6250,"thickness":250}]'
+add-room --level "1.NP" --name "135 Schodišťový prostor" --kind stairwell --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":250},{"x":6250,"y":0,"thickness":250},{"x":6250,"y":6250,"thickness":250},{"x":0,"y":6250,"thickness":250}]'
+add-shaft --level "1.PP" --to "1.NP" --x 3125 --y 2855 --width 2600 --depth 2300 --enclosure '{"thickness":200,"doorSide":"south","doorWidth":1100,"doorHeight":2100,"colour":"#dedbd5"}'
+add-opening --room "001 Schodišťový prostor" --kind door --side south --width 900 --height 2050
+add-opening --room "135 Schodišťový prostor" --kind door --side south --width 900 --height 2050
+add-stair --level "1.PP" --to "1.NP" --base-offset 15 --thickness 200 --colour "#d7d3ca" --flights '[{"x":875,"y":1925,"direction":"north","width":1500,"going":310,"risers":7,"landing":[{"x":125,"y":3785},{"x":1625,"y":3785},{"x":1625,"y":4205},{"x":2195,"y":4205},{"x":2195,"y":6125},{"x":125,"y":6125}]},{"x":2195,"y":5375,"direction":"east","width":1500,"going":310,"risers":7,"landing":[{"x":4055,"y":4205},{"x":4625,"y":4205},{"x":4625,"y":3785},{"x":6125,"y":3785},{"x":6125,"y":6125},{"x":4055,"y":6125}]},{"x":5375,"y":3785,"direction":"south","width":1500,"going":310,"risers":7}]'
+get-plan --level "1.PP"

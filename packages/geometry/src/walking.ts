@@ -1,15 +1,26 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { openingsIn } from '@houseit/core/opening-parts'
 import { flightWidthOf, stairKind, stairShape, treadsOf } from '@houseit/core/stairs'
-import { rampDirection } from './connections'
+import { rampDirection, shaftOutside, shaftsOn } from './connections'
 import type { Point } from './outlines'
 import { containsPoint, roomsOf } from './rooms'
+import { stairRise } from './stair-runs'
 import { onPlan, standingAt } from './standing'
 import { wellsInRoom } from './wells'
 
 export const WALK_RADIUS = 180
 
 export function walkClear(doc: HouseDocument, level: string, at: Point): boolean {
+  for (const s of shaftsOn(doc, level).filter((s) => s.enclosure)) {
+    const corners = shaftOutside(s)
+    if (
+      at.x > corners[0]!.x - WALK_RADIUS &&
+      at.x < corners[2]!.x + WALK_RADIUS &&
+      at.y > corners[0]!.y - WALK_RADIUS &&
+      at.y < corners[2]!.y + WALK_RADIUS
+    )
+      return false
+  }
   for (const column of doc.levels[level]?.columns ?? []) {
     if (
       Math.abs(at.x - column.x) < column.width / 2 + WALK_RADIUS &&
@@ -51,6 +62,14 @@ export function walkSurface(
   previous: number,
 ): { height: number; level: string } | undefined {
   for (const base of Object.values(doc.levels)) {
+    for (const stair of base.stairs ?? []) {
+      const riser = stairRise(doc, base.id, stair)
+      for (const tread of treadsOf(stair)) {
+        const height = base.elevation + stair.baseOffset + tread.step * riser
+        if (Math.abs(height - previous) <= 220 && containsPoint(tread.outline, at.x, at.y))
+          return { height, level: base.id }
+      }
+    }
     for (const ramp of base.ramps ?? []) {
       const direction = rampDirection(ramp)
       const dx = at.x - ramp.x,

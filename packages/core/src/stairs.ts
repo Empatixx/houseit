@@ -1,4 +1,5 @@
 import { flightOf, HEADROOM, SLAB } from './levels'
+import { flightTreads, type StairRun } from './stair-flight'
 
 export const STAIR_KINDS = ['straight', 'l-landing', 'l-winder', 'u', 'spiral'] as const
 export type StairKind = (typeof STAIR_KINDS)[number]
@@ -74,7 +75,8 @@ export type Tread = {
   outline: Point[]
 }
 
-export function treadsOf(shape: StairShape): Tread[] {
+export function treadsOf(shape: StairShape | StairRun): Tread[] {
+  if ('flights' in shape) return flightTreads(shape)
   if (shape.kind === 'spiral') return spiralTreads(shape)
   if (shape.kind === 'straight') return straightTreads(shape)
   if (shape.kind === 'u') return uTreads(shape)

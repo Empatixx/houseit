@@ -45,7 +45,7 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
         z: -column.y,
         w: column.width,
         d: column.depth,
-        h: doc.levels[level]!.height - (doc.levels[level]!.slabThickness ?? 250),
+        h: soffitOf(doc.levels[level]!),
         paint: { colour: column.colour },
       }),
       name: `column-${column.id}`,
@@ -70,3 +70,5 @@ export function worldOf(doc: HouseDocument): World {
     })),
   }
 }
+
+import { soffitOf } from '@houseit/core/levels'

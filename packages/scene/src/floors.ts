@@ -1,6 +1,6 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { floorMaterial } from '@houseit/core/floor-materials'
-import { SLAB } from '@houseit/core/levels'
+import { SLAB, soffitOf } from '@houseit/core/levels'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { ceilingWells, holesIn, wellsInRoom } from '@houseit/geometry/wells'
@@ -36,7 +36,7 @@ export function floorPieces(doc: HouseDocument, level: string): Piece[] {
 }
 
 export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
-  const top = doc.levels[level]?.height ?? 0
+  const soffit = doc.levels[level] ? soffitOf(doc.levels[level]!) : 0
   const slab = doc.levels[level]?.slabThickness ?? SLAB
   const wells = ceilingWells(doc, level)
 
@@ -47,7 +47,7 @@ export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
       wells.map((well) => well.outline),
     )
     const lid = prism({
-      base: top - slab,
+      base: soffit,
       thickness: slab,
       outline: corners(outline),
       holes: holes.map((hole) => corners(hole.outline)),

@@ -8,6 +8,15 @@ export const ShaftSchema = z.object({
   ...point,
   width: mm.positive(),
   depth: mm.positive(),
+  enclosure: z
+    .object({
+      thickness: mm.positive(),
+      doorSide: z.enum(['north', 'south', 'east', 'west']),
+      doorWidth: mm.positive(),
+      doorHeight: mm.positive(),
+      colour: z.string().regex(/^#[0-9a-f]{6}$/i),
+    })
+    .optional(),
 })
 export const RampSchema = z.object({
   id: z.string().min(1),

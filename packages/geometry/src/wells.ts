@@ -13,6 +13,7 @@ import { centroidOf } from './centroid'
 import { connectionHoles } from './connections'
 import type { Point } from './outlines'
 import { containsPoint, type Room, roomsOf } from './rooms'
+import { runWells } from './stair-runs'
 import { onPlan, standingAt } from './standing'
 import { unionOfBoxes } from './union'
 
@@ -66,7 +67,11 @@ export function wellOf(shape: StairShape): Point[] {
 
 export function wellsIn(doc: HouseDocument, level: string): Well[] {
   const under = levelBelow(doc, level)
-  return [...(under ? stairwaysOn(doc, under.id) : []), ...connectionHoles(doc, level)]
+  return [
+    ...(under ? stairwaysOn(doc, under.id) : []),
+    ...connectionHoles(doc, level),
+    ...runWells(doc, level),
+  ]
 }
 
 export function wellsInRoom(doc: HouseDocument, level: string, room: Room): Well[] {
@@ -171,5 +176,9 @@ function areaOf(polygon: Point[]): number {
 }
 
 export function ceilingWells(doc: HouseDocument, level: string): Well[] {
-  return [...stairwaysOn(doc, level), ...connectionHoles(doc, level, true)]
+  return [
+    ...stairwaysOn(doc, level),
+    ...connectionHoles(doc, level, true),
+    ...runWells(doc, level, true),
+  ]
 }

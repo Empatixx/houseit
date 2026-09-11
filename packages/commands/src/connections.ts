@@ -1,11 +1,13 @@
 import { RampSchema, ShaftSchema } from '@houseit/core/connections'
 import type { HouseDocument } from '@houseit/core/document'
 import { boxOf, clashes, wallBox } from '@houseit/geometry/boxes'
-import { connectionHoles } from '@houseit/geometry/connections'
+import { connectionHoles, shaftOutside, shaftsOn } from '@houseit/geometry/connections'
+import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
+import { json } from './json-schema'
 import { length } from './length-schema'
 import { levelOf } from './resolve'
 
@@ -13,8 +15,14 @@ const position = { x: length(), y: length(), width: length() }
 export const addShaft = defineCommand({
   name: 'add-shaft',
   summary:
-    'Hold a lift shaft open from --level through --to (storey name or id). x,y is the centre of the clear shaft, in mm; enclose it with rooms and walls.',
-  args: z.object({ ...position, depth: length(), to: z.string(), level: z.string().optional() }),
+    'Hold a lift shaft open from --level through --to. x,y centres the clear shaft. Optional --enclosure JSON gives thickness, doorSide, doorWidth, doorHeight and colour; its footprint is excluded from the surrounding room.',
+  args: z.object({
+    ...position,
+    depth: length(),
+    to: z.string(),
+    level: z.string().optional(),
+    enclosure: json(ShaftSchema.shape.enclosure.unwrap()).optional(),
+  }),
   run: (draft, args, open) => {
     const level = levelOf(draft, args.level ?? open, 'add-shaft')
     const to = levelOf(draft, args.to, 'add-shaft')
@@ -24,6 +32,62 @@ export const addShaft = defineCommand({
       Object.values(draft.levels).flatMap((l) => (l.shafts ?? []).map((s) => [s.id, s])),
     )
     const shaft = ShaftSchema.parse({ ...args, to, id: allocateId(all, 'shaft') })
+    if (shaft.enclosure) {
+      const e = shaft.enclosure
+      const side = e.doorSide === 'north' || e.doorSide === 'south' ? shaft.width : shaft.depth
+      if (e.doorWidth >= side)
+        throw new CommandError('shaft door must fit within the clear shaft side')
+      for (const storey of Object.values(draft.levels).filter(
+        (l) =>
+          l.elevation >= draft.levels[level]!.elevation &&
+          l.elevation <= draft.levels[to]!.elevation,
+      )) {
+        if (e.doorHeight >= storey.height - (storey.slabThickness ?? 250))
+          throw new CommandError('shaft door must fit below the soffit')
+        const corners = shaftOutside(shaft)
+        if (
+          shaftsOn(draft, storey.id).some((s) => clashes(boxOf(corners), boxOf(shaftOutside(s)), 0))
+        )
+          throw new CommandError('shaft would overlap another shaft')
+        if (
+          (storey.columns ?? []).some((c) =>
+            clashes(
+              boxOf(corners),
+              {
+                x0: c.x - c.width / 2,
+                x1: c.x + c.width / 2,
+                y0: c.y - c.depth / 2,
+                y1: c.y + c.depth / 2,
+              },
+              0,
+            ),
+          )
+        )
+          throw new CommandError('shaft would overlap a structural column')
+        if (
+          !roomsOf(draft, storey.id).some((r) =>
+            corners.every((p) =>
+              containsPoint(
+                r.nodes.map((id) => draft.nodes[id]!),
+                p.x,
+                p.y,
+              ),
+            ),
+          )
+        )
+          throw new CommandError(`enclosed shaft must stand inside one room on ${storey.name}`)
+        for (const wall of Object.values(draft.walls).filter((w) => w.level === storey.id)) {
+          if (
+            clashes(
+              boxOf(corners),
+              wallBox(draft.nodes[wall.a]!, draft.nodes[wall.b]!, wall.thickness),
+              0,
+            )
+          )
+            throw new CommandError(`shaft enclosure intersects wall ${wall.id}`)
+        }
+      }
+    }
     const record = draft.levels[level]!
     record.shafts ??= []
     record.shafts.push(shaft)

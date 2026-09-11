@@ -12,7 +12,9 @@ import { Furniture } from './furniture/furniture'
 import { PlanPicture } from './plan-picture'
 import { RoomAnnotations } from './room-annotations'
 import { RoomFloors } from './room-floors'
+import { Shafts } from './shafts'
 import { Spinning } from './spinning'
+import { StairRuns } from './stair-runs'
 import { StairsBelow } from './stairs-below'
 import { StoreyBelow } from './storey-below'
 import { Walls } from './walls'
@@ -44,6 +46,8 @@ export function PlanScene() {
       {shown.furniture ? <Furniture /> : null}
       <Walls />
       <Columns />
+      <Shafts />
+      <StairRuns />
       {shown.labels ? <RoomAnnotations /> : null}
       <Dimensions />
       <Drawing />

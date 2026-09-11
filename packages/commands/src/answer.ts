@@ -19,6 +19,8 @@ export type StoreyReport = {
   roofs?: Level['roofs']
   shafts?: Level['shafts']
   ramps?: Level['ramps']
+  clearHeight?: number
+  stairs?: Level['stairs']
   columns?: (NonNullable<Level['columns']>[number] & { height: number })[]
   risers: number
   rooms: number
@@ -61,11 +63,13 @@ export function answerFor(
       height: storey.height,
       ...(storey.shafts ? { shafts: storey.shafts } : {}),
       ...(storey.ramps ? { ramps: storey.ramps } : {}),
+      ...(storey.clearHeight === undefined ? {} : { clearHeight: storey.clearHeight }),
+      ...(storey.stairs ? { stairs: storey.stairs } : {}),
       ...(storey.columns
         ? {
             columns: storey.columns.map((c) => ({
               ...c,
-              height: storey.height - (storey.slabThickness ?? 250),
+              height: soffitOf(storey),
             })),
           }
         : {}),
@@ -127,3 +131,5 @@ export function askPlan(doc: HouseDocument, source: string, open?: string): Answ
     touched.notes,
   )
 }
+
+import { soffitOf } from '@houseit/core/levels'

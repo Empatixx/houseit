@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { createEmptyDocument, parseDocument } from '@houseit/core/document'
 import { openingsIn } from '@houseit/core/opening-parts'
+import { treadsOf } from '@houseit/core/stairs'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { walkClear, walkSurface } from '@houseit/geometry/walking'
 import { wellsIn } from '@houseit/geometry/wells'
@@ -70,7 +72,7 @@ add-shaft --level Low --to High --x 8000 --y 6000 --width 1200 --depth 1500`,
   const high = Object.values(doc.levels).find((l) => l.name === 'High')!
   expect(wellsIn(doc, high.id).map((w) => w.type)).toContain('lift-shaft')
   expect(walkSurface(doc, { x: 8000, y: 6000 }, high.elevation)).toBeUndefined()
-  expect(() => runScript(doc, 'remove-level --level High')).toThrow('shafts and ramps')
+  expect(() => runScript(doc, 'remove-level --level High')).toThrow('remove its shafts')
 })
 
 test('walking the ramp follows its actual rise in both directions', () => {
@@ -91,4 +93,68 @@ add-ramp --level Low --to High --x 1000 --y 4000 --width 2500 --length 16000 --d
       height = surface!.height
     }
   }
+})
+
+test('the measured three-flight stair wraps one enclosed shaft and reaches the next floor', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/three-flights.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  const low = Object.values(doc.levels).find((l) => l.name === '1.PP')!
+  const high = Object.values(doc.levels).find((l) => l.name === '1.NP')!
+  expect(roomsOf(doc, low.id)).toHaveLength(1)
+  expect(roomsOf(doc, low.id)[0]!.clear).toBe(27_900_000)
+  expect(roomsOf(doc, high.id)[0]!.clear).toBe(27_900_000)
+  const stair = low.stairs![0]!
+  expect(treadsOf(stair).map((t) => t.step)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1))
+  expect(walkSurface(doc, { x: 875, y: 5380 }, -2186.67)?.height).toBeCloseTo(-2186.67, 1)
+  expect(walkSurface(doc, { x: 5380, y: 5380 }, -1093.33)?.height).toBeCloseTo(-1093.33, 1)
+  expect(walkSurface(doc, { x: 5380, y: 1000 }, -156)?.height).toBe(0)
+  expect(walkClear(doc, high.id, { x: 3125, y: 2855 })).toBe(false)
+  expect(wellsIn(doc, high.id).some((w) => w.object === stair.id)).toBe(true)
+  const shaftLine = script.split('\n').find((line) => line.startsWith('add-shaft'))!
+  expect(() => runScript(doc, shaftLine)).toThrow('overlap another shaft')
+  expect(() =>
+    runScript(
+      doc,
+      'add-column --level "1.NP" --x 3125 --y 2855 --width 400 --depth 400 --colour "#aaaaaa"',
+    ),
+  ).toThrow('lift shaft')
+  parseDocument(doc)
+})
+
+test('a section can state the soffit independently from the next finished floor', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    'update-level --height 3670 --slab-thickness 250 --clear-height 3300',
+  )
+  const level = Object.values(doc.levels)[0]!
+  expect(level.clearHeight).toBe(3300)
+  expect(() => runScript(doc, 'update-level --clear-height 3500')).toThrow(
+    'must fit between finished floors',
+  )
+})
+
+test('embedded columns remove only their intersection with a room floor', () => {
+  const room =
+    'add-room --name Grid --material epoxy --boundary \'[{"x":-125,"y":-125,"thickness":250},{"x":6125,"y":-125,"thickness":250},{"x":6125,"y":6125,"thickness":250},{"x":-125,"y":6125,"thickness":250}]\''
+  const doc = runScript(
+    createEmptyDocument(),
+    `${room}
+add-column --x 0 --y 0 --width 500 --depth 500 --embedded --colour "#aaaaaa"
+add-column --x 3000 --y 0 --width 500 --depth 500 --embedded --colour "#aaaaaa"
+add-column --x 3000 --y 3000 --width 500 --depth 500 --colour "#aaaaaa"`,
+  )
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(doc, level)[0]!.clear).toBe(36_000_000 - 250 * 250 - 500 * 250 - 500 * 500)
+  expect(() =>
+    runScript(doc, 'add-column --x 6000 --y 6000 --width 500 --depth 500 --colour "#aaaaaa"'),
+  ).toThrow()
+  expect(() =>
+    runScript(
+      doc,
+      'add-column --x 12000 --y 12000 --width 500 --depth 500 --embedded --colour "#aaaaaa"',
+    ),
+  ).toThrow()
 })

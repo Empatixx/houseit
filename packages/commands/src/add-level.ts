@@ -53,6 +53,7 @@ export const updateLevel = defineCommand({
     name: z.string().trim().min(1).optional(),
     height: length().optional(),
     slabThickness: length().optional(),
+    clearHeight: length().optional(),
     roofs: json(z.array(RoofSchema)).optional(),
     storey: z.coerce.number().int().positive().optional(),
   }),
@@ -63,7 +64,8 @@ export const updateLevel = defineCommand({
       args.height === undefined &&
       args.storey === undefined &&
       args.roofs === undefined &&
-      args.slabThickness === undefined
+      args.slabThickness === undefined &&
+      args.clearHeight === undefined
     ) {
       throw new CommandError('update-level: say what to change — --name, --height or --storey')
     }
@@ -71,6 +73,15 @@ export const updateLevel = defineCommand({
     if (taken) throw new CommandError(`update-level: there is already a storey called ${args.name}`)
 
     const record = draft.levels[level]!
+    const clear = args.clearHeight ?? record.clearHeight
+    if (
+      clear !== undefined &&
+      (clear <= 0 ||
+        clear + (args.slabThickness ?? record.slabThickness ?? 250) >
+          (args.height ?? record.height))
+    )
+      throw new CommandError('clear height plus structural slab must fit between finished floors')
+    if (args.clearHeight !== undefined) record.clearHeight = args.clearHeight
     if (args.slabThickness !== undefined) {
       if (args.slabThickness <= 0 || args.slabThickness >= (args.height ?? record.height))
         throw new CommandError(
@@ -131,10 +142,12 @@ export const removeLevel = defineCommand({
     }
     if (
       Object.values(draft.levels).some((l) =>
-        [...(l.shafts ?? []), ...(l.ramps ?? [])].some((c) => l.id === level || c.to === level),
+        [...(l.shafts ?? []), ...(l.ramps ?? []), ...(l.stairs ?? [])].some(
+          (c) => l.id === level || c.to === level,
+        ),
       )
     )
-      throw new CommandError('remove-level: remove its shafts and ramps first')
+      throw new CommandError('remove-level: remove its shafts, ramps and stairs first')
     if (record.columns?.length)
       throw new CommandError('remove-level: remove the structural columns first')
     const walls = Object.values(draft.walls).filter((wall) => wall.level === level).length

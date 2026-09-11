@@ -8,12 +8,15 @@ import type { AnyCommand } from './define-command'
 import { getPlan } from './get-plan'
 import { removeObject, removeOpening } from './remove'
 import { removeRoom } from './remove-room'
+import { addStair, removeStair } from './stair-run'
 import { updateObject } from './update-object'
 import { updateOpening } from './update-opening'
 import { updateRoom } from './update-room'
 
 const ALL: AnyCommand[] = [
   getPlan,
+  addStair,
+  removeStair,
   addShaft,
   removeShaft,
   addRamp,

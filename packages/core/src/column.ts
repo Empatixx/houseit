@@ -8,5 +8,6 @@ export const ColumnSchema = z.object({
   width: mm.positive(),
   depth: mm.positive(),
   colour: z.string().regex(/^#[0-9a-f]{6}$/i),
+  embedded: z.boolean().optional(),
 })
 export type Column = z.infer<typeof ColumnSchema>

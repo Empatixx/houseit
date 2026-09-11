@@ -1,7 +1,9 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { type Face, findFaces } from '@houseit/core/faces'
+import { areaInBox } from './area-in-box'
 import { centroidOf } from './centroid'
-import { clearAreaOf } from './clear'
+import { clearAreaOf, clearOutline } from './clear'
+import { shaftsOn } from './connections'
 
 import type { Point } from './outlines'
 
@@ -29,9 +31,24 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
       ...face,
       clear:
         clearAreaOf(doc, level, face.nodes) -
-        (doc.levels[level]?.columns ?? [])
-          .filter((c) => containsPoint(polygon, c.x, c.y))
-          .reduce((sum, c) => sum + c.width * c.depth, 0),
+        (doc.levels[level]?.columns ?? []).reduce(
+          (sum, c) =>
+            sum +
+            areaInBox(clearOutline(doc, level, face.nodes), {
+              x0: c.x - c.width / 2,
+              x1: c.x + c.width / 2,
+              y0: c.y - c.depth / 2,
+              y1: c.y + c.depth / 2,
+            }),
+          0,
+        ) -
+        shaftsOn(doc, level)
+          .filter((s) => s.enclosure && containsPoint(polygon, s.x, s.y))
+          .reduce(
+            (sum, s) =>
+              sum + (s.width + 2 * s.enclosure!.thickness) * (s.depth + 2 * s.enclosure!.thickness),
+            0,
+          ),
       centre: centroidOf(polygon, face.area),
     }
     return found

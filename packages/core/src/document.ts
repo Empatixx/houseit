@@ -8,6 +8,7 @@ import { HostSchema } from './host'
 import { FrameSchema, PanelsSchema } from './opening-assembly'
 import { RoofSchema } from './roof'
 import { ROOM_KIND_IDS } from './room-kinds'
+import { StairRunSchema } from './stair-flight'
 
 export const DOCUMENT_VERSION = 5
 
@@ -23,9 +24,11 @@ export const LevelSchema = z.object({
   name: z.string(),
   elevation: mm,
   slabThickness: mm.positive().optional(),
+  clearHeight: mm.positive().optional(),
   columns: z.array(ColumnSchema).optional(),
   shafts: z.array(ShaftSchema).optional(),
   ramps: z.array(RampSchema).optional(),
+  stairs: z.array(StairRunSchema).optional(),
   roofs: z.array(RoofSchema).optional(),
   height: mm.positive(),
 })
@@ -183,7 +186,11 @@ function checkReference(
 export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   checkKeysMatchIds(doc.levels, 'levels', ctx)
   for (const level of Object.values(doc.levels)) {
-    for (const connection of [...(level.shafts ?? []), ...(level.ramps ?? [])]) {
+    for (const connection of [
+      ...(level.shafts ?? []),
+      ...(level.ramps ?? []),
+      ...(level.stairs ?? []),
+    ]) {
       checkReference(
         doc.levels,
         connection.to,

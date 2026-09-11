@@ -1,6 +1,8 @@
 import type { HouseDocument } from '@houseit/core/document'
-import { rampDirection, rampOutline } from '@houseit/geometry/connections'
-import { type Piece, slab } from './pieces'
+import { treadsOf } from '@houseit/core/stairs'
+import { rampDirection, rampOutline, shaftsOn, shaftWallParts } from '@houseit/geometry/connections'
+import { stairRise } from '@houseit/geometry/stair-runs'
+import { type Piece, prism, slab } from './pieces'
 
 export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
   const storey = doc.levels[level]
@@ -49,5 +51,32 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
       name: `shaft-${s.id}-${side}`,
     }))
   })
-  return [...ramps, ...guides]
+  const enclosure = shaftsOn(doc, level).flatMap((s) =>
+    shaftWallParts(s).flatMap((p, index) => {
+      const e = s.enclosure!
+      const block = (base: number, height: number, colour: string): Piece => ({
+        ...slab({ x: p.x, z: -p.y, w: p.width, d: p.depth, h: height, base, paint: { colour } }),
+        name: `shaft-${s.id}-enclosure-${level}-${index}-${base}`,
+      })
+      return p.door
+        ? [
+            block(0, e.doorHeight, '#747a7e'),
+            block(e.doorHeight, storey.height - e.doorHeight, e.colour),
+          ]
+        : [block(0, storey.height, e.colour)]
+    }),
+  )
+  const stairs = (storey.stairs ?? []).flatMap((s) => {
+    const riser = stairRise(doc, level, s)
+    return treadsOf(s).map((t) => ({
+      ...prism({
+        base: s.baseOffset + t.step * riser - s.thickness,
+        thickness: s.thickness,
+        outline: t.outline.map((p) => ({ x: p.x, z: -p.y })),
+        paint: { colour: s.colour },
+      }),
+      name: `stair-${s.id}-${t.step}`,
+    }))
+  })
+  return [...ramps, ...guides, ...enclosure, ...stairs]
 }

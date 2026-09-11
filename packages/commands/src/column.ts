@@ -1,6 +1,8 @@
 import { ColumnSchema } from '@houseit/core/column'
 import type { HouseDocument } from '@houseit/core/document'
+import { areaInBox } from '@houseit/geometry/area-in-box'
 import { boxOf, clashesAny, wallBox } from '@houseit/geometry/boxes'
+import { shaftOutside, shaftsOn } from '@houseit/geometry/connections'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { piecesOf, standingAt } from '@houseit/geometry/standing'
 import { z } from 'zod'
@@ -11,7 +13,14 @@ import { length } from './length-schema'
 import { levelOf } from './resolve'
 
 const colour = ColumnSchema.shape.colour
-const dimensions = { x: length(), y: length(), width: length(), depth: length(), colour }
+const dimensions = {
+  x: length(),
+  y: length(),
+  width: length(),
+  depth: length(),
+  colour,
+  embedded: z.coerce.boolean().optional(),
+}
 export const addColumn = defineCommand({
   name: 'add-column',
   summary:
@@ -82,8 +91,13 @@ function checkColumn(doc: HouseDocument, level: string, column: z.infer<typeof C
     x1: column.x + column.width / 2,
     y1: column.y + column.depth / 2,
   }
+  if (shaftsOn(doc, level).some((s) => clashesAny([box], [boxOf(shaftOutside(s))])))
+    throw new CommandError('column would intersect a lift shaft')
   for (const wall of Object.values(doc.walls).filter((w) => w.level === level)) {
-    if (clashesAny([box], [wallBox(doc.nodes[wall.a]!, doc.nodes[wall.b]!, wall.thickness)]))
+    if (
+      !column.embedded &&
+      clashesAny([box], [wallBox(doc.nodes[wall.a]!, doc.nodes[wall.b]!, wall.thickness)])
+    )
       throw new CommandError('column would intersect a wall')
   }
   for (const other of doc.levels[level]!.columns ?? []) {
@@ -104,11 +118,16 @@ function checkColumn(doc: HouseDocument, level: string, column: z.infer<typeof C
       throw new CommandError('column would intersect another column')
   }
   const room = roomsOf(doc, level).find((r) =>
-    containsPoint(
-      r.nodes.map((id) => doc.nodes[id]!),
-      column.x,
-      column.y,
-    ),
+    column.embedded
+      ? areaInBox(
+          r.nodes.map((id) => doc.nodes[id]!),
+          box,
+        ) > 0
+      : containsPoint(
+          r.nodes.map((id) => doc.nodes[id]!),
+          column.x,
+          column.y,
+        ),
   )
   if (!room) throw new CommandError('column must stand inside the storey footprint')
   for (const object of Object.values(doc.objects).filter((o) => o.level === level)) {

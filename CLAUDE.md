@@ -433,6 +433,18 @@ bands measured above the storey's floor. The outside comes from the wall graph.
 `update-level --roofs` takes explicit roof patches with finish, depth, parapet,
 fall and drains; `--slab-thickness` controls the soffit.
 
+`--clear-height` states a section's soffit independently of its finished floor-to-floor
+height. The structural slab and the floor buildup above it are not the same height.
+Columns normally stand on clear floor; `--embedded` also permits columns partly
+in walls. Only the part projecting into clear floor is subtracted from room area.
+
+`add-stair --flights` takes measured flights with risers, going, direction and
+landing outlines. The same treads make the plan, the concrete in 3D, the holes
+above and the surface walked. `--base-offset` carries a stair whose lower finished
+landing differs from the storey datum. An enclosed shaft takes `--enclosure`;
+its clear dimensions exclude the wall thickness and its enclosing footprint is
+excluded from each surrounding room.
+
 Structural columns use `add-column`, `update-column`, `remove-column`. Their grid
 coordinates belong to a level and their height follows the soffit. Shafts and
 ramps use `add-shaft` / `remove-shaft` and `add-ramp` / `remove-ramp`, each with a
