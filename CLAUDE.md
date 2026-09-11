@@ -460,5 +460,19 @@ The driver's `window.floorplan.show({view: 'north'})` also supports south, east,
 west, roof and overview. It changes only the camera, never the document. These
 views exist to compare a model against its elevations and roof drawing.
 
+Site ramps use `--to-elevation` instead of `--to`, with `--base-offset` for the
+lower finished floor. Both plan and walking use the same run and end levels.
+`add-shaft --kind services` can occupy one storey; its enclosure need not have
+a door. Composite windows accept `--sill`, casement and tilt-turn panels,
+opaque infill panels and `glazing: "frosted"` where the schedule calls for it.
+
 Rebuild specimens through `scripts/building-proof.mjs fixtures/building-proof/<name>.txt`.
 The fixtures are capability specimens, not the real building or acceptance data.
+
+`update-room --return` adds a measured open partition or low lining with
+`{points:[{x,y},...],thickness,height}`. It starts on the room's wall centre line
+and ends inside it, without enclosing another room. The boundary walks both
+sides of the free end, so the same wall is drawn, stood in 3D, walked around and
+subtracted from clear floor area. Enclosure walls may coincide with existing
+walls; shaft voids may not cut through them. Only the enclosure portion on clear
+floor is subtracted, rather than counting wall area twice.

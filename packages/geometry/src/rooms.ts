@@ -43,10 +43,16 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
           0,
         ) -
         shaftsOn(doc, level)
-          .filter((s) => s.enclosure && containsPoint(polygon, s.x, s.y))
+          .filter((s) => s.enclosure)
           .reduce(
             (sum, s) =>
-              sum + (s.width + 2 * s.enclosure!.thickness) * (s.depth + 2 * s.enclosure!.thickness),
+              sum +
+              areaInBox(clearOutline(doc, level, face.nodes), {
+                x0: s.x - s.width / 2 - s.enclosure!.thickness,
+                x1: s.x + s.width / 2 + s.enclosure!.thickness,
+                y0: s.y - s.depth / 2 - s.enclosure!.thickness,
+                y1: s.y + s.depth / 2 + s.enclosure!.thickness,
+              }),
             0,
           ),
       centre: centroidOf(polygon, face.area),

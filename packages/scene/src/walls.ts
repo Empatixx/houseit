@@ -129,7 +129,12 @@ function standingWall(
         wall.baseOffset + opening.sillHeight + opening.height / 2,
       ),
       turn: angle,
-      paint: { colour: PAINT.glass, opacity: 0.45 },
+      paint:
+        opening.infill === 'opaque'
+          ? { colour: opening.frame?.outside ?? '#b0b0b0' }
+          : opening.infill === 'frosted'
+            ? { colour: '#dce5e8', opacity: 0.92 }
+            : { colour: PAINT.glass, opacity: 0.45 },
       of: { kind: 'opening' as const, id: opening.id },
     }))
 

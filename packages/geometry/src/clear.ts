@@ -28,13 +28,21 @@ export function clearOutline(doc: HouseDocument, level: string, nodes: string[])
         (candidate.a === to && candidate.b === from),
     )
     const back = (wall?.thickness ?? 0) / 2
-    return { at: { x: a.x + inward.x * back, y: a.y + inward.y * back }, way }
+    return {
+      at: { x: a.x + inward.x * back, y: a.y + inward.y * back },
+      end: { x: b.x + inward.x * back, y: b.y + inward.y * back },
+      way,
+    }
   })
 
   if (edges.some((edge) => edge === undefined)) return []
 
-  return edges.map((edge, index) => {
+  return edges.flatMap((edge, index) => {
     const before = edges[(index + edges.length - 1) % edges.length]!
+    // A free wall end turns back 180°. Both offset corners form its cap;
+    // one corner would count only a triangular half of the return's footprint.
+    if (before!.way.x * edge!.way.x + before!.way.y * edge!.way.y < -1 + PARALLEL)
+      return [before!.end, edge!.at]
     return meeting(before!, edge!) ?? edge!.at
   })
 }

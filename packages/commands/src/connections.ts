@@ -1,5 +1,6 @@
 import { RampSchema, ShaftSchema } from '@houseit/core/connections'
 import type { HouseDocument } from '@houseit/core/document'
+import { soffitOf } from '@houseit/core/levels'
 import { boxOf, clashes, wallBox } from '@houseit/geometry/boxes'
 import { connectionHoles, shaftOutside, shaftsOn } from '@houseit/geometry/connections'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
@@ -15,10 +16,11 @@ const position = { x: length(), y: length(), width: length() }
 export const addShaft = defineCommand({
   name: 'add-shaft',
   summary:
-    'Hold a lift shaft open from --level through --to. x,y centres the clear shaft. Optional --enclosure JSON gives thickness, doorSide, doorWidth, doorHeight and colour; its footprint is excluded from the surrounding room.',
+    'Hold a lift or --kind services shaft from --level through --to; a service shaft can occupy one storey. x,y centres the clear shaft. Optional --enclosure JSON gives thickness and colour, optionally doorSide, doorWidth and doorHeight together; its footprint is excluded from the surrounding room.',
   args: z.object({
     ...position,
     depth: length(),
+    kind: ShaftSchema.shape.kind.optional(),
     to: z.string(),
     level: z.string().optional(),
     enclosure: json(ShaftSchema.shape.enclosure.unwrap()).optional(),
@@ -26,7 +28,10 @@ export const addShaft = defineCommand({
   run: (draft, args, open) => {
     const level = levelOf(draft, args.level ?? open, 'add-shaft')
     const to = levelOf(draft, args.to, 'add-shaft')
-    if (draft.levels[to]!.elevation <= draft.levels[level]!.elevation)
+    if (
+      draft.levels[to]!.elevation < draft.levels[level]!.elevation ||
+      (to === level && args.kind !== 'services')
+    )
       throw new CommandError('shaft must reach a higher storey')
     const all = Object.fromEntries(
       Object.values(draft.levels).flatMap((l) => (l.shafts ?? []).map((s) => [s.id, s])),
@@ -35,16 +40,17 @@ export const addShaft = defineCommand({
     if (shaft.enclosure) {
       const e = shaft.enclosure
       const side = e.doorSide === 'north' || e.doorSide === 'south' ? shaft.width : shaft.depth
-      if (e.doorWidth >= side)
+      if (e.doorWidth !== undefined && e.doorWidth >= side)
         throw new CommandError('shaft door must fit within the clear shaft side')
       for (const storey of Object.values(draft.levels).filter(
         (l) =>
           l.elevation >= draft.levels[level]!.elevation &&
           l.elevation <= draft.levels[to]!.elevation,
       )) {
-        if (e.doorHeight >= storey.height - (storey.slabThickness ?? 250))
+        if (e.doorHeight !== undefined && e.doorHeight >= soffitOf(storey))
           throw new CommandError('shaft door must fit below the soffit')
         const corners = shaftOutside(shaft)
+        const voidCorners = shaftOutside({ ...shaft, enclosure: undefined })
         if (
           shaftsOn(draft, storey.id).some((s) => clashes(boxOf(corners), boxOf(shaftOutside(s)), 0))
         )
@@ -66,7 +72,7 @@ export const addShaft = defineCommand({
           throw new CommandError('shaft would overlap a structural column')
         if (
           !roomsOf(draft, storey.id).some((r) =>
-            corners.every((p) =>
+            voidCorners.every((p) =>
               containsPoint(
                 r.nodes.map((id) => draft.nodes[id]!),
                 p.x,
@@ -79,12 +85,12 @@ export const addShaft = defineCommand({
         for (const wall of Object.values(draft.walls).filter((w) => w.level === storey.id)) {
           if (
             clashes(
-              boxOf(corners),
+              boxOf(voidCorners),
               wallBox(draft.nodes[wall.a]!, draft.nodes[wall.b]!, wall.thickness),
               0,
             )
           )
-            throw new CommandError(`shaft enclosure intersects wall ${wall.id}`)
+            throw new CommandError(`shaft void intersects wall ${wall.id}`)
         }
       }
     }
@@ -98,21 +104,26 @@ export const addShaft = defineCommand({
 export const addRamp = defineCommand({
   name: 'add-ramp',
   summary:
-    'A ramp from --level up to --to. x,y is the centre of its lower end; --direction points uphill, --length is the horizontal run, all dimensions in mm.',
+    'A ramp from --level up to --to, or --to-elevation for a site level in mm above the building datum. Optional --base-offset adjusts its lower end. x,y is the centre of its lower end; --direction points uphill and --length is the horizontal run.',
   args: z.object({
     ...position,
     length: length(),
     direction: RampSchema.shape.direction,
     thickness: length(),
     colour: RampSchema.shape.colour,
-    to: z.string(),
+    to: z.string().optional(),
+    toElevation: length().optional(),
+    baseOffset: length().optional(),
     level: z.string().optional(),
   }),
   run: (draft, args, open) => {
     const level = levelOf(draft, args.level ?? open, 'add-ramp')
-    const to = levelOf(draft, args.to, 'add-ramp')
-    if (draft.levels[to]!.elevation <= draft.levels[level]!.elevation)
-      throw new CommandError('ramp must reach a higher storey')
+    if ((args.to === undefined) === (args.toElevation === undefined))
+      throw new CommandError('add-ramp: name exactly one of --to and --to-elevation')
+    const to = args.to === undefined ? undefined : levelOf(draft, args.to, 'add-ramp')
+    const destination = to ? draft.levels[to]!.elevation : args.toElevation!
+    if (destination <= draft.levels[level]!.elevation + (args.baseOffset ?? 0))
+      throw new CommandError('ramp must rise above its lower end')
     const all = Object.fromEntries(
       Object.values(draft.levels).flatMap((l) => (l.ramps ?? []).map((r) => [r.id, r])),
     )

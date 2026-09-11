@@ -1,0 +1,6 @@
+update-level --name "1.NP" --height 3670
+add-level --name "1.PP" --below --height 3295
+add-room --level "1.PP" --name "Garage" --material epoxy --width 9000 --depth 8000
+add-opening --room Garage --kind door --variant garage --side east --width 3000 --height 2295
+add-ramp --level "1.PP" --to-elevation -1698 --base-offset -3 --x 9000 --y 4000 --width 3500 --length 16000 --direction east --thickness 250 --colour "#b4b6b8"
+get-plan --level "1.PP"

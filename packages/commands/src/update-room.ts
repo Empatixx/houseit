@@ -19,6 +19,7 @@ import { json } from './json-schema'
 import { length } from './length-schema'
 import { moveWall } from './move-wall'
 import { SIDE_NAMES, whereRoom } from './resolve'
+import { ReturnSchema, roomReturn } from './room-return'
 
 const wearing = (part: Part) =>
   z
@@ -35,12 +36,13 @@ const wearing = (part: Part) =>
 
 export const updateRoom = defineCommand({
   name: 'update-room',
-  summary: `Change a room: its name, its kind (${ROOM_KIND_IDS.join(', ')}), its floor, its style (${STYLE_IDS.join(', ')}) or what its walls, ceiling, doors and windows are finished in (a named finish or a colour of your own as #rrggbb), or how big it is. --exterior takes JSON {layers:[{name,thickness}],colour,bands:[{from,to,colour}]} in mm above this storey`,
+  summary: `Change a room: its name, its kind (${ROOM_KIND_IDS.join(', ')}), its floor, its style (${STYLE_IDS.join(', ')}) or what its walls, ceiling, doors and windows are finished in (a named finish or a colour of your own as #rrggbb), or how big it is. --exterior takes JSON {layers:[{name,thickness}],colour,bands:[{from,to,colour}]} in mm above this storey. --return takes JSON {points:[{x,y},...],thickness,height}: an open partition or low lining starting on this room’s wall centre line`,
   args: z.object({
     room: z.string().min(1),
     name: z.string().trim().min(1).optional(),
     kind: z.enum(ROOM_KIND_IDS as [string, ...string[]]).optional(),
     exterior: json(ExteriorSchema).optional(),
+    return: json(ReturnSchema).optional(),
     material: z.enum(FLOOR_MATERIAL_IDS as [string, ...string[]]).optional(),
     style: z.enum(STYLE_IDS as [string, ...string[]]).optional(),
     walls: wearing('walls'),
@@ -60,6 +62,7 @@ export const updateRoom = defineCommand({
       args.name === undefined &&
       args.kind === undefined &&
       args.exterior === undefined &&
+      args.return === undefined &&
       args.material === undefined &&
       args.by === undefined &&
       !dressed
@@ -101,6 +104,7 @@ export const updateRoom = defineCommand({
       }
     }
     const record = draft.rooms[room.id]!
+    if (args.return !== undefined) roomReturn(draft, level, room, args.return)
     if (args.name !== undefined) record.name = args.name
     if (args.kind !== undefined) record.kind = args.kind
     const style = styleOf(args.style)

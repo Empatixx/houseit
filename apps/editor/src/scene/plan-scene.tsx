@@ -10,6 +10,7 @@ import { Drawing } from './drawing'
 import { FitToPlan } from './fit-to-plan'
 import { Furniture } from './furniture/furniture'
 import { PlanPicture } from './plan-picture'
+import { Ramps } from './ramps'
 import { RoomAnnotations } from './room-annotations'
 import { RoomFloors } from './room-floors'
 import { Shafts } from './shafts'
@@ -48,6 +49,7 @@ export function PlanScene() {
       <Columns />
       <Shafts />
       <StairRuns />
+      <Ramps />
       {shown.labels ? <RoomAnnotations /> : null}
       <Dimensions />
       <Drawing />

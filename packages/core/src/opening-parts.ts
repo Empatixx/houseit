@@ -6,6 +6,7 @@ export function openingParts(opening: Opening, span: number): Opening[] {
     ...opening,
     id: `${opening.id}-panel-${i}`,
     kind: p.kind === 'door' ? 'door' : 'window',
+    infill: p.kind === 'opaque' ? 'opaque' : p.glazing === 'frosted' ? 'frosted' : 'glass',
     t: opening.t + (p.x + p.width / 2 - opening.width / 2) / span,
     width: p.width,
     height: p.height,

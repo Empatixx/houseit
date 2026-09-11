@@ -22,7 +22,7 @@ export const openingWidth = (
 
 export const addOpening = defineCommand({
   name: 'add-opening',
-  summary: `Put a door, window or assembly in a wall. An assembly needs --panels JSON [{kind:fixed|door,x,z,width,height}] and --frame JSON {depth,face,outside,inside}, dimensions in mm and colours #rrggbb. Place it: on a side of it, or in a wall by id — a door with a leaf that is ${DOOR_VARIANTS.join(', ')}`,
+  summary: `Put a door, window or assembly in a wall. An assembly needs --panels JSON [{kind:fixed|casement|tilt-turn|opaque|door,x,z,width,height,glazing?:clear|frosted}] and --frame JSON {depth,face,outside,inside}, dimensions in mm and colours #rrggbb. --sill sets its height above the floor. Place it on a room side or a wall id. Door variants: ${DOOR_VARIANTS.join(', ')}`,
   args: z.object({
     room: z.string().min(1),
     kind: z.enum(['door', 'window', 'assembly']),
@@ -49,7 +49,7 @@ export const addOpening = defineCommand({
 
     const width = args.width ?? (door ? DOOR_WIDTHS[args.variant] : WINDOW.width)
     const height = args.height ?? (door ? DOOR_HEIGHT : WINDOW.height)
-    const sill = door || args.kind === 'assembly' ? 0 : (args.sill ?? WINDOW.sill)
+    const sill = door ? 0 : (args.sill ?? (args.kind === 'assembly' ? 0 : WINDOW.sill))
     const swings = door && args.variant === 'hinged'
 
     const spot =

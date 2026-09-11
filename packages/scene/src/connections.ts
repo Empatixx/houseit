@@ -1,6 +1,12 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { treadsOf } from '@houseit/core/stairs'
-import { rampDirection, rampOutline, shaftsOn, shaftWallParts } from '@houseit/geometry/connections'
+import {
+  rampDirection,
+  rampHeights,
+  rampOutline,
+  shaftsOn,
+  shaftWallParts,
+} from '@houseit/geometry/connections'
 import { stairRise } from '@houseit/geometry/stair-runs'
 import { type Piece, prism, slab } from './pieces'
 
@@ -8,12 +14,11 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
   const storey = doc.levels[level]
   if (!storey) return []
   const ramps: Piece[] = (storey.ramps ?? []).flatMap((r) => {
-    const to = doc.levels[r.to]
-    if (!to) return []
-    const rise = to.elevation - storey.elevation
+    const heights = rampHeights(doc, level, r)
+    if (!heights) return []
     const direction = rampDirection(r)
     const outline = rampOutline(r)
-    const rate = rise / r.length
+    const rate = heights.rise / r.length
     const slope = {
       x: direction.x * rate,
       z: -direction.y * rate,
@@ -29,13 +34,14 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
           thickness: r.thickness,
           slope: { ...slope, both: true },
         },
-        at: { x: 0, y: -r.thickness / 2, z: 0 },
+        at: { x: 0, y: r.baseOffset - r.thickness / 2, z: 0 },
         paint: { colour: r.colour },
         name: `ramp-${r.id}`,
       },
     ]
   })
   const guides: Piece[] = (storey.shafts ?? []).flatMap((s) => {
+    if (s.kind !== 'lift') return []
     const top = doc.levels[s.to]
     if (!top) return []
     const height = top.elevation + top.height - storey.elevation
@@ -60,8 +66,8 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
       })
       return p.door
         ? [
-            block(0, e.doorHeight, '#747a7e'),
-            block(e.doorHeight, storey.height - e.doorHeight, e.colour),
+            block(0, e.doorHeight!, '#747a7e'),
+            block(e.doorHeight!, storey.height - e.doorHeight!, e.colour),
           ]
         : [block(0, storey.height, e.colour)]
     }),

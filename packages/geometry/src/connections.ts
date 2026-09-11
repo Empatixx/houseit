@@ -1,5 +1,6 @@
 import type { Ramp, Shaft } from '@houseit/core/connections'
 import type { HouseDocument } from '@houseit/core/document'
+import { soffitOf } from '@houseit/core/levels'
 import type { Point } from './outlines'
 
 export const shaftOutline = (s: Shaft): Point[] => [
@@ -42,11 +43,12 @@ export function shaftWallParts(s: Shaft) {
       door,
     })
     if (side !== e.doorSide) return [box(0, span, false)]
-    const end = (span - e.doorWidth) / 2
+    const width = e.doorWidth!
+    const end = (span - width) / 2
     return [
-      box(-(span + e.doorWidth) / 4, end, false),
-      box(0, e.doorWidth, true),
-      box((span + e.doorWidth) / 4, end, false),
+      box(-(span + width) / 4, end, false),
+      box(0, width, true),
+      box((span + width) / 4, end, false),
     ]
   })
 }
@@ -54,6 +56,13 @@ export const rampDirection = (r: Ramp): Point => ({
   x: r.direction === 'east' ? 1 : r.direction === 'west' ? -1 : 0,
   y: r.direction === 'north' ? 1 : r.direction === 'south' ? -1 : 0,
 })
+export function rampHeights(doc: HouseDocument, level: string, ramp: Ramp) {
+  const base = doc.levels[level]
+  const top = ramp.to ? doc.levels[ramp.to]?.elevation : ramp.toElevation
+  if (!base || top === undefined) return undefined
+  const bottom = base.elevation + ramp.baseOffset
+  return { bottom, top, rise: top - bottom }
+}
 export function rampOutline(r: Ramp, from = 0, to = 1): Point[] {
   const d = rampDirection(r)
   return [
@@ -79,12 +88,12 @@ export function connectionHoles(doc: HouseDocument, level: string, ceiling = fal
           at.elevation <= top.elevation
         )
       })
-      .map((s) => ({ object: s.id, type: 'lift-shaft', outline: shaftOutline(s) })),
+      .map((s) => ({ object: s.id, type: `${s.kind}-shaft`, outline: shaftOutline(s) })),
     ...(base.ramps ?? []).flatMap((r) => {
-      const top = doc.levels[r.to]
-      if (!top || (ceiling ? base.id !== level : top.id !== level)) return []
-      const rise = top.elevation - base.elevation
-      const from = Math.max(0, (rise - (base.slabThickness ?? 250) - 2100) / rise)
+      const heights = rampHeights(doc, base.id, r)
+      if (!heights || (ceiling ? base.id !== level : r.to !== level)) return []
+      const from = Math.max(0, (soffitOf(base) - r.baseOffset - 2100) / heights.rise)
+      if (from >= 1) return []
       return [{ object: r.id, type: 'ramp', outline: rampOutline(r, from) }]
     }),
   ])

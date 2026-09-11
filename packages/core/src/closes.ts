@@ -6,12 +6,15 @@ export function closes(walls: Record<string, Edge | undefined>, loop: readonly s
   const edges = loop.map((id) => walls[id])
   if (edges.some((edge) => edge === undefined)) return false
 
-  for (let i = 0; i < edges.length; i += 1) {
-    const here = edges[i]!
-    const next = edges[(i + 1) % edges.length]!
-    const shared = [here.a, here.b].filter((node) => node === next.a || node === next.b)
-    if (shared.length !== 1) return false
-  }
-
-  return true
+  // A room boundary walks out and back along an open return. Consecutive
+  // occurrences of the same wall are valid when the oriented walk closes.
+  return [edges[0]!.a, edges[0]!.b].some((start) => {
+    let at = start
+    for (const edge of edges) {
+      if (edge!.a === at) at = edge!.b
+      else if (edge!.b === at) at = edge!.a
+      else return false
+    }
+    return at === start
+  })
 }

@@ -8,7 +8,8 @@ export const FrameSchema = z.object({
   inside: z.string().regex(/^#[0-9a-f]{6}$/i),
 })
 export const PanelSchema = z.object({
-  kind: z.enum(['fixed', 'door']),
+  kind: z.enum(['fixed', 'casement', 'tilt-turn', 'opaque', 'door']),
+  glazing: z.enum(['clear', 'frosted']).optional(),
   x: mm.nonnegative(),
   z: mm.nonnegative(),
   width: mm.positive(),

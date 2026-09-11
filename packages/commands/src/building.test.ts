@@ -158,3 +158,93 @@ add-column --x 3000 --y 3000 --width 500 --depth 500 --colour "#aaaaaa"`,
     ),
   ).toThrow()
 })
+
+test('a site ramp follows stated endpoint elevations without inventing a storey', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/site-ramp.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  expect(Object.values(doc.levels)).toHaveLength(2)
+  let previous = -3298
+  for (let i = 0; i <= 100; i++) {
+    const surface = walkSurface(doc, { x: 9000 + 160 * i, y: 4000 }, previous)
+    expect(surface?.height).toBeCloseTo(-3298 + 16 * i)
+    previous = surface!.height
+  }
+  const line = script.split('\n').find((s) => s.startsWith('add-ramp'))!
+  expect(() => runScript(doc, `${line} --to "1.NP"`)).toThrow('exactly one')
+  expect(() => runScript(doc, line.replace('-1698', '-4000'))).toThrow('must rise')
+  parseDocument(doc)
+})
+
+test('a service shaft occupies floor area without a lift door, and a 1970 mm door is walkable', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/services.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  const level = Object.keys(doc.levels)[0]!
+  const room = roomsOf(doc, level).find((r) => r.name === '140 ŠATNA')!
+  expect(room.clear / 1e6).toBeCloseTo(10, 2)
+  expect(walkClear(doc, level, { x: 4163, y: 10975 })).toBe(true)
+  expect(walkClear(doc, level, { x: 364, y: 11486 })).toBe(false)
+  expect(() =>
+    runScript(
+      doc,
+      `add-shaft --level "1.NP" --to "1.NP" --kind services --x 2000 --y 10000 --width 500 --depth 500 --enclosure '{"thickness":125,"colour":"#eeeeee","doorWidth":300}'`,
+    ),
+  ).toThrow('together')
+  parseDocument(doc)
+})
+
+test('a divided window keeps its sill and glazing when expanded into renderable panels', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `${measured}
+add-opening --room Cafe --kind assembly --side south --width 2000 --height 1500 --sill 1050 --frame '{"depth":74,"face":60,"outside":"#383e42","inside":"#f1f0ea"}' --panels '[{"kind":"opaque","x":0,"z":0,"width":1000,"height":400},{"kind":"fixed","x":0,"z":400,"width":1000,"height":1100},{"kind":"tilt-turn","glazing":"frosted","x":1000,"z":0,"width":1000,"height":1500}]'`,
+  )
+  const parts = openingsIn(doc)
+  expect(parts.map((p) => p.sillHeight)).toEqual([1050, 1450, 1050])
+  expect(parts.map((p) => p.infill)).toEqual(['opaque', 'glass', 'frosted'])
+  expect(parts.every((p) => p.kind === 'window')).toBe(true)
+  parseDocument(doc)
+})
+
+test('a low return belongs to one room, occupies floor and blocks walking without closing a fragment', () => {
+  const base = runScript(
+    createEmptyDocument(),
+    'add-room --name Bath --width 6000 --depth 4000 --material ceramic-tile',
+  )
+  const level = Object.keys(base.levels)[0]!
+  const line = `update-room --room Bath --return '{"points":[{"x":0,"y":2000},{"x":1600,"y":2000}],"thickness":125,"height":1200}'`
+  const doc = runScript(base, line)
+  expect(roomsOf(doc, level)).toHaveLength(1)
+  expect(roomsOf(base, level)[0]!.clear - roomsOf(doc, level)[0]!.clear).toBeCloseTo(1450 * 125)
+  expect(walkClear(doc, level, { x: 900, y: 2000 })).toBe(false)
+  expect(walkClear(doc, level, { x: 2000, y: 2000 })).toBe(true)
+  expect(Object.values(doc.walls).filter((w) => w.height === 1200)).toHaveLength(1)
+  expect(() => runScript(base, line.replace('1600', '7000'))).toThrow('inside this room')
+  expect(() => runScript(base, line.replace('1200', '8000'))).toThrow('above the soffit')
+  parseDocument(doc)
+})
+
+test('a shaft casing can share a room wall without subtracting that wall twice', () => {
+  const base = runScript(
+    createEmptyDocument(),
+    'update-level --name Test\nadd-room --name Office --width 6000 --depth 4000 --material carpet',
+  )
+  const doc = runScript(
+    base,
+    `add-shaft --kind services --to Test --x 600 --y 3600 --width 500 --depth 500 --enclosure '{"thickness":200,"colour":"#eeeeee"}'`,
+  )
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(base, level)[0]!.clear - roomsOf(doc, level)[0]!.clear).toBe(900 * 700)
+  expect(() =>
+    runScript(
+      base,
+      `add-shaft --kind services --to Test --x 600 --y 3700 --width 500 --depth 500 --enclosure '{"thickness":200,"colour":"#eeeeee"}'`,
+    ),
+  ).toThrow('void intersects wall')
+  parseDocument(doc)
+})

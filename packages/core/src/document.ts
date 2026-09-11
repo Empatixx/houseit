@@ -52,6 +52,7 @@ export const OpeningSchema = z
     wall: id,
     t: z.number().min(0).max(1),
     kind: z.enum(['door', 'window', 'assembly']),
+    infill: z.enum(['glass', 'frosted', 'opaque']).optional(),
     panels: PanelsSchema.optional(),
     frame: FrameSchema.optional(),
     variant: z.enum(DOOR_VARIANTS).default('hinged'),
@@ -191,6 +192,7 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
       ...(level.ramps ?? []),
       ...(level.stairs ?? []),
     ]) {
+      if (connection.to === undefined) continue
       checkReference(
         doc.levels,
         connection.to,
