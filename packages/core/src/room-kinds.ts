@@ -27,6 +27,26 @@ const kind = (
 })
 
 export const ROOM_KINDS: RoomKind[] = [
+  // Non-dwelling purposes carry no invented dwelling minimum area.
+  kind('cafe', 'Café', 0, {}, ['café', 'cafe', 'kavárna']),
+  kind('preparation-kitchen', 'Preparation kitchen', 0, {}, ['preparation kitchen', 'přípravna']),
+  kind('barber', 'Barber', 0, {}, ['barber', 'holičství', 'kadeřnictví']),
+  kind('treatment', 'Treatment room', 0, {}, ['treatment', 'kosmetika', 'ošetřovna']),
+  kind('waiting', 'Waiting room', 0, { passage: true }, ['waiting', 'čekárna']),
+  kind('staff-room', 'Staff day room', 0, {}, ['staff room', 'denní místnost']),
+  kind('cleaner-store', 'Cleaner’s store', 0, {}, ['cleaner', 'úklid']),
+  kind('archive', 'Archive', 0, {}, ['archive', 'archiv']),
+  kind('server-room', 'Server room', 0, {}, ['server', 'serverovna']),
+  kind('telephone-room', 'Telephone room', 0, {}, ['telephone', 'telefonní']),
+  kind('meeting', 'Meeting room', 0, {}, ['meeting', 'zasedací']),
+  kind('stairwell', 'Stairwell', 0, { passage: true }, ['stairwell', 'schodiště']),
+  kind('electrical-intake', 'Electrical intake', 0, {}, [
+    'electrical intake',
+    'elektrorozvodna',
+    'rozvodna',
+  ]),
+  kind('pram-store', 'Pram store', 0, {}, ['pram', 'kočárkárna']),
+  kind('parking-bay', 'Parking bay', 0, {}, ['parking bay', 'parkovací stání']),
   kind('half-bath', 'Half bath', 1.8, { minWidth: 900 }, [
     'half bath',
     'powder',
