@@ -16,10 +16,10 @@ guessed. Where houseit diverges, the reason is stated.
 | Lint and format | Biome |
 | Dead code, dependency rules | knip, dependency-cruiser |
 | Tests | Vitest, Playwright for end-to-end |
-| UI | React, Tailwind, shadcn/ui |
+| UI | React, Tailwind, shadcn/ui, react-router |
 | Rendering | three.js via react-three-fiber |
-| Annotations | 2D canvas overlay |
-| Geometry | `@flatten-js/core` |
+| Annotations | drei `Html`, in the scene graph |
+| Geometry | ours: shoelace, ray casting, planar subdivision |
 | State | Zustand + Immer |
 | Schemas | Zod |
 | Agent interface | `@modelcontextprotocol/sdk` |
@@ -65,11 +65,13 @@ does it, exactly as React does for the DOM.
 `THREE.Line` ignores `linewidth`), `Html` and `CameraControls`. `LineMaterial` runs with
 `worldUnits: false` so walls keep a constant on-screen width at any zoom.
 
-**Annotations go in a 2D canvas overlay, not in the WebGL scene.** Dimension strings,
-room names, areas, snap indicators and hatching are screen-space work that Canvas 2D does
-in a line and shaders do in fifty. The overlay draws by projecting world coordinates to
-screen. This is a deliberate split: geometry in three.js because it must exist in 3D,
-annotations in 2D because they never will.
+**Annotations are DOM, positioned by the scene.** Room names, areas and dimension strings
+are screen-space work that a shader does badly, so they are HTML — drei's `Html`, given a
+world position and left to the reconciler. A 2D canvas overlay projecting world coordinates
+to screen was the plan and was never built: `Html` already does the projection, and text
+that is text can be selected, styled by Tailwind and read by a screen reader. The split it
+was meant to keep still holds — geometry in three.js because it exists in 3D, annotations
+outside it because they never will.
 
 `three-mesh-bvh` for raycast acceleration and `three-bvh-csg` for boolean openings are
 both deferred. Rectangular openings triangulate by hand and current scenes are small;
@@ -90,11 +92,13 @@ with no browser, and the renderer choice stays cheap to revisit.
 
 ## Geometry
 
-**`@flatten-js/core`** is the intended home for segment intersections, offsets and
-boolean operations once snapping lands. It is not a dependency yet — face detection, area
-and centroid are plain shoelace arithmetic, and point-in-room is ray casting written out
-by hand, because a face may repeat a vertex where a wall dangles into the room and is
-therefore not a simple polygon that a geometry library will accept.
+**The geometry is ours, and `@flatten-js/core` never arrived.** It was pencilled in for
+segment intersections, offsets and booleans once snapping landed, and it is still in no
+package.json. What was written instead held: area and centroid are shoelace arithmetic,
+point-in-room is ray casting written out by hand, and unions and cuts are in
+`packages/geometry`. The reason the library was not reached for is the reason it would not
+have helped — a face may repeat a vertex where a wall dangles into a room, so it is not a
+simple polygon, and a general library refuses it.
 
 Face detection — recovering rooms from the wall graph — is ours: sort edges by angle at
 each node, then walk consistently leftmost turns. It is a standard planar-subdivision
@@ -131,17 +135,16 @@ than a general-purpose one. No commander, no yargs.
 A command is declared once:
 
 ```ts
-export const addRoom = defineCommand({
-  name: 'add-room',
-  summary: 'Insert a room into the plan',
+export const addOpening = defineCommand({
+  name: 'add-opening',
+  summary: 'Put a door or a window in a room, on a side',
   args: z.object({
-    name: z.string(),
-    x: z.number().int(),
-    y: z.number().int(),
-    w: z.number().int().positive(),
-    h: z.number().int().positive(),
+    room: z.string().min(1),
+    kind: z.enum(['door', 'window']),
+    side: z.enum(SIDE_NAMES).optional(),
+    width: length().optional(),
   }),
-  run: (draft, args) => { /* mutates the Immer draft */ },
+  run: (draft, args, open) => { /* mutates the Immer draft */ },
 })
 ```
 
@@ -185,7 +188,7 @@ editor state, which is the point.
 | Next.js | No server, no SSR, no routing. Pure cost. |
 | Tauri | WKWebView has no CDP, which breaks the agent bridge. |
 | Konva, Fabric, PixiJS, tldraw | A second renderer that cannot become the 3D view. |
-| TanStack Query, TanStack Router | Nothing is fetched; there is one screen. |
+| TanStack Query | Nothing is fetched. TanStack Router was rejected too, until plans became projects: `react-router` now carries the home screen and `/p/<id>`. |
 | ESLint, Prettier | Biome covers both. |
 | commander, yargs, `node:util.parseArgs` | The first two are heavy; the third is unavailable in the browser, where commands run. |
 | Stored room polygons | Rooms are derived. Storing them invites desynchronisation. |
