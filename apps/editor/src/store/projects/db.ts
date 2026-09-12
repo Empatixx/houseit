@@ -1,4 +1,3 @@
-import type { HouseDocument } from '@houseit/core/document'
 import type { Outline } from './outline'
 
 const DB_NAME = 'houseit'
@@ -20,7 +19,7 @@ export type ProjectsDb = {
   meta(id: string): Promise<ProjectMeta | undefined>
   put(meta: ProjectMeta): Promise<void>
   read(id: string): Promise<unknown>
-  write(id: string, doc: HouseDocument): Promise<void>
+  write(id: string, doc: unknown): Promise<void>
   remove(id: string): Promise<void>
 }
 
@@ -45,12 +44,10 @@ export async function openProjects(
     stores: string[],
     change: (transaction: IDBTransaction) => void,
   ): Promise<void> => {
-    if (!db) return
-    try {
-      const transaction = db.transaction(stores, 'readwrite')
-      change(transaction)
-      await finished(transaction)
-    } catch {}
+    if (!db) throw new Error('Project storage is unavailable')
+    const transaction = db.transaction(stores, 'readwrite')
+    change(transaction)
+    await finished(transaction)
   }
 
   return {

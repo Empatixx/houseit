@@ -92,3 +92,92 @@ test('flushing with nothing waiting is nothing at all', async () => {
 
   await expect(writer.flush()).resolves.toBeUndefined()
 })
+
+test('slow encoding cannot overwrite a newer revision or mix its outline', async () => {
+  const db = await fresh()
+  await db.put(meta)
+  const first = createEmptyDocument(),
+    last = withWall()
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const encoded: HouseDocument[] = []
+  const writer = createWriter(
+    async () => db,
+    async (_id, doc) => {
+      encoded.push(doc)
+      if (doc === first) await gate
+      return { format: 'test-archive', doc }
+    },
+  )
+  writer.schedule(meta.id, first, levelOf(first))
+  const a = writer.flush()
+  writer.schedule(meta.id, last, levelOf(last))
+  const b = writer.flush()
+  release()
+  await Promise.all([a, b])
+  expect(encoded).toEqual([first, last])
+  expect(await db.read(meta.id)).toEqual({ format: 'test-archive', doc: last })
+  expect((await db.meta(meta.id))?.outline?.width).toBe(4000)
+})
+
+test('flush also writes an edit arriving while the previous encoding is running', async () => {
+  const db = await fresh()
+  const first = createEmptyDocument(),
+    last = withWall()
+  let release!: () => void
+  let started!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const began = new Promise<void>((resolve) => {
+    started = resolve
+  })
+  const writer = createWriter(
+    async () => db,
+    async (_id, doc) => {
+      if (doc === first) {
+        started()
+        await gate
+      }
+      return doc
+    },
+  )
+  writer.schedule(meta.id, first, levelOf(first))
+  const flushing = writer.flush()
+  await began
+  writer.schedule(meta.id, last, levelOf(last))
+  release()
+  await flushing
+  expect(await db.read(meta.id)).toEqual(last)
+})
+
+test('a failed revision is retryable and cannot reappear after a newer save', async () => {
+  const db = await fresh()
+  const first = createEmptyDocument(),
+    last = withWall()
+  let fail = true
+  const writer = createWriter(
+    async () => db,
+    async (_id, doc) => {
+      if (fail) throw new Error('worker failed')
+      return doc
+    },
+  )
+  writer.schedule(meta.id, first, levelOf(first))
+  await expect(writer.flush()).rejects.toThrow('worker failed')
+  fail = false
+  await writer.flush()
+  expect(await db.read(meta.id)).toEqual(first)
+  fail = true
+  writer.schedule(meta.id, first, levelOf(first))
+  const failed = writer.flush()
+  writer.schedule(meta.id, last, levelOf(last))
+  const newer = writer.flush()
+  await expect(failed).rejects.toThrow('worker failed')
+  fail = false
+  await newer.catch(() => {})
+  await writer.flush()
+  expect(await db.read(meta.id)).toEqual(last)
+})

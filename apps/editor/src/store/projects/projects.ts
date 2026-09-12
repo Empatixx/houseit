@@ -1,10 +1,11 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
-import { migrateDocument } from '@houseit/core/migrate'
+import { toast } from 'sonner'
 import { useStore } from 'zustand'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import type { DocumentState } from '../document-store'
 import { documentStore } from '../store'
 import { createWriter } from './autosave'
+import { documentCodec, fragmentCodec, type ProjectCodec } from './codec'
 import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
 import { importLocalPlan } from './import-local'
 import { slugOf } from './slug'
@@ -30,10 +31,30 @@ export type ProjectsState = {
 export function createProjectsStore(
   open: () => Promise<ProjectsDb>,
   docs: StoreApi<DocumentState> = documentStore,
+  codec: ProjectCodec = documentCodec,
 ): StoreApi<ProjectsState> {
   let opened: Promise<ProjectsDb> | undefined
   const db = () => (opened ??= open())
-  const writer = createWriter(db)
+  const writer = createWriter(db, codec.encode, (error) =>
+    toast.error(
+      `Project could not be saved: ${error instanceof Error ? error.message : String(error)}`,
+      { id: 'project-save-error' },
+    ),
+  )
+
+  let transition: Promise<unknown> = Promise.resolve()
+  const serial = <T>(run: () => Promise<T>): Promise<T> => {
+    const next = transition.catch(() => {}).then(run)
+    transition = next
+    return next
+  }
+  const close = async () => {
+    if (!store.getState().open) return
+    await writer.flush()
+    await codec.close()
+    store.setState({ open: null })
+    docs.getState().reset()
+  }
 
   const store = createStore<ProjectsState>()((set, get) => ({
     list: undefined,
@@ -58,32 +79,29 @@ export function createProjectsStore(
         updatedAt: now,
       }
       await database.put(meta)
-      await database.write(meta.id, createEmptyDocument())
+      await database.write(meta.id, await codec.encode(meta.id, createEmptyDocument()))
       set({ list: [meta, ...list] })
       return meta
     },
 
-    openProject: async (id) => {
-      await get().closeProject()
-      const database = await db()
-      const meta = await database.meta(id)
-      if (!meta) return undefined
-      const stored = await database.read(id)
-      const doc = stored === undefined ? createEmptyDocument() : readable(stored)
-      if (!doc) return undefined
-      docs.getState().load(doc)
-      set({ open: meta })
-      return meta
-    },
+    openProject: (id) =>
+      serial(async () => {
+        await close()
+        const database = await db()
+        const meta = await database.meta(id)
+        if (!meta) return undefined
+        const stored = await database.read(id)
+        const doc = stored === undefined ? createEmptyDocument() : await codec.decode(id, stored)
+        if (!doc) return undefined
+        docs.getState().load(doc)
+        set({ open: meta })
+        writer.schedule(id, doc, docs.getState().level)
+        return meta
+      }),
 
     save: () => writer.flush(),
 
-    closeProject: async () => {
-      if (!get().open) return
-      await writer.flush()
-      set({ open: null })
-      docs.getState().reset()
-    },
+    closeProject: () => serial(close),
 
     rename: async (id, name) => {
       const called = name.trim()
@@ -116,7 +134,7 @@ export function createProjectsStore(
       const meta = await database.meta(id)
       if (!meta) return undefined
       const stored = await database.read(id)
-      const doc = stored === undefined ? undefined : readable(stored)
+      const doc = stored === undefined ? undefined : await codec.decode(id, stored)
       await database.remove(id)
       set((state) => ({ list: state.list?.filter((project) => project.id !== id) }))
       return { meta, doc }
@@ -125,7 +143,7 @@ export function createProjectsStore(
     restore: async ({ meta, doc }) => {
       const database = await db()
       await database.put(meta)
-      if (doc) await database.write(meta.id, doc)
+      if (doc) await database.write(meta.id, await codec.encode(meta.id, doc))
       await get().refresh()
     },
   }))
@@ -139,19 +157,15 @@ export function createProjectsStore(
   return store
 }
 
-export const projectsStore = createProjectsStore(async () => {
-  const db = await openProjects()
-  await importLocalPlan(db)
-  return db
-})
-
-function readable(stored: unknown): HouseDocument | undefined {
-  try {
-    return migrateDocument(stored)
-  } catch {
-    return undefined
-  }
-}
+export const projectsStore = createProjectsStore(
+  async () => {
+    const db = await openProjects()
+    await importLocalPlan(db)
+    return db
+  },
+  documentStore,
+  fragmentCodec(),
+)
 
 export function useProjects<T>(selector: (state: ProjectsState) => T): T {
   return useStore(projectsStore, selector)

@@ -61,7 +61,7 @@ test('removing a project takes its document with it', async () => {
   expect(await db.read('byt')).toBeUndefined()
 })
 
-test('a database that will not open answers empty rather than throwing', async () => {
+test('an unavailable database allows browsing but explicitly refuses writes', async () => {
   const sealed = {
     open: () => {
       throw new Error('access denied')
@@ -71,7 +71,7 @@ test('a database that will not open answers empty rather than throwing', async (
 
   expect(await db.list()).toEqual([])
   expect(await db.read('byt')).toBeUndefined()
-  await expect(db.write('byt', createEmptyDocument())).resolves.toBeUndefined()
-  await expect(db.put(meta('byt'))).resolves.toBeUndefined()
-  await expect(db.remove('byt')).resolves.toBeUndefined()
+  await expect(db.write('byt', createEmptyDocument())).rejects.toThrow(/storage is unavailable/)
+  await expect(db.put(meta('byt'))).rejects.toThrow(/storage is unavailable/)
+  await expect(db.remove('byt')).rejects.toThrow(/storage is unavailable/)
 })
