@@ -1,7 +1,7 @@
 import { RampSchema, ShaftSchema } from '@houseit/core/connections'
 import type { HouseDocument } from '@houseit/core/document'
 import { soffitOf } from '@houseit/core/levels'
-import { boxOf, clashes, wallBox } from '@houseit/geometry/boxes'
+import { type Box, boxOf, clashes, wallBox } from '@houseit/geometry/boxes'
 import { connectionHoles, shaftOutside, shaftsOn } from '@houseit/geometry/connections'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { z } from 'zod'
@@ -11,6 +11,35 @@ import { defineCommand } from './define-command'
 import { json } from './json-schema'
 import { length } from './length-schema'
 import { levelOf } from './resolve'
+
+function coveredByWalls(doc: HouseDocument, level: string, box: Box) {
+  const walls = Object.values(doc.walls)
+    .filter((w) => w.level === level)
+    .flatMap((w) => {
+      const a = doc.nodes[w.a]!,
+        b = doc.nodes[w.b]!
+      if (a.x !== b.x && a.y !== b.y) return []
+      const bounds = wallBox(a, b, w.thickness)
+      return clashes(box, bounds, 0) ? [bounds] : []
+    })
+  const cuts = (low: 'x0' | 'y0', high: 'x1' | 'y1') =>
+    [
+      ...new Set([
+        box[low],
+        box[high],
+        ...walls.flatMap((w) => [Math.max(box[low], w[low]), Math.min(box[high], w[high])]),
+      ]),
+    ].sort((a, b) => a - b)
+  const xs = cuts('x0', 'x1'),
+    ys = cuts('y0', 'y1')
+  for (let i = 1; i < xs.length; i++)
+    for (let j = 1; j < ys.length; j++) {
+      const x = (xs[i - 1]! + xs[i]!) / 2,
+        y = (ys[j - 1]! + ys[j]!) / 2
+      if (!walls.some((w) => x >= w.x0 && x <= w.x1 && y >= w.y0 && y <= w.y1)) return false
+    }
+  return true
+}
 
 const position = { x: length(), y: length(), width: length() }
 export const addShaft = defineCommand({
@@ -52,7 +81,19 @@ export const addShaft = defineCommand({
         const corners = shaftOutside(shaft)
         const voidCorners = shaftOutside({ ...shaft, enclosure: undefined })
         if (
-          shaftsOn(draft, storey.id).some((s) => clashes(boxOf(corners), boxOf(shaftOutside(s)), 0))
+          shaftsOn(draft, storey.id).some((s) => {
+            const a = boxOf(corners),
+              b = boxOf(shaftOutside(s))
+            if (!clashes(a, b, 0)) return false
+            // Two casings may share existing masonry. Their overlap must not
+            // occupy clear floor or either shaft void.
+            return !coveredByWalls(draft, storey.id, {
+              x0: Math.max(a.x0, b.x0),
+              x1: Math.min(a.x1, b.x1),
+              y0: Math.max(a.y0, b.y0),
+              y1: Math.min(a.y1, b.y1),
+            })
+          })
         )
           throw new CommandError('shaft would overlap another shaft')
         if (

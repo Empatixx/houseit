@@ -26,6 +26,22 @@ test('measured adjacent rooms share their wall and preserve the L-shaped notch',
   parseDocument(doc)
 })
 
+test('a lower storey corner neither splits an upper wall nor prevents its window', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `update-level --name Low
+add-room --name Lower --width 4000 --depth 2000 --material carpet
+add-level --name Upper
+add-room --level Upper --name UpperRoom --width 4000 --depth 4000 --material laminate
+add-opening --room UpperRoom --kind window --side east --width 2000 --along 2000`,
+  )
+  const upper = Object.values(doc.levels).find((level) => level.name === 'Upper')!
+  const walls = Object.values(doc.walls).filter((wall) => wall.level === upper.id)
+  expect(walls).toHaveLength(4)
+  expect(Object.values(doc.openings)).toHaveLength(1)
+  expect(roomsOf(doc, upper.id)).toHaveLength(1)
+})
+
 test('a structural column keeps its grid position and blocks placement and walking', () => {
   const doc = runScript(
     createEmptyDocument(),
@@ -249,6 +265,22 @@ test('a shaft casing can share a room wall without subtracting that wall twice',
     ),
   ).toThrow('void intersects wall')
   parseDocument(doc)
+})
+
+test('back-to-back shaft casings may overlap only inside existing walls', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/shared-casing.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(doc, level).map((r) => r.clear)).toEqual([
+    3780 ** 2 - 1240 * 420,
+    3780 ** 2 - 1240 * 420,
+  ])
+  expect(() => runScript(doc, script.split('\n').find((l) => l.startsWith('add-shaft'))!)).toThrow(
+    'overlap another shaft',
+  )
 })
 
 test('a thick pier ends at a thin partition face and keeps its free end square', () => {

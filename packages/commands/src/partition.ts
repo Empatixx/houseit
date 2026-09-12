@@ -112,7 +112,7 @@ export function linkPoints(
   const along = new Map<number, Point>()
   along.set(0, from)
   along.set(length, to)
-  for (const node of Object.values(draft.nodes)) {
+  for (const node of nodesOn(draft, level)) {
     const t = (node.x - from.x) * unit.x + (node.y - from.y) * unit.y
     const off = Math.abs((node.x - from.x) * unit.y - (node.y - from.y) * unit.x)
     if (t > 0.5 && t < length - 0.5 && off < 0.5) along.set(Math.round(t), { x: node.x, y: node.y })
@@ -207,7 +207,7 @@ export function nearWall(
   level: string,
   point: Point,
 ): Point | undefined {
-  for (const node of Object.values(draft.nodes)) {
+  for (const node of nodesOn(draft, level)) {
     if (Math.hypot(node.x - point.x, node.y - point.y) <= SNAP) return { x: node.x, y: node.y }
   }
   let best: { point: Point; distance: number } | undefined
@@ -225,6 +225,15 @@ export function nearWall(
     if (distance <= SNAP && (!best || distance < best.distance)) best = { point: foot, distance }
   }
   return best?.point
+}
+
+function nodesOn(draft: Draft<HouseDocument>, level: string) {
+  const ids = new Set(
+    Object.values(draft.walls)
+      .filter((wall) => wall.level === level)
+      .flatMap((wall) => [wall.a, wall.b]),
+  )
+  return Object.values(draft.nodes).filter((node) => ids.has(node.id))
 }
 
 function firstWallAlong(

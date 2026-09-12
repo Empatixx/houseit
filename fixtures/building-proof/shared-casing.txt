@@ -1,0 +1,6 @@
+update-level --name Test
+add-room --name South --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":220},{"x":4000,"y":0,"thickness":220},{"x":4000,"y":4000,"thickness":220},{"x":0,"y":4000,"thickness":220}]'
+add-room --name North --material ceramic-tile --boundary '[{"x":0,"y":4000,"thickness":220},{"x":4000,"y":4000,"thickness":220},{"x":4000,"y":8000,"thickness":220},{"x":0,"y":8000,"thickness":220}]'
+add-shaft --kind services --to Test --x 2000 --y 3740 --width 1000 --depth 300 --enclosure '{"thickness":120,"colour":"#dddddd"}'
+add-shaft --kind services --to Test --x 2000 --y 4260 --width 1000 --depth 300 --enclosure '{"thickness":120,"colour":"#dddddd"}'
+get-plan
