@@ -10,7 +10,7 @@ const ROOTS = ['apps', 'packages', 'scripts']
 const SOURCE = new Set(['.ts', '.tsx', '.mjs', '.js'])
 const SKIP = new Set(['node_modules', 'dist', '.turbo', '.git'])
 
-const DIRECTIVE = /^[\s*/]*(biome-ignore|@ts-|eslint-|prettier-ignore|@type\b|@jsx\b|<reference)/
+const DIRECTIVE = /^[\s*/]*(biome-ignore|@ts-|@vitest-|eslint-|prettier-ignore|@type\b|@jsx\b|<reference)/
 
 function* sources(dir) {
   for (const entry of readdirSync(dir)) {

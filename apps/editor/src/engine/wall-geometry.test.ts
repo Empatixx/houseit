@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { createEmptyDocument, type HouseDocument, type Wall } from '@houseit/core/document'
 import { GeometryEngine } from '@thatopen/fragments'
 import { type BufferGeometry, DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
