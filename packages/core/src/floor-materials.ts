@@ -10,6 +10,19 @@ export type FloorMaterial = {
 
 export const FLOOR_MATERIALS: readonly FloorMaterial[] = [
   ...CATALOG_FLOOR_MATERIALS,
+  ...[
+    ['asphalt', 'Asphalt', '#414449', 1000],
+    ['concrete', 'Concrete', '#b9b8b2', 1000],
+    ['concrete-pavers', 'Concrete paving blocks', '#b5b4ad', 400],
+    ['roof-gravel', 'Roof gravel', '#b7b3a7', 400],
+    ['sedum', 'Extensive green roof', '#71804e', 1000],
+  ].map(([id, label, colour, size]) => ({
+    id: String(id),
+    label: String(label),
+    colour: String(colour),
+    unit: { width: Number(size), depth: Number(size) },
+    texture: `building/${id}.svg`,
+  })),
   {
     id: 'ceramic-tile',
     label: 'Ceramic tile',

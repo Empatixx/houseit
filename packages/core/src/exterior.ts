@@ -14,24 +14,34 @@ export const ExteriorSchema = z
       )
       .min(1),
     colour,
+    base: mm.max(0).default(0),
     bands: z
       .array(
         z.object({
-          from: mm.nonnegative(),
-          to: mm.positive(),
+          from: mm,
+          to: mm,
           colour,
+          along: z.object({ from: mm.nonnegative(), to: mm.positive() }).optional(),
         }),
       )
       .default([]),
   })
   .superRefine((exterior, ctx) => {
-    const bands = [...exterior.bands].sort((a, b) => a.from - b.from)
-    for (const [i, band] of bands.entries()) {
-      if (band.to <= band.from || (i > 0 && band.from < bands[i - 1]!.to)) {
+    for (const [i, band] of exterior.bands.entries()) {
+      const along = band.along
+      if (band.to <= band.from || band.from < exterior.base || (along && along.to <= along.from))
         ctx.addIssue({
           code: 'custom',
-          message: 'façade bands must have positive height and must not overlap',
+          message: 'façade bands must have positive extents within the coat',
         })
+      for (const other of exterior.bands.slice(0, i)) {
+        if (
+          band.from < other.to &&
+          other.from < band.to &&
+          (along?.from ?? 0) < (other.along?.to ?? Infinity) &&
+          (other.along?.from ?? 0) < (along?.to ?? Infinity)
+        )
+          ctx.addIssue({ code: 'custom', message: 'façade bands must not overlap' })
       }
     }
   })

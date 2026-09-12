@@ -5,6 +5,7 @@ import { pick } from '../../edit/pick'
 import { EMPHASIS } from '../../store/hover'
 import { type Selection, useSelection } from '../../store/selection'
 import { usePlanDoc } from '../../store/store'
+import { useWalk } from '../../store/walk'
 import { dragged } from '../drag'
 import { MM } from '../plan-coordinates'
 import { StandingPiece } from './piece'
@@ -13,14 +14,13 @@ const FLOOR_PICKED = '#9db9ff'
 
 export function House({ picking = true }: { picking?: boolean }) {
   const doc = usePlanDoc()
+  const site = useWalk((s) => s.inspection?.site !== false)
   const selected = useSelection((state) => state.selected)
   const world = useMemo(() => worldOf(doc), [doc])
 
   return (
     <>
-      {world.site.map((piece) => (
-        <StandingPiece key={piece.name} piece={piece} />
-      ))}
+      {site && world.site.map((piece) => <StandingPiece key={piece.name} piece={piece} />)}
       {world.storeys.map((storey) => (
         <group key={storey.level} position={[0, storey.elevation * MM, 0]}>
           {storey.lights.map((light) => (

@@ -1,5 +1,6 @@
 import { levelsOf } from '@houseit/core/levels'
 import { RoofSchema } from '@houseit/core/roof'
+import { roofMeshIssue } from '@houseit/core/roof-mesh'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
@@ -47,7 +48,7 @@ export const addLevel = defineCommand({
 export const updateLevel = defineCommand({
   name: 'update-level',
   summary:
-    'Change a storey: name, height, slab thickness, or --roofs JSON [{name,outline:[{x,y}],finish:membrane|planted|gravel,depth,parapet:{height,thickness,colour},fall:{percent,towards},drains:[{x,y,diameter}]}]. Heights and outline coordinates are millimetres; roofs stand on this storey’s slab',
+    'Change a storey: name, height, slab thickness, or --roofs JSON [{name,outline:[{x,y}],finish:membrane|planted|gravel,depth,parapet:{height,thickness,colour},fall:{percent,towards},drains:[{x,y,diameter}]}]. Heights and outline coordinates are millimetres. baseOffset offsets the roof base from the storey top, down to its structural slab. Optional material and colour select the surface. facets:[{points:[{x,y,height},...],material?}] tile it with triangles; vertex height is above that roof base. Parapet edges:[{from:{x,y},to:{x,y},colour}] limit its runs; coping is the cap thickness',
   args: z.object({
     level: z.string().optional(),
     name: z.string().trim().min(1).optional(),
@@ -89,7 +90,21 @@ export const updateLevel = defineCommand({
         )
       record.slabThickness = args.slabThickness
     }
-    if (args.roofs !== undefined) record.roofs = args.roofs
+    if (args.roofs !== undefined) {
+      for (const roof of args.roofs)
+        if (roof.facets) {
+          const issue = roofMeshIssue(roof.outline, roof.facets, roof.drains)
+          if (issue) throw new CommandError(`update-level: ${issue}`)
+        }
+      const slab = args.slabThickness ?? record.slabThickness ?? 250
+      const top =
+        (args.clearHeight ?? record.clearHeight ?? (args.height ?? record.height) - slab) + slab
+      if (args.roofs.some((r) => (args.height ?? record.height) + r.baseOffset < top))
+        throw new CommandError(
+          'update-level: the roof buildup cannot start below the structural slab top',
+        )
+      record.roofs = args.roofs
+    }
     if (args.name !== undefined) record.name = args.name
     if (args.height !== undefined) {
       const lifted = args.height - record.height

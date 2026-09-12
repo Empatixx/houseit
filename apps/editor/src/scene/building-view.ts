@@ -5,14 +5,21 @@ import { reachOf } from '@houseit/scene/world'
 export type BuildingView = 'north' | 'south' | 'east' | 'west' | 'roof' | 'overview'
 
 export function buildingView(doc: HouseDocument, view: BuildingView) {
-  const bounds = reachOf(doc)
+  const bounds = reachOf(view === 'overview' ? doc : { ...doc, site: undefined })
   const levels = levelsOf(doc)
   const low = Math.min(...levels.map((l) => l.elevation)) / 1000
   const high =
     Math.max(
       ...levels.map(
         (l) =>
-          l.elevation + l.height + Math.max(0, ...(l.roofs ?? []).map((r) => r.parapet.height)),
+          l.elevation +
+          l.height +
+          Math.max(
+            0,
+            ...(l.roofs ?? []).map(
+              (r) => (r.baseOffset ?? 0) + r.parapet.height + (r.parapet.coping ?? 20),
+            ),
+          ),
       ),
     ) / 1000
   const centre: [number, number, number] = [

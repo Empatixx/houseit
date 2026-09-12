@@ -18,6 +18,7 @@ type Inspection = {
   target: [number, number, number]
   span: number
   orthographic: boolean
+  site?: boolean
 }
 
 type WalkState = {

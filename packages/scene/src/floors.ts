@@ -154,9 +154,9 @@ export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
     ? floorPieces(doc, upper.id).flatMap((p) => (p.body.kind === 'sheet' ? [p.body] : []))
     : []
   const trimmed = pieces.flatMap<Piece>((p) => {
-    if (!p.name?.endsWith('-buildup') || p.body.kind !== 'prism' || !doc.site) return [p]
+    if (!p.name?.endsWith('-buildup') || p.body.kind !== 'prism') return [p]
     const elevation = doc.levels[level]!.elevation + soffit + slab + buildup
-    const surfaces = doc.site.surfaces
+    const surfaces = (doc.site?.surfaces ?? [])
       .filter((s) => {
         const heights = s.outline.map((p) => siteHeight(s, p.x, p.y))
         return Math.min(...heights) < elevation && Math.max(...heights) > elevation - buildup
@@ -165,6 +165,14 @@ export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
         outline: corners(s.outline),
         holes: floors.map((f) => f.outline),
       }))
+    surfaces.push(
+      ...(storey?.roofs ?? [])
+        .filter((r) => r.baseOffset < 0)
+        .map((r) => ({
+          outline: corners(r.outline),
+          holes: floors.map((f) => f.outline),
+        })),
+    )
     const remaining = exposedSlabTop(p.body, surfaces)
     const body = p.body
     return remaining === undefined

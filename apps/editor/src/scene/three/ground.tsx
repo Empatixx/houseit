@@ -13,6 +13,7 @@ import {
   SRGBColorSpace,
 } from 'three'
 import { useDocument } from '../../store/store'
+import { useWalk } from '../../store/walk'
 
 const REACH = 400
 const TILE = 6
@@ -178,6 +179,7 @@ function lawn(holes: Point[][]) {
 }
 
 export function Ground() {
+  const site = useWalk((s) => s.inspection?.site !== false)
   const gl = useThree((state) => state.gl)
   const doc = useDocument((state) => state.doc)
   const geometry = useMemo(() => lawn(excavations(doc)), [doc])
@@ -191,6 +193,7 @@ export function Ground() {
     return texture
   }, [gl])
 
+  if (!site) return null
   return (
     <mesh
       receiveShadow

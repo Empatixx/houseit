@@ -94,6 +94,7 @@ test('the facade covers the slab and buildup while keeping the structural wall a
   doc.levels[level]!.clearHeight = 2900
   doc.walls.w1!.height = 3300
   doc.walls.w1!.exterior = {
+    base: 0,
     layers: [{ name: 'ETICS', thickness: 212 }],
     colour: '#f1f0ea',
     bands: [{ from: 0, to: 3300, colour: '#777777' }],
@@ -116,5 +117,29 @@ test('the facade covers the slab and buildup while keeping the structural wall a
         Math.abs(p.at.x - 2000) < p.body.width / 2 &&
         Math.abs(p.at.y - 1500) < p.body.height / 2,
     ),
+  ).toBe(false)
+})
+
+test('a colour band reaching a wall end also covers the coat return at that end', () => {
+  const { doc, level } = room()
+  doc.walls.w1!.exterior = {
+    base: -200,
+    layers: [{ name: 'ETICS', thickness: 212 }],
+    colour: '#ffffff',
+    bands: [{ from: 900, to: 1800, colour: '#777777', along: { from: 0, to: 2000 } }],
+  }
+  const coat = wallPieces(doc, level).filter(
+    (p) => p.of?.id === 'w1' && p.body.kind === 'box' && p.body.depth === 212,
+  )
+  const band = coat.filter((p) => p.paint.colour === '#777777')
+  expect(band.length).toBeGreaterThan(0)
+  expect(
+    Math.min(...band.map((p) => p.at.x - (p.body.kind === 'box' ? p.body.width / 2 : 0))),
+  ).toBeLessThan(0)
+  expect(
+    Math.max(...band.map((p) => p.at.x + (p.body.kind === 'box' ? p.body.width / 2 : 0))),
+  ).toBe(2000)
+  expect(
+    coat.some((p) => p.paint.colour === '#ffffff' && p.at.x < 0 && p.at.y > 900 && p.at.y < 1800),
   ).toBe(false)
 })

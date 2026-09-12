@@ -20,6 +20,7 @@ export type ViewRequest = {
   room?: string
   object?: string
   dimensions?: boolean
+  site?: boolean
 }
 
 export type Clear = { x: number; y: number; width: number; height: number }

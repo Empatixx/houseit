@@ -58,11 +58,11 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
       })),
       ...connectionPieces(doc, level),
       ...wallPieces(doc, level),
+      ...roofPieces(doc, level),
     ]),
     ...floorPieces(doc, level),
     ...underfloorPieces(doc, level),
     ...ceilingPieces(doc, level),
-    ...roofPieces(doc, level),
     ...furniturePieces(doc, level),
   ].map((piece, index) => (piece.name ? piece : { ...piece, name: `piece-${index}` }))
 }

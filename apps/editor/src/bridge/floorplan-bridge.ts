@@ -72,7 +72,7 @@ export function installFloorplanBridge(
     const selection = selectionStore.getState()
     if (view.view && view.view !== 'plan') {
       const doc = store.getState().doc
-      walkStore.getState().inspect(buildingView(doc, view.view))
+      walkStore.getState().inspect({ ...buildingView(doc, view.view), site: view.site })
       modeStore.getState().setMode('3d')
       shellStore.getState().showPanel(false)
       return { ok: true }

@@ -38,7 +38,7 @@ const wearing = (part: Part) =>
 
 export const updateRoom = defineCommand({
   name: 'update-room',
-  summary: `Change a room: its name, its kind (${ROOM_KIND_IDS.join(', ')}), its floor, its style (${STYLE_IDS.join(', ')}) or what its walls, ceiling, doors and windows are finished in (a named finish or a colour of your own as #rrggbb), or how big it is. --exterior takes JSON {layers:[{name,thickness}],colour,bands:[{from,to,colour}]} in mm above this storey; --side or --wall limits it to that exterior boundary. --return takes JSON {points:[{x,y},...],thickness,height}: an open partition or low lining starting on this room’s wall centre line. --partition takes the same fields with two points for a straight partition with both ends free inside the room`,
+  summary: `Change a room: its name, its kind (${ROOM_KIND_IDS.join(', ')}), its floor, its style (${STYLE_IDS.join(', ')}) or what its walls, ceiling, doors and windows are finished in (a named finish or a colour of your own as #rrggbb), or how big it is. --exterior takes JSON {layers:[{name,thickness}],colour,base?:negative mm,bands:[{from,to,colour,along?:{from,to}}]} in mm above this storey; along is mm from the wall’s first node; --side or --wall limits it to that exterior boundary. --return takes JSON {points:[{x,y},...],thickness,height}: an open partition or low lining starting on this room’s wall centre line. --partition takes the same fields with two points for a straight partition with both ends free inside the room`,
   args: z.object({
     room: z.string().min(1),
     name: z.string().trim().min(1).optional(),
@@ -115,7 +115,11 @@ export const updateRoom = defineCommand({
       const walls = boundary.filter((wall) => outside.has(wall.id))
       if (walls.length === 0) throw new CommandError('update-room: this room has no exterior walls')
       for (const wall of walls) {
-        if (args.exterior.bands.some((band) => band.to > wall.height)) {
+        if (
+          args.exterior.bands.some(
+            (band) => band.to > draft.levels[level]!.height - wall.baseOffset,
+          )
+        ) {
           throw new CommandError('update-room: a façade band reaches above its wall')
         }
         draft.walls[wall.id]!.exterior = args.exterior

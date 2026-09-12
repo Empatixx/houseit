@@ -157,7 +157,14 @@ function standingWall(
       level && wall.height >= soffitOf(level) - wall.baseOffset
         ? level.height - wall.baseOffset
         : height
-    const cladding = solidPieces({ ...wall, height: facadeHeight }, openings, length, growA, span)
+    const base = exterior.base ?? 0
+    const cladding = solidPieces(
+      { ...wall, height: facadeHeight - base },
+      openings.map((o) => ({ ...o, sillHeight: o.sillHeight - base })),
+      length,
+      growA,
+      span,
+    ).map((p) => ({ ...p, base: p.base + base }))
     for (const piece of cladding) {
       const extendA = piece.at - piece.length / 2 <= 0.01 ? thickness : 0
       const extendB = piece.at + piece.length / 2 >= length - 0.01 ? thickness : 0
@@ -173,22 +180,47 @@ function standingWall(
       for (let i = 1; i < cuts.length; i += 1) {
         const from = cuts[i - 1]!
         const to = cuts[i]!
-        const band = exterior.bands.find((band) => from >= band.from && to <= band.to)
-        facade.push({
-          body: {
-            kind: 'box',
-            width: piece.length + extendA + extendB,
-            height: to - from,
-            depth: thickness,
-          },
-          at: standing(
-            piece.at + (extendB - extendA) / 2,
-            outside * edge,
-            wall.baseOffset + (from + to) / 2,
-          ),
-          turn: angle,
-          paint: { colour: band?.colour ?? exterior.colour },
-        })
+        const left = piece.at - piece.length / 2 - extendA
+        const right = piece.at + piece.length / 2 + extendB
+        const horizontal = [
+          ...new Set([
+            left,
+            right,
+            ...exterior.bands
+              .flatMap((band) =>
+                band.along
+                  ? [
+                      band.along.from === 0 ? -Infinity : band.along.from + growA,
+                      band.along.to >= span ? Infinity : band.along.to + growA,
+                    ]
+                  : [],
+              )
+              .filter((x) => x > left && x < right),
+          ]),
+        ].sort((a, b) => a - b)
+        for (let j = 1; j < horizontal.length; j++) {
+          const l = horizontal[j - 1]!,
+            r = horizontal[j]!
+          const band = exterior.bands.find(
+            (band) =>
+              from >= band.from &&
+              to <= band.to &&
+              (!band.along ||
+                ((band.along.from === 0 || (l + r) / 2 >= band.along.from + growA) &&
+                  (band.along.to >= span || (l + r) / 2 <= band.along.to + growA))),
+          )
+          facade.push({
+            body: {
+              kind: 'box',
+              width: r - l,
+              height: to - from,
+              depth: thickness,
+            },
+            at: standing((l + r) / 2, outside * edge, wall.baseOffset + (from + to) / 2),
+            turn: angle,
+            paint: { colour: band?.colour ?? exterior.colour },
+          })
+        }
       }
     }
   }

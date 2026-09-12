@@ -546,3 +546,27 @@ structural support beyond enclosed rooms; wall, shaft and object clash checks
 still apply. An exterior finish can replace a basement floor buildup where their
 height ranges intersect, but never removes the structural slab or the buildup
 under an upper room.
+
+Exterior bands accept `along: {from,to}` in millimetres from the wall's first
+node. This limits a colour region horizontally without splitting the wall or
+its rooms. A band ending at a wall endpoint also covers the coat's corner return.
+An exterior `base` may extend its plinth below the finished floor datum.
+
+Roof `baseOffset` is relative to the storey top: a negative value places the roof
+on its structural slab, replacing the ordinary floor buildup there. `facets`
+carry triangular surface vertices `{x,y,height}` above that base, with optional
+material per triangle. The CLI refuses incomplete, overlapping or out-of-bounds
+meshes and drains outside their surface. Parapet `edges` select runs and colours;
+`coping` sets cap thickness. The default rectangular fall remains available.
+
+Site finishes can also be changed individually with `update-site --surface <id>
+--material asphalt` or `--colour "#rrggbb"`. Concrete, concrete pavers, asphalt,
+roof gravel and sedum have offline textures. Choosing a material resets tint to
+white unless a colour is supplied with it.
+
+`window.floorplan.show({view: 'north', site: false})` hides site context for an
+unobstructed elevation review, without changing the model. Orthographic building
+views frame the building even when its terrain extends much farther. Actual
+scene sections can be exported with `bun scripts/takeoff-sections.ts <readback>
+<out>`; their straight cut coordinates are printed on the drawing. They are not
+an automatic claim to reproduce an architect's offset section path.

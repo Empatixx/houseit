@@ -25,3 +25,18 @@ test('site and external supports survive the CLI and document roundtrip without 
     ),
   ).toThrow('inside the storey footprint')
 })
+
+test('changing a site finish by id retains its geometry and refuses an unknown surface atomically', () => {
+  const doc = runScript(createEmptyDocument(), source)
+  const id = doc.site!.surfaces[0]!.id
+  const before = doc.site!.surfaces[0]!
+  const changed = runScript(
+    doc,
+    `update-site --surface ${id} --material asphalt --colour "#eeeeee"`,
+  )
+  expect(changed.site!.surfaces[0]).toEqual({ ...before, material: 'asphalt', colour: '#eeeeee' })
+  expect(doc.site!.surfaces[0]).toEqual(before)
+  expect(() => runScript(doc, 'update-site --surface missing --material concrete')).toThrow(
+    'unknown surface',
+  )
+})
