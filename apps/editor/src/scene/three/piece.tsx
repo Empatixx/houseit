@@ -16,7 +16,7 @@ import { SymbolPlate } from './symbol-plate'
 
 const QUARTER = Math.PI / 2
 
-const sided = (body: Body) => body.kind === 'sheet'
+const sided = (body: Body) => body.kind === 'sheet' && body.doubleSided !== false
 
 type PieceProps = {
   piece: Piece
@@ -67,7 +67,14 @@ export function StandingPiece({ piece, tint, onPick }: PieceProps) {
         shadows={piece.casts !== false && !seeThrough(paint)}
         at={[place[0], place[1] - drop, place[2]]}
         rotation={[tilt - QUARTER, turn, roll, 'YXZ']}
-        material={materialOf(paint, sided(body))}
+        material={
+          piece.sidePaint && body.kind === 'prism'
+            ? [
+                materialOf(paint, false),
+                materialOf(tint ? { ...piece.sidePaint, colour: tint } : piece.sidePaint, false),
+              ]
+            : materialOf(paint, sided(body))
+        }
         onPick={onPick}
       />
     )
@@ -100,7 +107,7 @@ type FlatProps = {
   body: Extract<Body, { kind: 'prism' | 'sheet' }>
   at: [number, number, number]
   rotation: [number, number, number, 'YXZ']
-  material: ReturnType<typeof materialOf>
+  material: ReturnType<typeof materialOf> | ReturnType<typeof materialOf>[]
   shadows: boolean
   onPick?: (event: ThreeEvent<MouseEvent>) => void
 }
@@ -216,6 +223,7 @@ function replaceTop(original: BufferGeometry, top: Corner[][], depth: number): B
   const positions: number[] = [],
     normals: number[] = [],
     uvs: number[] = []
+  const groups: { start: number; count: number; materialIndex: number }[] = []
   const append = (geometry: BufferGeometry, cap: boolean) => {
     const p = geometry.getAttribute('position'),
       n = geometry.getAttribute('normal'),
@@ -225,6 +233,10 @@ function replaceTop(original: BufferGeometry, top: Corner[][], depth: number): B
     for (let i = 0; i < count; i += 3) {
       const ids = [0, 1, 2].map((j) => (index ? index.getX(i + j) : i + j))
       if (!cap && ids.every((j) => n.getZ(j) > 0.99 && Math.abs(p.getZ(j) - depth) < 1e-5)) continue
+      const materialIndex = cap || Math.abs(n.getZ(ids[0]!)) > 0.99 ? 0 : 1
+      const last = groups.at(-1)
+      if (last?.materialIndex === materialIndex) last.count += 3
+      else groups.push({ start: positions.length / 3, count: 3, materialIndex })
       for (const j of ids) {
         positions.push(p.getX(j), p.getY(j), cap ? depth : p.getZ(j))
         normals.push(n.getX(j), n.getY(j), n.getZ(j))
@@ -241,5 +253,6 @@ function replaceTop(original: BufferGeometry, top: Corner[][], depth: number): B
   geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
   geometry.setAttribute('normal', new Float32BufferAttribute(normals, 3))
   geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
+  for (const g of groups) geometry.addGroup(g.start, g.count, g.materialIndex)
   return geometry
 }

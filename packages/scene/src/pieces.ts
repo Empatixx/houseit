@@ -21,7 +21,7 @@ export type Body =
       top?: Corner[][]
       slope?: { x: number; z: number; offset: number; both?: boolean }
     }
-  | { kind: 'sheet'; outline: Corner[]; holes: Corner[][] }
+  | { kind: 'sheet'; outline: Corner[]; holes: Corner[][]; doubleSided?: boolean }
   | { kind: 'symbol'; file: string; width: number; depth: number }
   | { kind: 'model'; file: string; width: number; height: number; depth: number }
 
@@ -34,6 +34,7 @@ export type Piece = {
   tilt?: number
   roll?: number
   paint: Finish
+  sidePaint?: Finish
   of?: Owner
   name?: string
   casts?: boolean
@@ -229,12 +230,17 @@ export function model({ file, w, h, d, paint }: ModelProps): Piece {
 }
 
 export type SheetProps = {
+  doubleSided?: boolean
   base?: number
   outline: Corner[]
   holes?: Corner[][]
   paint: Finish
 }
 
-export function sheet({ base = 0, outline, holes = [], paint }: SheetProps): Piece {
-  return { body: { kind: 'sheet', outline, holes }, at: { x: 0, y: base, z: 0 }, paint }
+export function sheet({ base = 0, outline, holes = [], paint, doubleSided }: SheetProps): Piece {
+  return {
+    body: { kind: 'sheet', outline, holes, doubleSided },
+    at: { x: 0, y: base, z: 0 },
+    paint,
+  }
 }

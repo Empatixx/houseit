@@ -211,7 +211,12 @@ built under a wardrobe from downstairs.
 **A storey has a lid.** In the walk every room has a slab over it, `SLAB`
 thick up to the top of its walls, with a hole where its own staircase comes up
 — the ceiling of this storey, the floor of the next, and the roof where there
-is no next. Without it a house walked through was an open box.
+is no next. Without it a house walked through was an open box. A floor also needs a solid underside
+where its footprint extends past the rooms below. Derive only that missing volume
+from the upper footprint, retaining wells; do not duplicate the lower ceiling.
+The finish is visible from above only. Walls start at their floor, without a
+hidden downward extension overlapping the interstorey slab. Slab edges carry a
+neutral wall finish separately from the room's ceiling finish.
 
 `bun scripts/look-stairs.ts /tmp/stairs.png [height]` draws every kind at a
 storey's height on one page. A generated drawing is code, and the only way to

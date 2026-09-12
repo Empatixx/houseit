@@ -2,7 +2,7 @@ import type { HouseDocument } from '@houseit/core/document'
 import { levelsOf } from '@houseit/core/levels'
 import { connectionPieces } from './connections'
 import { exposedBoxes } from './exposed-boxes'
-import { ceilingPieces, floorPieces } from './floors'
+import { ceilingPieces, floorPieces, underfloorPieces } from './floors'
 import { furniturePieces } from './furniture'
 import { type Light, lightsOn } from './lights'
 import { type Piece, slab } from './pieces'
@@ -56,6 +56,7 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
       ...wallPieces(doc, level),
     ]),
     ...floorPieces(doc, level),
+    ...underfloorPieces(doc, level),
     ...ceilingPieces(doc, level),
     ...roofPieces(doc, level),
     ...furniturePieces(doc, level),

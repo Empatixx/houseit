@@ -34,7 +34,7 @@ test('a storey carries its walls, its floors, its lid and what stands on it', ()
   )
   expect(walls.size).toBe(4)
   expect(built.filter((piece) => piece.body.kind === 'sheet').length).toBe(1)
-  expect(built.filter((piece) => piece.body.kind === 'prism').length).toBe(1)
+  expect(built.filter((piece) => piece.body.kind === 'prism').length).toBe(2)
 })
 
 test('every piece has a name of its own, so what is drawn can be told apart', () => {

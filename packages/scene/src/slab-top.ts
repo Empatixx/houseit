@@ -29,34 +29,58 @@ export function exposedSlabTop(slab: Surface, floors: Surface[]): Corner[][] | u
   })
   if (!covering.length) return
   const rings = [slab, ...covering].flatMap((s) => [s.outline, ...s.holes])
-  if (
-    rings.some((r) =>
-      r.some((p, i) => {
-        const q = r[(i + 1) % r.length]!
-        return p.x !== q.x && p.z !== q.z
-      }),
-    )
-  )
-    return
-  const points = rings.flat()
-  const xs = [...new Set(points.map((p) => p.x).filter((x) => x >= b.x0 && x <= b.x1))].sort(
-    (a, b) => a - b,
-  )
-  const zs = [...new Set(points.map((p) => p.z).filter((z) => z >= b.z0 && z <= b.z1))].sort(
-    (a, b) => a - b,
-  )
-  const top: Corner[][] = []
-  for (let i = 1; i < xs.length; i++)
-    for (let j = 1; j < zs.length; j++) {
-      const x = (xs[i - 1]! + xs[i]!) / 2,
-        z = (zs[j - 1]! + zs[j]!) / 2
-      if (!on(slab, x, z) || covering.some((f) => on(f, x, z))) continue
-      top.push([
-        { x: xs[i - 1]!, z: zs[j - 1]! },
-        { x: xs[i]!, z: zs[j - 1]! },
-        { x: xs[i]!, z: zs[j]! },
-        { x: xs[i - 1]!, z: zs[j]! },
-      ])
+  const edges = rings.flatMap((r) => r.map((a, i) => ({ a, b: r[(i + 1) % r.length]! })))
+  const xs = new Set(rings.flat().map((p) => p.x))
+  // Split at crossings as well as vertices: within each strip edge order is
+  // fixed, so subtraction is exact for sloping boundaries and round wells too.
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i]!
+    for (const f of edges.slice(i + 1)) {
+      const dx = e.b.x - e.a.x,
+        dz = e.b.z - e.a.z
+      const fx = f.b.x - f.a.x,
+        fz = f.b.z - f.a.z
+      const cross = dx * fz - dz * fx
+      if (Math.abs(cross) < 1e-9) continue
+      const x = f.a.x - e.a.x,
+        z = f.a.z - e.a.z
+      const t = (x * fz - z * fx) / cross,
+        u = (x * dz - z * dx) / cross
+      if (t > 0 && t < 1 && u > 0 && u < 1) xs.add(e.a.x + t * dx)
     }
+  }
+  const cuts = [...xs].filter((x) => x >= b.x0 && x <= b.x1).sort((a, b) => a - b)
+  const height = (e: (typeof edges)[number], x: number) =>
+    e.a.z + ((x - e.a.x) * (e.b.z - e.a.z)) / (e.b.x - e.a.x)
+  const top: Corner[][] = []
+  for (let i = 1; i < cuts.length; i++) {
+    const x0 = cuts[i - 1]!,
+      x1 = cuts[i]!,
+      x = (x0 + x1) / 2
+    if (x1 - x0 < 1e-7) continue
+    const active = edges
+      .filter((e) => x > Math.min(e.a.x, e.b.x) && x < Math.max(e.a.x, e.b.x))
+      .sort((e, f) => height(e, x) - height(f, x))
+    for (let j = 1; j < active.length; j++) {
+      const low = active[j - 1]!,
+        high = active[j]!
+      const z0 = height(low, x),
+        z1 = height(high, x),
+        z = (z0 + z1) / 2
+      if (z1 - z0 < 1e-7 || !on(slab, x, z) || covering.some((f) => on(f, x, z))) continue
+      const ring = [
+        { x: x0, z: height(low, x0) },
+        { x: x1, z: height(low, x1) },
+        { x: x1, z: height(high, x1) },
+        { x: x0, z: height(high, x0) },
+      ]
+      top.push(
+        ring.filter((p, k) => {
+          const q = ring[(k + 1) % ring.length]!
+          return Math.hypot(p.x - q.x, p.z - q.z) > 1e-7
+        }),
+      )
+    }
+  }
   return top
 }

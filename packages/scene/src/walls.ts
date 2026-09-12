@@ -15,7 +15,6 @@ const PAINT = {
 } as const
 
 const PANE = 40
-const SUNK = 30
 
 export function wallPieces(doc: HouseDocument, level: string): Piece[] {
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
@@ -78,18 +77,17 @@ function standingWall(
   const solids = owned(
     { kind: 'wall', id: wall.id },
     built.flatMap((piece) => {
-      const sunk = piece.base === 0 ? SUNK : 0
       return ([1, -1] as const).map((side, nth) => ({
         body: {
           kind: 'box' as const,
           width: piece.length,
-          height: piece.height + sunk,
+          height: piece.height,
           depth: piece.thickness / 2,
         },
         at: standing(
           piece.at,
           (side * piece.thickness) / 4,
-          wall.baseOffset + piece.base - sunk + (piece.height + sunk) / 2,
+          wall.baseOffset + piece.base + piece.height / 2,
         ),
         turn: angle,
         paint: paintFor(worn[nth]?.walls, PAINT.wall, {

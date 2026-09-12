@@ -22,3 +22,31 @@ test('a fully covered slab has no upward face competing with the finish', () => 
   const surface = { outline: rectangle(0, 0, 4, 6), holes: [] }
   expect(exposedSlabTop(surface, [surface])).toEqual([])
 })
+
+test('a diagonal overhang is clipped exactly instead of duplicating the covered slab', () => {
+  const top = exposedSlabTop(
+    {
+      outline: [
+        { x: 0, z: 0 },
+        { x: 6, z: 0 },
+        { x: 0, z: 6 },
+      ],
+      holes: [],
+    },
+    [{ outline: rectangle(0, 0, 3, 6), holes: [] }],
+  )!
+  const area = top.reduce(
+    (sum, ring) =>
+      sum +
+      Math.abs(
+        ring.reduce((a, p, i) => {
+          const q = ring[(i + 1) % ring.length]!
+          return a + p.x * q.z - q.x * p.z
+        }, 0),
+      ) /
+        2,
+    0,
+  )
+  expect(area).toBeCloseTo(4.5)
+  expect(top.flat().every((p) => p.x >= 3 && p.x + p.z <= 6.000001)).toBe(true)
+})

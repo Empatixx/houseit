@@ -2,7 +2,7 @@ import { FLOOR_MATERIAL_IDS, floorMaterial } from '@houseit/core/floor-materials
 import { SLAB } from '@houseit/core/levels'
 import { planWith } from '@houseit/geometry/test-utils'
 import { expect, test } from 'vitest'
-import { ceilingPieces, floorPieces } from './floors'
+import { ceilingPieces, floorPieces, underfloorPieces } from './floors'
 
 const room = () =>
   planWith([
@@ -67,4 +67,51 @@ test('the slab reaches the outside structural face instead of leaving half the p
   const half = doc.walls.w1!.thickness / 2
   expect(Math.min(...lid.body.outline.map((p) => p.x))).toBeCloseTo(-half)
   expect(Math.max(...lid.body.outline.map((p) => p.x))).toBeCloseTo(4000 + half)
+})
+
+test('the lowest floor has a solid underside and a finish visible only from above', () => {
+  const { doc, level } = room()
+  const floor = floorPieces(doc, level)[0]!
+  expect(floor.body.kind === 'sheet' && floor.body.doubleSided).toBe(false)
+  const base = underfloorPieces(doc, level)[0]!
+  if (base.body.kind !== 'prism') throw Error('solid underside expected')
+  expect(base.at.y + base.body.thickness / 2).toBe(0)
+  expect(base.at.y - base.body.thickness / 2).toBe(-SLAB)
+  expect(base.body.top).toEqual([])
+})
+
+test('an upper overhang gets only the missing slab, including the floor buildup depth', () => {
+  const { doc, level } = room()
+  doc.levels[level]!.height = 3000
+  doc.levels[level]!.clearHeight = 2600
+  doc.levels.up = { id: 'up', name: 'Upper', elevation: 3000, height: 3000 }
+  for (const [id, node] of Object.entries({ ...doc.nodes }))
+    doc.nodes[`up-${id}`] = { ...node, id: `up-${id}`, x: node.x + 2000 }
+  for (const [id, wall] of Object.entries({ ...doc.walls }))
+    doc.walls[`up-${id}`] = {
+      ...wall,
+      id: `up-${id}`,
+      a: `up-${wall.a}`,
+      b: `up-${wall.b}`,
+      level: 'up',
+    }
+  const base = underfloorPieces(doc, 'up')
+  expect(base.length).toBeGreaterThan(0)
+  let area = 0
+  for (const piece of base) {
+    if (piece.body.kind !== 'prism') throw Error('solid underside expected')
+    expect(piece.body.thickness).toBe(400)
+    expect(piece.body.outline.every((p) => p.x >= 4075)).toBe(true)
+    const r = piece.body.outline
+    area +=
+      Math.abs(
+        r.reduce((sum, p, i) => {
+          const q = r[(i + 1) % r.length]!
+          return sum + p.x * q.z - q.x * p.z
+        }, 0),
+      ) / 2
+  }
+  expect(area).toBeCloseTo(2000 * 3150)
+  for (const node of Object.values(doc.nodes).filter((n) => n.id.startsWith('up-'))) node.x -= 2000
+  expect(underfloorPieces(doc, 'up')).toEqual([])
 })

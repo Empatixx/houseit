@@ -84,5 +84,6 @@ test('a measured soffit caps full-height walls while low returns retain their ow
   for (const piece of built) {
     if (piece.body.kind !== 'box') throw Error('box expected')
     expect(piece.at.y + piece.body.height / 2).toBeCloseTo(piece.of!.id === 'w2' ? 1000 : 3380)
+    expect(piece.at.y - piece.body.height / 2).toBeCloseTo(0)
   }
 })
