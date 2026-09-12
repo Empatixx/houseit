@@ -17,8 +17,14 @@ The wall authoring model on `that-open-engine`:
   walls; the shape forms of `add-room` still create an entire room.
 - **One edit path.** Wall drawing, drag preview, drag commit and Delete use the
   same typed commands as CLI/MCP. Native wall solids and opening subtraction run
-  in the That Open GeometryEngine worker. Fragment archives retain native wall elements
-  and the authoring document. The React presentation adapter supplies the established
+  in the That Open GeometryEngine worker. `FragmentAuthoring` commits typed commands
+  and CLI scripts into the public That Open `SingleThreadedFragmentsModel`: native items,
+  relations and request history own the authoring state; the store document is its read projection.
+  Domain commands compile wall constraints, room derivation and host behavior that That Open
+  does not provide. Undo/redo selects native request boundaries, not Immer patches.
+  Fragment archives retain these native entities/relations with the wall solids; metadata
+  contains only the authoring schema marker. CLI/MCP waits for native persistence before
+  returning success. Keep MCP tool title, description and schema stable. The React presentation adapter supplies the established
   plan symbols, finishes, gestures and walkthrough; the native viewport replacement
   in `eb29400` was withdrawn because it regressed those features.
   Native measurements, snapping, ID selection and cut views now use a public That Open

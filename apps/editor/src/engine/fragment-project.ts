@@ -10,10 +10,13 @@ import {
 import workerUrl from '@thatopen/fragments/worker?url'
 import { BufferGeometry, Float32BufferAttribute, Matrix4, Mesh, MeshLambertMaterial } from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
+import { documentFromGraph, graphRequests, nativeKey } from './authoring-graph'
 import { acquireGeometry } from './geometry-session'
 import { wallBody } from './wall-body'
 
-type Authoring = { schema: 1; document: HouseDocument; wallItems: Record<string, number> }
+type Authoring =
+  | { schema: 1; document: HouseDocument; wallItems: Record<string, number> }
+  | { schema: 2 }
 export type FragmentArchive = { format: 'houseit-fragments'; version: 1; buffer: ArrayBuffer }
 
 export class FragmentProject {
@@ -43,10 +46,21 @@ export class FragmentProject {
     await this.fragments.load(buffer.slice(0), { modelId: this.modelId })
     this.loaded = true
     const metadata = await this.model.getMetadata<{ houseit?: Authoring }>()
-    if (metadata.houseit?.schema !== 1)
+    const authoring = metadata.houseit
+    if (authoring?.schema !== 1 && authoring?.schema !== 2)
       throw new Error('This Fragment model has no Houseit authoring data')
-    const doc = parseDocument(metadata.houseit.document)
-    this.items = metadata.houseit.wallItems
+    const graph = await this.readGraph()
+    const doc =
+      authoring.schema === 1 ? parseDocument(authoring.document) : documentFromGraph(graph)
+    this.items =
+      authoring.schema === 1
+        ? authoring.wallItems
+        : Object.fromEntries(
+            [...graph.items].flatMap(([id, item]) => {
+              const key = nativeKey(item)
+              return key?.startsWith('elements:') ? [[key.slice('elements:'.length), id]] : []
+            }),
+          )
     const ids = new Set(await this.model.getItemsIdsWithGeometry())
     for (const [id, signature] of this.describe(doc)) {
       if (!ids.has(this.items[id]!)) throw new Error(`Fragment geometry for wall ${id} is missing`)
@@ -90,7 +104,7 @@ export class FragmentProject {
                 attributes: {
                   _category: { value: 'IFCWALL' },
                   Name: { value: id },
-                  HouseitWallId: { value: id },
+                  HouseitKey: { value: `elements:${id}` },
                 },
                 globalTransform: new Matrix4(),
                 samples: [{ localTransform: new Matrix4(), representation: geometry, material }],
@@ -111,17 +125,35 @@ export class FragmentProject {
         geometry.dispose()
       }
     }
+    await editor.save(this.modelId)
+    const graph = await this.readGraph()
+    for (const [wall, id] of Object.entries(this.items)) {
+      const item = graph.items.get(id)
+      if (!item) throw new Error(`Fragment wall ${wall} is missing`)
+      item.data.HouseitKey = { value: `elements:${wall}` }
+    }
+    const requests = graphRequests(doc, graph, await this.model.getMaxLocalId())
     await editor.edit(this.modelId, [
+      ...requests,
       {
         type: EditRequestType.UPDATE_METADATA,
         localId: 0,
-        data: { houseit: { schema: 1, document: doc, wallItems: this.items } satisfies Authoring },
+        data: { houseit: { schema: 2 } satisfies Authoring },
       },
     ])
     await editor.save(this.modelId)
+    documentFromGraph(await this.readGraph())
     const buffer = new Uint8Array(await this.model.getBuffer(false)).slice().buffer
     this.signatures = next
     return { format: 'houseit-fragments', version: 1, buffer }
+  }
+
+  private async readGraph() {
+    const base = EditUtils.getModelFromBuffer(
+      new Uint8Array(await this.model.getBuffer(true)),
+      true,
+    )
+    return { items: EditUtils.getItems(base), relations: await this.model.getRelations() }
   }
 
   async dispose() {

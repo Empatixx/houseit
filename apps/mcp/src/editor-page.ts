@@ -132,7 +132,19 @@ export async function openProject(page: Page, name: string): Promise<string> {
 }
 
 export function execOnPage(page: Page, source: string): Promise<ExecResult> {
-  return page.evaluate((script) => window.floorplan.exec(script), source)
+  return page.evaluate(async (script) => {
+    const result = window.floorplan.exec(script)
+    if (!result.ok) return result
+    try {
+      await window.floorplan.save()
+      return result
+    } catch (error) {
+      return {
+        ok: false as const,
+        error: `The edit was applied, but saving the native model failed: ${error instanceof Error ? error.message : String(error)}`,
+      }
+    }
+  }, source)
 }
 
 export function showOnPage(page: Page, view: ViewRequest): Promise<ShowResult> {
