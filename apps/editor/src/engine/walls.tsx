@@ -62,6 +62,7 @@ function EngineWall({
   if (!geometry) return null
   return (
     <mesh
+      userData={{ houseit: { kind: 'wall', id: wall.id } }}
       geometry={geometry}
       material={materials}
       position={toWorld(a.x, a.y, wall.baseOffset)}

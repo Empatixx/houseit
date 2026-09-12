@@ -41,12 +41,13 @@ export function House({ picking = true }: { picking?: boolean }) {
           {storey.pieces
             .filter((piece) => piece.role !== 'wall-solid')
             .map((piece) => (
-              <StandingPiece
-                key={piece.name}
-                piece={piece}
-                tint={picking ? tintOf(piece, selected) : undefined}
-                onPick={picking ? picker(piece.of) : undefined}
-              />
+              <group key={piece.name} userData={{ houseit: piece.of }}>
+                <StandingPiece
+                  piece={piece}
+                  tint={picking ? tintOf(piece, selected) : undefined}
+                  onPick={picking ? picker(piece.of) : undefined}
+                />
+              </group>
             ))}
         </group>
       ))}

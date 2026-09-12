@@ -74,6 +74,7 @@ export function RoomFloors() {
       {floors.map((floor) => (
         <mesh
           key={floor.key}
+          userData={{ houseit: floor.id ? { kind: 'room', id: floor.id } : undefined }}
           geometry={floor.geometry}
           rotation={[-Math.PI / 2, 0, 0]}
           position={[0, 0.01, 0]}

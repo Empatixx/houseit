@@ -1,4 +1,5 @@
 import type { HouseObject } from '@houseit/core/document'
+import { partsOf } from '@houseit/core/footprint'
 import { importedType, outlineSymbol } from '@houseit/core/imported'
 import { type Layer, layerOf, symbolOf } from '@houseit/core/object-types'
 import { stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
@@ -10,11 +11,13 @@ import { piecesOf, type Spot, standingAt, turnOf } from '@houseit/geometry/stand
 import { Line } from '@react-three/drei'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Texture } from 'three'
+import { Shape, ShapeGeometry, type Texture } from 'three'
 import { aimAt, putDown } from '../../edit/draw-commands'
 import { moveTo, turnTo } from '../../edit/object-commands'
 import { pick } from '../../edit/pick'
 import { placeArmedIn } from '../../edit/place-commands'
+import { activeTools } from '../../engine/native-tools'
+import { engineViewStore } from '../../store/engine-view'
 import { EMPHASIS, hoverStore, useHover } from '../../store/hover'
 import { useSelection } from '../../store/selection'
 import { useDocument, usePlanDoc } from '../../store/store'
@@ -98,6 +101,26 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   const marked = useSymbol(picked ? symbol : '', pickedSurface(surface), object, PICKED_HATCH)
   const drag = useDrag(object, spot)
   const spin = useSpin(object, spot, picked)
+  const nativeFootprint = useMemo(() => {
+    const parts = partsOf(object.type)
+    if (parts.length === 1) return undefined
+    return new ShapeGeometry(
+      parts.map((part) => {
+        const shape = new Shape()
+        const x0 = (part.x0 - 0.5) * object.width * MM,
+          x1 = (part.x1 - 0.5) * object.width * MM
+        const y0 = (0.5 - part.y0) * object.depth * MM,
+          y1 = (0.5 - part.y1) * object.depth * MM
+        shape.moveTo(x0, y0)
+        shape.lineTo(x1, y0)
+        shape.lineTo(x1, y1)
+        shape.lineTo(x0, y1)
+        shape.closePath()
+        return shape
+      }),
+    )
+  }, [object.type, object.width, object.depth])
+  useEffect(() => () => nativeFootprint?.dispose(), [nativeFootprint])
   if (!plain) return null
 
   const texture = (picked ? marked : undefined) ?? plain
@@ -125,6 +148,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
         <Ghost object={object} spot={spot} at={at} texture={plain} stack={stack} />
       ) : null}
       <mesh
+        userData={{ houseit: { kind: 'object', id: object.id }, houseitGeometry: nativeFootprint }}
         position={toWorld(at.x, at.y, symbolHeight(stack))}
         rotation={[-Math.PI / 2, 0, turn + Math.PI]}
         onPointerOver={(event) => {
@@ -134,7 +158,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
         }}
         onPointerOut={() => hoverStore.getState().hover(null)}
         onClick={(event) => {
-          if (dragged(event) || !on(event)) return
+          if (engineViewStore.getState().measure !== 'none' || dragged(event) || !on(event)) return
           event.stopPropagation()
           const armed = toolStore.getState().armed
           if (armed) {
@@ -151,7 +175,13 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
           pick({ kind: 'object', id: object.id })
         }}
         onPointerDown={(event) => {
-          if (toolStore.getState().armed || event.button !== 0 || !on(event)) return
+          if (
+            engineViewStore.getState().measure !== 'none' ||
+            toolStore.getState().armed ||
+            event.button !== 0 ||
+            !on(event)
+          )
+            return
           pick({ kind: 'object', id: object.id })
           drag.down(event)
         }}
@@ -185,7 +215,9 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
             <mesh
               position={toWorld(at.x, at.y, ABOVE)}
               rotation={[-Math.PI / 2, 0, 0]}
-              onPointerDown={spin.down}
+              onPointerDown={(event) => {
+                if (engineViewStore.getState().measure === 'none') spin.down(event)
+              }}
               onPointerMove={spin.move}
               onPointerUp={spin.up}
               onClick={spin.click}
@@ -198,7 +230,9 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
           <mesh
             position={toWorld(grip.x, grip.y, ABOVE)}
             rotation={[-Math.PI / 2, 0, 0]}
-            onPointerDown={spin.down}
+            onPointerDown={(event) => {
+              if (engineViewStore.getState().measure === 'none') spin.down(event)
+            }}
             onPointerMove={spin.move}
             onPointerUp={spin.up}
             onClick={spin.click}
@@ -376,13 +410,21 @@ function useDrag(object: HouseObject, spot: Spot) {
     held.current = { from, shift: { x: 0, y: 0 } }
     if (controls) controls.enabled = false
 
+    let sequence = 0
+    let pending = Promise.resolve()
     const follow = (native: PointerEvent) => {
+      const request = ++sequence
       const carried = held.current
       if (!carried) return
       const now = pointUnder(native, canvas, camera)
       if (!now) return
-      carried.shift = { x: now.x - carried.from.x, y: now.y - carried.from.y }
-      setShift(carried.shift)
+      pending = (async () => {
+        const snap = await activeTools?.snapPoint(now, { kind: 'object', id: object.id })
+        if (request !== sequence || !held.current) return
+        const point = snap ?? now
+        carried.shift = { x: point.x - carried.from.x, y: point.y - carried.from.y }
+        setShift(carried.shift)
+      })()
     }
     const forget = () => {
       window.removeEventListener('pointermove', follow)
@@ -391,8 +433,9 @@ function useDrag(object: HouseObject, spot: Spot) {
       release.current = null
       if (controls) controls.enabled = true
     }
-    const done = (native: PointerEvent) => {
+    const done = async (native: PointerEvent) => {
       forget()
+      await pending
       const carried = held.current
       held.current = null
       setShift({ x: 0, y: 0 })

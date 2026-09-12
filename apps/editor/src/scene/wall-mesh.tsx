@@ -11,11 +11,14 @@ import { moveOpeningTo } from '../edit/opening-commands'
 import { pick } from '../edit/pick'
 import { endPreview } from '../edit/preview'
 import { moveWallBy, previewWallMove, previewWallResize, resizeWall } from '../edit/wall-commands'
+import { activeTools } from '../engine/native-tools'
 import { useWallGeometry } from '../engine/use-wall-geometry'
 import { wallBody } from '../engine/wall-body'
+import { engineViewStore } from '../store/engine-view'
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
 import { usePreview } from '../store/preview'
 import { useSelection } from '../store/selection'
+import { documentStore } from '../store/store'
 import { toolStore, useTool } from '../store/tool'
 import { dragged, pointOnPlan, pointUnder } from './drag'
 import { usePlain } from './plain'
@@ -133,6 +136,12 @@ export function WallMesh({ wall, doc, ofPickedRoom, outside }: WallMeshProps) {
         return (
           <mesh
             key={piece.key}
+            userData={{
+              houseit: opening
+                ? { kind: 'opening', id: opening.id }
+                : { kind: 'wall', id: wall.id },
+              houseitHelper: !!piece.hidden,
+            }}
             geometry={native ? geometry! : undefined}
             position={toWorld(x, y, base + piece.height / 2)}
             rotation={[0, angle + (piece.turn ?? 0), 0]}
@@ -155,7 +164,12 @@ export function WallMesh({ wall, doc, ofPickedRoom, outside }: WallMeshProps) {
               pick(opening ? { kind: 'opening', id: opening.id } : { kind: 'wall', id: wall.id })
             }}
             onPointerDown={(event) => {
-              if (toolStore.getState().armed || event.button !== 0) return
+              if (
+                engineViewStore.getState().measure !== 'none' ||
+                toolStore.getState().armed ||
+                event.button !== 0
+              )
+                return
               if (!opening) {
                 pick({ kind: 'wall', id: wall.id })
                 carry.down(
@@ -304,7 +318,7 @@ function useCarry() {
     end?: (carried: { from: Point; shift: Point } | undefined) => void,
     onward?: (carried: Held) => void,
   ) => {
-    if (event.button !== 0) return
+    if (event.button !== 0 || engineViewStore.getState().measure !== 'none') return
     const from = pointOnPlan(event.ray)
     if (!from) return
     event.stopPropagation()
@@ -313,18 +327,33 @@ function useCarry() {
     setHeld(live.current)
     if (controls) controls.enabled = false
 
+    let pending = Promise.resolve()
+    let sequence = 0
     const follow = (native: PointerEvent) => {
+      const request = ++sequence
       const carried = live.current
       if (!carried) return
       const now = pointUnder(native, canvas, camera)
       if (!now) return
-      live.current = { ...carried, shift: { x: now.x - carried.from.x, y: now.y - carried.from.y } }
-      setHeld(live.current)
-      onward?.(live.current)
+      pending = (async () => {
+        const snap = await activeTools?.snapPoint(now, {
+          kind: documentStore.getState().doc.openings[id] ? 'opening' : 'wall',
+          id,
+        })
+        if (request !== sequence || !live.current) return
+        const point = snap ?? now
+        live.current = {
+          ...carried,
+          shift: { x: point.x - carried.from.x, y: point.y - carried.from.y },
+        }
+        setHeld(live.current)
+        onward?.(live.current)
+      })()
     }
-    const done = (native: PointerEvent) => {
-      const carried = live.current
+    const done = async (native: PointerEvent) => {
       forget()
+      await pending
+      const carried = live.current
       if (!carried) return
       const moved = dropped(carried)
       end?.(native.type === 'pointercancel' ? undefined : moved)

@@ -49,6 +49,7 @@ import { selectionStore, useSelection } from '../store/selection'
 import { useDocument, usePlanDoc } from '../store/store'
 import { KindIcon } from './avatars'
 import { CameraView } from './camera-view'
+import { RoomViewSettings } from './engine-settings'
 import { type Choice, FinishRow } from './finish-picker'
 
 export function PanelContent() {
@@ -174,6 +175,7 @@ function RoomPanel({ room }: { room: Room }) {
           ['Area', `${(room.clear / 1_000_000).toFixed(1)} m²`],
         ]}
       />
+      <RoomViewSettings />
       <Separator />
       <Heading>Design preference</Heading>
       <FinishRow

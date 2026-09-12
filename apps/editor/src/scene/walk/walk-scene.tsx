@@ -1,5 +1,6 @@
 import { OrthographicCamera, PerspectiveCamera } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
+import { NativeToolsLayer } from '../../engine/native-tools-layer'
 import { EYE, useWalk } from '../../store/walk'
 import { MM } from '../plan-coordinates'
 import { Ground } from '../three/ground'
@@ -30,6 +31,7 @@ export function WalkScene() {
       <House picking={false} />
       <Walker />
       <Shading />
+      <NativeToolsLayer sections={false} />
     </Canvas>
   )
 }

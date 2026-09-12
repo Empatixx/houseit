@@ -3,7 +3,9 @@ import { SNAP } from '@houseit/commands/partition'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { sideOfWall, sideRun } from '@houseit/geometry/sides'
+import { activeTools } from '../engine/native-tools'
 import { drawStore, type Guide } from '../store/draw'
+import { engineViewStore } from '../store/engine-view'
 import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
 import { endPreview, previewCommand } from './preview'
@@ -13,37 +15,11 @@ const GRID = 50
 
 type Axis = 'x' | 'y'
 
-const snapPoint = (point: Point): Point => snapTo(point).point
-
-function snapTo(point: Point): { point: Point; stuck: boolean } {
-  const { doc, level } = documentStore.getState()
-  let best: { point: Point; distance: number } | undefined
-  for (const node of Object.values(doc.nodes)) {
-    const distance = Math.hypot(node.x - point.x, node.y - point.y)
-    if (distance <= SNAP && (!best || distance < best.distance)) {
-      best = { point: { x: node.x, y: node.y }, distance }
-    }
-  }
-  if (best) return { point: best.point, stuck: true }
-  for (const wall of Object.values(doc.walls)) {
-    if (wall.level !== level) continue
-    const a = doc.nodes[wall.a]
-    const b = doc.nodes[wall.b]
-    if (!a || !b) continue
-    const lengthSquared = (b.x - a.x) ** 2 + (b.y - a.y) ** 2
-    if (lengthSquared === 0) continue
-    const t = ((point.x - a.x) * (b.x - a.x) + (point.y - a.y) * (b.y - a.y)) / lengthSquared
-    if (t < 0 || t > 1) continue
-    const foot = { x: Math.round(a.x + (b.x - a.x) * t), y: Math.round(a.y + (b.y - a.y) * t) }
-    const distance = Math.hypot(foot.x - point.x, foot.y - point.y)
-    if (distance <= SNAP && (!best || distance < best.distance)) best = { point: foot, distance }
-  }
-  if (best) return { point: best.point, stuck: true }
-  return {
-    point: { x: Math.round(point.x / GRID) * GRID, y: Math.round(point.y / GRID) * GRID },
-    stuck: false,
-  }
-}
+let aimSequence = 0
+const gridPoint = (point: Point): Point =>
+  engineViewStore.getState().snap
+    ? { x: Math.round(point.x / GRID) * GRID, y: Math.round(point.y / GRID) * GRID }
+    : point
 
 function marksOn(drawn: Point[]): Point[] {
   const { doc, level } = documentStore.getState()
@@ -81,39 +57,42 @@ function aligned(point: Point, axes: Axis[], drawn: Point[]): { point: Point; gu
 }
 
 export function aimAt(point: Point): void {
+  if (engineViewStore.getState().measure !== 'none') return
+  const sequence = ++aimSequence
   const { points } = drawStore.getState()
   const last = points[points.length - 1]
-  if (!last) {
-    const snapped = snapTo(point)
-    const aim = snapped.stuck
-      ? { point: snapped.point, guides: [] }
-      : aligned(snapped.point, ['x', 'y'], points)
+  const horizontal = !last || Math.abs(point.x - last.x) >= Math.abs(point.y - last.y)
+  const square = !last ? point : horizontal ? { x: point.x, y: last.y } : { x: last.x, y: point.y }
+  const apply = (snapped: Point | null) => {
+    if (sequence !== aimSequence || drawStore.getState().points !== points) return
+    const target = snapped ?? gridPoint(square)
+    const squared = !last
+      ? target
+      : horizontal
+        ? { x: target.x, y: last.y }
+        : { x: last.x, y: target.y }
+    const aim =
+      snapped || !engineViewStore.getState().snap
+        ? { point: squared, guides: [] }
+        : aligned(squared, last ? [horizontal ? 'x' : 'y'] : ['x', 'y'], points)
     drawStore.getState().aim(aim.point, aim.guides)
-    return
+    const args = drawArgs([...points, aim.point])
+    if (args) previewCommand(drawWall, args)
+    else endPreview()
   }
-  const dx = point.x - last.x
-  const dy = point.y - last.y
-  const level = Math.abs(dx) >= Math.abs(dy)
-  const square = level ? { x: point.x, y: last.y } : { x: last.x, y: point.y }
-  const snapped = snapTo(square)
-  const squared = level ? { x: snapped.point.x, y: last.y } : { x: last.x, y: snapped.point.y }
-  const aim = snapped.stuck
-    ? { point: squared, guides: [] }
-    : aligned(squared, [level ? 'x' : 'y'], points)
-  const cursor = aim.point
-  drawStore.getState().aim(cursor, aim.guides)
-  const args = drawArgs([...points, cursor])
-  if (args) previewCommand(drawWall, args)
-  else endPreview()
+  apply(null)
+  void (activeTools?.snapPoint(square) ?? Promise.resolve(null)).then(apply)
 }
 
 export function putDown(point: Point): void {
+  if (engineViewStore.getState().measure !== 'none') return
+  aimSequence++
   const { points, cursor } = drawStore.getState()
   if (points.length === 0) {
-    drawStore.getState().put(cursor ?? snapPoint(point))
+    drawStore.getState().put(cursor ?? gridPoint(point))
     return
   }
-  const corner = cursor ?? snapPoint(point)
+  const corner = cursor ?? gridPoint(point)
   const last = points[points.length - 1]!
   const first = points[0]!
   const near = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y) <= SNAP
@@ -186,6 +165,7 @@ function startOf(
 }
 
 export function finishDrawing(): void {
+  aimSequence++
   const { points } = drawStore.getState()
   const args = drawArgs(points)
   endPreview()
@@ -195,6 +175,7 @@ export function finishDrawing(): void {
 }
 
 export function cancelDrawing(): void {
+  aimSequence++
   endPreview()
   drawStore.getState().clear()
 }

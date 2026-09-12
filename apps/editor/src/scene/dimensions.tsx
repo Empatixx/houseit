@@ -8,17 +8,15 @@ import {
 } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { standingAt } from '@houseit/geometry/standing'
-import { Html, Line } from '@react-three/drei'
-import { useMemo } from 'react'
-import { Shape, ShapeGeometry } from 'three'
+import { useEffect, useMemo } from 'react'
+import { Shape, ShapeGeometry, Vector3 } from 'three'
+import { useNativeTools } from '../engine/native-tools'
 import { useSelection } from '../store/selection'
 import { useDocument, usePlanDoc } from '../store/store'
 import { MM, toWorld } from './plan-coordinates'
 
 const INK = '#714cb6'
 export const ABOVE = 3200
-
-const TICK = 110
 
 export function Dimensions() {
   const doc = usePlanDoc()
@@ -75,46 +73,16 @@ function RoomHighlight({ room, doc }: { room: Room; doc: HouseDocument }) {
 }
 
 export function DimensionLine({ dimension }: { dimension: Dimension }) {
-  const { from, to, offset } = dimension
-  const span = Math.hypot(to.x - from.x, to.y - from.y) || 1
-  const along = { x: (to.x - from.x) / span, y: (to.y - from.y) / span }
-  const bar = { x: -along.y * TICK, y: along.x * TICK }
-  const middle = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }
-  const shift = { x: offset.x * 12, y: -offset.y * 12 }
-
-  return (
-    <>
-      <Line
-        points={[toWorld(from.x, from.y, ABOVE), toWorld(to.x, to.y, ABOVE)]}
-        color={INK}
-        lineWidth={1}
-      />
-      {[from, to].map((end, index) => (
-        <Line
-          key={index === 0 ? 'from' : 'to'}
-          points={[
-            toWorld(end.x - bar.x, end.y - bar.y, ABOVE),
-            toWorld(end.x + bar.x, end.y + bar.y, ABOVE),
-          ]}
-          color={INK}
-          lineWidth={1}
-        />
-      ))}
-      <Html
-        position={toWorld(middle.x, middle.y, ABOVE)}
-        center
-        zIndexRange={[8, 5]}
-        style={{ pointerEvents: 'none' }}
-      >
-        <div
-          className="pointer-events-none select-none whitespace-nowrap rounded bg-white/90 px-1 text-[11px] font-medium leading-4"
-          style={{ color: INK, transform: `translate(${shift.x}px, ${shift.y}px)` }}
-        >
-          {metres(dimension.length)}
-        </div>
-      </Html>
-    </>
-  )
+  const tools = useNativeTools()
+  const { from, to } = dimension
+  useEffect(() => {
+    if (!tools) return
+    return tools.dimension(
+      new Vector3(...toWorld(from.x, from.y, ABOVE)),
+      new Vector3(...toWorld(to.x, to.y, ABOVE)),
+    )
+  }, [tools, from.x, from.y, to.x, to.y])
+  return null
 }
 
 const keyOf = ({ from, to }: Dimension) => `${from.x},${from.y}-${to.x},${to.y}`

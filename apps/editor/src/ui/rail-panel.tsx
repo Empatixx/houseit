@@ -27,6 +27,7 @@ import { LAYERS, shownStore, useShown } from '../store/shown'
 import { useDocument } from '../store/store'
 import { KindIcon } from './avatars'
 import { GAP, RAIL_OPEN_WIDTH, RAIL_PANEL_WIDTH, RAIL_WIDTH } from './edges'
+import { EngineSettings } from './engine-settings'
 import { useCover } from './use-cover'
 
 const TITLES = { plan: 'Plan', issues: 'Issues', view: 'View' } as const
@@ -228,6 +229,7 @@ function View() {
           </SelectContent>
         </Select>
       </div>
+      <EngineSettings />
     </>
   )
 }

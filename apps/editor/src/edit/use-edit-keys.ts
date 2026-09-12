@@ -1,6 +1,8 @@
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useEffect } from 'react'
+import { activeTools } from '../engine/native-tools'
 import { drawStore } from '../store/draw'
+import { engineViewStore } from '../store/engine-view'
 import { selectionStore } from '../store/selection'
 import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
@@ -20,6 +22,11 @@ export function useEditKeys(): void {
         return
       }
 
+      if (event.key === 'Escape' && engineViewStore.getState().measure !== 'none') {
+        activeTools?.measure.cancelCreation()
+        engineViewStore.getState().configure({ measure: 'none' })
+        return
+      }
       if (event.key === 'Escape') {
         cancelDrawing()
         toolStore.getState().arm(null)

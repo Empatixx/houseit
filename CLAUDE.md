@@ -21,7 +21,11 @@ The wall authoring model on `that-open-engine`:
   and the authoring document. The React presentation adapter supplies the established
   plan symbols, finishes, gestures and walkthrough; the native viewport replacement
   in `eb29400` was withdrawn because it regressed those features.
-  Keep UI gestures and layout stable when replacing engine internals. Check the
+  Native measurements, snapping, ID selection and cut views now use a public That Open
+  World adapter over the shared presentation scene/camera/renderer. A disposable
+  Fragment interaction model mirrors owned geometry; it is not the document or
+  persistence model. View/clip collections own their disposal. Keep UI gestures
+  and layout stable when replacing engine internals. Check the
   installed That Open API and official documentation before adding custom tooling;
   extend native components only for Houseit domain behavior they do not provide. Record each logical change and remaining limits
   in `changelog.md`.
