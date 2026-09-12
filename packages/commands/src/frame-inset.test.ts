@@ -20,13 +20,10 @@ test('explicit frame depth determines the clear floor recess and the glazing col
   expect(rooms[0]!.recesses![0]!.areaM2).toBeCloseTo(1.017)
   expect(rooms[2]!.recesses).toBeUndefined()
   const level = doc.walls[doc.openings.o1!.wall]!.level
-  // First frame's inner face is y4076; a 180 mm body can approach to y3896.
   expect(walkClear(doc, level, { x: 1500, y: 3890 })).toBe(true)
   expect(walkClear(doc, level, { x: 1500, y: 3900 })).toBe(false)
-  // Moving the second frame inward 100 moves that stopping plane by 100 too.
   expect(walkClear(doc, level, { x: 7500, y: 3790 })).toBe(true)
   expect(walkClear(doc, level, { x: 7500, y: 3800 })).toBe(false)
-  // The door centre is x3250 because the north wall runs westwards.
   for (const y of [3700, 4000, 4150, 4400]) expect(walkClear(doc, level, { x: 3250, y })).toBe(true)
   expect(walkClear(doc, level, { x: 2850, y: 4100 })).toBe(false)
   const updated = runScript(doc, `update-opening --id o1 --frame '${frame(226)}'`)

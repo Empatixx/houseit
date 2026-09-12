@@ -12,8 +12,6 @@ export const ReturnSchema = z.object({
   height: mm.positive(),
 })
 
-// A return remains an edge of its room, including its free end. It must not
-// close another face: rooms are introduced by add-room, never by a lining.
 export function roomReturn(
   draft: Draft<HouseDocument>,
   level: string,
@@ -34,7 +32,6 @@ export function roomReturn(
     const a = value.points[i - 1]!,
       b = value.points[i]!
     if ((a.x === b.x) === (a.y === b.y)) fail('use nonzero orthogonal legs')
-    // Test the full run, not only its endpoints (a concave room may lie between them).
     const span = Math.hypot(b.x - a.x, b.y - a.y)
     for (let n = 1, steps = Math.ceil(span / 25); n <= steps; n++) {
       const t = n / steps

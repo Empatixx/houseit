@@ -184,7 +184,6 @@ function BoxSkin({ piece, faces, paint, onPick }: PieceProps & { faces: number[]
       ),
     )
     geometry.computeVertexNormals()
-    // Preserve BoxGeometry's normalized texture coordinates after clipping.
     const normals = geometry.getAttribute('normal')
     const body = piece.body
     if (body.kind !== 'box') return geometry
@@ -218,7 +217,6 @@ function BoxSkin({ piece, faces, paint, onPick }: PieceProps & { faces: number[]
   )
 }
 
-// Replace only the upward cap; the soffit and slab edges keep their geometry.
 function replaceTop(original: BufferGeometry, top: Corner[][], depth: number): BufferGeometry {
   const positions: number[] = [],
     normals: number[] = [],

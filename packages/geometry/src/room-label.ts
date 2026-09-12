@@ -24,7 +24,6 @@ export function roomLabel(doc: HouseDocument, level: string, room: Room) {
     if (wall.level !== level) continue
     const box = swingOf(doc, opening)
     if (!box) continue
-    // The drawn leaf starts at the wall face; leave room for its outline too.
     const margin = wall.thickness / 2 + 40
     excluded.push([
       { x: box.x0 - margin, y: box.y0 - margin },
@@ -106,7 +105,6 @@ export function roomLabel(doc: HouseDocument, level: string, room: Room) {
     }
   }
   consider(room.centre)
-  // An obstacle in one row need not split the clear width of another row.
   for (let j = 0; j < ys.length - 1; j++)
     consider({ x: (x0 + x1) / 2, y: (ys[j]! + ys[j + 1]!) / 2 })
   for (let i = 0; i < xs.length - 1; i++)

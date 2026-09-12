@@ -25,8 +25,6 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
   const faces = findFaces(doc, level)
   const recesses = openingRecesses(doc, level)
   const boundary = new Set(faces.flatMap((face) => face.walls))
-  // A detached straight partition has no face walk. Attached returns already
-  // occupy their inset boundary, so only detached walls enter this union.
   const partitions = Object.values(doc.walls).filter((wall) => {
     const a = doc.nodes[wall.a],
       b = doc.nodes[wall.b]
@@ -60,8 +58,6 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
             candidate.loop.length === walls.size && candidate.loop.every((id) => walls.has(id)),
         ) ?? stored.find((candidate) => containsPoint(polygon, candidate.x, candidate.y))
       const clear = clearOutline(doc, level, face.nodes)
-      // Existing room walls may already enclose a declared shaft. That void is
-      // not an unassigned room. Preserve named rooms and all other small faces.
       if (
         !found &&
         clear.length &&

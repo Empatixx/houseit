@@ -1,7 +1,6 @@
 import type { Box } from './boxes'
 import type { Point } from './outlines'
 
-// Partition overlapping occupied rectangles so their floor area is counted once.
 export function disjointBoxes(boxes: Box[]): Box[] {
   const result: Box[] = []
   for (const box of boxes) {
@@ -27,7 +26,6 @@ export function disjointBoxes(boxes: Box[]): Box[] {
   return result
 }
 
-// Clip by a convex box; signed area also sums disconnected portions of an orthogonal room.
 export function areaInBox(outline: Point[], box: Box): number {
   let polygon = outline
   for (const [axis, limit, sign] of [

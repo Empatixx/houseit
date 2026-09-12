@@ -16,7 +16,6 @@ import { ReturnSchema } from './room-return'
 
 export const PartitionSchema = ReturnSchema.extend({ points: ReturnSchema.shape.points.length(2) })
 
-// Both ends are free. This remains part of the named room, not a new face.
 export function roomPartition(
   draft: Draft<HouseDocument>,
   level: string,

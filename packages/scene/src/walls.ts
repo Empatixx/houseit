@@ -33,8 +33,6 @@ export function wallPieces(doc: HouseDocument, level: string): Piece[] {
       b = doc.nodes[wall.b]!
     return ((b.x - a.x) * (-piece.at.z - a.y) - (b.y - a.y) * (piece.at.x - a.x)) * side > 0
   }
-  // At a corner the outside face owns the join; an inward room finish must
-  // not colour the projecting end of the perpendicular wall on the facade.
   return built.sort((a, b) => Number(outward(b)) - Number(outward(a)))
 }
 
@@ -67,8 +65,6 @@ function standingWall(
     return { x: on.x, y: up, z: -on.y }
   }
 
-  // Full-height walls meet the soffit; a separately specified clear height
-  // leaves the slab and the buildup above it outside the wall's finish.
   const level = doc.levels[wall.level]
   const height = level ? Math.min(wall.height, soffitOf(level) - wall.baseOffset) : wall.height
   const built = height > 0 ? solidPieces({ ...wall, height }, openings, length, growA, span) : []
@@ -157,8 +153,6 @@ function standingWall(
     const exterior = wall.exterior
     const thickness = exterior.layers.reduce((sum, layer) => sum + layer.thickness, 0)
     const edge = wall.thickness / 2 + thickness / 2
-    // The outside coat covers the slab edge too. Interior walls stop at the
-    // soffit, but this continuous envelope reaches the next finished floor.
     const facadeHeight =
       level && wall.height >= soffitOf(level) - wall.baseOffset
         ? level.height - wall.baseOffset

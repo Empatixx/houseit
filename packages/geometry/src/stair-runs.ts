@@ -5,7 +5,6 @@ import { treadsOf } from '@houseit/core/stairs'
 import type { Point } from './outlines'
 import { unionOfBoxes } from './union'
 
-// Decompose orthogonal landing outlines before union; a landing may wrap a shaft.
 function cells(outline: Point[]) {
   const xs = [...new Set(outline.map((p) => p.x))].sort((a, b) => a - b)
   const ys = [...new Set(outline.map((p) => p.y))].sort((a, b) => a - b)

@@ -81,8 +81,6 @@ export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
     const named = { ...lid, sidePaint: EDGE, name: `lid-${room.nodes.join('-')}`, casts: false }
     return room.id ? { ...named, of: { kind: 'room' as const, id: room.id } } : named
   })
-  // Some surveyed room boundaries turn around the shaft, while others enclose
-  // it and rely on its derived hole. Close only the uncovered part at its top.
   const covered = lids.flatMap((lid) =>
     lid.body.kind === 'prism' ? [lid.body.outline.map((p) => ({ x: p.x, y: -p.z }))] : [],
   )
@@ -169,8 +167,6 @@ function structuralOutline(
   room: Room,
   outside: Map<string, 1 | -1>,
 ) {
-  // Shared slabs meet at wall centres; the perimeter reaches the structural
-  // outside face. A free-ended partition does not cut the slab outline.
   const nodes = [...room.nodes]
   for (let i = 0; nodes.length > 2 && i < nodes.length; i++) {
     if (nodes[i] === nodes[(i + 2) % nodes.length]) {
@@ -184,8 +180,6 @@ function structuralOutline(
   )
 }
 
-// A floor needs a solid underside even where no room below provides a ceiling
-// (overhangs, changed storey footprints, and the lowest floor).
 export function underfloorPieces(doc: HouseDocument, level: string): Piece[] {
   const storey = doc.levels[level]
   if (!storey) return []
@@ -203,14 +197,12 @@ export function underfloorPieces(doc: HouseDocument, level: string): Piece[] {
     const outline = corners(structuralOutline(doc, level, room, outside))
     const holes = wellsInRoom(doc, level, room).map((w) => corners(w.outline))
     const patches = exposedSlabTop({ outline, holes }, covered)
-    // No overlapping ceiling: retain the complete footprint, including holes.
     const shapes =
       patches === undefined
         ? [{ outline, holes }]
         : patches.map((outline) => ({ outline, holes: [] }))
     return shapes.map((shape, i) => ({
       ...prism({ base: -depth, thickness: depth, ...shape, paint: { colour: PLASTER } }),
-      // The finish above supplies the upward face, never two coplanar caps.
       body: { kind: 'prism' as const, ...shape, thickness: depth, top: [] },
       sidePaint: EDGE,
       name: `underfloor-${room.id ?? room.nodes.join('-')}-${i}`,

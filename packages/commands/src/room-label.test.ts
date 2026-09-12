@@ -17,7 +17,6 @@ add-opening --room WC --kind door --side west --width 700 --height 1970 --along 
   const level = Object.keys(doc.levels)[0]!
   const room = roomsOf(doc, level)[0]!
   const label = roomLabel(doc, level, room)
-  // The north-hinged open leaf crosses the WC at y=987.5; its casing ends at1813.
   expect(label.y - label.height / 2).toBeGreaterThan(987.5)
   expect(label.y + label.height / 2).toBeLessThanOrEqual(1813)
   expect(label.width).toBeGreaterThanOrEqual(1000)

@@ -12,8 +12,6 @@ export function touchesWall(room: Room, wall: Wall): boolean {
 }
 
 export function roomSide(room: Room, wall: Wall): -1 | 1 | undefined {
-  // findFaces returns counterclockwise bounded faces: their inside is on the left.
-  // A concave room's centroid need not be on that side of every boundary wall.
   for (let i = 0; i < room.nodes.length; i++) {
     const from = room.nodes[i],
       to = room.nodes[(i + 1) % room.nodes.length]

@@ -1,7 +1,5 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 
-// Extend to the face of the crossing wall, not by this wall's own thickness.
-// Otherwise an 800 mm pier ending at a 125 mm partition grows 400 mm into it.
 export function wallCaps(doc: HouseDocument, wall: Wall) {
   const a = doc.nodes[wall.a]!,
     b = doc.nodes[wall.b]!

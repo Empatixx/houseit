@@ -4,9 +4,6 @@ type Bounds = { min: number[]; max: number[] }
 type Rectangle = { u0: number; u1: number; v0: number; v1: number }
 const EPS = 1e-6
 
-// A union's skin, retaining each piece's finish and owner. At a shared face
-// neither solid has an exposed surface; coincident outward faces belong to
-// the first piece only. No depth bias or displaced geometry is involved.
 export function exposedBoxes(pieces: Piece[]): Piece[] {
   const boxes = pieces.map(boundsOf)
   return pieces.map((piece, index) => {
@@ -78,8 +75,6 @@ function boundsOf(piece: Piece): Bounds | undefined {
     return
   const c = Math.cos(piece.turn ?? 0),
     s = Math.sin(piece.turn ?? 0)
-  // Oblique walls keep their exact geometry; the orthogonal union is not an
-  // approximation by bounding boxes for those walls.
   if (Math.min(Math.abs(c), Math.abs(s)) > EPS) return
   const w = Math.abs(c) * piece.body.width + Math.abs(s) * piece.body.depth
   const d = Math.abs(s) * piece.body.width + Math.abs(c) * piece.body.depth

@@ -97,7 +97,7 @@ export function planPieces(
     }
     for (const piece of pieces.slice(before)) {
       piece.opening = opening.id.split('-panel-')[0]!
-      if (piece.key.endsWith('-glass')) continue // The white reveal clears the whole wall.
+      if (piece.key.endsWith('-glass')) continue
       piece.aside = (piece.aside ?? 0) + frameOffset(opening, wall, outside)
     }
   })

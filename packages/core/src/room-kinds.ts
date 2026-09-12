@@ -27,7 +27,6 @@ const kind = (
 })
 
 export const ROOM_KINDS: RoomKind[] = [
-  // Non-dwelling purposes carry no invented dwelling minimum area.
   kind('reception', 'Reception', 0, { passage: true }, ['reception', 'recepce']),
   kind('plant-room', 'Plant room', 0, {}, ['plant room', 'strojovna', 'technická místnost']),
   kind('living-kitchen', 'Living room with kitchenette', 0, {}, ['living kitchen', 'pokoj s kk']),

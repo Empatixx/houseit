@@ -109,7 +109,6 @@ test('the facade covers the slab and buildup while keeping the structural wall a
   expect(
     Math.max(...core.map((p) => p.at.y + (p.body.kind === 'box' ? p.body.height / 2 : 0))),
   ).toBe(2900)
-  // A ray through the middle of the opening cannot hit the insulating coat.
   expect(
     coat.some(
       (p) =>

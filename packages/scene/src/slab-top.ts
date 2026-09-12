@@ -19,8 +19,6 @@ const bounds = (s: Surface) => ({
   z1: Math.max(...s.outline.map((p) => p.z)),
 })
 
-// The upper room's finish owns a shared horizontal face. Keep the uncovered
-// part of the lower slab, including the roof of an L's lower wing.
 export function exposedSlabTop(slab: Surface, floors: Surface[]): Corner[][] | undefined {
   const b = bounds(slab)
   const covering = floors.filter((f) => {
@@ -31,8 +29,6 @@ export function exposedSlabTop(slab: Surface, floors: Surface[]): Corner[][] | u
   const rings = [slab, ...covering].flatMap((s) => [s.outline, ...s.holes])
   const edges = rings.flatMap((r) => r.map((a, i) => ({ a, b: r[(i + 1) % r.length]! })))
   const xs = new Set(rings.flat().map((p) => p.x))
-  // Split at crossings as well as vertices: within each strip edge order is
-  // fixed, so subtraction is exact for sloping boundaries and round wells too.
   for (let i = 0; i < edges.length; i++) {
     const e = edges[i]!
     for (const f of edges.slice(i + 1)) {

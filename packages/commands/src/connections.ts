@@ -86,8 +86,6 @@ export const addShaft = defineCommand({
             const a = boxOf(corners),
               b = boxOf(shaftOutside(s))
             if (!clashes(a, b, 0)) return false
-            // Two casings may share existing masonry. Their overlap must not
-            // occupy clear floor or either shaft void.
             return !coveredByWalls(draft, storey.id, {
               x0: Math.max(a.x0, b.x0),
               x1: Math.min(a.x1, b.x1),
@@ -130,7 +128,6 @@ export const addShaft = defineCommand({
             clashes(
               boxOf(voidCorners),
               wallBox(draft.nodes[wall.a]!, draft.nodes[wall.b]!, wall.thickness),
-              // Integer centres put an odd-thickness wall face on a half millimetre.
               0.5,
             )
           )

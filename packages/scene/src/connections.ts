@@ -25,7 +25,6 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
       z: -direction.y * rate,
       offset: -(r.x * direction.x + r.y * direction.y) * rate,
     }
-    // Both faces slope: a suspended concrete ramp, with a constant vertical thickness.
     return [
       {
         body: {
