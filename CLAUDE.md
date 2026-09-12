@@ -498,3 +498,9 @@ sides of the free end, so the same wall is drawn, stood in 3D, walked around and
 subtracted from clear floor area. Enclosure walls may coincide with existing
 walls; shaft voids may not cut through them. Only the enclosure portion on clear
 floor is subtracted, rather than counting wall area twice.
+
+`update-room --partition` takes the same fields with exactly two points for a
+straight orthogonal partition whose two ends remain free inside the room.
+It reports its endpoints, thickness and height with the room. Its occupied
+floor is subtracted without closing a new room, and both ends can be walked
+around. Use `--return` when one end meets the enclosing wall.

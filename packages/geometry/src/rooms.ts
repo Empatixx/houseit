@@ -1,6 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { type Face, findFaces } from '@houseit/core/faces'
 import { areaInBox, disjointBoxes } from './area-in-box'
+import { wallBox } from './boxes'
 import { centroidOf } from './centroid'
 import { clearAreaOf, clearOutline } from './clear'
 import { shaftsOn } from './connections'
@@ -14,12 +15,23 @@ export type Room = Face & {
   name?: string
   floor?: string
   kind?: string
+  partitions: string[]
 }
 
 export function roomsOf(doc: HouseDocument, level: string): Room[] {
   const stored = Object.values(doc.rooms).filter((room) => room.level === level)
   const shafts = shaftsOn(doc, level)
+  const faces = findFaces(doc, level)
+  const boundary = new Set(faces.flatMap((face) => face.walls))
+  // A detached straight partition has no face walk. Attached returns already
+  // occupy their inset boundary, so only detached walls enter this union.
+  const partitions = Object.values(doc.walls).filter((wall) => {
+    const a = doc.nodes[wall.a],
+      b = doc.nodes[wall.b]
+    return wall.level === level && !boundary.has(wall.id) && a && b && (a.x === b.x || a.y === b.y)
+  })
   const occupied = disjointBoxes([
+    ...partitions.map((wall) => wallBox(doc.nodes[wall.a]!, doc.nodes[wall.b]!, wall.thickness)),
     ...(doc.levels[level]?.columns ?? []).map((c) => ({
       x0: c.x - c.width / 2,
       x1: c.x + c.width / 2,
@@ -36,7 +48,7 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
       })),
   ])
 
-  return findFaces(doc, level)
+  return faces
     .map((face) => {
       const polygon = face.nodes.map((id) => doc.nodes[id]!)
       const walls = new Set(face.walls)
@@ -66,6 +78,13 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
         return undefined
       const room: Room = {
         ...face,
+        partitions: partitions
+          .filter((wall) => {
+            const a = doc.nodes[wall.a]!,
+              b = doc.nodes[wall.b]!
+            return containsPoint(polygon, (a.x + b.x) / 2, (a.y + b.y) / 2)
+          })
+          .map((wall) => wall.id),
         clear:
           clearAreaOf(doc, level, face.nodes) -
           occupied.reduce((sum, box) => sum + areaInBox(clear, box), 0),

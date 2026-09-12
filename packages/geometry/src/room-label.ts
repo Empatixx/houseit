@@ -1,5 +1,6 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { treadsOf } from '@houseit/core/stairs'
+import { wallBox } from './boxes'
 import { clearOutline } from './clear'
 import { shaftOutside, shaftsOn } from './connections'
 import type { Point } from './outlines'
@@ -13,6 +14,16 @@ export function roomLabel(doc: HouseDocument, level: string, room: Room) {
   excluded.push(
     ...(doc.levels[level]?.stairs ?? []).flatMap((s) => treadsOf(s).map((t) => t.outline)),
   )
+  for (const id of room.partitions) {
+    const wall = doc.walls[id]!
+    const box = wallBox(doc.nodes[wall.a]!, doc.nodes[wall.b]!, wall.thickness)
+    excluded.push([
+      { x: box.x0, y: box.y0 },
+      { x: box.x1, y: box.y0 },
+      { x: box.x1, y: box.y1 },
+      { x: box.x0, y: box.y1 },
+    ])
+  }
   const loops = [outline, ...excluded]
   const x0 = Math.min(...outline.map((p) => p.x)),
     x1 = Math.max(...outline.map((p) => p.x))

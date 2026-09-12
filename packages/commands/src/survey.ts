@@ -107,6 +107,7 @@ export type RoomReport = {
   finishes?: Partial<Record<Part, string>>
   neighbours: string[]
   walls: WallReport[]
+  partitions?: { id: string; from: Point; to: Point; thickness: number; height: number }[]
   sides: SideReport[]
   wells?: {
     object: string
@@ -197,6 +198,22 @@ export function surveyRoom(
     ...(room.floor === undefined ? {} : { floor: room.floor }),
     ...dressingOf(room.id === undefined ? undefined : doc.rooms[room.id]),
     neighbours,
+    ...(room.partitions.length
+      ? {
+          partitions: room.partitions.map((id) => {
+            const wall = doc.walls[id]!,
+              a = doc.nodes[wall.a]!,
+              b = doc.nodes[wall.b]!
+            return {
+              id,
+              from: { x: a.x, y: a.y },
+              to: { x: b.x, y: b.y },
+              thickness: wall.thickness,
+              height: wall.height,
+            }
+          }),
+        }
+      : {}),
     walls: walls.flatMap((wall) => {
       const place = runOfWall(doc, level, room, wall.id)
       const a = doc.nodes[wall.a]

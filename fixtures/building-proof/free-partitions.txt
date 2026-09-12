@@ -1,0 +1,6 @@
+update-level --name "1.NP" --height 3670 --clear-height 3300
+add-room --name Salon --width 14000 --depth 6000 --material ceramic-tile
+add-room --from Salon --side east --width 7000 --name Treatment --material vinyl
+add-opening --room Salon --side east --kind door --width 1000 --height 2050 --along 1000
+update-room --room Salon --partition '{"points":[{"x":3300,"y":1350},{"x":3300,"y":4650}],"thickness":125,"height":3300}'
+update-room --room Treatment --partition '{"points":[{"x":10000,"y":1350},{"x":10000,"y":4650}],"thickness":125,"height":1200}'
