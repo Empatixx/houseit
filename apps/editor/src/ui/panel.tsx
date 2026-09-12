@@ -114,8 +114,8 @@ function WallPanel({ wall }: { wall: Wall }) {
         ]}
       />
       <p className="text-xs leading-5 text-muted-foreground">
-        Drag the handle across the wall to move the whole wall, including its openings. Connected
-        walls follow. Delete removes the wall and its openings.
+        Drag the wall or round handle to move it, including its openings and connected walls. Square
+        handles resize free ends. Delete removes the wall and its openings.
       </p>
     </>
   )

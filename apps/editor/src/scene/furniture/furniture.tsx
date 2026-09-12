@@ -151,7 +151,8 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
           pick({ kind: 'object', id: object.id })
         }}
         onPointerDown={(event) => {
-          if (toolStore.getState().armed?.kind === 'wall' || !on(event)) return
+          if (toolStore.getState().armed || event.button !== 0 || !on(event)) return
+          pick({ kind: 'object', id: object.id })
           drag.down(event)
         }}
         onPointerMove={(event) => {
@@ -363,6 +364,8 @@ function useDrag(object: HouseObject, spot: Spot) {
   const canvas = useThree((state) => state.gl.domElement)
   const held = useRef<Carried | null>(null)
   const [shift, setShift] = useState<Point>({ x: 0, y: 0 })
+  const release = useRef<(() => void) | null>(null)
+  useEffect(() => () => release.current?.(), [])
 
   const down = (event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) return
@@ -381,17 +384,28 @@ function useDrag(object: HouseObject, spot: Spot) {
       carried.shift = { x: now.x - carried.from.x, y: now.y - carried.from.y }
       setShift(carried.shift)
     }
-    const done = () => {
+    const forget = () => {
       window.removeEventListener('pointermove', follow)
       window.removeEventListener('pointerup', done)
       window.removeEventListener('pointercancel', done)
+      release.current = null
+      if (controls) controls.enabled = true
+    }
+    const done = (native: PointerEvent) => {
+      forget()
       const carried = held.current
       held.current = null
       setShift({ x: 0, y: 0 })
       if (controls) controls.enabled = true
-      if (!carried || Math.hypot(carried.shift.x, carried.shift.y) < 30) return
+      if (
+        native.type === 'pointercancel' ||
+        !carried ||
+        Math.hypot(carried.shift.x, carried.shift.y) < 30
+      )
+        return
       moveTo(object, { x: spot.at.x + carried.shift.x, y: spot.at.y + carried.shift.y })
     }
+    release.current = forget
     window.addEventListener('pointermove', follow)
     window.addEventListener('pointerup', done)
     window.addEventListener('pointercancel', done)

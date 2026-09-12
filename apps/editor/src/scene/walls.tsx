@@ -6,6 +6,7 @@ import { useSelection } from '../store/selection'
 import { useDocument, usePlanDoc } from '../store/store'
 import { usePlain } from './plain'
 import { WallMesh } from './wall-mesh'
+import { WallPreview } from './wall-preview'
 
 export function Walls() {
   const doc = usePlanDoc()
@@ -35,6 +36,7 @@ export function Walls() {
           pickedRoom={selected?.kind === 'room' ? selected.id : undefined}
         />
       ))}
+      <WallPreview />
     </>
   )
 }
