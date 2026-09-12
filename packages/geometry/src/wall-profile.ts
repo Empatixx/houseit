@@ -4,7 +4,6 @@ import type { Point } from './outlines'
 
 const cross = (a: Point, b: Point) => a.x * b.y - a.y * b.x
 
-/** The plan perimeter assigned to a wall at shared L, T and X junctions. */
 export function wallProfile(doc: HouseDocument, wall: Wall, atHeight?: number): Point[] {
   const a = doc.nodes[wall.a]!
   const b = doc.nodes[wall.b]!
