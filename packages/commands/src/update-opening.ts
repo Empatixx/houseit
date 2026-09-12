@@ -9,13 +9,14 @@ import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { json } from './json-schema'
 import { length } from './length-schema'
+import { handOf, hingeAt } from './opening-hinge'
 import { openingById } from './openings'
 import { checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
 import { SIDE_NAMES, sideNamed } from './resolve'
 
 export const updateOpening = defineCommand({
   name: 'update-opening',
-  summary: `Change a door or a window: its size, its kind of leaf (${DOOR_VARIANTS.join(', ')}), or where in the wall it sits`,
+  summary: `Change a door or a window: its size, its kind of leaf (${DOOR_VARIANTS.join(', ')}), or where in the wall it sits. --hinge left|right is viewed from the room it opens into, facing the closed door`,
   args: z.object({
     id: z.string().min(1),
     panels: json(PanelsSchema).optional(),
@@ -24,6 +25,7 @@ export const updateOpening = defineCommand({
     height: length().optional(),
     sill: length().optional(),
     variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).optional(),
+    hinge: z.enum(['left', 'right']).optional(),
     along: along().optional(),
     toSide: z.enum(SIDE_NAMES).optional(),
     toWall: z.string().min(1).optional(),
@@ -47,17 +49,21 @@ export const updateOpening = defineCommand({
       !moving &&
       !resizing &&
       args.variant === undefined &&
+      args.hinge === undefined &&
       args.panels === undefined &&
       args.frame === undefined
     ) {
       throw new CommandError(
-        'update-opening: say what to change — --width, --height, --sill, --variant, --along, --to-side or --to-wall',
+        'update-opening: say what to change — --width, --height, --sill, --variant, --hinge, --along, --to-side or --to-wall',
       )
     }
 
     const variant = args.variant ?? opening.variant
     const width = args.width ?? opening.width
     const swings = door && variant === 'hinged'
+    if (args.hinge !== undefined && !swings)
+      throw new CommandError('update-opening: --hinge needs a hinged door')
+    const hand = args.hinge ?? handOf(opening)
 
     if (moving) {
       const at =
@@ -107,6 +113,7 @@ export const updateOpening = defineCommand({
     const target = draft.openings[opening.id]!
     target.width = width
     target.variant = variant
+    if (swings) target.hinge = hingeAt(target.swing, hand)
     if (args.height !== undefined) target.height = args.height
     if (args.sill !== undefined) target.sillHeight = args.sill
     if (args.panels !== undefined) target.panels = args.panels

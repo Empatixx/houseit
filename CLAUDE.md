@@ -461,6 +461,11 @@ An `add-opening --kind assembly` is one product with rectangular fixed and door
 panels and a frame. Panels must tile the opening exactly without overlaps. The
 plan, 3D and traversal derive its parts from that one record.
 
+`add-opening` and `update-opening` accept `--hinge left|right` for hinged doors,
+viewed from the room the door opens into, facing the closed leaf. The answer
+reports that handedness and `opensInto`; moving a door preserves its handedness
+even when its new wall runs the opposite way.
+
 The driver's `window.floorplan.show({view: 'north'})` also supports south, east,
 west, roof and overview. It changes only the camera, never the document. These
 views exist to compare a model against its elevations and roof drawing.

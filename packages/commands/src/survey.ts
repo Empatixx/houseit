@@ -17,6 +17,8 @@ import {
 import { freeSpans } from '@houseit/geometry/spans'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { wellsInRoom } from '@houseit/geometry/wells'
+import { handOf } from './opening-hinge'
+import { roomOfOpening } from './openings'
 import { order } from './resolve'
 
 export type WallReport = {
@@ -39,6 +41,8 @@ export type OpeningReport = {
   panels?: Opening['panels']
   frame?: Opening['frame']
   variant?: Opening['variant']
+  hinge?: 'left' | 'right'
+  opensInto?: string
   sill?: number
   to?: string
 }
@@ -162,6 +166,12 @@ export function surveyRoom(
       height: opening.height,
       ...(opening.panels ? { panels: opening.panels } : {}),
       ...(opening.frame ? { frame: opening.frame } : {}),
+      ...(opening.kind === 'door' && opening.variant === 'hinged'
+        ? {
+            hinge: handOf(opening),
+            opensInto: roomOfOpening(doc, rooms, opening)?.name ?? '(unnamed)',
+          }
+        : {}),
       ...(opening.kind === 'door' || opening.panels?.some((p) => p.kind === 'door')
         ? { variant: opening.variant, to: across ? (across.name ?? '(unnamed)') : 'outside' }
         : { sill: opening.sillHeight }),
