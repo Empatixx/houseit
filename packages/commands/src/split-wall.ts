@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { wallHosts } from '@houseit/core/wall-hosts'
 import type { Point } from '@houseit/geometry/outlines'
 import type { Draft } from 'immer'
 import { allocateId } from './allocate-id'
@@ -37,6 +38,16 @@ export function splitWall(draft: Draft<HouseDocument>, wallId: string, at: Point
     else {
       opening.wall = secondId
       opening.t = (middle - here) / (length - here)
+    }
+  }
+
+  for (const { host } of wallHosts(draft)) {
+    if (host.wall !== wallId) continue
+    const middle = host.t * length
+    if (middle < here) host.t = middle / here
+    else {
+      host.wall = secondId
+      host.t = (middle - here) / (length - here)
     }
   }
 

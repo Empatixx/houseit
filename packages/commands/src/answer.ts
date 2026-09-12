@@ -43,6 +43,7 @@ export type WallReport = {
     base: number
   }[]
   openings: (HouseDocument['openings'][string] & { at: number })[]
+  devices: (HouseDocument['devices'][string] & { at: number })[]
 }
 
 function surveyWalls(doc: HouseDocument, level: string): WallReport[] {
@@ -67,6 +68,13 @@ function surveyWalls(doc: HouseDocument, level: string): WallReport[] {
         height: wall.height,
         base: wall.baseOffset,
       })),
+      devices: e.segments.flatMap(({ wall, from, to }) =>
+        Object.values(doc.devices).flatMap((d) =>
+          d.host.kind === 'wall' && d.host.wall === wall.id
+            ? [{ ...d, at: from + (to - from) * d.host.t }]
+            : [],
+        ),
+      ),
       openings: e.segments.flatMap(({ wall, from, to }) =>
         Object.values(doc.openings)
           .filter((o) => o.wall === wall.id)

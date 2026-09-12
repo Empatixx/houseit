@@ -1,5 +1,6 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { soffitOf } from '@houseit/core/levels'
+import { wallHosts } from '@houseit/core/wall-hosts'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { elementId, wallElement } from '@houseit/geometry/wall-elements'
 import { wallProfile } from '@houseit/geometry/wall-profile'
@@ -14,6 +15,9 @@ import { linkPoints } from './partition'
 import { checkPockets } from './pocket-door'
 import { rebind } from './rebind'
 import { levelOf } from './resolve'
+
+import { validateWallHosts } from './validate-wall-hosts'
+import { furnitureBefore, retainFurniture } from './wall-furniture'
 
 const positive = () => length().pipe(z.number().positive())
 const point = json(z.object({ x: length(), y: length() }))
@@ -74,6 +78,7 @@ export const updateWall = defineCommand({
       throw new CommandError('update-wall: provide --by, --thickness, --height or --base')
     const element = wallElement(draft, args.id)
     const level = element.level
+    const furniture = furnitureBefore(draft, level)
     const moving = new Set(element.segments.flatMap(({ wall }) => [wall.a, wall.b]))
     const affected = Object.values(draft.walls).filter(
       (wall) => moving.has(wall.a) || moving.has(wall.b),
@@ -114,7 +119,10 @@ export const updateWall = defineCommand({
           `update-wall: connected wall ${elementId(wall)} would collapse or reverse`,
         )
       if (moving.has(wall.a) === moving.has(wall.b)) continue
-      for (const opening of Object.values(draft.openings)) {
+      for (const opening of [
+        ...Object.values(draft.openings),
+        ...wallHosts(draft).map((h) => h.host),
+      ]) {
         if (opening.wall !== wall.id) continue
         const fromFixed = (moving.has(wall.a) ? 1 - opening.t : opening.t) * old.length
         opening.t = moving.has(wall.a) ? 1 - fromFixed / span : fromFixed / span
@@ -125,6 +133,7 @@ export const updateWall = defineCommand({
     rebind(draft, level)
     if (roomIds.some((id) => !draft.rooms[id]?.loop.length))
       throw new CommandError('update-wall: this move would destroy an existing room')
+    retainFurniture(draft, level, furniture)
     return { changed: [...new Set([...affected.map(elementId), ...roomIds])], at: level }
   },
 })
@@ -187,6 +196,7 @@ export function validateWalls(doc: HouseDocument, level: string) {
       throw new CommandError(`Walls ${one.id} and ${other.id} would cross without a junction`)
     }
   }
+  validateWallHosts(doc, level)
   checkPockets(doc, level, 'wall')
 }
 

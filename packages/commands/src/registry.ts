@@ -5,6 +5,7 @@ import { addRoom } from './add-room'
 import { addColumn, removeColumn, updateColumn } from './column'
 import { addRamp, addShaft, removeRamp, removeShaft } from './connections'
 import type { AnyCommand } from './define-command'
+import { addDevice, removeDevice, updateDevice } from './device'
 import { getPlan } from './get-plan'
 import { removeObject, removeOpening } from './remove'
 import { removeRoom } from './remove-room'
@@ -18,6 +19,9 @@ import { addWall, removeWall, updateWall } from './wall'
 
 const ALL: AnyCommand[] = [
   getPlan,
+  addDevice,
+  updateDevice,
+  removeDevice,
   addWall,
   updateWall,
   removeWall,

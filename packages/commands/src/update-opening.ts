@@ -18,6 +18,7 @@ import { checkDoorLeaves, checkOpeningAt, placeOpening, placeOpeningAt } from '.
 import { checkPockets, pocketDirection, setPocket } from './pocket-door'
 import { SIDE_NAMES, sideNamed } from './resolve'
 
+import { validateWallHosts } from './validate-wall-hosts'
 import { validateWalls } from './wall'
 
 export const updateOpening = defineCommand({
@@ -226,6 +227,7 @@ export const updateOpening = defineCommand({
     setPocket(draft, target, slideTowards, 'update-opening')
     checkDoorLeaves(draft, level, room, target, 'update-opening')
     checkPockets(draft, level, 'update-opening')
+    validateWallHosts(draft, level)
     return { changed: [opening.id] }
   },
 })

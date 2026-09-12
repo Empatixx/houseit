@@ -16,6 +16,7 @@ import { checkDoorLeaves, placeOpening, placeOpeningAt } from './place-opening'
 import { checkPockets, setPocket } from './pocket-door'
 import { levelOf, SIDE_NAMES, sideNamed, whereRoom } from './resolve'
 
+import { validateWallHosts } from './validate-wall-hosts'
 import { validateWalls } from './wall'
 
 const DOOR_HEIGHT = 1970
@@ -170,6 +171,7 @@ export const addOpening = defineCommand({
     if (beside) checkDoorLeaves(draft, level, beside, draft.openings[id]!, 'add-opening')
     setPocket(draft, draft.openings[id]!, args.slideTowards, 'add-opening')
     checkPockets(draft, level, 'add-opening')
+    validateWallHosts(draft, level)
     if (!room) validateWalls(draft, level)
     return { changed: [id], at: level }
   },
