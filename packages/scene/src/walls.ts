@@ -157,7 +157,14 @@ function standingWall(
     const exterior = wall.exterior
     const thickness = exterior.layers.reduce((sum, layer) => sum + layer.thickness, 0)
     const edge = wall.thickness / 2 + thickness / 2
-    for (const piece of built) {
+    // The outside coat covers the slab edge too. Interior walls stop at the
+    // soffit, but this continuous envelope reaches the next finished floor.
+    const facadeHeight =
+      level && wall.height >= soffitOf(level) - wall.baseOffset
+        ? level.height - wall.baseOffset
+        : height
+    const cladding = solidPieces({ ...wall, height: facadeHeight }, openings, length, growA, span)
+    for (const piece of cladding) {
       const extendA = piece.at - piece.length / 2 <= 0.01 ? thickness : 0
       const extendB = piece.at + piece.length / 2 >= length - 0.01 ? thickness : 0
       const cuts = [

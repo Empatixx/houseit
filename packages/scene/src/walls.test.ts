@@ -87,3 +87,35 @@ test('a measured soffit caps full-height walls while low returns retain their ow
     expect(piece.at.y - piece.body.height / 2).toBeCloseTo(0)
   }
 })
+
+test('the facade covers the slab and buildup while keeping the structural wall at the soffit', () => {
+  const { doc, level } = room()
+  doc.levels[level]!.height = 3300
+  doc.levels[level]!.clearHeight = 2900
+  doc.walls.w1!.height = 3300
+  doc.walls.w1!.exterior = {
+    layers: [{ name: 'ETICS', thickness: 212 }],
+    colour: '#f1f0ea',
+    bands: [{ from: 0, to: 3300, colour: '#777777' }],
+  }
+  doc.openings.o1 = opening({ id: 'o1', wall: 'w1', kind: 'window', sillHeight: 900, height: 1500 })
+  const built = wallPieces(doc, level).filter((p) => p.of?.id === 'w1')
+  const coat = built.filter((p) => p.paint.colour === '#777777')
+  expect(coat.length).toBeGreaterThan(0)
+  expect(
+    Math.max(...coat.map((p) => p.at.y + (p.body.kind === 'box' ? p.body.height / 2 : 0))),
+  ).toBe(3300)
+  const core = built.filter((p) => p.paint.colour !== '#777777')
+  expect(
+    Math.max(...core.map((p) => p.at.y + (p.body.kind === 'box' ? p.body.height / 2 : 0))),
+  ).toBe(2900)
+  // A ray through the middle of the opening cannot hit the insulating coat.
+  expect(
+    coat.some(
+      (p) =>
+        p.body.kind === 'box' &&
+        Math.abs(p.at.x - 2000) < p.body.width / 2 &&
+        Math.abs(p.at.y - 1500) < p.body.height / 2,
+    ),
+  ).toBe(false)
+})
