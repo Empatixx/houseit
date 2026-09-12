@@ -16,6 +16,8 @@ import {
   resizeStub,
   stubOf,
 } from '../edit/wall-commands'
+import { useWallGeometry } from '../engine/use-wall-geometry'
+import { wallBody } from '../engine/wall-body'
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
 import { usePreview } from '../store/preview'
 import { useSelection } from '../store/selection'
@@ -33,6 +35,8 @@ type WallMeshProps = {
 }
 
 export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallMeshProps) {
+  const body = useMemo(() => wallBody(doc, wall, true), [doc, wall])
+  const geometry = useWallGeometry(body)
   const plainly = usePlain()
   const chosen = useSelection((state) => state.selected)
   const noticed = useHover((state) => state.hovered)
@@ -74,7 +78,20 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
   const length = span + growA + growB
 
   const openings = Object.values(doc.openings).filter((opening) => opening.wall === wall.id)
-  const pieces = planPieces(wall, openings, length, growA, span, outside)
+  const pieces: WallPiece[] = [
+    {
+      key: 'native-wall',
+      colour: INK.wall,
+      at: growA,
+      length: span,
+      thickness: wall.thickness,
+      base: 0,
+      height: 0,
+    },
+    ...planPieces(wall, openings, length, growA, span, outside).filter(
+      (p) => !p.key.startsWith('outline-') && !p.key.startsWith('fill-'),
+    ),
+  ]
   const angle = Math.atan2(dy, dx)
 
   const wallEmphasis: Emphasis | undefined =
@@ -96,6 +113,8 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
   return (
     <>
       {pieces.map((piece) => {
+        const native = piece.key === 'native-wall'
+        if (native && !geometry) return null
         const heldOpening = piece.opening !== undefined && held?.id === piece.opening
         const slide = heldOpening ? held!.shift.x * unit.x + held!.shift.y * unit.y : 0
         const travelled = piece.at - growA + slide
@@ -112,6 +131,7 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
         return (
           <mesh
             key={piece.key}
+            geometry={native ? geometry! : undefined}
             position={toWorld(x, y, base + piece.height / 2)}
             rotation={[0, angle + (piece.turn ?? 0), 0]}
             onPointerOver={(event) => {
@@ -148,7 +168,9 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
               }
             }}
           >
-            <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
+            {native ? null : (
+              <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
+            )}
             <meshBasicMaterial
               color={tinted(piece, emphasis)}
               transparent={piece.hidden}

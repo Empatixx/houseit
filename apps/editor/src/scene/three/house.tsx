@@ -2,6 +2,7 @@ import type { Owner, Piece } from '@houseit/scene/pieces'
 import { worldOf } from '@houseit/scene/world'
 import { useMemo } from 'react'
 import { pick } from '../../edit/pick'
+import { EngineWalls } from '../../engine/walls'
 import { EMPHASIS } from '../../store/hover'
 import { type Selection, useSelection } from '../../store/selection'
 import { usePlanDoc } from '../../store/store'
@@ -36,14 +37,17 @@ export function House({ picking = true }: { picking?: boolean }) {
               shadow-bias={-0.002}
             />
           ))}
-          {storey.pieces.map((piece) => (
-            <StandingPiece
-              key={piece.name}
-              piece={piece}
-              tint={picking ? tintOf(piece, selected) : undefined}
-              onPick={picking ? picker(piece.of) : undefined}
-            />
-          ))}
+          <EngineWalls doc={doc} level={storey.level} picking={picking} />
+          {storey.pieces
+            .filter((piece) => piece.role !== 'wall-solid')
+            .map((piece) => (
+              <StandingPiece
+                key={piece.name}
+                piece={piece}
+                tint={picking ? tintOf(piece, selected) : undefined}
+                onPick={picking ? picker(piece.of) : undefined}
+              />
+            ))}
         </group>
       ))}
     </>

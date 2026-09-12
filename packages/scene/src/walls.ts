@@ -74,6 +74,7 @@ function standingWall(
     { kind: 'wall', id: wall.id },
     built.flatMap((piece) => {
       return ([1, -1] as const).map((side, nth) => ({
+        role: 'wall-solid' as const,
         body: {
           kind: 'box' as const,
           width: piece.length,
