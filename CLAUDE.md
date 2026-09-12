@@ -105,6 +105,17 @@ plan has open, so the storey cards move the walk as well as the drawing, and the
 walk starts again on each — where you stood downstairs is as likely as not
 inside a wall up here.
 
+The user-facing 3D opens with an overview of the whole building. Exploration
+defaults to a free camera: WASD follows the view, Q/E moves down/up, and walls,
+slabs and unsupported space do not stop it. The storey cards show their names
+and elevations; choosing one starts the camera on that storey's floor. The
+small plan in 3D shows the selected storey, not every storey superimposed.
+`Walk with collisions` remains available for testing passages and stairs.
+Traversal proofs must explicitly call `walkStore.setMovement('walk')` through
+the exposed store before keyboard movement; free-camera movement is not proof
+that an opening or stair can be walked. These are camera controls, not document
+mutations.
+
 A walk opens on clear floor in the biggest room, looking in towards the middle
 of it. The room's anchor is where its label hangs, which is under the table as
 often as not; opening there put you inside the kitchen run with a wall filling

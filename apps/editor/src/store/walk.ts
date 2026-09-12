@@ -21,6 +21,9 @@ type Inspection = {
 }
 
 type WalkState = {
+  movement: 'free' | 'walk'
+  setMovement: (movement: 'free' | 'walk') => void
+  explore: () => void
   inspection: Inspection | null
   inspect: (view: Inspection | null) => void
   walker: Walker | null
@@ -32,6 +35,26 @@ type WalkState = {
 }
 
 export const walkStore = createStore<WalkState>()((set) => ({
+  movement: 'free',
+  setMovement: (movement) => set({ movement }),
+  explore: () =>
+    set((state) => {
+      const view = state.inspection
+      if (!view) return {}
+      const dx = view.target[0] - view.at[0]
+      const dy = view.target[1] - view.at[1]
+      const dz = view.target[2] - view.at[2]
+      return {
+        inspection: null,
+        movement: 'free',
+        walker: {
+          at: { x: view.at[0] * 1000, y: -view.at[2] * 1000 },
+          height: view.at[1] * 1000 - EYE,
+          yaw: Math.atan2(dx, -dz),
+          pitch: Math.atan2(dy, Math.hypot(dx, dz)),
+        },
+      }
+    }),
   walker: null,
   inspection: null,
   inspect: (inspection) => set({ inspection }),

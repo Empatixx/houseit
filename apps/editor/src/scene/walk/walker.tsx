@@ -15,6 +15,7 @@ const DRAG = 0.0045
 const AHEAD: Record<string, number> = { w: 1, arrowup: 1, s: -1, arrowdown: -1 }
 const ASIDE: Record<string, number> = { d: 1, a: -1 }
 const AROUND: Record<string, number> = { arrowright: 1, arrowleft: -1 }
+const VERTICAL: Record<string, number> = { e: 1, q: -1 }
 
 export function Walker() {
   const camera = useThree((state) => state.camera) as PerspectiveCamera
@@ -39,6 +40,7 @@ export function Walker() {
   }, [doc, level])
 
   useEffect(() => {
+    if (!('fov' in camera)) return
     const vertical = (camera.fov * Math.PI) / 360
     const horizontal = 2 * Math.atan(Math.tan(vertical) * (size.width / size.height))
     walkStore.getState().setFov((horizontal * 180) / Math.PI)
@@ -55,8 +57,9 @@ export function Walker() {
     const down = (event: KeyboardEvent) => {
       if (typing(event.target) || event.metaKey || event.ctrlKey || event.altKey) return
       const key = event.key.toLowerCase()
-      if (key in AHEAD || key in ASIDE || key in AROUND || key === 'shift') {
+      if (key in AHEAD || key in ASIDE || key in AROUND || key in VERTICAL || key === 'shift') {
         if (key.startsWith('arrow')) event.preventDefault()
+        if (key !== 'shift') walkStore.getState().explore()
         pressed.current.add(key)
       }
     }
@@ -136,27 +139,46 @@ export function Walker() {
     let ahead = 0
     let aside = 0
     let around = 0
+    let vertical = 0
     for (const key of keys) {
       ahead += AHEAD[key] ?? 0
       aside += ASIDE[key] ?? 0
       around += AROUND[key] ?? 0
+      vertical += VERTICAL[key] ?? 0
     }
     const step = Math.min(dt, 0.1)
     if (around !== 0) state.look(walker.yaw + around * TURN * step, walker.pitch)
-    if (ahead !== 0 || aside !== 0) {
+    if (ahead !== 0 || aside !== 0 || vertical !== 0) {
       const pace = (keys.has('shift') ? RUN : WALK) * 1000 * step
       const heading = headingOf(walker.yaw)
       const right = { x: heading.y, y: -heading.x }
+      const forward = ahead * (state.movement === 'free' ? Math.cos(walker.pitch) : 1)
       const destination = {
-        x: walker.at.x + (heading.x * ahead + right.x * aside) * pace,
-        y: walker.at.y + (heading.y * ahead + right.y * aside) * pace,
+        x: walker.at.x + (heading.x * forward + right.x * aside) * pace,
+        y: walker.at.y + (heading.y * forward + right.y * aside) * pace,
       }
-      const surface = walkSurface(doc, destination, walker.height ?? floor)
-      if (surface && walkClear(doc, surface.level, destination)) {
-        state.step(destination, surface.height)
-        if (surface.level !== level) {
-          started.current = surface.level
-          documentStore.getState().setLevel(surface.level)
+      if (state.movement === 'free') {
+        const height = (walker.height ?? floor) + (vertical + ahead * Math.sin(walker.pitch)) * pace
+        state.step(destination, height)
+        const nearest = Object.values(doc.levels).reduce(
+          (best, candidate) =>
+            Math.abs(candidate.elevation - height) < Math.abs(best.elevation - height)
+              ? candidate
+              : best,
+          doc.levels[level]!,
+        )
+        if (nearest.id !== level) {
+          started.current = nearest.id
+          documentStore.getState().setLevel(nearest.id)
+        }
+      } else {
+        const surface = walkSurface(doc, destination, walker.height ?? floor)
+        if (surface && walkClear(doc, surface.level, destination)) {
+          state.step(destination, surface.height)
+          if (surface.level !== level) {
+            started.current = surface.level
+            documentStore.getState().setLevel(surface.level)
+          }
         }
       }
     }

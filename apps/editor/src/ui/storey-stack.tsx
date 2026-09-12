@@ -24,7 +24,10 @@ import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { addStorey, moveStorey, removeStorey, renameStorey } from '../edit/level-commands'
+import { startOf } from '../scene/walk/start'
+import { modeStore } from '../store/mode'
 import { documentStore, useDocument } from '../store/store'
+import { walkStore } from '../store/walk'
 import { GAP, useRightEdge } from './edges'
 import { useCover } from './use-cover'
 
@@ -131,17 +134,27 @@ function Storey({ storey, number, here, only, naming, onName }: StoreyProps) {
         aria-label={`${storey.name}, storey ${number}`}
         aria-current={here}
         className={cn(
-          'glass flex h-11 w-14 cursor-grab touch-none flex-col items-center justify-center gap-0.5 rounded-xl border text-sm font-medium tabular-nums shadow-sm select-none',
+          'glass flex h-16 w-24 cursor-grab touch-none flex-col items-center justify-center gap-0.5 rounded-xl border text-sm font-medium tabular-nums shadow-sm select-none',
           'focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
           here
             ? 'border-primary text-foreground ring-1 ring-primary'
             : 'text-muted-foreground hover:text-foreground hover:shadow-md',
           isDragging && 'scale-105 cursor-grabbing shadow-lg',
         )}
-        onClick={() => documentStore.getState().setLevel(storey.id)}
+        onClick={() => {
+          documentStore.getState().setLevel(storey.id)
+          if (modeStore.getState().mode === '3d') {
+            const start = startOf(documentStore.getState().doc, storey.id)
+            if (start) walkStore.getState().place(start.at, start.yaw)
+          }
+        }}
       >
         <GripHorizontalIcon className="size-3 opacity-40" />
-        {number}
+        <span className="max-w-20 truncate">{storey.name}</span>
+        <span className="text-[10px] font-normal">
+          {storey.elevation > 0 ? '+' : ''}
+          {(storey.elevation / 1000).toFixed(3)} m
+        </span>
       </button>
 
       <div
