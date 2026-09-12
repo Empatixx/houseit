@@ -1,7 +1,9 @@
 import type { HouseDocument } from '@houseit/core/document'
-import { openingsIn } from '@houseit/core/opening-parts'
+import { doorLeafSize, frameOffset, openingParts, openingsIn } from '@houseit/core/opening-parts'
 import { flightWidthOf, stairKind, stairShape, treadsOf } from '@houseit/core/stairs'
 import { rampDirection, rampHeights, shaftOutside, shaftsOn } from './connections'
+import { exteriorSides } from './exterior'
+import { openingRecesses } from './opening-recesses'
 import type { Point } from './outlines'
 import { containsPoint, roomsOf } from './rooms'
 import { stairRise } from './stair-runs'
@@ -49,9 +51,33 @@ export function walkClear(doc: HouseDocument, level: string, at: Point): boolean
         o.kind === 'door' &&
         o.sillHeight === 0 &&
         o.height >= 1800 &&
+        Math.abs(along - o.t * length) <
+          (o.frame?.inset === undefined ? o.width : doorLeafSize(o).width) / 2 - WALK_RADIUS,
+    )
+    if (door) continue
+    const reveal = Object.values(doc.openings).find(
+      (o) =>
+        o.wall === wall.id &&
+        o.frame?.inset !== undefined &&
+        o.sillHeight === 0 &&
+        o.height >= 1800 &&
         Math.abs(along - o.t * length) < o.width / 2 - WALK_RADIUS,
     )
-    if (!door) return false
+    if (!reveal) return false
+    const signedAside = ((at.y - a.y) * dx - (at.x - a.x) * dy) / length
+    const offset = frameOffset(reveal, wall, exteriorSides(doc, level).get(wall.id))
+    if (Math.abs(signedAside - offset) >= reveal.frame!.depth / 2 + WALK_RADIUS) continue
+    for (const part of openingParts(reveal, length)) {
+      const middle = part.t * length
+      if (part.kind !== 'door' && Math.abs(along - middle) < part.width / 2 + WALK_RADIUS)
+        return false
+      for (const end of [-1, 1])
+        if (
+          Math.abs(along - (middle + (end * (part.width - part.frame!.face)) / 2)) <
+          part.frame!.face / 2 + WALK_RADIUS
+        )
+          return false
+    }
   }
   return true
 }
@@ -107,6 +133,13 @@ export function walkSurface(
   )
   let inside = false
   for (const level of levels) {
+    if (
+      Math.abs(level.elevation - previous) <= 220 &&
+      openingRecesses(doc, level.id).some(
+        (r) => r.extension.length && containsPoint(r.extension, at.x, at.y),
+      )
+    )
+      return { height: level.elevation, level: level.id }
     const room = roomsOf(doc, level.id).find((r) =>
       containsPoint(
         r.nodes.map((id) => doc.nodes[id]!),

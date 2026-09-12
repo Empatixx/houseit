@@ -1,5 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
-import { doorLeafSize, openingParts, pocketShift } from '@houseit/core/opening-parts'
+import { doorLeafSize, frameOffset, openingParts, pocketShift } from '@houseit/core/opening-parts'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 
 export const INK = {
@@ -43,7 +43,9 @@ export function planPieces(
   const inner = wall.thickness - 2 * line
   const holes = openings.map((opening) => spanAround(growA + opening.t * span, opening.width))
   const doorways = openings.flatMap((opening, index) =>
-    opening.kind === 'door' ? [holes[index]!] : [],
+    opening.kind === 'door' || (opening.frame?.inset !== undefined && opening.sillHeight === 0)
+      ? [holes[index]!]
+      : [],
   )
 
   const pieces: WallPiece[] = freeSpans(length, doorways).map((solid) => ({
@@ -89,7 +91,15 @@ export function planPieces(
     const hole = holes[index]!
     const before = pieces.length
     drawOpening(opening, hole, line, inner, wall, pieces)
-    for (const piece of pieces.slice(before)) piece.opening = opening.id.split('-panel-')[0]!
+    if (opening.frame?.inset !== undefined && opening.sillHeight === 0) {
+      const glass = pieces.findIndex((p, i) => i >= before && p.key === `${opening.id}-glass`)
+      if (glass !== -1) pieces.splice(glass, 1)
+    }
+    for (const piece of pieces.slice(before)) {
+      piece.opening = opening.id.split('-panel-')[0]!
+      if (piece.key.endsWith('-glass')) continue // The white reveal clears the whole wall.
+      piece.aside = (piece.aside ?? 0) + frameOffset(opening, wall, outside)
+    }
   })
 
   return pieces

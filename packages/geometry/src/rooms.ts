@@ -5,6 +5,7 @@ import { wallBox } from './boxes'
 import { centroidOf } from './centroid'
 import { clearAreaOf, clearOutline } from './clear'
 import { shaftsOn } from './connections'
+import { openingRecesses } from './opening-recesses'
 
 import type { Point } from './outlines'
 
@@ -22,6 +23,7 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
   const stored = Object.values(doc.rooms).filter((room) => room.level === level)
   const shafts = shaftsOn(doc, level)
   const faces = findFaces(doc, level)
+  const recesses = openingRecesses(doc, level)
   const boundary = new Set(faces.flatMap((face) => face.walls))
   // A detached straight partition has no face walk. Attached returns already
   // occupy their inset boundary, so only detached walls enter this union.
@@ -87,7 +89,14 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
           .map((wall) => wall.id),
         clear:
           clearAreaOf(doc, level, face.nodes) -
-          occupied.reduce((sum, box) => sum + areaInBox(clear, box), 0),
+          occupied.reduce((sum, box) => sum + areaInBox(clear, box), 0) +
+          recesses
+            .filter((r) => walls.has(r.wall))
+            .reduce(
+              (sum, r) =>
+                sum + r.area - occupied.reduce((area, box) => area + areaInBox(r.outline, box), 0),
+              0,
+            ),
         centre: centroidOf(polygon, face.area),
       }
       return found

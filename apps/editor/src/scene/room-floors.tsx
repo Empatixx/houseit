@@ -1,4 +1,5 @@
 import { floorMaterial } from '@houseit/core/floor-materials'
+import { openingRecesses } from '@houseit/geometry/opening-recesses'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { wellsInRoom } from '@houseit/geometry/wells'
 import { useMemo } from 'react'
@@ -22,6 +23,7 @@ export function RoomFloors() {
   const hovered = plainly ? null : noticed
 
   const floors = useMemo(() => {
+    const recesses = openingRecesses(doc, level)
     return roomsOf(doc, level).map((room) => {
       const shape = new Shape()
       room.nodes.forEach((id, index) => {
@@ -43,11 +45,25 @@ export function RoomFloors() {
       }
 
       const material = room.floor ? floorMaterial(room.floor) : undefined
+      const shapes = [
+        shape,
+        ...recesses
+          .filter((r) => r.extension.length && room.walls.includes(r.wall))
+          .map((r) => {
+            const extension = new Shape()
+            r.extension.forEach((p, i) => {
+              if (i === 0) extension.moveTo(p.x * MM, p.y * MM)
+              else extension.lineTo(p.x * MM, p.y * MM)
+            })
+            extension.closePath()
+            return extension
+          }),
+      ]
       return {
         room,
         key: `${room.nodes.join('-')}-${room.floor ?? 'bare'}-${pierced.map((it) => it.object).join('-')}`,
         id: room.id,
-        geometry: new ShapeGeometry(shape),
+        geometry: new ShapeGeometry(shapes),
         texture: material ? floorTexture(material) : undefined,
       }
     })

@@ -4,6 +4,7 @@ const mm = z.number().int()
 export const FrameSchema = z.object({
   depth: mm.positive(),
   face: mm.positive(),
+  inset: mm.nonnegative().optional(),
   outside: z.string().regex(/^#[0-9a-f]{6}$/i),
   inside: z.string().regex(/^#[0-9a-f]{6}$/i),
 })

@@ -85,7 +85,7 @@ export function connectionHoles(doc: HouseDocument, level: string, ceiling = fal
         return (
           top &&
           at.elevation >= (ceiling ? base.elevation : base.elevation + 1) &&
-          at.elevation <= top.elevation
+          (ceiling ? at.elevation < top.elevation : at.elevation <= top.elevation)
         )
       })
       .map((s) => ({ object: s.id, type: `${s.kind}-shaft`, outline: shaftOutline(s) })),

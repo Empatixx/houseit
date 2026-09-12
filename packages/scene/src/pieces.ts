@@ -10,7 +10,7 @@ export type Finish = {
 export type Corner = { x: number; z: number }
 
 export type Body =
-  | { kind: 'box'; width: number; height: number; depth: number }
+  | { kind: 'box'; width: number; height: number; depth: number; faces?: number[] }
   | { kind: 'drum'; radius: number; top: number; height: number; open: boolean; stretch: number }
   | { kind: 'ball'; radius: number }
   | {
@@ -18,6 +18,7 @@ export type Body =
       outline: Corner[]
       holes: Corner[][]
       thickness: number
+      top?: Corner[][]
       slope?: { x: number; z: number; offset: number; both?: boolean }
     }
   | { kind: 'sheet'; outline: Corner[]; holes: Corner[][] }

@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { soffitOf } from '@houseit/core/levels'
 import { treadsOf } from '@houseit/core/stairs'
 import {
   rampDirection,
@@ -44,7 +45,7 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
     if (s.kind !== 'lift') return []
     const top = doc.levels[s.to]
     if (!top) return []
-    const height = top.elevation + top.height - storey.elevation
+    const height = top.elevation + soffitOf(top) - storey.elevation
     return [-1, 1].map((side) => ({
       ...slab({
         x: s.x + side * (s.width / 2 - 60),
@@ -67,9 +68,9 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
       return p.door
         ? [
             block(0, e.doorHeight!, '#747a7e'),
-            block(e.doorHeight!, storey.height - e.doorHeight!, e.colour),
+            block(e.doorHeight!, soffitOf(storey) - e.doorHeight!, e.colour),
           ]
-        : [block(0, storey.height, e.colour)]
+        : [block(0, soffitOf(storey), e.colour)]
     }),
   )
   const stairs = (storey.stairs ?? []).flatMap((s) => {

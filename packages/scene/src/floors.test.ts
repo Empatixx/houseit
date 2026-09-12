@@ -59,3 +59,12 @@ test('no flat slab stops the sun, because a plan walked through is lit from abov
   expect(ceilingPieces(doc, level)[0]?.casts).toBe(false)
   expect(floorPieces(doc, level)[0]?.casts).toBe(false)
 })
+
+test('the slab reaches the outside structural face instead of leaving half the perimeter wall uncovered', () => {
+  const { doc, level } = room()
+  const lid = ceilingPieces(doc, level)[0]!
+  if (lid.body.kind !== 'prism') throw Error('prism expected')
+  const half = doc.walls.w1!.thickness / 2
+  expect(Math.min(...lid.body.outline.map((p) => p.x))).toBeCloseTo(-half)
+  expect(Math.max(...lid.body.outline.map((p) => p.x))).toBeCloseTo(4000 + half)
+})

@@ -1,5 +1,6 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
-import { openingParts } from '@houseit/core/opening-parts'
+import { soffitOf } from '@houseit/core/levels'
+import { frameOffset, openingParts } from '@houseit/core/opening-parts'
 import { exteriorSides } from '@houseit/geometry/exterior'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { wallCaps } from '@houseit/geometry/wall-caps'
@@ -23,7 +24,19 @@ export function wallPieces(doc: HouseDocument, level: string): Piece[] {
     worn: room.id === undefined ? undefined : doc.rooms[room.id],
   }))
   const outside = exteriorSides(doc, level)
-  return walls.flatMap((wall) => standingWall(doc, wall, dressed, outside.get(wall.id)))
+  const built = walls.flatMap((wall) => standingWall(doc, wall, dressed, outside.get(wall.id)))
+  const outward = (piece: Piece) => {
+    if (piece.of?.kind !== 'wall') return false
+    const wall = doc.walls[piece.of.id]!,
+      side = outside.get(wall.id)
+    if (side === undefined) return false
+    const a = doc.nodes[wall.a]!,
+      b = doc.nodes[wall.b]!
+    return ((b.x - a.x) * (-piece.at.z - a.y) - (b.y - a.y) * (piece.at.x - a.x)) * side > 0
+  }
+  // At a corner the outside face owns the join; an inward room finish must
+  // not colour the projecting end of the perpendicular wall on the facade.
+  return built.sort((a, b) => Number(outward(b)) - Number(outward(a)))
 }
 
 function standingWall(
@@ -55,7 +68,11 @@ function standingWall(
     return { x: on.x, y: up, z: -on.y }
   }
 
-  const built = solidPieces(wall, openings, length, growA, span)
+  // Full-height walls meet the soffit; a separately specified clear height
+  // leaves the slab and the buildup above it outside the wall's finish.
+  const level = doc.levels[wall.level]
+  const height = level ? Math.min(wall.height, soffitOf(level) - wall.baseOffset) : wall.height
+  const built = height > 0 ? solidPieces({ ...wall, height }, openings, length, growA, span) : []
   const worn = besideWall(dressed, a, b, wall.thickness)
 
   const solids = owned(
@@ -95,7 +112,11 @@ function standingWall(
           height: piece.height,
           depth: piece.thickness,
         },
-        at: standing(piece.at, piece.aside, wall.baseOffset + piece.base + piece.height / 2),
+        at: standing(
+          piece.at,
+          piece.aside + frameOffset(opening, wall, outside),
+          wall.baseOffset + piece.base + piece.height / 2,
+        ),
         turn: angle + piece.turn,
         paint: opening.frame
           ? {
@@ -120,7 +141,7 @@ function standingWall(
       },
       at: standing(
         growA + opening.t * span,
-        0,
+        frameOffset(opening, wall, outside),
         wall.baseOffset + opening.sillHeight + opening.height / 2,
       ),
       turn: angle,
@@ -194,11 +215,11 @@ function standingWall(
         at: centre,
         base: sill + opening.height - frame.face,
         height: frame.face,
-        width: opening.width,
+        width: opening.width - 2 * frame.face,
       },
       ...(opening.kind === 'door'
         ? []
-        : [{ at: centre, base: sill, height: frame.face, width: opening.width }]),
+        : [{ at: centre, base: sill, height: frame.face, width: opening.width - 2 * frame.face }]),
     ]
     return strips.flatMap((strip) =>
       ([1, -1] as const).map((side) => ({
@@ -210,7 +231,7 @@ function standingWall(
         },
         at: standing(
           strip.at,
-          (side * frame.depth) / 4,
+          (side * frame.depth) / 4 + frameOffset(opening, wall, outside),
           wall.baseOffset + strip.base + strip.height / 2,
         ),
         turn: angle,

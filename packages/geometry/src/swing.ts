@@ -1,5 +1,7 @@
 import type { HouseDocument, Opening } from '@houseit/core/document'
+import { frameOffset } from '@houseit/core/opening-parts'
 import { type Box, boxOf } from './boxes'
+import { exteriorSides } from './exterior'
 import type { Point } from './outlines'
 
 export function sweptBy(
@@ -32,5 +34,17 @@ export function swingOf(doc: HouseDocument, opening: Opening): Box | undefined {
   if (!a || !b) return undefined
 
   const span = Math.hypot(b.x - a.x, b.y - a.y)
-  return sweptBy(a, b, span, opening.t * span, opening.width, opening.swing)
+  const offset =
+    opening.frame?.inset === undefined
+      ? 0
+      : frameOffset(opening, wall, exteriorSides(doc, wall.level).get(wall.id))
+  const shift = { x: (-(b.y - a.y) * offset) / span, y: ((b.x - a.x) * offset) / span }
+  return sweptBy(
+    { x: a.x + shift.x, y: a.y + shift.y },
+    { x: b.x + shift.x, y: b.y + shift.y },
+    span,
+    opening.t * span,
+    opening.width,
+    opening.swing,
+  )
 }

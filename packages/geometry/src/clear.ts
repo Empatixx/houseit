@@ -1,10 +1,20 @@
-import type { HouseDocument } from '@houseit/core/document'
+import type { HouseDocument, Wall } from '@houseit/core/document'
 
 import type { Point } from './outlines'
 
 const PARALLEL = 1e-9
 
 export function clearOutline(doc: HouseDocument, level: string, nodes: string[]): Point[] {
+  return offsetOutline(doc, level, nodes, (wall) => (wall?.thickness ?? 0) / 2)
+}
+
+// Signed distances from each directed boundary edge towards the room.
+export function offsetOutline(
+  doc: HouseDocument,
+  level: string,
+  nodes: string[],
+  inset: (wall: Wall | undefined) => number,
+): Point[] {
   const corners = nodes.map((id) => doc.nodes[id]).filter((node) => node !== undefined)
   if (corners.length !== nodes.length || corners.length < 3) return []
 
@@ -27,7 +37,7 @@ export function clearOutline(doc: HouseDocument, level: string, nodes: string[])
         (candidate.a === from && candidate.b === to) ||
         (candidate.a === to && candidate.b === from),
     )
-    const back = (wall?.thickness ?? 0) / 2
+    const back = inset(wall)
     return {
       at: { x: a.x + inward.x * back, y: a.y + inward.y * back },
       end: { x: b.x + inward.x * back, y: b.y + inward.y * back },

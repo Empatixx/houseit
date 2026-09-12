@@ -2,6 +2,7 @@ import type { HouseDocument, HouseObject, Opening, Side, Wall } from '@houseit/c
 import { PARTS, type Part } from '@houseit/core/finishes'
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
 import { interiorSize, objectClearances, planExtent } from '@houseit/geometry/dimensions'
+import { openingRecesses } from '@houseit/geometry/opening-recesses'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import {
@@ -101,6 +102,7 @@ export type RoomReport = {
   name?: string
   kind?: string
   areaM2: number
+  recesses?: { opening: string; areaM2: number; outline: Point[] }[]
   width: number
   depth: number
   box: { x0: number; y0: number; x1: number; y1: number }
@@ -190,12 +192,22 @@ export function surveyRoom(
     .filter((name) => name !== undefined)
 
   const objects = objectsIn(doc, level, room)
+  const recesses = openingRecesses(doc, level).filter((r) => walled.has(r.wall))
 
   return {
     ...(room.id === undefined ? {} : { id: room.id }),
     ...(room.name === undefined ? {} : { name: room.name }),
     ...(room.kind === undefined ? {} : { kind: room.kind }),
     areaM2: Math.round(room.clear / 10_000) / 100,
+    ...(recesses.length
+      ? {
+          recesses: recesses.map((r) => ({
+            opening: r.opening,
+            areaM2: r.area / 1_000_000,
+            outline: r.outline,
+          })),
+        }
+      : {}),
     ...interiorSize(doc, level, room),
     box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) },
     ...(room.floor === undefined ? {} : { floor: room.floor }),

@@ -189,6 +189,10 @@ function swingIsClear(
 ): boolean {
   const box = sweptBy(chosen.a, chosen.b, span, at, width, swing)
 
+  return swingBoxIsClear(doc, level, box, except)
+}
+
+function swingBoxIsClear(doc: HouseDocument, level: string, box: Box, except?: string): boolean {
   const doors = Object.values(doc.openings)
     .filter((opening) => opening.id !== except && doc.walls[opening.wall]?.level === level)
     .flatMap((opening) => {
@@ -276,13 +280,14 @@ export function checkDoorLeaves(
   opening: Opening,
   what: string,
 ) {
-  if (!opening.panels && opening.leafWidth === undefined) return
+  if (!opening.panels && opening.leafWidth === undefined && opening.frame?.inset === undefined)
+    return
   const wall = doc.walls[opening.wall]!
   const a = doc.nodes[wall.a]!,
     b = doc.nodes[wall.b]!
   const span = Math.hypot(b.x - a.x, b.y - a.y)
   const into = opensIntoOf(doc, roomsOf(doc, level), opening)
-  for (const part of openingParts(opening, span).filter((p) => p.kind === 'door'))
+  for (const part of openingParts(opening, span).filter((p) => p.kind === 'door')) {
     checkOpeningAt(
       doc,
       level,
@@ -291,8 +296,14 @@ export function checkDoorLeaves(
       part.t * span,
       part.width,
       what,
-      true,
+      false,
       opening.id,
       into,
     )
+    const box = swingOf(doc, part)
+    if (box && !swingBoxIsClear(doc, level, box, opening.id))
+      throw new CommandError(
+        `${what}: a door there could not open — something is standing in its swing`,
+      )
+  }
 }

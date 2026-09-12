@@ -1,7 +1,14 @@
 import type { Body, Corner, Finish, Piece } from '@houseit/scene/pieces'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
-import { type BufferGeometry, ExtrudeGeometry, Path, Shape, ShapeGeometry } from 'three'
+import {
+  BufferGeometry,
+  ExtrudeGeometry,
+  Float32BufferAttribute,
+  Path,
+  Shape,
+  ShapeGeometry,
+} from 'three'
 import { MM } from '../plan-coordinates'
 import { Brought } from './brought'
 import { materialOf, seeThrough } from './materials'
@@ -46,6 +53,10 @@ export function StandingPiece({ piece, tint, onPick }: PieceProps) {
         onPick={onPick}
       />
     )
+  }
+
+  if (body.kind === 'box' && body.faces) {
+    return <BoxSkin piece={piece} faces={body.faces} paint={paint} onPick={onPick} />
   }
 
   if (body.kind === 'prism' || body.kind === 'sheet') {
@@ -113,10 +124,12 @@ function Flat({ body, at, rotation, material, shadows, onPick }: FlatProps) {
 
 function flatGeometry(body: Extract<Body, { kind: 'prism' | 'sheet' }>): BufferGeometry {
   const shape = shapeOf(body.outline, body.holes)
-  const geometry =
+  let geometry: BufferGeometry =
     body.kind === 'prism'
       ? new ExtrudeGeometry(shape, { depth: body.thickness * MM, bevelEnabled: false })
       : new ShapeGeometry(shape)
+  if (body.kind === 'prism' && body.top !== undefined)
+    geometry = replaceTop(geometry, body.top, body.thickness * MM)
   if (body.kind === 'prism' && body.slope) {
     const positions = geometry.getAttribute('position')
     for (let i = 0; i < positions.count; i += 1) {
@@ -151,4 +164,82 @@ function shapeOf(outline: Corner[], holes: Corner[][]): Shape {
     shape.holes.push(hole)
   }
   return shape
+}
+
+function BoxSkin({ piece, faces, paint, onPick }: PieceProps & { faces: number[]; paint: Finish }) {
+  const geometry = useMemo(() => {
+    const geometry = new BufferGeometry()
+    geometry.setAttribute(
+      'position',
+      new Float32BufferAttribute(
+        faces.map((n) => n * MM),
+        3,
+      ),
+    )
+    geometry.computeVertexNormals()
+    // Preserve BoxGeometry's normalized texture coordinates after clipping.
+    const normals = geometry.getAttribute('normal')
+    const body = piece.body
+    if (body.kind !== 'box') return geometry
+    const uv = []
+    for (let i = 0; i < faces.length / 3; i++) {
+      const x = faces[i * 3]! / body.width,
+        y = faces[i * 3 + 1]! / body.height,
+        z = faces[i * 3 + 2]! / body.depth
+      const nx = normals.getX(i),
+        ny = normals.getY(i),
+        nz = normals.getZ(i)
+      uv.push(
+        (Math.abs(nx) > 0.5 ? -nx * z : Math.abs(nz) > 0.5 ? nz * x : x) + 0.5,
+        (Math.abs(ny) > 0.5 ? -ny * z : y) + 0.5,
+      )
+    }
+    geometry.setAttribute('uv', new Float32BufferAttribute(uv, 2))
+    return geometry
+  }, [faces, piece.body])
+  useEffect(() => () => geometry.dispose(), [geometry])
+  return (
+    <mesh
+      geometry={geometry}
+      material={materialOf(paint, false)}
+      position={[piece.at.x * MM, piece.at.y * MM, piece.at.z * MM]}
+      rotation={[0, piece.turn ?? 0, 0]}
+      castShadow={piece.casts !== false}
+      receiveShadow
+      onClick={onPick}
+    />
+  )
+}
+
+// Replace only the upward cap; the soffit and slab edges keep their geometry.
+function replaceTop(original: BufferGeometry, top: Corner[][], depth: number): BufferGeometry {
+  const positions: number[] = [],
+    normals: number[] = [],
+    uvs: number[] = []
+  const append = (geometry: BufferGeometry, cap: boolean) => {
+    const p = geometry.getAttribute('position'),
+      n = geometry.getAttribute('normal'),
+      uv = geometry.getAttribute('uv')
+    const index = geometry.getIndex()
+    const count = index?.count ?? p.count
+    for (let i = 0; i < count; i += 3) {
+      const ids = [0, 1, 2].map((j) => (index ? index.getX(i + j) : i + j))
+      if (!cap && ids.every((j) => n.getZ(j) > 0.99 && Math.abs(p.getZ(j) - depth) < 1e-5)) continue
+      for (const j of ids) {
+        positions.push(p.getX(j), p.getY(j), cap ? depth : p.getZ(j))
+        normals.push(n.getX(j), n.getY(j), n.getZ(j))
+        uvs.push(uv.getX(j), uv.getY(j))
+      }
+    }
+  }
+  append(original, false)
+  const cap = new ShapeGeometry(top.map((ring) => shapeOf(ring, [])))
+  append(cap, true)
+  original.dispose()
+  cap.dispose()
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
+  geometry.setAttribute('normal', new Float32BufferAttribute(normals, 3))
+  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
+  return geometry
 }

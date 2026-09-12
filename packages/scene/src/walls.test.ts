@@ -73,3 +73,16 @@ test('a wall standing on another storey is not this storey business', () => {
 
   expect(wallPieces(doc, level).some((piece) => piece.of?.id === 'w1')).toBe(false)
 })
+
+test('a measured soffit caps full-height walls while low returns retain their own height', () => {
+  const { doc, level } = room()
+  doc.levels[level]!.height = 3760
+  doc.levels[level]!.clearHeight = 3380
+  for (const wall of Object.values(doc.walls)) wall.height = 3760
+  doc.walls.w2!.height = 1000
+  const built = wallPieces(doc, level).filter((p) => p.of?.kind === 'wall')
+  for (const piece of built) {
+    if (piece.body.kind !== 'box') throw Error('box expected')
+    expect(piece.at.y + piece.body.height / 2).toBeCloseTo(piece.of!.id === 'w2' ? 1000 : 3380)
+  }
+})

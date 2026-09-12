@@ -10,6 +10,7 @@ import { defineCommand } from './define-command'
 import { json } from './json-schema'
 import { length } from './length-schema'
 import { hasDoor, opensIntoOf } from './opening-direction'
+import { checkFrame } from './opening-frame'
 import { handOf, hingeAt } from './opening-hinge'
 import { openingById } from './openings'
 import { checkDoorLeaves, checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
@@ -74,7 +75,11 @@ export const updateOpening = defineCommand({
         : undefined)
     const width = args.width ?? opening.width
     const leafWidth = args.leafWidth === undefined ? opening.leafWidth : args.leafWidth || undefined
-    const swings = door && variant === 'hinged' && leafWidth === undefined
+    const swings =
+      door &&
+      variant === 'hinged' &&
+      leafWidth === undefined &&
+      (args.frame ?? opening.frame)?.inset === undefined
     const leaf =
       hasDoor({ kind: opening.kind, panels: args.panels ?? opening.panels }) && variant === 'hinged'
     if (args.opensInto !== undefined && !leaf)
@@ -149,6 +154,7 @@ export const updateOpening = defineCommand({
     if (args.panels !== undefined) target.panels = args.panels
     if (args.frame !== undefined) target.frame = args.frame
     OpeningSchema.parse(target)
+    checkFrame(draft, target, 'update-opening')
     setPocket(draft, target, slideTowards, 'update-opening')
     checkDoorLeaves(draft, level, room, target, 'update-opening')
     checkPockets(draft, level, 'update-opening')
