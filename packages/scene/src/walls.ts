@@ -88,7 +88,7 @@ function standingWall(
     const into = opening.kind === 'door' ? worn[opening.swing > 0 ? 0 : 1] : undefined
     return owned(
       { kind: 'opening', id: opening.id },
-      doorPieces(opening, wall, growA + opening.t * span).map((piece) => ({
+      doorPieces(opening, wall, growA + opening.t * span, outside).map((piece) => ({
         body: {
           kind: 'box' as const,
           width: piece.length,
@@ -99,7 +99,7 @@ function standingWall(
         turn: angle + piece.turn,
         paint: opening.frame
           ? {
-              colour: piece.takesFinish ? PAINT.glass : opening.frame.outside,
+              colour: piece.takesFinish ? PAINT.glass : piece.colour,
               ...(piece.takesFinish ? { opacity: 0.45 } : {}),
             }
           : piece.takesFinish

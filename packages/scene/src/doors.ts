@@ -1,4 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
+import { doorLeafSize } from '@houseit/core/opening-parts'
 
 const DOOR_PAINT = {
   leaf: '#cdb894',
@@ -25,8 +26,14 @@ export type StandingPiece = {
   takesFinish?: boolean
 }
 
-export function doorPieces(opening: Opening, wall: Wall, centre: number): StandingPiece[] {
+export function doorPieces(
+  opening: Opening,
+  wall: Wall,
+  centre: number,
+  outside?: -1 | 1,
+): StandingPiece[] {
   if (opening.kind !== 'door') return []
+  if (opening.frame && opening.variant === 'hinged') return framedLeaf(opening, centre, outside)
   const width = opening.width
   const height = opening.height
   const face = wall.thickness / 2
@@ -99,6 +106,65 @@ export function doorPieces(opening: Opening, wall: Wall, centre: number): Standi
       key: `${opening.id}-handle`,
       at: stile + towards * (LEAF / 2 + HANDLE.reach / 2),
       aside: swing * (face + width - HANDLE.length / 2 - 60),
+      turn: QUARTER,
+      length: HANDLE.length,
+      height: HANDLE.thick,
+      thickness: HANDLE.reach,
+      base: HANDLE.height,
+      colour: DOOR_PAINT.handle,
+    },
+  ]
+}
+
+function framedLeaf(opening: Opening, centre: number, outside?: -1 | 1): StandingPiece[] {
+  const frame = opening.frame!
+  const { width, height } = doorLeafSize(opening)
+  const towards = opening.hinge === 'a' ? 1 : -1
+  const swing = opening.swing
+  const hinge = centre - (towards * width) / 2
+  const at = hinge + (towards * frame.depth) / 2
+  const exterior = -(outside ?? -swing) * swing * towards
+  const strips = [
+    { along: frame.face / 2, length: frame.face, base: 0, height },
+    { along: width - frame.face / 2, length: frame.face, base: 0, height },
+    { along: width / 2, length: width - 2 * frame.face, base: 0, height: frame.face },
+    {
+      along: width / 2,
+      length: width - 2 * frame.face,
+      base: height - frame.face,
+      height: frame.face,
+    },
+  ]
+  return [
+    {
+      key: `${opening.id}-leaf`,
+      at,
+      aside: (swing * width) / 2,
+      turn: QUARTER,
+      length: width - 2 * frame.face,
+      height: height - 2 * frame.face,
+      thickness: 8,
+      base: frame.face,
+      colour: '#b9d4e0',
+      takesFinish: true,
+    },
+    ...strips.flatMap((strip, i) =>
+      ([1, -1] as const).map((side) => ({
+        key: `${opening.id}-leaf-frame-${i}-${side}`,
+        at: at + (side * frame.depth) / 4,
+        aside: swing * strip.along,
+        turn: QUARTER,
+        length: strip.length,
+        height: strip.height,
+        thickness: frame.depth / 2,
+        base: strip.base,
+        colour: side === exterior ? frame.outside : frame.inside,
+      })),
+    ),
+    {
+      key: `${opening.id}-handle`,
+      at: at + (towards * (frame.depth + HANDLE.reach)) / 2,
+      aside: swing * (width - HANDLE.length / 2 - frame.face),
       turn: QUARTER,
       length: HANDLE.length,
       height: HANDLE.thick,

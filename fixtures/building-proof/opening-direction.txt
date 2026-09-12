@@ -1,0 +1,8 @@
+update-level --name Main --height 3300
+add-room --name Left --shape rectangle --width 12m --depth 6m --material ceramic-tile
+add-room --name Right --from Left --side east --width 6m --material ceramic-tile
+add-opening --room Left --kind door --side north --width 1000 --opens-into outside --hinge left
+add-opening --room Left --kind door --side east --width 900 --opens-into Right --hinge right
+add-opening --room Right --kind assembly --side north --width 3000 --height 2800 --opens-into outside --hinge left --frame '{"depth":74,"face":60,"outside":"#383e42","inside":"#f1f0ea"}' --panels '[{"kind":"door","x":0,"z":0,"width":1100,"height":2100},{"kind":"fixed","x":0,"z":2100,"width":1100,"height":700},{"kind":"opaque","x":1100,"z":0,"width":950,"height":400},{"kind":"fixed","x":1100,"z":400,"width":950,"height":2400},{"kind":"opaque","x":2050,"z":0,"width":950,"height":400},{"kind":"fixed","x":2050,"z":400,"width":950,"height":2400}]'
+add-opening --room Right --kind door --side south --width 1000 --hinge left
+update-opening --id o4 --opens-into outside

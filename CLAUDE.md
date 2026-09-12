@@ -388,9 +388,9 @@ cutting the north off an L-shaped floor meets the boundary exactly twice and
 leaves a shallow tail running under the notch. `sideIsStraight` in
 `geometry/cut.ts` refuses that rather than drawing a room nobody asked for.
 
-**A door swings into the room it was named from.** It is the one thing a door
-needs that a window does not, and the room is the only place the answer can come
-from — so the side is worked out when the door is placed and stored on the
+**A door defaults to swinging into the room it was named from.** An explicit
+`--opens-into` names an adjacent room or `outside` on an exterior boundary.
+The side is worked out when the door is placed and stored on the
 opening. It cannot be worked out later: a room is a face of the wall graph, and a
 face has no lasting identity.
 
@@ -461,10 +461,14 @@ An `add-opening --kind assembly` is one product with rectangular fixed and door
 panels and a frame. Panels must tile the opening exactly without overlaps. The
 plan, 3D and traversal derive its parts from that one record.
 
-`add-opening` and `update-opening` accept `--hinge left|right` for hinged doors,
-viewed from the room the door opens into, facing the closed leaf. The answer
+`add-opening` and `update-opening` accept `--hinge left|right` for hinged doors
+and assemblies with door panels, viewed from the side the door opens towards,
+facing the closed leaf. `--opens-into <room>|outside` sets that side. The answer
 reports that handedness and `opensInto`; moving a door preserves its handedness
-even when its new wall runs the opposite way.
+even when its new wall runs the opposite way. Changing only its swing direction
+keeps the physical hinge jamb. Each assembly leaf is checked against obstacles
+at its own width. A framed glass leaf carries its frame in both plan and 3D,
+including the separately coloured inner and outer faces.
 
 The driver's `window.floorplan.show({view: 'north'})` also supports south, east,
 west, roof and overview. It changes only the camera, never the document. These

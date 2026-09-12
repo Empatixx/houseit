@@ -1,5 +1,15 @@
 import type { HouseDocument, Opening } from './document'
 
+export function doorLeafSize(opening: Opening) {
+  const inset = opening.frame?.face ?? 0
+  return {
+    width: opening.width - 2 * inset,
+    height: opening.height - inset,
+    depth: opening.frame?.depth ?? 40,
+    inset,
+  }
+}
+
 export function openingParts(opening: Opening, span: number): Opening[] {
   if (!opening.panels) return [opening]
   return opening.panels.map((p, i) => ({

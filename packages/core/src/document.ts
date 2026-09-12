@@ -64,12 +64,18 @@ export const OpeningSchema = z
   })
   .superRefine((opening, ctx) => {
     const fail = (message: string) => ctx.addIssue({ code: 'custom', message })
+    const checkLeaf = (width: number, height: number) => {
+      if (opening.frame && (width <= 4 * opening.frame.face || height <= 3 * opening.frame.face))
+        fail('the frame must leave positive glazing inside the door leaf')
+    }
+    if (opening.kind === 'door') checkLeaf(opening.width, opening.height)
     if (opening.kind === 'assembly' && (!opening.panels || !opening.frame))
       fail('an assembly needs panels and a frame')
     if (opening.kind !== 'assembly' && opening.panels) fail('panels belong to an assembly')
     if (!opening.panels) return
     let area = 0
     for (const [i, p] of opening.panels.entries()) {
+      if (p.kind === 'door') checkLeaf(p.width, p.height)
       if (p.x + p.width > opening.width || p.z + p.height > opening.height)
         fail('panel extends outside the opening')
       if (p.kind === 'door' && p.z + opening.sillHeight !== 0)

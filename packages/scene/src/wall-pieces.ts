@@ -1,5 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
-import { openingParts } from '@houseit/core/opening-parts'
+import { doorLeafSize, openingParts } from '@houseit/core/opening-parts'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 
 export const INK = {
@@ -222,15 +222,16 @@ function slidingOf(opening: Opening, hole: Span, line: number, wall: Wall): Wall
 }
 
 function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPiece[] {
-  const width = opening.width
+  const { width, inset } = doorLeafSize(opening)
+  if (opening.frame) line = Math.min(line, opening.frame.depth / 3)
   const swing = opening.swing
   const height = wall.height
-  const face = wall.thickness / 2
-  const hinge = opening.hinge === 'a' ? hole.from : hole.to
+  const face = opening.frame ? 0 : wall.thickness / 2
+  const hinge = opening.hinge === 'a' ? hole.from + inset : hole.to - inset
   const towards = opening.hinge === 'a' ? 1 : -1
-  const leaf = wall.thickness / 2
+  const leaf = opening.frame?.depth ?? wall.thickness / 2
   const stile = hinge + (towards * leaf) / 2
-  const reach = width + wall.thickness
+  const reach = width + 2 * face
   const stands = swing * (reach / 2 - face)
 
   const pieces: WallPiece[] = [

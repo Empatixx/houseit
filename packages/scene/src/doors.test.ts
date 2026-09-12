@@ -96,3 +96,26 @@ test('what stands in the wall stops under the soffit', () => {
 test('a window grows no door', () => {
   expect(doorPieces({ ...door, kind: 'window' }, wall, 3000)).toEqual([])
 })
+
+test('a glazed door leaf carries its own frame with separate inside and outside faces', () => {
+  const glazed = {
+    ...door,
+    width: 1100,
+    height: 2100,
+    frame: { depth: 74, face: 50, outside: '#383e42', inside: '#f1f0ea' },
+  }
+  const pieces = doorPieces(glazed, wall, 3000, -1)
+  const glass = pieces.find((p) => p.key === 'd1-leaf')!
+  const frame = pieces.filter((p) => p.key.includes('leaf-frame'))
+  expect(frame).toHaveLength(8)
+  expect(frame.filter((p) => p.colour === glazed.frame.inside)).toHaveLength(4)
+  expect(frame.filter((p) => p.colour === glazed.frame.outside)).toHaveLength(4)
+  expect(
+    Math.max(...frame.map((p) => p.at + p.thickness / 2)) -
+      Math.min(...frame.map((p) => p.at - p.thickness / 2)),
+  ).toBe(74)
+  expect(glass.length).toBeLessThan(1000)
+  expect(glass.height).toBeLessThan(2100)
+  expect(glass.thickness).toBeLessThan(10)
+  expect(pieces.some((p) => p.key.includes('jamb'))).toBe(false)
+})
