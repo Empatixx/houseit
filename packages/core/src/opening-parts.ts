@@ -2,6 +2,9 @@ import type { HouseDocument, Opening } from './document'
 
 export type OpeningPart = Opening & { liningSide?: 'a' | 'b' }
 
+export const pocketShift = (opening: Opening): number =>
+  ((opening.slide ?? opening.hinge) === 'a' ? -1 : 1) * opening.width
+
 export function doorLeafSize(opening: Opening) {
   const inset = opening.frame?.face ?? 0
   return {

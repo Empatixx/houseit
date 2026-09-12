@@ -1,5 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
-import { doorLeafSize, openingParts } from '@houseit/core/opening-parts'
+import { doorLeafSize, openingParts, pocketShift } from '@houseit/core/opening-parts'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 
 export const INK = {
@@ -188,8 +188,7 @@ function slidingOf(opening: Opening, hole: Span, line: number, wall: Wall): Wall
   const leaf = Math.max(line * 2, wall.thickness / 3)
   const pocket = opening.variant === 'pocket'
   const panel = pocket ? width : width / 2 + line
-  const towards = opening.hinge === 'a' ? 1 : -1
-  const first = pocket ? hole.from + width * 0.5 : hole.from + panel / 2
+  const first = pocket ? middleOf(hole) + pocketShift(opening) : hole.from + panel / 2
   const second = pocket ? hole.from - width * 0.5 : hole.to - panel / 2
 
   const panels: WallPiece[] = [
@@ -199,7 +198,7 @@ function slidingOf(opening: Opening, hole: Span, line: number, wall: Wall): Wall
     {
       key: `${opening.id}-${key}`,
       colour: INK.outline,
-      at: at * 1 + 0 * towards,
+      at,
       aside,
       length: panel,
       thickness: leaf,
@@ -218,7 +217,21 @@ function slidingOf(opening: Opening, hole: Span, line: number, wall: Wall): Wall
     },
   ])
 
-  return pocket ? panels.slice(0, 2) : panels
+  return pocket
+    ? [
+        ...panels.slice(0, 2),
+        {
+          key: `${opening.id}-pick`,
+          colour: INK.glass,
+          at: middleOf(hole),
+          length: width,
+          thickness: wall.thickness,
+          base: 0,
+          height: wall.height,
+          hidden: true,
+        },
+      ]
+    : panels
 }
 
 function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPiece[] {

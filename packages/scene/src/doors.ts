@@ -1,5 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
-import { doorLeafSize, type OpeningPart } from '@houseit/core/opening-parts'
+import { doorLeafSize, type OpeningPart, pocketShift } from '@houseit/core/opening-parts'
 
 const DOOR_PAINT = {
   leaf: '#cdb894',
@@ -61,7 +61,7 @@ export function doorPieces(
     const panel = opening.variant === 'pocket' ? width : width / 2
     const spots =
       opening.variant === 'pocket'
-        ? [{ key: 'near', at: centre, aside: 0 }]
+        ? [{ key: 'near', at: centre + pocketShift(opening), aside: 0 }]
         : [
             { key: 'near', at: centre - width / 4, aside: -LEAF / 2 },
             { key: 'far', at: centre + width / 4, aside: LEAF / 2 },

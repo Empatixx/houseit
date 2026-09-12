@@ -13,11 +13,12 @@ import { hasDoor, opensIntoOf } from './opening-direction'
 import { handOf, hingeAt } from './opening-hinge'
 import { openingById } from './openings'
 import { checkDoorLeaves, checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
+import { checkPockets, pocketDirection, setPocket } from './pocket-door'
 import { SIDE_NAMES, sideNamed } from './resolve'
 
 export const updateOpening = defineCommand({
   name: 'update-opening',
-  summary: `Change a door or a window: its size, its kind of leaf (${DOOR_VARIANTS.join(', ')}), or where in the wall it sits. --hinge left|right is viewed from the side it opens towards, facing the closed door. --opens-into names the room receiving the leaf, or outside. --leaf-width changes the main leaf of a paired door; 0 restores one leaf`,
+  summary: `For pocket doors, --slide-towards north|south|east|west chooses the wall pocket; omitted, a free side is chosen. Change a door or a window: its size, its kind of leaf (${DOOR_VARIANTS.join(', ')}), or where in the wall it sits. --hinge left|right is viewed from the side it opens towards, facing the closed door. --opens-into names the room receiving the leaf, or outside. --leaf-width changes the main leaf of a paired door; 0 restores one leaf`,
   args: z.object({
     id: z.string().min(1),
     panels: json(PanelsSchema).optional(),
@@ -29,6 +30,7 @@ export const updateOpening = defineCommand({
     variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).optional(),
     hinge: z.enum(['left', 'right']).optional(),
     opensInto: z.string().min(1).optional(),
+    slideTowards: z.enum(SIDE_NAMES).optional(),
     along: along().optional(),
     toSide: z.enum(SIDE_NAMES).optional(),
     toWall: z.string().min(1).optional(),
@@ -55,6 +57,7 @@ export const updateOpening = defineCommand({
       args.variant === undefined &&
       args.hinge === undefined &&
       args.opensInto === undefined &&
+      args.slideTowards === undefined &&
       args.panels === undefined &&
       args.frame === undefined
     ) {
@@ -64,6 +67,11 @@ export const updateOpening = defineCommand({
     }
 
     const variant = args.variant ?? opening.variant
+    const slideTowards =
+      args.slideTowards ??
+      (moving && opening.variant === 'pocket' && variant === 'pocket'
+        ? pocketDirection(draft, opening)
+        : undefined)
     const width = args.width ?? opening.width
     const leafWidth = args.leafWidth === undefined ? opening.leafWidth : args.leafWidth || undefined
     const swings = door && variant === 'hinged' && leafWidth === undefined
@@ -131,6 +139,7 @@ export const updateOpening = defineCommand({
     }
 
     const target = draft.openings[opening.id]!
+    if (variant !== 'pocket') target.slide = undefined
     target.leafWidth = leafWidth
     target.width = width
     target.variant = variant
@@ -140,7 +149,9 @@ export const updateOpening = defineCommand({
     if (args.panels !== undefined) target.panels = args.panels
     if (args.frame !== undefined) target.frame = args.frame
     OpeningSchema.parse(target)
+    setPocket(draft, target, slideTowards, 'update-opening')
     checkDoorLeaves(draft, level, room, target, 'update-opening')
+    checkPockets(draft, level, 'update-opening')
     return { changed: [opening.id] }
   },
 })

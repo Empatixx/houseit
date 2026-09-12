@@ -478,6 +478,11 @@ A plain hinged door accepts `--leaf-width` for the main leaf of an unequal pair.
 Both leaves swing from outer jambs, without a centre post. `update-opening
 --leaf-width 0` restores a single leaf.
 
+Pocket doors use `--slide-towards north|south|east|west`. The CLI checks the
+wall pocket and stores its direction; without an explicit direction it chooses
+a free side. Both plan and 3D show the leaf retracted into that pocket, leaving
+the same passage that can be walked. Other openings may not occupy the pocket.
+
 The driver's `window.floorplan.show({view: 'north'})` also supports south, east,
 west, roof and overview. It changes only the camera, never the document. These
 views exist to compare a model against its elevations and roof drawing.

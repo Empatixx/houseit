@@ -19,6 +19,7 @@ import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { wellsInRoom } from '@houseit/geometry/wells'
 import { hasDoor, opensIntoOf } from './opening-direction'
 import { handOf } from './opening-hinge'
+import { pocketDirection } from './pocket-door'
 import { order } from './resolve'
 
 export type WallReport = {
@@ -40,6 +41,7 @@ export type OpeningReport = {
   height: number
   panels?: Opening['panels']
   leafWidth?: number
+  slideTowards?: Side
   frame?: Opening['frame']
   variant?: Opening['variant']
   hinge?: 'left' | 'right'
@@ -168,6 +170,7 @@ export function surveyRoom(
       height: opening.height,
       ...(opening.panels ? { panels: opening.panels } : {}),
       ...(opening.leafWidth !== undefined ? { leafWidth: opening.leafWidth } : {}),
+      ...(opening.variant === 'pocket' ? { slideTowards: pocketDirection(doc, opening) } : {}),
       ...(opening.frame ? { frame: opening.frame } : {}),
       ...(hasDoor(opening) && opening.variant === 'hinged'
         ? {

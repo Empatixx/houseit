@@ -60,11 +60,14 @@ export const OpeningSchema = z
     height: mm.positive(),
     sillHeight: mm.nonnegative(),
     leafWidth: mm.positive().optional(),
+    slide: z.enum(['a', 'b']).optional(),
     hinge: z.enum(['a', 'b']).default('a'),
     swing: z.union([z.literal(-1), z.literal(1)]).default(1),
   })
   .superRefine((opening, ctx) => {
     const fail = (message: string) => ctx.addIssue({ code: 'custom', message })
+    if (opening.slide !== undefined && (opening.kind !== 'door' || opening.variant !== 'pocket'))
+      fail('a slide direction belongs to a pocket door')
     if (opening.leafWidth !== undefined) {
       if (opening.kind !== 'door' || opening.variant !== 'hinged' || opening.frame)
         fail('a paired leaf width belongs to a plain hinged door')

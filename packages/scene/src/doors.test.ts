@@ -68,6 +68,9 @@ test('a sliding door is two panels in the wall, a pocket door one', () => {
   expect(sliding.map((piece) => piece.length)).toEqual([800, 800])
   expect(pocket).toHaveLength(1)
   expect(pocket[0]!.length).toBe(door.width)
+  expect(pocket[0]!.at).toBe(3000 - door.width)
+  const opposite = panels(doorPieces({ ...door, variant: 'pocket', slide: 'b' }, wall, 3000))
+  expect(opposite[0]!.at).toBe(3000 + door.width)
 })
 
 test('the reveal is lined: a jamb each side and a soffit over', () => {
