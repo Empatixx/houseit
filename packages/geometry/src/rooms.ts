@@ -1,6 +1,6 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { type Face, findFaces } from '@houseit/core/faces'
-import { areaInBox } from './area-in-box'
+import { areaInBox, disjointBoxes } from './area-in-box'
 import { centroidOf } from './centroid'
 import { clearAreaOf, clearOutline } from './clear'
 import { shaftsOn } from './connections'
@@ -19,6 +19,22 @@ export type Room = Face & {
 export function roomsOf(doc: HouseDocument, level: string): Room[] {
   const stored = Object.values(doc.rooms).filter((room) => room.level === level)
   const shafts = shaftsOn(doc, level)
+  const occupied = disjointBoxes([
+    ...(doc.levels[level]?.columns ?? []).map((c) => ({
+      x0: c.x - c.width / 2,
+      x1: c.x + c.width / 2,
+      y0: c.y - c.depth / 2,
+      y1: c.y + c.depth / 2,
+    })),
+    ...shafts
+      .filter((s) => s.enclosure)
+      .map((s) => ({
+        x0: s.x - s.width / 2 - s.enclosure!.thickness,
+        x1: s.x + s.width / 2 + s.enclosure!.thickness,
+        y0: s.y - s.depth / 2 - s.enclosure!.thickness,
+        y1: s.y + s.depth / 2 + s.enclosure!.thickness,
+      })),
+  ])
 
   return findFaces(doc, level)
     .map((face) => {
@@ -52,30 +68,7 @@ export function roomsOf(doc: HouseDocument, level: string): Room[] {
         ...face,
         clear:
           clearAreaOf(doc, level, face.nodes) -
-          (doc.levels[level]?.columns ?? []).reduce(
-            (sum, c) =>
-              sum +
-              areaInBox(clear, {
-                x0: c.x - c.width / 2,
-                x1: c.x + c.width / 2,
-                y0: c.y - c.depth / 2,
-                y1: c.y + c.depth / 2,
-              }),
-            0,
-          ) -
-          shafts
-            .filter((s) => s.enclosure)
-            .reduce(
-              (sum, s) =>
-                sum +
-                areaInBox(clear, {
-                  x0: s.x - s.width / 2 - s.enclosure!.thickness,
-                  x1: s.x + s.width / 2 + s.enclosure!.thickness,
-                  y0: s.y - s.depth / 2 - s.enclosure!.thickness,
-                  y1: s.y + s.depth / 2 + s.enclosure!.thickness,
-                }),
-              0,
-            ),
+          occupied.reduce((sum, box) => sum + areaInBox(clear, box), 0),
         centre: centroidOf(polygon, face.area),
       }
       return found

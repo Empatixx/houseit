@@ -13,6 +13,29 @@ import { runScript } from './run'
 const measured = `add-room --name Cafe --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":300},{"x":9000,"y":0,"thickness":150},{"x":9000,"y":8000,"thickness":300},{"x":0,"y":8000,"thickness":300}]'
 add-room --name Prep --material vinyl --boundary '[{"x":9000,"y":0,"thickness":300},{"x":12000,"y":0,"thickness":300},{"x":12000,"y":5000,"thickness":150},{"x":9000,"y":5000,"thickness":150}]'`
 
+test('an explicit service enclosure wraps a column without counting occupied floor twice', () => {
+  const source = readFileSync(
+    new URL('../../../fixtures/building-proof/shaft-around-column.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), source)
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(doc, level).map((r) => r.clear)).toEqual([13_240_000, 13_240_000])
+  expect(doc.levels[level]!.columns).toHaveLength(2)
+  expect(walkClear(doc, level, { x: 1000, y: 3500 })).toBe(false)
+  expect(() =>
+    runScript(createEmptyDocument(), source.replaceAll(' --around-columns', '')),
+  ).toThrow('structural column')
+  expect(() =>
+    runScript(
+      doc,
+      `add-level --name Upper
+add-shaft --level Main --to Upper --kind lift --x 3000 --y 2000 --width 1000 --depth 800 --around-columns --enclosure '{"thickness":100,"colour":"#e5e2da"}'`,
+    ),
+  ).toThrow('only an enclosed services shaft')
+  parseDocument(doc)
+})
+
 test('measured adjacent rooms share their wall and preserve the L-shaped notch', () => {
   const doc = runScript(createEmptyDocument(), measured)
   const level = Object.keys(doc.levels)[0]!

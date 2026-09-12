@@ -45,11 +45,12 @@ const position = { x: length(), y: length(), width: length() }
 export const addShaft = defineCommand({
   name: 'add-shaft',
   summary:
-    'Hold a lift or --kind services shaft from --level through --to; a service shaft can occupy one storey. x,y centres the clear shaft. Optional --enclosure JSON gives thickness and colour, optionally doorSide, doorWidth and doorHeight together; its footprint is excluded from the surrounding room.',
+    'Hold a lift or --kind services shaft from --level through --to; a service shaft can occupy one storey. x,y centres the clear shaft. Optional --enclosure JSON gives thickness and colour, optionally doorSide, doorWidth and doorHeight together; its footprint is excluded from the surrounding room. --around-columns explicitly lets an enclosed services shaft wrap structural columns; dimensions then bound the remaining service space.',
   args: z.object({
     ...position,
     depth: length(),
     kind: ShaftSchema.shape.kind.optional(),
+    aroundColumns: z.boolean().optional(),
     to: z.string(),
     level: z.string().optional(),
     enclosure: json(ShaftSchema.shape.enclosure.unwrap()).optional(),
@@ -97,6 +98,7 @@ export const addShaft = defineCommand({
         )
           throw new CommandError('shaft would overlap another shaft')
         if (
+          !shaft.aroundColumns &&
           (storey.columns ?? []).some((c) =>
             clashes(
               boxOf(corners),

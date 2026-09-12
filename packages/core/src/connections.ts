@@ -2,29 +2,35 @@ import { z } from 'zod'
 
 const mm = z.number().int()
 const point = { x: mm, y: mm }
-export const ShaftSchema = z.object({
-  id: z.string().min(1),
-  kind: z.enum(['lift', 'services']).default('lift'),
-  to: z.string().min(1),
-  ...point,
-  width: mm.positive(),
-  depth: mm.positive(),
-  enclosure: z
-    .object({
-      thickness: mm.positive(),
-      doorSide: z.enum(['north', 'south', 'east', 'west']).optional(),
-      doorWidth: mm.positive().optional(),
-      doorHeight: mm.positive().optional(),
-      colour: z.string().regex(/^#[0-9a-f]{6}$/i),
-    })
-    .refine(
-      (e) =>
-        [e.doorSide, e.doorWidth, e.doorHeight].every((v) => v === undefined) ||
-        [e.doorSide, e.doorWidth, e.doorHeight].every((v) => v !== undefined),
-      'enclosure door needs side, width and height together',
-    )
-    .optional(),
-})
+export const ShaftSchema = z
+  .object({
+    id: z.string().min(1),
+    kind: z.enum(['lift', 'services']).default('lift'),
+    to: z.string().min(1),
+    ...point,
+    width: mm.positive(),
+    depth: mm.positive(),
+    aroundColumns: z.boolean().optional(),
+    enclosure: z
+      .object({
+        thickness: mm.positive(),
+        doorSide: z.enum(['north', 'south', 'east', 'west']).optional(),
+        doorWidth: mm.positive().optional(),
+        doorHeight: mm.positive().optional(),
+        colour: z.string().regex(/^#[0-9a-f]{6}$/i),
+      })
+      .refine(
+        (e) =>
+          [e.doorSide, e.doorWidth, e.doorHeight].every((v) => v === undefined) ||
+          [e.doorSide, e.doorWidth, e.doorHeight].every((v) => v !== undefined),
+        'enclosure door needs side, width and height together',
+      )
+      .optional(),
+  })
+  .refine(
+    (s) => !s.aroundColumns || (s.kind === 'services' && !!s.enclosure),
+    'only an enclosed services shaft can wrap columns; its dimensions describe the bounding void',
+  )
 export const RampSchema = z
   .object({
     id: z.string().min(1),

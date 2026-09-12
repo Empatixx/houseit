@@ -445,6 +445,11 @@ landing differs from the storey datum. An enclosed shaft takes `--enclosure`;
 its clear dimensions exclude the wall thickness and its enclosing footprint is
 excluded from each surrounding room.
 
+An enclosed services shaft may use `--around-columns` when its drawn bounding
+void wraps an existing structural column. This does not apply to lifts. Columns
+and shaft casings occupy the union of their footprints, so overlapping occupied
+floor is subtracted once.
+
 Structural columns use `add-column`, `update-column`, `remove-column`. Their grid
 coordinates belong to a level and their height follows the soffit. Shafts and
 ramps use `add-shaft` / `remove-shaft` and `add-ramp` / `remove-ramp`, each with a

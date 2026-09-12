@@ -1,6 +1,32 @@
 import type { Box } from './boxes'
 import type { Point } from './outlines'
 
+// Partition overlapping occupied rectangles so their floor area is counted once.
+export function disjointBoxes(boxes: Box[]): Box[] {
+  const result: Box[] = []
+  for (const box of boxes) {
+    let pieces = [box]
+    for (const used of result) {
+      pieces = pieces.flatMap((p) => {
+        const x0 = Math.max(p.x0, used.x0),
+          x1 = Math.min(p.x1, used.x1)
+        const y0 = Math.max(p.y0, used.y0),
+          y1 = Math.min(p.y1, used.y1)
+        if (x0 >= x1 || y0 >= y1) return [p]
+        return [
+          { ...p, x1: x0 },
+          { ...p, x0: x1 },
+          { x0, x1, y0: p.y0, y1: y0 },
+          { x0, x1, y0: y1, y1: p.y1 },
+        ].filter((b) => b.x0 < b.x1 && b.y0 < b.y1)
+      })
+      if (!pieces.length) break
+    }
+    result.push(...pieces)
+  }
+  return result
+}
+
 // Clip by a convex box; signed area also sums disconnected portions of an orthogonal room.
 export function areaInBox(outline: Point[], box: Box): number {
   let polygon = outline

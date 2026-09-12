@@ -91,7 +91,11 @@ function checkColumn(doc: HouseDocument, level: string, column: z.infer<typeof C
     x1: column.x + column.width / 2,
     y1: column.y + column.depth / 2,
   }
-  if (shaftsOn(doc, level).some((s) => clashesAny([box], [boxOf(shaftOutside(s))])))
+  if (
+    shaftsOn(doc, level).some(
+      (s) => !s.aroundColumns && clashesAny([box], [boxOf(shaftOutside(s))]),
+    )
+  )
     throw new CommandError('column would intersect a lift shaft')
   for (const wall of Object.values(doc.walls).filter((w) => w.level === level)) {
     if (
