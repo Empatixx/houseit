@@ -460,6 +460,9 @@ fixed glazing, columns and unsupported holes.
 An `add-opening --kind assembly` is one product with rectangular fixed and door
 panels and a frame. Panels must tile the opening exactly without overlaps. The
 plan, 3D and traversal derive its parts from that one record.
+For a solid door under a glazed fanlight, the door panel takes `glazing: "none"`.
+Its opaque inner and outer faces keep the frame colours; the fanlight stays glass
+and the open door remains walkable.
 
 `add-opening` and `update-opening` accept `--hinge left|right` for hinged doors
 and assemblies with door panels, viewed from the side the door opens towards,

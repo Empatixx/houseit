@@ -119,3 +119,19 @@ test('a glazed door leaf carries its own frame with separate inside and outside 
   expect(glass.thickness).toBeLessThan(10)
   expect(pieces.some((p) => p.key.includes('jamb'))).toBe(false)
 })
+
+test('a framed solid leaf has two opaque faces instead of a transparent infill', () => {
+  const solid = {
+    ...door,
+    infill: 'opaque' as const,
+    width: 1250,
+    height: 2100,
+    frame: { depth: 74, face: 60, outside: '#383e42', inside: '#f1f0ea' },
+  }
+  const pieces = doorPieces(solid, wall, 3000, -1)
+  const faces = pieces.filter((p) => p.key === 'd1-leaf-1' || p.key === 'd1-leaf--1')
+  expect(faces).toHaveLength(2)
+  expect(new Set(faces.map((p) => p.colour))).toEqual(new Set(['#383e42', '#f1f0ea']))
+  expect(faces.reduce((sum, p) => sum + p.thickness, 0)).toBe(40)
+  expect(pieces.some((p) => p.takesFinish)).toBe(false)
+})

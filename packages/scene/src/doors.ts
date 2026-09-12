@@ -135,19 +135,29 @@ function framedLeaf(opening: Opening, centre: number, outside?: -1 | 1): Standin
       height: frame.face,
     },
   ]
+  const infill: StandingPiece = {
+    key: `${opening.id}-leaf`,
+    at,
+    aside: (swing * width) / 2,
+    turn: QUARTER,
+    length: width - 2 * frame.face,
+    height: height - 2 * frame.face,
+    thickness: 8,
+    base: frame.face,
+    colour: '#b9d4e0',
+    takesFinish: true,
+  }
   return [
-    {
-      key: `${opening.id}-leaf`,
-      at,
-      aside: (swing * width) / 2,
-      turn: QUARTER,
-      length: width - 2 * frame.face,
-      height: height - 2 * frame.face,
-      thickness: 8,
-      base: frame.face,
-      colour: '#b9d4e0',
-      takesFinish: true,
-    },
+    ...(opening.infill === 'opaque'
+      ? ([1, -1] as const).map((side) => ({
+          ...infill,
+          key: `${opening.id}-leaf-${side}`,
+          at: at + (side * LEAF) / 4,
+          thickness: LEAF / 2,
+          colour: side === exterior ? frame.outside : frame.inside,
+          takesFinish: false,
+        }))
+      : [infill]),
     ...strips.flatMap((strip, i) =>
       ([1, -1] as const).map((side) => ({
         key: `${opening.id}-leaf-frame-${i}-${side}`,

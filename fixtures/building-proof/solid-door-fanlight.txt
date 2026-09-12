@@ -1,0 +1,5 @@
+update-level --name Main --height 3300
+add-room --name Solid --shape rectangle --width 12m --depth 6m --material ceramic-tile
+add-room --name Glass --from Solid --side east --width 6m --material ceramic-tile
+add-opening --room Solid --kind assembly --side south --width 1250 --height 2800 --opens-into outside --hinge left --frame '{"depth":74,"face":60,"outside":"#383e42","inside":"#f1f0ea"}' --panels '[{"kind":"door","x":0,"z":0,"width":1250,"height":2100,"glazing":"none"},{"kind":"fixed","x":0,"z":2100,"width":1250,"height":700}]'
+add-opening --room Glass --kind assembly --side south --width 1250 --height 2800 --opens-into outside --hinge left --frame '{"depth":74,"face":60,"outside":"#383e42","inside":"#f1f0ea"}' --panels '[{"kind":"door","x":0,"z":0,"width":1250,"height":2100},{"kind":"fixed","x":0,"z":2100,"width":1250,"height":700}]'

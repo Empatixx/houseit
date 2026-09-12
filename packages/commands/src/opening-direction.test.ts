@@ -63,3 +63,18 @@ test('changing an assembly swing checks the actual leaf against furniture', () =
   )
   expect(doc.openings.o3!.swing).toBe(building().openings.o3!.swing)
 })
+
+test('an unglazed assembly door stays a walkable door beside its glazed fanlight', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/solid-door-fanlight.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  const parts = openingsIn(doc)
+  expect(parts.filter((p) => p.kind === 'door')).toHaveLength(2)
+  expect(parts.filter((p) => p.kind === 'door').map((p) => p.infill)).toEqual(['opaque', 'glass'])
+  expect(parts.filter((p) => p.kind === 'window').every((p) => p.infill === 'glass')).toBe(true)
+  expect(() =>
+    runScript(createEmptyDocument(), script.replace('"kind":"door"', '"kind":"fixed"')),
+  ).toThrow('glazing none belongs to a solid door')
+})

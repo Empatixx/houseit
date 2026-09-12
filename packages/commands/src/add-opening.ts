@@ -24,7 +24,7 @@ export const openingWidth = (
 
 export const addOpening = defineCommand({
   name: 'add-opening',
-  summary: `Put a door, window or assembly in a wall. An assembly needs --panels JSON [{kind:fixed|casement|tilt-turn|opaque|door,x,z,width,height,glazing?:clear|frosted}] and --frame JSON {depth,face,outside,inside}, dimensions in mm and colours #rrggbb. --sill sets its height above the floor. Place it on a room side or a wall id. --hinge left|right is viewed from the side it opens towards, facing the closed door. --opens-into names the room receiving the leaf, or outside. Door variants: ${DOOR_VARIANTS.join(', ')}`,
+  summary: `Put a door, window or assembly in a wall. An assembly needs --panels JSON [{kind:fixed|casement|tilt-turn|opaque|door,x,z,width,height,glazing?:clear|frosted|none}] and --frame JSON {depth,face,outside,inside}, dimensions in mm and colours #rrggbb. A door panel with glazing:none has a solid leaf. --sill sets its height above the floor. Place it on a room side or a wall id. --hinge left|right is viewed from the side it opens towards, facing the closed door. --opens-into names the room receiving the leaf, or outside. Door variants: ${DOOR_VARIANTS.join(', ')}`,
   args: z.object({
     room: z.string().min(1),
     kind: z.enum(['door', 'window', 'assembly']),
