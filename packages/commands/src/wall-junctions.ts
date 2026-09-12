@@ -95,7 +95,7 @@ export function moveWallJunctions(doc: HouseDocument, id: string, by: number): s
   return [...affected]
 }
 
-function connectCrossings(doc: HouseDocument, level: string): Set<string> {
+export function connectCrossings(doc: HouseDocument, level: string): Set<string> {
   const walls = Object.values(doc.walls).filter((w) => w.level === level)
   const hits: { one: string; other: string; point: Point }[] = []
   for (let i = 0; i < walls.length; i++) {

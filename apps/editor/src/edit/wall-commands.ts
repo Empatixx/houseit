@@ -1,11 +1,11 @@
 import { removeRoom } from '@houseit/commands/remove-room'
-import { resizeWall } from '@houseit/commands/stub-commands'
 import { type Stub, stubsOn } from '@houseit/commands/stubs'
 import { surveyRoom } from '@houseit/commands/survey'
 import { removeWall, updateWall } from '@houseit/commands/wall'
 import type { Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { wallElement } from '@houseit/geometry/wall-elements'
 import { documentStore } from '../store/store'
 import { sayError } from './notice'
 import { endPreview, previewCommand } from './preview'
@@ -112,9 +112,11 @@ function stubResizeArgs(wall: Wall, length: number) {
   const rounded = Math.max(10, Math.round(length / 10) * 10)
   if (rounded === found.stub.length) return undefined
   return {
-    room: roomRef(found.room) ?? found.room.name,
-    side: found.side,
-    along: found.stub.along,
+    id: wall.element ?? wall.id,
+    end:
+      wallElement(documentStore.getState().doc, wall.id).from.id === found.stub.tip
+        ? ('from' as const)
+        : ('to' as const),
     length: rounded,
   }
 }
@@ -122,7 +124,7 @@ function stubResizeArgs(wall: Wall, length: number) {
 export function resizeStub(wall: Wall, length: number): boolean {
   const args = stubResizeArgs(wall, length)
   if (!args) return stubOf(wall) !== undefined
-  return runEdit(() => documentStore.getState().apply(resizeWall, args))
+  return runEdit(() => documentStore.getState().apply(updateWall, args))
 }
 
 export function previewStubResize(wall: Wall, length: number): void {
@@ -131,5 +133,5 @@ export function previewStubResize(wall: Wall, length: number): void {
     endPreview()
     return
   }
-  previewCommand(resizeWall, args)
+  previewCommand(updateWall, args)
 }

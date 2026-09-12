@@ -18,6 +18,7 @@ import { levelOf } from './resolve'
 import { validateWallHosts } from './validate-wall-hosts'
 import { furnitureBefore, retainFurniture } from './wall-furniture'
 import { moveWallJunctions } from './wall-junctions'
+import { resizeWallEnd } from './wall-length'
 
 const positive = () => length().pipe(z.number().positive())
 const point = json(z.object({ x: length(), y: length() }))
@@ -60,10 +61,12 @@ export const addWall = defineCommand({
 export const updateWall = defineCommand({
   name: 'update-wall',
   summary:
-    'Edit an independent wall by id. --by moves perpendicular to its from→to direction: positive is left. Connected walls follow and openings keep their host and distance from the fixed end. Invalid joins or openings refuse the entire edit.',
+    'Edit an independent wall by id. --by moves perpendicular to its from→to direction: positive is left. --length moves a free endpoint (--end from|to, default to), keeping the other end fixed. Connected walls follow and openings keep their host and distance from the fixed end. Invalid joins or openings refuse the entire edit.',
   args: z.object({
     id: z.string().min(1),
     by: length().optional(),
+    length: positive().optional(),
+    end: z.enum(['from', 'to']).optional(),
     thickness: positive().optional(),
     height: positive().optional(),
     base: length().pipe(z.number().nonnegative()).optional(),
@@ -71,18 +74,26 @@ export const updateWall = defineCommand({
   run: (draft, args) => {
     if (
       args.by === undefined &&
+      args.length === undefined &&
       args.thickness === undefined &&
       args.height === undefined &&
       args.base === undefined
     )
-      throw new CommandError('update-wall: provide --by, --thickness, --height or --base')
+      throw new CommandError('update-wall: provide --by, --length, --thickness, --height or --base')
+    if (args.end !== undefined && args.length === undefined)
+      throw new CommandError('update-wall: --end requires --length')
+    if (args.length !== undefined && args.by !== undefined)
+      throw new CommandError('update-wall: change --length or --by in separate commands')
     const element = wallElement(draft, args.id)
     const level = element.level
     const furniture = furnitureBefore(draft, level)
     const roomIds = roomsOf(draft, level)
       .filter((r) => r.id)
       .map((r) => r.id!)
-    const affected = moveWallJunctions(draft, element.id, args.by ?? 0)
+    const affected =
+      args.length === undefined
+        ? moveWallJunctions(draft, element.id, args.by ?? 0)
+        : resizeWallEnd(draft, element.id, args.length, args.end ?? 'to')
     for (const { wall } of wallElement(draft, element.id).segments) {
       if (args.thickness !== undefined) wall.thickness = args.thickness
       if (args.height !== undefined) wall.height = args.height

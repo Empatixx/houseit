@@ -3,7 +3,8 @@ import { containsPoint, type Room, roomsOf } from '@houseit/geometry/rooms'
 import type { Draft } from 'immer'
 import { z } from 'zod'
 import { CommandError } from './command-error'
-import { linkPoints, wallUnder } from './partition'
+import { wallUnder } from './partition'
+import { addWall } from './wall'
 
 const mm = z.number().int()
 export const ReturnSchema = z.object({
@@ -38,8 +39,13 @@ export function roomReturn(
       if (!containsPoint(polygon, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t))
         fail('the return must end inside this room')
     }
-    const walls = linkPoints(draft, level, a, b, value.thickness, 'update-room --return')
-    for (const id of walls) draft.walls[id]!.height = value.height
+    addWall.apply(draft, {
+      from: a,
+      to: b,
+      thickness: value.thickness,
+      height: value.height,
+      level,
+    })
   }
   if (roomsOf(draft, level).length !== count) fail('a return must not enclose another room')
 }

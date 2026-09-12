@@ -1,13 +1,12 @@
-import { roomsOf } from '@houseit/geometry/rooms'
-import { sideRun } from '@houseit/geometry/sides'
+import { wallElement } from '@houseit/geometry/wall-elements'
 import { z } from 'zod'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
-import { deleteWall, straighten } from './graph'
 import { length } from './length-schema'
-import { wallInto } from './partition'
+import { nearWall } from './partition'
 import { levelOf, roomNamed } from './resolve'
 import { stubNamed } from './stubs'
+import { removeWall as removeElement, updateWall } from './wall'
 
 export const removeWall = defineCommand({
   name: 'remove-wall',
@@ -22,8 +21,7 @@ export const removeWall = defineCommand({
     const level = levelOf(draft, args.level, 'remove-wall')
     const room = roomNamed(draft, level, args.room, 'remove-wall')
     const stub = stubNamed(draft, level, room, args.side, args.along, 'remove-wall')
-    deleteWall(draft, level, stub.wall.id)
-    if (draft.nodes[stub.root]) straighten(draft, level, stub.root)
+    return removeElement.apply(draft, { id: stub.wall.element ?? stub.wall.id })
   },
 })
 
@@ -43,15 +41,20 @@ export const resizeWall = defineCommand({
     const stub = stubNamed(draft, level, room, args.side, args.along, 'resize-wall')
     if (args.length <= 0) throw new CommandError('resize-wall: a stub has to have some length')
 
-    const run = sideRun(draft, level, room, args.side)
-    if (!run) throw new CommandError(`resize-wall: ${room.name} has no wall facing ${args.side}`)
+    const element = wallElement(draft, stub.wall.id)
+    const end = element.from.id === stub.tip ? 'from' : 'to'
     const root = draft.nodes[stub.root]!
-    const from = { x: root.x, y: root.y }
-    const thickness = stub.wall.thickness
-
-    deleteWall(draft, level, stub.wall.id)
-    const fresh = roomsOf(draft, level).find((candidate) => candidate.id === room.id)
-    if (!fresh) throw new CommandError(`resize-wall: ${room.name} was lost`)
-    wallInto(draft, level, fresh, from, run.inward, args.length, thickness, 'resize-wall')
+    const direction = end === 'to' ? 1 : -1
+    const to = {
+      x: root.x + direction * element.unit.x * args.length,
+      y: root.y + direction * element.unit.y * args.length,
+    }
+    const snapped = nearWall(draft, level, to)
+    const target =
+      snapped &&
+      Math.abs((snapped.x - root.x) * element.unit.y - (snapped.y - root.y) * element.unit.x) < 1
+        ? Math.hypot(snapped.x - root.x, snapped.y - root.y)
+        : args.length
+    return updateWall.apply(draft, { id: element.id, length: target, end })
   },
 })

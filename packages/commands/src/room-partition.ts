@@ -11,8 +11,8 @@ import { swingOf } from '@houseit/geometry/swing'
 import type { Draft } from 'immer'
 import type { z } from 'zod'
 import { CommandError } from './command-error'
-import { linkPoints } from './partition'
 import { ReturnSchema } from './room-return'
+import { addWall } from './wall'
 
 export const PartitionSchema = ReturnSchema.extend({ points: ReturnSchema.shape.points.length(2) })
 
@@ -68,6 +68,11 @@ export function roomPartition(
     const swing = swingOf(draft, opening)
     if (swing && clashes(box, swing, 0)) fail(`it blocks door ${opening.id}`)
   }
-  for (const id of linkPoints(draft, level, a!, b!, value.thickness, 'update-room --partition'))
-    draft.walls[id]!.height = value.height
+  addWall.apply(draft, {
+    from: a!,
+    to: b!,
+    thickness: value.thickness,
+    height: value.height,
+    level,
+  })
 }
