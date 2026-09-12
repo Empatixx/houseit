@@ -1,10 +1,14 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { openingsIn } from '@houseit/core/opening-parts'
 import { treadsOf } from '@houseit/core/stairs'
+import { areaInBox } from './area-in-box'
 import { wallBox } from './boxes'
 import { clearOutline } from './clear'
 import { shaftOutside, shaftsOn } from './connections'
 import type { Point } from './outlines'
 import { containsPoint, type Room } from './rooms'
+import { swingOf } from './swing'
+import { wellsIn } from './wells'
 
 export function roomLabel(doc: HouseDocument, level: string, room: Room) {
   const outline = clearOutline(doc, level, room.nodes)
@@ -13,7 +17,22 @@ export function roomLabel(doc: HouseDocument, level: string, room: Room) {
     .map(shaftOutside)
   excluded.push(
     ...(doc.levels[level]?.stairs ?? []).flatMap((s) => treadsOf(s).map((t) => t.outline)),
+    ...wellsIn(doc, level).map((well) => well.outline),
   )
+  for (const opening of openingsIn(doc)) {
+    const wall = doc.walls[opening.wall]!
+    if (wall.level !== level) continue
+    const box = swingOf(doc, opening)
+    if (!box) continue
+    // The drawn leaf starts at the wall face; leave room for its outline too.
+    const margin = wall.thickness / 2 + 40
+    excluded.push([
+      { x: box.x0 - margin, y: box.y0 - margin },
+      { x: box.x1 + margin, y: box.y0 - margin },
+      { x: box.x1 + margin, y: box.y1 + margin },
+      { x: box.x0 - margin, y: box.y1 + margin },
+    ])
+  }
   for (const id of room.partitions) {
     const wall = doc.walls[id]!
     const box = wallBox(doc.nodes[wall.a]!, doc.nodes[wall.b]!, wall.thickness)
@@ -68,13 +87,30 @@ export function roomLabel(doc: HouseDocument, level: string, room: Room) {
   const consider = (p: Point) => {
     if (!free(p)) return
     const candidate = space(p)
-    const value = candidate.width * Math.min(candidate.height, candidate.width / 2)
+    candidate.height = Math.min(candidate.height, candidate.width / 2)
+    const value = candidate.width * candidate.height
     if (value > score) {
+      const box = {
+        x0: p.x - candidate.width / 2,
+        x1: p.x + candidate.width / 2,
+        y0: p.y - candidate.height / 2,
+        y1: p.y + candidate.height / 2,
+      }
+      if (
+        areaInBox(outline, box) < candidate.width * candidate.height - 0.01 ||
+        excluded.some((hole) => areaInBox(hole, box) > 0.01)
+      )
+        return
       best = candidate
       score = value
     }
   }
   consider(room.centre)
+  // An obstacle in one row need not split the clear width of another row.
+  for (let j = 0; j < ys.length - 1; j++)
+    consider({ x: (x0 + x1) / 2, y: (ys[j]! + ys[j + 1]!) / 2 })
+  for (let i = 0; i < xs.length - 1; i++)
+    consider({ x: (xs[i]! + xs[i + 1]!) / 2, y: (y0 + y1) / 2 })
   for (let i = 0; i < xs.length - 1; i++)
     for (let j = 0; j < ys.length - 1; j++)
       consider({ x: (xs[i]! + xs[i + 1]!) / 2, y: (ys[j]! + ys[j + 1]!) / 2 })
