@@ -7,9 +7,7 @@ export type Selection =
   | { kind: 'opening'; id: string }
   | { kind: 'wall'; id: string }
 
-export type Measured = 'all' | 'selected' | 'none'
-
-export const MEASURED: Measured[] = ['none', 'selected', 'all']
+type Measured = 'all' | 'selected' | 'none'
 
 type SelectionState = {
   selected: Selection | null

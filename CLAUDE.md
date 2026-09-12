@@ -17,8 +17,10 @@ The wall authoring model on `that-open-engine`:
   walls; the shape forms of `add-room` still create an entire room.
 - **One edit path.** Wall drawing, drag preview, drag commit and Delete use the
   same typed commands as CLI/MCP. Native wall solids and opening subtraction run
-  in the That Open GeometryEngine worker. React Three Fiber remains the display
-  adapter during the migration. Record each logical change and remaining limits
+  in the That Open GeometryEngine worker. That Open Worlds/Fragments now own rendering, selection, measurement and views.
+  Keep UI gestures and layout stable when replacing engine internals. Check the
+  installed That Open API and official documentation before adding custom tooling;
+  extend native components only for Houseit domain behavior they do not provide. Record each logical change and remaining limits
   in `changelog.md`.
 - **No verb for looking.** Every command answers with what it touched, those rooms
   read back in full — each wall with what opens and stands on it and the stretches

@@ -17,7 +17,8 @@ type Authoring = { schema: 1; document: HouseDocument; wallItems: Record<string,
 export type FragmentArchive = { format: 'houseit-fragments'; version: 1; buffer: ArrayBuffer }
 
 export class FragmentProject {
-  private fragments = new FragmentsModels(workerUrl, { maxWorkers: 2 })
+  private fragments: FragmentsModels
+  private ownsFragments: boolean
   private geometry = acquireGeometry()
   private items: Record<string, number> = {}
   private signatures = new Map<string, string>()
@@ -25,11 +26,13 @@ export class FragmentProject {
   private dead = false
   private modelId = 'houseit'
 
-  constructor() {
+  constructor(fragments?: FragmentsModels) {
+    this.ownsFragments = !fragments
+    this.fragments = fragments ?? new FragmentsModels(workerUrl, { maxWorkers: 2 })
     this.fragments.settings.autoCoordinate = false
   }
 
-  private get model(): FragmentsModel {
+  get model(): FragmentsModel {
     const model = this.fragments.models.list.get(this.modelId)
     if (!model) throw new Error('Fragment model is not loaded')
     return model
@@ -128,7 +131,8 @@ export class FragmentProject {
     if (this.dead) return
     this.dead = true
     try {
-      await this.fragments.dispose()
+      if (this.ownsFragments) await this.fragments.dispose()
+      else if (this.loaded) await this.fragments.disposeModel(this.modelId)
     } finally {
       this.geometry.release()
     }

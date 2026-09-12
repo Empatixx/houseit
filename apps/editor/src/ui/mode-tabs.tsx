@@ -1,9 +1,6 @@
 import { BoxIcon, Grid2x2Icon } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { buildingView } from '../scene/building-view'
 import { type Mode, modeStore, useMode } from '../store/mode'
-import { documentStore } from '../store/store'
-import { walkStore } from '../store/walk'
 
 export function ModeTabs() {
   const mode = useMode((state) => state.mode)
@@ -12,8 +9,6 @@ export function ModeTabs() {
       <Tabs
         value={mode}
         onValueChange={(value) => {
-          if (value === '3d')
-            walkStore.getState().inspect(buildingView(documentStore.getState().doc, 'overview'))
           modeStore.getState().setMode(value as Mode)
         }}
       >
@@ -22,7 +17,7 @@ export function ModeTabs() {
             <Grid2x2Icon />
             2D
           </TabsTrigger>
-          <TabsTrigger value="3d" aria-label="Walk through">
+          <TabsTrigger value="3d" aria-label="3D model">
             <BoxIcon />
             3D
           </TabsTrigger>

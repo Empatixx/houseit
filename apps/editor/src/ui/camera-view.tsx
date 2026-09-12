@@ -1,18 +1,7 @@
-import { levelsOf } from '@houseit/core/levels'
 import type { Spot } from '@houseit/geometry/standing'
-import { PerspectiveCamera } from '@react-three/drei'
-import { Canvas, useThree } from '@react-three/fiber'
-import { useEffect } from 'react'
-import { MM } from '../scene/plan-coordinates'
-import { Ground } from '../scene/three/ground'
-import { House } from '../scene/three/house'
-import { Lighting } from '../scene/three/lighting'
-import { Shading } from '../scene/three/shading'
-import { Sky } from '../scene/three/sky'
-import { usePlanDoc } from '../store/store'
-import { EYE } from '../store/walk'
-
-const FOV = 70
+import { useEffect, useRef } from 'react'
+import { NativeWorld } from '../engine/native-world'
+import { useDocument } from '../store/store'
 
 type CameraViewProps = {
   spot: Spot
@@ -21,46 +10,46 @@ type CameraViewProps = {
 }
 
 export function CameraView({ spot, level, onReady }: CameraViewProps) {
-  const doc = usePlanDoc()
-  const floor = levelsOf(doc).find((storey) => storey.id === level)?.elevation ?? 0
-
+  const container = useRef<HTMLDivElement>(null)
+  const runtime = useRef<NativeWorld | null>(null)
+  const doc = useDocument((state) => state.doc)
+  useEffect(() => {
+    if (!container.current) return
+    const native = new NativeWorld(container.current, () => {}, { interactive: false })
+    runtime.current = native
+    return () => {
+      runtime.current = null
+      void native.dispose()
+    }
+  }, [])
+  useEffect(() => {
+    const native = runtime.current
+    if (!native) return
+    let cancelled = false
+    void native.update(doc).then(async () => {
+      if (cancelled) return
+      const x = spot.at.x / 1000,
+        y = (doc.levels[level]!.elevation + 1600) / 1000,
+        z = -spot.at.y / 1000
+      await native.world.camera.controls.setLookAt(
+        x,
+        y,
+        z,
+        x - Math.sin(spot.turn),
+        y,
+        z - Math.cos(spot.turn),
+        false,
+      )
+      await native.fragments.core.update(true)
+      onReady(() => native.picture())
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [doc, spot, level, onReady])
   return (
     <div className="aspect-[4/3] w-full overflow-hidden rounded-lg border bg-muted">
-      <Canvas flat shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }}>
-        <PerspectiveCamera makeDefault fov={FOV} near={0.05} far={300} />
-        <Eye spot={spot} floor={floor} onReady={onReady} />
-        <Sky />
-        <Lighting />
-        <Ground />
-        <House picking={false} />
-        <Shading />
-      </Canvas>
+      <div className="h-full w-full" ref={container} />
     </div>
   )
-}
-
-function Eye({
-  spot,
-  floor,
-  onReady,
-}: {
-  spot: Spot
-  floor: number
-  onReady: CameraViewProps['onReady']
-}) {
-  const camera = useThree((state) => state.camera)
-  const gl = useThree((state) => state.gl)
-
-  useEffect(() => {
-    camera.position.set(spot.at.x * MM, (floor + EYE) * MM, -spot.at.y * MM)
-    camera.rotation.order = 'YXZ'
-    camera.rotation.set(0, spot.turn, 0)
-    camera.updateProjectionMatrix()
-  }, [camera, spot, floor])
-
-  useEffect(() => {
-    onReady(() => gl.domElement.toDataURL('image/jpeg', 0.85))
-  }, [gl, onReady])
-
-  return null
 }
