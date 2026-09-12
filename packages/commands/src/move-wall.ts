@@ -199,6 +199,12 @@ function onlyWall(
   shift: number,
 ): { moving: Set<string>; steps: Step[] } {
   const wall = draft.walls[id]!
+  if (wall.element) {
+    const group = wall.element
+    for (const part of Object.values(draft.walls)) {
+      if (part.element === group) part.element = part.id
+    }
+  }
   const moving = new Set<string>()
   const steps: Step[] = []
 

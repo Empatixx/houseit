@@ -7,7 +7,7 @@ export const reach: Rule = ({ reports, level, doc }) => {
   if (reports.length === 0) return problems
 
   const named = reports.filter((room) => room.name !== undefined)
-  const entrances = entrancesTo(named)
+  const entrances = entrancesTo(reports)
   if (entrances.length === 0) {
     problems.push({
       code: 'house.no-entrance',
@@ -29,7 +29,7 @@ export const reach: Rule = ({ reports, level, doc }) => {
     }
   }
 
-  if (entrances.length > 0) {
+  if (entrances.length > 0 && named.length === reports.length) {
     const reached = walkFrom(entrances, named)
     for (const room of named) {
       if (!reached.has(room.name!) && doorsOf(room).length > 0) {

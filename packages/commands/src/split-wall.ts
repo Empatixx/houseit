@@ -20,6 +20,7 @@ export function splitWall(draft: Draft<HouseDocument>, wallId: string, at: Point
   const nodeId = allocateId(draft.nodes, 'n')
   draft.nodes[nodeId] = { id: nodeId, x: at.x, y: at.y }
 
+  wall.element ??= wall.id
   const secondId = allocateId(draft.walls, 'w')
   draft.walls[secondId] = { ...wall, id: secondId, a: nodeId, b: wall.b }
   wall.b = nodeId

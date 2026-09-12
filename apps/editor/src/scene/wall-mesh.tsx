@@ -34,7 +34,7 @@ type WallMeshProps = {
   pickedRoom?: string
 }
 
-export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallMeshProps) {
+export function WallMesh({ wall, doc, ofPickedRoom, outside }: WallMeshProps) {
   const body = useMemo(() => wallBody(doc, wall, true), [doc, wall])
   const geometry = useWallGeometry(body)
   const plainly = usePlain()
@@ -49,7 +49,10 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
   const a0 = doc.nodes[wall.a]
   const b0 = doc.nodes[wall.b]
 
-  const picked = selected?.kind === 'wall' && selected.id === wall.id
+  const selectedWall = selected?.kind === 'wall' ? doc.walls[selected.id] : undefined
+  const picked =
+    selectedWall !== undefined &&
+    (selectedWall.element ?? selectedWall.id) === (wall.element ?? wall.id)
   const stub = useMemo(() => (picked ? stubOf(wall) : undefined), [picked, wall])
   if (!a0 || !b0) return null
 
@@ -181,7 +184,7 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
         )
       })}
 
-      {ofPickedRoom && !drawing ? (
+      {((picked && selectedWall?.id === wall.id) || ofPickedRoom) && !drawing ? (
         <Knob
           at={{ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }}
           height={wall.height + 60}
@@ -191,9 +194,9 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
               wall.id,
               (carried) => {
                 endPreview()
-                if (carried) moveWallBy(wall, carried.shift, pickedRoom)
+                if (carried) moveWallBy(wall, carried.shift)
               },
-              (carried) => previewWallMove(wall, carried.shift, pickedRoom),
+              (carried) => previewWallMove(wall, carried.shift),
             )
           }
         />

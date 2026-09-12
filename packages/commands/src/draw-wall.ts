@@ -12,8 +12,10 @@ import { defineCommand } from './define-command'
 import { parseLength } from './length'
 import { length } from './length-schema'
 import { parseWalk } from './parse-walk'
-import { linkPoints, nearWall } from './partition'
+import { nearWall } from './partition'
 import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
+
+import { addWall } from './wall'
 
 const PARTITION_THICKNESS = 150
 
@@ -34,8 +36,8 @@ export const drawWall = defineCommand({
     thickness: length().default(PARTITION_THICKNESS),
     level: z.string().optional(),
   }),
-  run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'draw-wall')
+  run: (draft, args, open) => {
+    const level = levelOf(draft, args.level ?? open, 'draw-wall')
     const start = startOf(draft, level, args)
     const legs = parseWalk(args.walk)
 
@@ -54,12 +56,8 @@ export const drawWall = defineCommand({
       const step = HEADINGS[leg.heading]
       let to = { x: from.x + step.x * leg.length, y: from.y + step.y * leg.length }
       to = nearWall(draft, level, to) ?? to
-      try {
-        linkPoints(draft, level, from, to, args.thickness, 'draw-wall')
-        drew = true
-      } catch (error) {
-        if (!(error instanceof CommandError)) throw error
-      }
+      addWall.apply(draft, { from, to, thickness: args.thickness, level })
+      drew = true
       from = to
     }
     if (!drew) throw new CommandError('draw-wall: there are walls there already')

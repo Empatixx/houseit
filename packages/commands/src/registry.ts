@@ -14,8 +14,13 @@ import { updateOpening } from './update-opening'
 import { updateRoom } from './update-room'
 import { updateSite } from './update-site'
 
+import { addWall, removeWall, updateWall } from './wall'
+
 const ALL: AnyCommand[] = [
   getPlan,
+  addWall,
+  updateWall,
+  removeWall,
   updateSite,
   addStair,
   removeStair,

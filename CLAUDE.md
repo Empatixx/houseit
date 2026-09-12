@@ -8,13 +8,18 @@ a room, an opening and an object, and `get-plan`; building commands add columns,
 way an agent would have to make it, never by writing to the document. If
 something cannot be said as a command, that is the bug, and it is the bug to fix.
 
-Four nouns and one question, and the shape of it is the point:
+The wall authoring model on `that-open-engine`:
 
-- **No noun for a wall.** Every wall is the edge of a room, so asking for the rooms
-  is asking for the walls. `add-room` draws them; moving the wall between two rooms
-  is `update-room --side north --by 300`. `draw-wall` and the stub commands still
-  exist as modules, because the pencil and the wall drag call them — they are just
-  not in the registry, so they are not words an agent has.
+- **Walls are independent elements.** `add-wall`, `update-wall` and `remove-wall`
+  operate on a stable element id. Junctions may split its topology into segments;
+  readback lists both the element and those segments. Rooms derive from closed
+  spaces. `add-room --at` names and finishes an existing space without adding
+  walls; the shape forms of `add-room` still create an entire room.
+- **One edit path.** Wall drawing, drag preview, drag commit and Delete use the
+  same typed commands as CLI/MCP. Native wall solids and opening subtraction run
+  in the That Open GeometryEngine worker. React Three Fiber remains the display
+  adapter during the migration. Record each logical change and remaining limits
+  in `changelog.md`.
 - **No verb for looking.** Every command answers with what it touched, those rooms
   read back in full — each wall with what opens and stands on it and the stretches
   still free — and everything now wrong with the plan. `describe`, `measure` and

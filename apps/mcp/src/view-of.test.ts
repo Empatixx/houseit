@@ -7,7 +7,7 @@ const room = (name: string, objects: Partial<ObjectReport>[] = []): RoomReport =
   ({ id: 'r1', name, objects: objects as ObjectReport[] }) as RoomReport
 
 const answer = (rooms: RoomReport[], changed: string[] = []): Answer =>
-  ({ level: 'l1', levels: [], changed, rooms, problems: [] }) as Answer
+  ({ level: 'l1', levels: [], changed, walls: [], rooms, problems: [] }) as Answer
 
 test('one room touched is a picture of that room', () => {
   expect(viewOf(answer([room('kitchen')], ['r1']))).toEqual({ room: 'kitchen' })

@@ -40,6 +40,9 @@ export function deleteWall(draft: Draft<HouseDocument>, level: string, wallId: s
 export function straighten(draft: Draft<HouseDocument>, level: string, node: string): void {
   const [one, other, third] = wallsAt(draft, level, node)
   if (!one || !other || third || one.thickness !== other.thickness) return
+  if (one.element !== other.element) return
+  if (one.element && one.a === node) return
+  if (one.height !== other.height || one.baseOffset !== other.baseOffset) return
   if (!collinear(draft, one, other)) return
 
   const farOfOne = one.a === node ? one.b : one.a

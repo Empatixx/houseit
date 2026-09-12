@@ -2,26 +2,30 @@ import type { HouseDocument, Opening } from '@houseit/core/document'
 import { DOOR_VARIANTS, OpeningSchema } from '@houseit/core/document'
 import { FrameSchema, PanelsSchema } from '@houseit/core/opening-assembly'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { wallElement } from '@houseit/geometry/wall-elements'
 import type { Draft } from 'immer'
 import { z } from 'zod'
-import { along, alongSide } from './along-schema'
+import { along, alongSide, fractionOf } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { json } from './json-schema'
 import { length } from './length-schema'
-import { hasDoor, opensIntoOf } from './opening-direction'
+import { directionAt, hasDoor, opensIntoOf, touchesWall } from './opening-direction'
 import { checkFrame } from './opening-frame'
 import { handOf, hingeAt } from './opening-hinge'
-import { openingById } from './openings'
+import { openingById, roomOfOpening } from './openings'
 import { checkDoorLeaves, checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
 import { checkPockets, pocketDirection, setPocket } from './pocket-door'
 import { SIDE_NAMES, sideNamed } from './resolve'
+
+import { validateWalls } from './wall'
 
 export const updateOpening = defineCommand({
   name: 'update-opening',
   summary: `For pocket doors, --slide-towards north|south|east|west chooses the wall pocket; omitted, a free side is chosen. Change a door or a window: its size, its kind of leaf (${DOOR_VARIANTS.join(', ')}), or where in the wall it sits. --hinge left|right is viewed from the side it opens towards, facing the closed door. --opens-into names the room receiving the leaf, or outside. --leaf-width changes the main leaf of a paired door; 0 restores one leaf`,
   args: z.object({
     id: z.string().min(1),
+    towards: z.enum(['left', 'right']).optional(),
     panels: json(PanelsSchema).optional(),
     frame: json(FrameSchema).optional(),
     width: length().optional(),
@@ -37,6 +41,70 @@ export const updateOpening = defineCommand({
     toWall: z.string().min(1).optional(),
   }),
   run: (draft, args) => {
+    const existing = draft.openings[args.id]
+    if (!existing)
+      throw new CommandError(`update-opening: there is no door or window called ${args.id}`)
+    const host = draft.walls[existing.wall]!
+    const beside = roomOfOpening(draft, roomsOf(draft, host.level), existing)
+    const direct = args.toWall !== undefined || args.towards !== undefined || !beside?.id
+    if (direct) {
+      if (args.toSide)
+        throw new CommandError('update-opening: direct placement uses --to-wall, not --to-side')
+      if (args.opensInto && args.towards)
+        throw new CommandError('update-opening: use --opens-into or --towards')
+      if (!Object.entries(args).some(([key, value]) => key !== 'id' && value !== undefined))
+        throw new CommandError('update-opening: say what to change')
+      if (existing.kind !== 'door' && args.variant)
+        throw new CommandError('update-opening: a window has no door variant')
+      if (existing.kind === 'door' && args.sill !== undefined)
+        throw new CommandError('update-opening: a door starts on the floor')
+      const run = wallElement(draft, args.toWall ?? existing.wall)
+      const oldRun = wallElement(draft, existing.wall)
+      const oldSegment = oldRun.segments.find((s) => s.wall.id === existing.wall)!
+      const oldDistance = oldSegment.from + existing.t * (oldSegment.to - oldSegment.from)
+      const at =
+        args.along === undefined
+          ? args.toWall
+            ? run.length / 2
+            : oldDistance
+          : fractionOf(args.along, run, 'update-opening') * run.length
+      const width = args.width ?? existing.width
+      const segment = run.segments.find((s) => at - width / 2 >= s.from && at + width / 2 <= s.to)
+      if (!segment)
+        throw new CommandError('update-opening: the opening must fit between wall junctions')
+      const hand = args.hinge ?? handOf(existing)
+      existing.wall = segment.wall.id
+      existing.t = (at - segment.from) / (segment.to - segment.from)
+      if (args.variant !== undefined) existing.variant = args.variant
+      existing.width = width
+      if (args.height !== undefined) existing.height = args.height
+      if (args.sill !== undefined) existing.sillHeight = args.sill
+      if (args.leafWidth !== undefined) existing.leafWidth = args.leafWidth || undefined
+      if (args.frame !== undefined) existing.frame = args.frame
+      if (args.panels !== undefined) existing.panels = args.panels
+      const leaf = hasDoor(existing) && existing.variant === 'hinged'
+      if (!leaf && (args.hinge || args.opensInto || args.towards))
+        throw new CommandError('update-opening: swing and hinge need a hinged door')
+      if (args.towards) existing.swing = args.towards === 'left' ? 1 : -1
+      const adjacent = roomsOf(draft, run.level).find((r) => touchesWall(r, segment.wall))
+      if (args.opensInto) {
+        if (!adjacent) throw new CommandError('update-opening: --opens-into needs an adjacent room')
+        existing.swing = directionAt(
+          draft,
+          run.level,
+          segment.wall.id,
+          adjacent,
+          args.opensInto,
+          'update-opening',
+        )
+      }
+      if (leaf) existing.hinge = hingeAt(existing.swing, hand)
+      setPocket(draft, existing, args.slideTowards, 'update-opening')
+      OpeningSchema.parse(existing)
+      validateWalls(draft, run.level)
+      if (adjacent) checkDoorLeaves(draft, run.level, adjacent, existing, 'update-opening')
+      return { changed: [existing.id, oldRun.id, run.id], at: run.level }
+    }
     const found = openingById(draft, args.id, 'update-opening')
     const { opening, room, level } = found
     const door = opening.kind === 'door'

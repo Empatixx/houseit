@@ -7,6 +7,7 @@ import { SURFACES } from '@houseit/core/surfaces'
 import { interiorSize } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { standingAt } from '@houseit/geometry/standing'
+import { wallElement } from '@houseit/geometry/wall-elements'
 import {
   BlindsIcon,
   BrickWallIcon,
@@ -43,7 +44,7 @@ import { removeOpening, setOpening, whereOpening } from '../edit/opening-command
 import { pick } from '../edit/pick'
 import { layFloor, setFinish, setKind, setStyle } from '../edit/room-commands'
 import { promptFor, type Visualised, visualise } from '../edit/visualise'
-import { nameWall } from '../edit/wall-commands'
+import { nameWall, setWall } from '../edit/wall-commands'
 import { selectionStore, useSelection } from '../store/selection'
 import { useDocument, usePlanDoc } from '../store/store'
 import { KindIcon } from './avatars'
@@ -87,23 +88,34 @@ export function PanelContent() {
 
 function WallPanel({ wall }: { wall: Wall }) {
   const doc = useDocument((state) => state.doc)
-  const a = doc.nodes[wall.a]
-  const b = doc.nodes[wall.b]
-  const length = a && b ? Math.round(Math.hypot(b.x - a.x, b.y - a.y)) : 0
+  const element = wallElement(doc, wall.id)
+  const length = Math.round(element.length)
   const named = nameWall(wall)
   return (
     <>
       <Heading>Wall</Heading>
+      <Field label="Thickness (mm)">
+        <NumberField
+          value={wall.thickness}
+          onCommit={(thickness) => setWall(wall, { thickness })}
+        />
+      </Field>
+      <Field label="Height (mm)">
+        <NumberField value={wall.height} onCommit={(height) => setWall(wall, { height })} />
+      </Field>
+      <Field label="Base (mm)">
+        <NumberField value={wall.baseOffset} onCommit={(base) => setWall(wall, { base })} />
+      </Field>
       <Facts
         rows={[
+          ['Wall', element.id],
           ['Length', `${length} mm`],
-          ['Thickness', `${wall.thickness} mm`],
           ['Bounds', named ? `${named.room.name}, ${named.side} side` : '—'],
         ]}
       />
       <p className="text-xs leading-5 text-muted-foreground">
-        Drag the wall across itself to move it; the walls meeting it follow. A stub's free end has a
-        handle to pull it; Delete takes a stub out.
+        Drag the handle across the wall to move the whole wall, including its openings. Connected
+        walls follow. Delete removes the wall and its openings.
       </p>
     </>
   )
@@ -417,7 +429,7 @@ function OpeningPanel({ opening }: { opening: Opening }) {
       <Facts
         rows={[
           ['Room', where?.room.name ?? '—'],
-          ['Wall', where ? `${where.side}, ${opening.wall}` : '—'],
+          ['Wall', where ? `${where.side}, ${opening.wall}` : opening.wall],
         ]}
       />
       <Button

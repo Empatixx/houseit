@@ -38,6 +38,7 @@ export const NodeSchema = z.object({ id, x: mm, y: mm })
 
 export const WallSchema = z.object({
   id,
+  element: id.optional(),
   level: id,
   a: id,
   b: id,

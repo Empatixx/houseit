@@ -2,6 +2,7 @@ import type { HouseDocument, Level } from '@houseit/core/document'
 import { flightOf, levelsOf } from '@houseit/core/levels'
 import { planExtent } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { elementId, wallElement } from '@houseit/geometry/wall-elements'
 import { produce } from 'immer'
 import { applyScript } from './apply-script'
 import { checkLevel, type Problem } from './checks'
@@ -27,6 +28,54 @@ export type StoreyReport = {
   open?: true
 }
 
+export type WallReport = {
+  id: string
+  level: string
+  from: { x: number; y: number }
+  to: { x: number; y: number }
+  length: number
+  segments: {
+    id: string
+    from: number
+    to: number
+    thickness: number
+    height: number
+    base: number
+  }[]
+  openings: (HouseDocument['openings'][string] & { at: number })[]
+}
+
+function surveyWalls(doc: HouseDocument, level: string): WallReport[] {
+  const ids = new Set(
+    Object.values(doc.walls)
+      .filter((w) => w.level === level)
+      .map(elementId),
+  )
+  return [...ids].map((id) => {
+    const e = wallElement(doc, id)
+    return {
+      id,
+      level,
+      from: { x: e.from.x, y: e.from.y },
+      to: { x: e.to.x, y: e.to.y },
+      length: e.length,
+      segments: e.segments.map(({ wall, from, to }) => ({
+        id: wall.id,
+        from,
+        to,
+        thickness: wall.thickness,
+        height: wall.height,
+        base: wall.baseOffset,
+      })),
+      openings: e.segments.flatMap(({ wall, from, to }) =>
+        Object.values(doc.openings)
+          .filter((o) => o.wall === wall.id)
+          .map((o) => ({ ...o, at: from + (to - from) * o.t })),
+      ),
+    }
+  })
+}
+
 export type Answer = {
   site?: HouseDocument['site']
   level: string
@@ -34,6 +83,7 @@ export type Answer = {
   width?: number
   depth?: number
   changed: string[]
+  walls: WallReport[]
   rooms: RoomReport[]
   unassigned?: RoomReport[]
   problems: Problem[]
@@ -89,6 +139,7 @@ export function answerFor(
       ? { width: Math.round(extent.x1 - extent.x0), depth: Math.round(extent.y1 - extent.y0) }
       : {}),
     changed,
+    walls: surveyWalls(doc, level),
     rooms: touched.map((it) => surveyRoom(doc, it.level, it.room, roomsOf(doc, it.level))),
     ...(unassigned.length
       ? {

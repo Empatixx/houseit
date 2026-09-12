@@ -170,3 +170,49 @@ test('a solid retains its signed volume when placed above the ground datum', () 
   expect(volume(geometry)).toBeCloseTo(before, 4)
   geometry.dispose()
 })
+
+test('an elevated wall carries the opening height measured from its base', () => {
+  const doc = specimen([[0, 0, 6000, 0, 300]])
+  const wall = doc.walls.w1!
+  wall.baseOffset = 500
+  wall.height = 2000
+  doc.openings.o1 = {
+    id: 'o1',
+    wall: wall.id,
+    t: 0.5,
+    kind: 'window',
+    variant: 'hinged',
+    width: 1200,
+    height: 1000,
+    sillHeight: 500,
+    hinge: 'a',
+    swing: 1,
+  }
+  const geometry = built(doc, wall)
+  const mesh = new Mesh(geometry, new MeshBasicMaterial({ side: DoubleSide }))
+  mesh.position.y = 0.5
+  mesh.updateMatrixWorld(true)
+  expect(
+    new Raycaster(new Vector3(3, 1.1, 1), new Vector3(0, 0, -1)).intersectObject(mesh),
+  ).toHaveLength(0)
+  expect(
+    new Raycaster(new Vector3(3, 0.8, 1), new Vector3(0, 0, -1)).intersectObject(mesh).length,
+  ).toBeGreaterThan(0)
+  geometry.dispose()
+  mesh.material.dispose()
+})
+
+test('an X junction partitions its shared volume exactly once', () => {
+  const doc = specimen([
+    [0, 0, 3000, 0, 300],
+    [3000, 0, 6000, 0, 300],
+    [3000, -3000, 3000, 0, 150],
+    [3000, 0, 3000, 3000, 150],
+  ])
+  const geometries = Object.values(doc.walls).map((wall) => built(doc, wall))
+  expect(geometries.reduce((sum, g) => sum + volume(g), 0)).toBeCloseTo(
+    (6 * 0.3 + 6 * 0.15 - 0.3 * 0.15) * 2.8,
+    4,
+  )
+  for (const geometry of geometries) geometry.dispose()
+})
