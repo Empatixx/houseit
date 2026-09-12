@@ -17,7 +17,10 @@ The wall authoring model on `that-open-engine`:
   walls; the shape forms of `add-room` still create an entire room.
 - **One edit path.** Wall drawing, drag preview, drag commit and Delete use the
   same typed commands as CLI/MCP. Native wall solids and opening subtraction run
-  in the That Open GeometryEngine worker. That Open Worlds/Fragments now own rendering, selection, measurement and views.
+  in the That Open GeometryEngine worker. Fragment archives retain native wall elements
+  and the authoring document. The React presentation adapter supplies the established
+  plan symbols, finishes, gestures and walkthrough; the native viewport replacement
+  in `eb29400` was withdrawn because it regressed those features.
   Keep UI gestures and layout stable when replacing engine internals. Check the
   installed That Open API and official documentation before adding custom tooling;
   extend native components only for Houseit domain behavior they do not provide. Record each logical change and remaining limits

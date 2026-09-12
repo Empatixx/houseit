@@ -2,12 +2,14 @@ import { Maximize2Icon, MinusIcon, PlusIcon, Redo2Icon, Undo2Icon } from 'lucide
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { ZOOM } from '../scene/zooming'
 import { useMode } from '../store/mode'
 import { useSelection } from '../store/selection'
 import { documentStore, useDocument } from '../store/store'
 import { viewStore } from '../store/view'
 import { Compass } from './compass'
 import { usePanelShown, useRightEdge } from './edges'
+import { Minimap } from './minimap'
 import { useCover } from './use-cover'
 
 export function TopOverlay() {
@@ -80,6 +82,7 @@ export function TopOverlay() {
       </div>
       {walking ? null : <Compass />}
       {walking ? null : <Scale />}
+      {walking ? <Minimap /> : null}
     </div>
   )
 }
@@ -93,7 +96,7 @@ function Scale() {
             variant="ghost"
             size="icon"
             aria-label="Closer"
-            onClick={() => viewStore.getState().zoomBy(1.25)}
+            onClick={() => viewStore.getState().zoomBy(ZOOM.step)}
           >
             <PlusIcon />
           </Button>
@@ -106,7 +109,7 @@ function Scale() {
             variant="ghost"
             size="icon"
             aria-label="Further"
-            onClick={() => viewStore.getState().zoomBy(1 / 1.25)}
+            onClick={() => viewStore.getState().zoomBy(1 / ZOOM.step)}
           >
             <MinusIcon />
           </Button>

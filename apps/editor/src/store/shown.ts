@@ -7,6 +7,8 @@ export const LAYERS: { id: Layer; label: string; note: string }[] = [
   { id: 'floors', label: 'Floors', note: 'The material laid in each room' },
   { id: 'furniture', label: 'Furniture', note: 'Everything standing in the rooms' },
   { id: 'labels', label: 'Room names', note: 'The name and area written on each floor' },
+  { id: 'below', label: 'Storey below', note: 'The floor under this one, showing through' },
+  { id: 'grid', label: 'Grid', note: 'The dots behind the plan' },
 ]
 
 type ShownState = {

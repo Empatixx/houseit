@@ -1,4 +1,5 @@
 import type { Point } from '@houseit/geometry/outlines'
+import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
 type Walker = {
@@ -8,7 +9,7 @@ type Walker = {
   pitch: number
 }
 
-const EYE = 1600
+export const EYE = 1600
 
 const NECK = 1.3
 
@@ -70,6 +71,10 @@ export const walkStore = createStore<WalkState>()((set) => ({
     ),
   setFov: (fov) => set({ fov }),
 }))
+
+export function useWalk<T>(selector: (state: WalkState) => T): T {
+  return useStore(walkStore, selector)
+}
 
 export const headingOf = (yaw: number): Point => ({ x: Math.sin(yaw), y: Math.cos(yaw) })
 

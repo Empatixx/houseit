@@ -1,8 +1,10 @@
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useEffect } from 'react'
+import { drawStore } from '../store/draw'
 import { selectionStore } from '../store/selection'
 import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
+import { cancelDrawing, finishDrawing } from './draw-commands'
 import { remove, turnBy } from './object-commands'
 import { removeOpening } from './opening-commands'
 import { knockThroughToBiggest, removeStub } from './wall-commands'
@@ -19,10 +21,17 @@ export function useEditKeys(): void {
       }
 
       if (event.key === 'Escape') {
+        cancelDrawing()
         toolStore.getState().arm(null)
         selectionStore.getState().select(null)
         return
       }
+      if (event.key === 'Enter' && drawStore.getState().points.length > 0) {
+        event.preventDefault()
+        finishDrawing()
+        return
+      }
+
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault()
         if (event.shiftKey) documentStore.getState().redo()

@@ -2,7 +2,7 @@ import { addObject } from '@houseit/commands/add-object'
 import { addOpening, openingWidth } from '@houseit/commands/add-opening'
 import { objectType } from '@houseit/core/object-types'
 import type { Point } from '@houseit/geometry/outlines'
-import type { Room } from '@houseit/geometry/rooms'
+import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { dropOf } from '../scene/furniture/drop'
 import { openingDropOf } from '../scene/opening-drop'
 import { documentStore } from '../store/store'
@@ -48,4 +48,10 @@ export function placeArmed(armed: Armed, room: Room, point: Point): boolean {
       .getState()
       .apply(addOpening, { room: name, kind: 'window', side: drop.toSide, along: drop.along }),
   )
+}
+
+export function placeArmedIn(armed: Armed, roomId: string, point: Point): boolean {
+  const { doc, level } = documentStore.getState()
+  const room = roomsOf(doc, level).find((candidate) => candidate.id === roomId)
+  return room ? placeArmed(armed, room, point) : false
 }

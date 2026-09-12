@@ -66,7 +66,7 @@ export function BottomBar() {
         <Badge variant="secondary" className="pointer-events-auto gap-1 pr-1">
           {label}
           <span className="text-muted-foreground">
-            {armed?.kind === 'wall' ? '· click the two wall endpoints' : '· click a room'}
+            {armed?.kind === 'wall' ? '· click corners, Enter finishes' : '· click a room'}
           </span>
           <button
             type="button"

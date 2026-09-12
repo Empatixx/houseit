@@ -1,0 +1,124 @@
+import type { Point } from '@houseit/geometry/outlines'
+import { Html, Line } from '@react-three/drei'
+import { DoubleSide } from 'three'
+import { EMPHASIS } from '../../store/hover'
+import { useView } from '../../store/view'
+import { MM, toWorld } from '../plan-coordinates'
+
+const INK = EMPHASIS.picked.line
+const FAINT = '#a1a1aa'
+const TICKS = 24
+const BAND = 0.09
+const GLOW = 0.22
+const CLEAR = 6
+
+const spot = (centre: Point, angle: number, radius: number): Point => ({
+  x: centre.x + Math.cos(angle) * radius,
+  y: centre.y + Math.sin(angle) * radius,
+})
+
+const facing = (centre: Point, turn: number, radius: number): Point => ({
+  x: centre.x - Math.sin(turn) * radius,
+  y: centre.y + Math.cos(turn) * radius,
+})
+
+const short = (angle: number) => angle - Math.PI * 2 * Math.round(angle / (Math.PI * 2))
+
+const run = (centre: Point, from: number, to: number, radius: number, height: number, steps = 40) =>
+  Array.from({ length: steps + 1 }, (_, index) => {
+    const at = spot(centre, from + ((to - from) * index) / steps, radius)
+    return toWorld(at.x, at.y, height)
+  })
+
+export function Turner({ at, height }: { at: Point; height: number }) {
+  return (
+    <Html
+      position={toWorld(at.x, at.y, height)}
+      center
+      zIndexRange={[8, 5]}
+      style={{ pointerEvents: 'none' }}
+    >
+      <svg
+        width={40}
+        height={40}
+        viewBox="0 0 24 24"
+        className="pointer-events-none select-none"
+        aria-hidden="true"
+      >
+        <path
+          d="M 7.2 6.5 H 12.5 A 6 6 0 0 1 18.5 12.5 V 15.8"
+          fill="none"
+          stroke={INK}
+          strokeWidth={2.4}
+          strokeLinecap="round"
+        />
+        <path d="M 3.5 6.5 L 6.9 4.3 L 6.9 8.7 Z" fill={INK} />
+        <path d="M 18.5 19.5 L 16.3 16.1 L 20.7 16.1 Z" fill={INK} />
+      </svg>
+    </Html>
+  )
+}
+
+type DialProps = { centre: Point; height: number; base: number; turn: number; radius: number }
+
+export function Dial({ centre, height, base, turn, radius }: DialProps) {
+  const spin = useView((state) => state.spin)
+  const swept = short(turn - base)
+  const degrees = Math.abs(Math.round((swept * 180) / Math.PI))
+  const heading = turn + (spin * Math.PI) / 180
+  const out = { x: -Math.sin(heading), y: -Math.cos(heading) }
+  const anchor = facing(centre, turn, radius * (1 + BAND))
+  const mark = (at: number, reach: number) => {
+    const outer = facing(centre, at, radius)
+    const inner = facing(centre, at, radius - reach)
+    return [toWorld(outer.x, outer.y, height), toWorld(inner.x, inner.y, height)]
+  }
+
+  return (
+    <>
+      <Line points={run(centre, 0, Math.PI * 2, radius, height, 72)} color={FAINT} lineWidth={1} />
+      {Array.from({ length: TICKS }, (_, index) => base + (index * Math.PI) / 12).map((at) => (
+        <Line key={at} points={mark(at, radius * 0.09)} color={FAINT} lineWidth={1} />
+      ))}
+      {degrees === 0 ? null : (
+        <mesh position={toWorld(centre.x, centre.y, height)} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry
+            args={[
+              radius * (1 - BAND) * MM,
+              radius * (1 + BAND) * MM,
+              96,
+              1,
+              base + Math.PI / 2,
+              swept,
+            ]}
+          />
+          <meshBasicMaterial
+            color={INK}
+            side={DoubleSide}
+            transparent
+            opacity={GLOW}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+      <Line points={mark(base, radius * 0.22)} color={INK} lineWidth={2.5} />
+      <Line points={mark(turn, radius * 0.22)} color={INK} lineWidth={2.5} />
+      <Html
+        position={toWorld(anchor.x, anchor.y, height)}
+        center
+        zIndexRange={[8, 5]}
+        style={{ pointerEvents: 'none' }}
+      >
+        <div
+          className="pointer-events-none select-none whitespace-nowrap rounded bg-white/90 px-1 text-[11px] font-medium leading-4"
+          style={{
+            color: INK,
+            transform: `translate(${out.x * CLEAR}px, ${out.y * CLEAR}px) translate(${out.x * 50}%, ${out.y * 50}%)`,
+          }}
+        >
+          {degrees}°
+        </div>
+      </Html>
+    </>
+  )
+}

@@ -1,7 +1,7 @@
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
-type ViewBox = { x0: number; y0: number; x1: number; y1: number }
+export type ViewBox = { x0: number; y0: number; x1: number; y1: number }
 
 export type Edge = 'top' | 'right' | 'bottom' | 'left'
 

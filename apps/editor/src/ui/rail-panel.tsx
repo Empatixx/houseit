@@ -5,16 +5,28 @@ import { roomKindOf } from '@houseit/core/room-kinds'
 import { ChevronRightIcon } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { hoverStore } from '../store/hover'
-import { type Selection, selectionStore, useSelection } from '../store/selection'
+import {
+  MEASURED,
+  type Measured,
+  type Selection,
+  selectionStore,
+  useSelection,
+} from '../store/selection'
 import { useShell } from '../store/shell'
 import { LAYERS, shownStore, useShown } from '../store/shown'
 import { useDocument } from '../store/store'
 import { KindIcon } from './avatars'
 import { GAP, RAIL_OPEN_WIDTH, RAIL_PANEL_WIDTH, RAIL_WIDTH } from './edges'
-import { EngineSettings } from './engine-settings'
 import { useCover } from './use-cover'
 
 const TITLES = { plan: 'Plan', issues: 'Issues', view: 'View' } as const
@@ -175,6 +187,7 @@ function Issues() {
 
 function View() {
   const shown = useShown((state) => state.shown)
+  const measured = useSelection((state) => state.measured)
 
   return (
     <>
@@ -195,7 +208,26 @@ function View() {
           </li>
         ))}
       </ul>
-      <EngineSettings />
+      <div className="mt-2 flex flex-col gap-1.5">
+        <Label htmlFor="measurements" className="font-normal text-sm">
+          Measurements
+        </Label>
+        <Select
+          value={measured}
+          onValueChange={(value) => selectionStore.getState().measure(value as Measured)}
+        >
+          <SelectTrigger id="measurements" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MEASURED.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </>
   )
 }

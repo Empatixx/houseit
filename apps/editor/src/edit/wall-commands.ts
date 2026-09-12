@@ -1,11 +1,14 @@
 import { removeRoom } from '@houseit/commands/remove-room'
+import { type Stub, stubsOn } from '@houseit/commands/stubs'
 import { surveyRoom } from '@houseit/commands/survey'
 import { removeWall, updateWall } from '@houseit/commands/wall'
 import type { Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { wallElement } from '@houseit/geometry/wall-elements'
 import { documentStore } from '../store/store'
 import { sayError } from './notice'
+import { endPreview, previewCommand } from './preview'
 import { roomRef } from './room-ref'
 import { runEdit } from './run-edit'
 import { wallNamedBy } from './wall-move'
@@ -34,6 +37,15 @@ export function moveWallBy(wall: Wall, shift: Point): boolean {
   const args = wallMoveArgs(wall, shift)
   if (args.by === 0) return true
   return runEdit(() => documentStore.getState().apply(updateWall, args))
+}
+
+export function previewWallMove(wall: Wall, shift: Point): void {
+  const args = wallMoveArgs(wall, shift)
+  if (args.by === 0) {
+    endPreview()
+    return
+  }
+  previewCommand(updateWall, args)
 }
 
 export function knockThroughToBiggest(room: Room): boolean {
@@ -72,6 +84,54 @@ export function nameWall(wall: Wall, roomId?: string) {
   return named
 }
 
+const SIDE_LIST = ['north', 'east', 'south', 'west'] as const
+
+export function stubOf(
+  wall: Wall,
+): { room: Room & { name: string }; side: (typeof SIDE_LIST)[number]; stub: Stub } | undefined {
+  const { doc, level } = documentStore.getState()
+  for (const room of roomsOf(doc, level)) {
+    if (!room.name || !room.nodes.includes(wall.a) || !room.nodes.includes(wall.b)) continue
+    for (const side of SIDE_LIST) {
+      const stub = stubsOn(doc, level, room, side).find(
+        (candidate) => candidate.wall.id === wall.id,
+      )
+      if (stub) return { room: { ...room, name: room.name }, side, stub }
+    }
+  }
+  return undefined
+}
+
 export function removeStub(wall: Wall): boolean {
   return runEdit(() => documentStore.getState().apply(removeWall, { id: wall.element ?? wall.id }))
+}
+
+function stubResizeArgs(wall: Wall, length: number) {
+  const found = stubOf(wall)
+  if (!found) return undefined
+  const rounded = Math.max(10, Math.round(length / 10) * 10)
+  if (rounded === found.stub.length) return undefined
+  return {
+    id: wall.element ?? wall.id,
+    end:
+      wallElement(documentStore.getState().doc, wall.id).from.id === found.stub.tip
+        ? ('from' as const)
+        : ('to' as const),
+    length: rounded,
+  }
+}
+
+export function resizeStub(wall: Wall, length: number): boolean {
+  const args = stubResizeArgs(wall, length)
+  if (!args) return stubOf(wall) !== undefined
+  return runEdit(() => documentStore.getState().apply(updateWall, args))
+}
+
+export function previewStubResize(wall: Wall, length: number): void {
+  const args = stubResizeArgs(wall, length)
+  if (!args) {
+    endPreview()
+    return
+  }
+  previewCommand(updateWall, args)
 }
