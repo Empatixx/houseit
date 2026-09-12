@@ -1,5 +1,6 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
+import { wallCaps } from '@houseit/geometry/wall-caps'
 import { INK, planPieces, type WallPiece } from '@houseit/scene/wall-pieces'
 import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
@@ -27,12 +28,11 @@ type WallMeshProps = {
   wall: Wall
   outside?: 1 | -1 | undefined
   doc: HouseDocument
-  degrees: Map<string, number>
   ofPickedRoom: boolean
   pickedRoom?: string
 }
 
-export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom, outside }: WallMeshProps) {
+export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallMeshProps) {
   const plainly = usePlain()
   const chosen = useSelection((state) => state.selected)
   const noticed = useHover((state) => state.hovered)
@@ -70,8 +70,7 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom, outside
   const dx = b.x - a.x
   const dy = b.y - a.y
   const span = Math.hypot(dx, dy)
-  const growA = (degrees.get(wall.a) ?? 0) > 1 ? wall.thickness / 2 : 0
-  const growB = (degrees.get(wall.b) ?? 0) > 1 ? wall.thickness / 2 : 0
+  const { growA, growB } = wallCaps(doc, wall)
   const length = span + growA + growB
 
   const openings = Object.values(doc.openings).filter((opening) => opening.wall === wall.id)

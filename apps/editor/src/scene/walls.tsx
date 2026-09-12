@@ -17,13 +17,6 @@ export function Walls() {
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
 
   const outside = exteriorSides(doc, level)
-  const degrees = new Map<string, number>()
-  for (const wall of walls) {
-    for (const node of [wall.a, wall.b]) {
-      degrees.set(node, (degrees.get(node) ?? 0) + 1)
-    }
-  }
-
   const roomWalls = useMemo(() => {
     if (selected?.kind !== 'room') return new Set<string>()
     const room = roomsOf(doc, level).find((candidate) => candidate.id === selected.id)
@@ -38,7 +31,6 @@ export function Walls() {
           wall={wall}
           outside={outside.get(wall.id)}
           doc={doc}
-          degrees={degrees}
           ofPickedRoom={roomWalls.has(wall.id)}
           pickedRoom={selected?.kind === 'room' ? selected.id : undefined}
         />

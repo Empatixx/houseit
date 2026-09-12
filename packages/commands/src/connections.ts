@@ -87,7 +87,8 @@ export const addShaft = defineCommand({
             clashes(
               boxOf(voidCorners),
               wallBox(draft.nodes[wall.a]!, draft.nodes[wall.b]!, wall.thickness),
-              0,
+              // Integer centres put an odd-thickness wall face on a half millimetre.
+              0.5,
             )
           )
             throw new CommandError(`shaft void intersects wall ${wall.id}`)

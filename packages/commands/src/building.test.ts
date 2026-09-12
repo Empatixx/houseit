@@ -4,8 +4,10 @@ import { openingsIn } from '@houseit/core/opening-parts'
 import { treadsOf } from '@houseit/core/stairs'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { walkClear, walkSurface } from '@houseit/geometry/walking'
+import { wallCaps } from '@houseit/geometry/wall-caps'
 import { wellsIn } from '@houseit/geometry/wells'
 import { expect, test } from 'vitest'
+import { askPlan } from './answer'
 import { runScript } from './run'
 
 const measured = `add-room --name Cafe --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":300},{"x":9000,"y":0,"thickness":150},{"x":9000,"y":8000,"thickness":300},{"x":0,"y":8000,"thickness":300}]'
@@ -246,5 +248,53 @@ test('a shaft casing can share a room wall without subtracting that wall twice',
       `add-shaft --kind services --to Test --x 600 --y 3700 --width 500 --depth 500 --enclosure '{"thickness":200,"colour":"#eeeeee"}'`,
     ),
   ).toThrow('void intersects wall')
+  parseDocument(doc)
+})
+
+test('a thick pier ends at a thin partition face and keeps its free end square', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `add-room --name Pier --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":125},{"x":4000,"y":0,"thickness":125},{"x":4000,"y":4000,"thickness":125},{"x":0,"y":4000,"thickness":125}]'
+update-room --room Pier --return '{"points":[{"x":2000,"y":0},{"x":2000,"y":2000}],"thickness":800,"height":1200}'`,
+  )
+  const pier = Object.values(doc.walls).find((w) => w.thickness === 800)!
+  const caps = wallCaps(doc, pier)
+  const attached = doc.nodes[pier.a]!.y === 0 ? caps.growA : caps.growB
+  const free = doc.nodes[pier.a]!.y === 0 ? caps.growB : caps.growA
+  expect(attached).toBe(62.5)
+  expect(free).toBe(0)
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(doc, level)).toHaveLength(1)
+  expect(roomsOf(doc, level)[0]!.clear).toBe(3875 ** 2 - 800 * (2000 - 62.5))
+})
+
+test('get-plan exposes every unassigned face as well as the named rooms', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/unassigned.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  const answer = askPlan(doc, 'get-plan')
+  expect(answer.rooms).toHaveLength(4)
+  expect(answer.unassigned).toHaveLength(1)
+  expect(answer.unassigned![0]!.areaM2).toBeCloseTo(3.42, 2)
+  expect(answer.levels[0]!.rooms).toBe(answer.rooms.length + answer.unassigned!.length)
+})
+
+test('a declared shaft enclosed by existing room walls is a void, while unrelated unnamed faces remain reported', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/unassigned.txt', import.meta.url),
+    'utf8',
+  )
+  const base = runScript(createEmptyDocument(), script)
+  expect(askPlan(base, 'get-plan').unassigned).toHaveLength(1)
+  const doc = runScript(
+    base,
+    `update-level --name Test\nadd-shaft --kind services --to Test --x 2000 --y 2000 --width 1850 --depth 1850 --enclosure '{"thickness":150,"colour":"#eeeeee"}'`,
+  )
+  const read = askPlan(doc, 'get-plan')
+  expect(read.rooms).toHaveLength(4)
+  expect(read.unassigned).toBeUndefined()
+  expect(read.levels[0]!.rooms).toBe(4)
   parseDocument(doc)
 })

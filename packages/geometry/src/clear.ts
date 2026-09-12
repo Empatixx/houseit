@@ -43,6 +43,14 @@ export function clearOutline(doc: HouseDocument, level: string, nodes: string[])
     // one corner would count only a triangular half of the return's footprint.
     if (before!.way.x * edge!.way.x + before!.way.y * edge!.way.y < -1 + PARALLEL)
       return [before!.end, edge!.at]
+    if (before!.way.x * edge!.way.x + before!.way.y * edge!.way.y > 1 - PARALLEL) {
+      const distance = Math.abs(
+        (before!.end.x - edge!.at.x) * edge!.way.y - (before!.end.y - edge!.at.y) * edge!.way.x,
+      )
+      // A split on one straight wall adds no corner. Keeping its original
+      // point can backtrack past the inset corner of a narrow shaft.
+      return distance < PARALLEL ? [] : [before!.end, edge!.at]
+    }
     return meeting(before!, edge!) ?? edge!.at
   })
 }

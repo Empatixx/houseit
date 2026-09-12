@@ -18,49 +18,71 @@ export type Room = Face & {
 
 export function roomsOf(doc: HouseDocument, level: string): Room[] {
   const stored = Object.values(doc.rooms).filter((room) => room.level === level)
+  const shafts = shaftsOn(doc, level)
 
-  return findFaces(doc, level).map((face) => {
-    const polygon = face.nodes.map((id) => doc.nodes[id]!)
-    const walls = new Set(face.walls)
-    const found =
-      stored.find(
-        (candidate) =>
-          candidate.loop.length === walls.size && candidate.loop.every((id) => walls.has(id)),
-      ) ?? stored.find((candidate) => containsPoint(polygon, candidate.x, candidate.y))
-    const room: Room = {
-      ...face,
-      clear:
-        clearAreaOf(doc, level, face.nodes) -
-        (doc.levels[level]?.columns ?? []).reduce(
-          (sum, c) =>
-            sum +
-            areaInBox(clearOutline(doc, level, face.nodes), {
-              x0: c.x - c.width / 2,
-              x1: c.x + c.width / 2,
-              y0: c.y - c.depth / 2,
-              y1: c.y + c.depth / 2,
-            }),
-          0,
-        ) -
-        shaftsOn(doc, level)
-          .filter((s) => s.enclosure)
-          .reduce(
-            (sum, s) =>
+  return findFaces(doc, level)
+    .map((face) => {
+      const polygon = face.nodes.map((id) => doc.nodes[id]!)
+      const walls = new Set(face.walls)
+      const found =
+        stored.find(
+          (candidate) =>
+            candidate.loop.length === walls.size && candidate.loop.every((id) => walls.has(id)),
+        ) ?? stored.find((candidate) => containsPoint(polygon, candidate.x, candidate.y))
+      const clear = clearOutline(doc, level, face.nodes)
+      // Existing room walls may already enclose a declared shaft. That void is
+      // not an unassigned room. Preserve named rooms and all other small faces.
+      if (
+        !found &&
+        clear.length &&
+        shafts.some(
+          (s) =>
+            s.enclosure &&
+            clear.every(
+              (p) =>
+                p.x >= s.x - s.width / 2 - 0.5 &&
+                p.x <= s.x + s.width / 2 + 0.5 &&
+                p.y >= s.y - s.depth / 2 - 0.5 &&
+                p.y <= s.y + s.depth / 2 + 0.5,
+            ),
+        )
+      )
+        return undefined
+      const room: Room = {
+        ...face,
+        clear:
+          clearAreaOf(doc, level, face.nodes) -
+          (doc.levels[level]?.columns ?? []).reduce(
+            (sum, c) =>
               sum +
-              areaInBox(clearOutline(doc, level, face.nodes), {
-                x0: s.x - s.width / 2 - s.enclosure!.thickness,
-                x1: s.x + s.width / 2 + s.enclosure!.thickness,
-                y0: s.y - s.depth / 2 - s.enclosure!.thickness,
-                y1: s.y + s.depth / 2 + s.enclosure!.thickness,
+              areaInBox(clear, {
+                x0: c.x - c.width / 2,
+                x1: c.x + c.width / 2,
+                y0: c.y - c.depth / 2,
+                y1: c.y + c.depth / 2,
               }),
             0,
-          ),
-      centre: centroidOf(polygon, face.area),
-    }
-    return found
-      ? { ...room, id: found.id, name: found.name, floor: found.floor, kind: found.kind }
-      : room
-  })
+          ) -
+          shafts
+            .filter((s) => s.enclosure)
+            .reduce(
+              (sum, s) =>
+                sum +
+                areaInBox(clear, {
+                  x0: s.x - s.width / 2 - s.enclosure!.thickness,
+                  x1: s.x + s.width / 2 + s.enclosure!.thickness,
+                  y0: s.y - s.depth / 2 - s.enclosure!.thickness,
+                  y1: s.y + s.depth / 2 + s.enclosure!.thickness,
+                }),
+              0,
+            ),
+        centre: centroidOf(polygon, face.area),
+      }
+      return found
+        ? { ...room, id: found.id, name: found.name, floor: found.floor, kind: found.kind }
+        : room
+    })
+    .filter((room): room is Room => room !== undefined)
 }
 
 export function containsPoint(polygon: { x: number; y: number }[], x: number, y: number): boolean {

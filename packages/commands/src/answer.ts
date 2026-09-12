@@ -34,6 +34,7 @@ export type Answer = {
   depth?: number
   changed: string[]
   rooms: RoomReport[]
+  unassigned?: RoomReport[]
   problems: Problem[]
   notes?: string[]
 }
@@ -54,6 +55,8 @@ export function answerFor(
 
   const level = about ?? touched[0]?.level ?? open
   const extent = planExtent(doc, level)
+  const levelRooms = roomsOf(doc, level)
+  const unassigned = levelRooms.filter((room) => room.id === undefined)
   return {
     level,
     levels: levelsOf(doc).map((storey, index) => ({
@@ -85,6 +88,11 @@ export function answerFor(
       : {}),
     changed,
     rooms: touched.map((it) => surveyRoom(doc, it.level, it.room, roomsOf(doc, it.level))),
+    ...(unassigned.length
+      ? {
+          unassigned: unassigned.map((room) => surveyRoom(doc, level, room, levelRooms)),
+        }
+      : {}),
     problems: checkLevel(doc, level),
     ...(notes === undefined || notes.length === 0 ? {} : { notes }),
   }

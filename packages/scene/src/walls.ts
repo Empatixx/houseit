@@ -2,6 +2,7 @@ import type { HouseDocument, Wall } from '@houseit/core/document'
 import { openingParts } from '@houseit/core/opening-parts'
 import { exteriorSides } from '@houseit/geometry/exterior'
 import { roomsOf } from '@houseit/geometry/rooms'
+import { wallCaps } from '@houseit/geometry/wall-caps'
 import { doorPieces } from './doors'
 import { besideWall, type Dressed, paintFor } from './dressing'
 import { owned, type Piece } from './pieces'
@@ -17,22 +18,17 @@ const SUNK = 30
 
 export function wallPieces(doc: HouseDocument, level: string): Piece[] {
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
-  const degrees = new Map<string, number>()
-  for (const wall of walls) {
-    for (const node of [wall.a, wall.b]) degrees.set(node, (degrees.get(node) ?? 0) + 1)
-  }
   const dressed: Dressed[] = roomsOf(doc, level).map((room) => ({
     outline: room.nodes.map((id) => doc.nodes[id]!),
     worn: room.id === undefined ? undefined : doc.rooms[room.id],
   }))
   const outside = exteriorSides(doc, level)
-  return walls.flatMap((wall) => standingWall(doc, wall, degrees, dressed, outside.get(wall.id)))
+  return walls.flatMap((wall) => standingWall(doc, wall, dressed, outside.get(wall.id)))
 }
 
 function standingWall(
   doc: HouseDocument,
   wall: Wall,
-  degrees: Map<string, number>,
   dressed: Dressed[],
   outside: 1 | -1 | undefined,
 ): Piece[] {
@@ -43,8 +39,7 @@ function standingWall(
   const dy = b.y - a.y
   const span = Math.hypot(dx, dy)
   if (span === 0) return []
-  const growA = (degrees.get(wall.a) ?? 0) > 1 ? wall.thickness / 2 : 0
-  const growB = (degrees.get(wall.b) ?? 0) > 1 ? wall.thickness / 2 : 0
+  const { growA, growB } = wallCaps(doc, wall)
   const length = span + growA + growB
   const angle = Math.atan2(dy, dx)
 
