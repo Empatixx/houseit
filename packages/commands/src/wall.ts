@@ -1,6 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { soffitOf } from '@houseit/core/levels'
-import { wallHosts } from '@houseit/core/wall-hosts'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { elementId, wallElement } from '@houseit/geometry/wall-elements'
 import { wallProfile } from '@houseit/geometry/wall-profile'
@@ -18,6 +17,7 @@ import { levelOf } from './resolve'
 
 import { validateWallHosts } from './validate-wall-hosts'
 import { furnitureBefore, retainFurniture } from './wall-furniture'
+import { moveWallJunctions } from './wall-junctions'
 
 const positive = () => length().pipe(z.number().positive())
 const point = json(z.object({ x: length(), y: length() }))
@@ -79,27 +79,11 @@ export const updateWall = defineCommand({
     const element = wallElement(draft, args.id)
     const level = element.level
     const furniture = furnitureBefore(draft, level)
-    const moving = new Set(element.segments.flatMap(({ wall }) => [wall.a, wall.b]))
-    const affected = Object.values(draft.walls).filter(
-      (wall) => moving.has(wall.a) || moving.has(wall.b),
-    )
-    const before = new Map(
-      affected.map((wall) => {
-        const a = draft.nodes[wall.a]!,
-          b = draft.nodes[wall.b]!
-        return [wall.id, { dx: b.x - a.x, dy: b.y - a.y, length: Math.hypot(b.x - a.x, b.y - a.y) }]
-      }),
-    )
     const roomIds = roomsOf(draft, level)
       .filter((r) => r.id)
       .map((r) => r.id!)
-    const dx = Math.round(-element.unit.y * (args.by ?? 0))
-    const dy = Math.round(element.unit.x * (args.by ?? 0))
-    for (const id of moving) {
-      draft.nodes[id]!.x += dx
-      draft.nodes[id]!.y += dy
-    }
-    for (const { wall } of element.segments) {
+    const affected = moveWallJunctions(draft, element.id, args.by ?? 0)
+    for (const { wall } of wallElement(draft, element.id).segments) {
       if (args.thickness !== undefined) wall.thickness = args.thickness
       if (args.height !== undefined) wall.height = args.height
       if (args.base !== undefined) wall.baseOffset = args.base
@@ -109,32 +93,12 @@ export const updateWall = defineCommand({
       )
         throw new CommandError('update-wall: the wall must fit below the storey soffit')
     }
-    for (const wall of affected) {
-      const old = before.get(wall.id)!,
-        a = draft.nodes[wall.a]!,
-        b = draft.nodes[wall.b]!
-      const span = Math.hypot(b.x - a.x, b.y - a.y)
-      if (span < 10 || old.dx * (b.x - a.x) + old.dy * (b.y - a.y) <= 0)
-        throw new CommandError(
-          `update-wall: connected wall ${elementId(wall)} would collapse or reverse`,
-        )
-      if (moving.has(wall.a) === moving.has(wall.b)) continue
-      for (const opening of [
-        ...Object.values(draft.openings),
-        ...wallHosts(draft).map((h) => h.host),
-      ]) {
-        if (opening.wall !== wall.id) continue
-        const fromFixed = (moving.has(wall.a) ? 1 - opening.t : opening.t) * old.length
-        opening.t = moving.has(wall.a) ? 1 - fromFixed / span : fromFixed / span
-      }
-    }
-    for (const id of new Set(affected.map(elementId))) wallElement(draft, id)
     validateWalls(draft, level)
     rebind(draft, level)
     if (roomIds.some((id) => !draft.rooms[id]?.loop.length))
       throw new CommandError('update-wall: this move would destroy an existing room')
     retainFurniture(draft, level, furniture)
-    return { changed: [...new Set([...affected.map(elementId), ...roomIds])], at: level }
+    return { changed: [...new Set([...affected, ...roomIds])], at: level }
   },
 })
 

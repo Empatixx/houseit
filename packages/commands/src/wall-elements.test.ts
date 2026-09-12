@@ -89,12 +89,10 @@ test('an opening that cannot fit after shortening refuses the complete transacti
   expect(JSON.stringify(doc)).toBe(before)
 })
 
-test('overlap, zero length, new unconnected crossings and openings through junctions are refused', () => {
+test('overlap, zero length and openings through junctions are refused', () => {
   const doc = runScript(createEmptyDocument(), wall(0, 0, 6000, 0))
   expect(() => runScript(doc, wall(3000, 0, 7000, 0))).toThrow(/overlap/)
   expect(() => runScript(doc, wall(1, 1, 1, 1))).toThrow(/at least/)
-  const withOther = runScript(doc, wall(3000, 500, 3000, 4000))
-  expect(() => runScript(withOther, 'update-wall --id w1 --by 1000')).toThrow(/cross without/)
   const junction = runScript(doc, wall(3000, 0, 3000, 4000))
   expect(() => runScript(junction, 'add-opening --wall w1 --kind window --along 3000')).toThrow(
     /between wall junctions/,

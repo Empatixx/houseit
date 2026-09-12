@@ -39,8 +39,7 @@ export function wallProfile(doc: HouseDocument, wall: Wall, atHeight?: number): 
         y: (-other.v.x * side * other.wall.thickness) / 2,
       }
       const distance = cross({ x: q.x - p.x, y: q.y - p.y }, other.v) / cross(u, other.v)
-      if (Math.abs(distance) > length / 2)
-        throw new Error(`Wall ${wall.id} is too short for its junction`)
+      if (!Number.isFinite(distance)) throw new Error(`Wall ${wall.id} has an invalid junction`)
       return { x: at.x + p.x + u.x * distance, y: at.y + p.y + u.y * distance }
     }
     return {
@@ -51,5 +50,11 @@ export function wallProfile(doc: HouseDocument, wall: Wall, atHeight?: number): 
   }
   const start = end(wall.a, b)
   const finish = end(wall.b, a)
+  const project = (p: Point) => ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / length
+  if (
+    project(finish.left) - project(start.right) <= 0 ||
+    project(finish.right) - project(start.left) <= 0
+  )
+    throw new Error(`Wall ${wall.id} is too short for its junction`)
   return [start.right, finish.left, ...finish.centre, finish.right, start.left, ...start.centre]
 }

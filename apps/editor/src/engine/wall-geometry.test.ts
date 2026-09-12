@@ -216,3 +216,24 @@ test('an X junction partitions its shared volume exactly once', () => {
   )
   for (const geometry of geometries) geometry.dispose()
 })
+
+test('a short return stays solid when its junction consumes more than half its length', () => {
+  const doc = specimen([
+    [0, 0, 3000, 0, 300],
+    [3000, 0, 6000, 0, 300],
+    [3000, -200, 3000, 0, 150],
+    [3000, 0, 3000, 3000, 150],
+  ])
+  const geometries = Object.values(doc.walls).map((wall) => built(doc, wall))
+  expect(geometries.reduce((sum, g) => sum + volume(g), 0)).toBeCloseTo(
+    (6 * 0.3 + (3.2 - 0.3) * 0.15) * 2.8,
+    4,
+  )
+  for (const geometry of geometries) {
+    const before = volume(geometry)
+    expect(before).toBeGreaterThan(0)
+    geometry.translate(10, 3, -5)
+    expect(volume(geometry)).toBeCloseTo(before, 4)
+    geometry.dispose()
+  }
+})

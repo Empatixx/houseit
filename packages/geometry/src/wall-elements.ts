@@ -9,39 +9,41 @@ export function elementWalls(doc: HouseDocument, id: string): Wall[] {
 
 export function wallElement(doc: HouseDocument, id: string) {
   const walls = elementWalls(doc, id)
-  const first = walls[0]
-  if (!first) throw new Error(`Unknown wall ${id}`)
-  const origin = doc.nodes[first.a]!
-  const end = doc.nodes[first.b]!
-  const span = Math.hypot(end.x - origin.x, end.y - origin.y)
-  if (span < 1) throw new Error(`Wall ${id} has no length`)
-  const unit = { x: (end.x - origin.x) / span, y: (end.y - origin.y) / span }
+  if (!walls.length) throw new Error(`Unknown wall ${id}`)
+  const ends = new Set(walls.map((w) => w.b))
+  const starts = walls.filter((w) => !ends.has(w.a))
+  const byStart = new Map(walls.map((w) => [w.a, w]))
+  if (starts.length !== 1 || byStart.size !== walls.length)
+    throw new Error(`Wall ${id} must be one continuous, ordered run`)
+  const chain: Wall[] = []
+  let current: Wall | undefined = starts[0]
+  const visited = new Set<string>()
+  while (current && !visited.has(current.id)) {
+    visited.add(current.id)
+    chain.push(current)
+    current = byStart.get(current.b)
+  }
+  if (current || chain.length !== walls.length)
+    throw new Error(`Wall ${id} must be one continuous, ordered run`)
+  const first = chain[0]!,
+    last = chain[chain.length - 1]!
+  const from = doc.nodes[first.a]!,
+    to = doc.nodes[last.b]!
+  const length = Math.hypot(to.x - from.x, to.y - from.y)
+  if (length < 1) throw new Error(`Wall ${id} has no length`)
+  const unit = { x: (to.x - from.x) / length, y: (to.y - from.y) / length }
   const project = (node: string) => {
     const p = doc.nodes[node]!
-    if (Math.abs((p.x - origin.x) * unit.y - (p.y - origin.y) * unit.x) > 1)
+    if (Math.abs((p.x - from.x) * unit.y - (p.y - from.y) * unit.x) > 1.5)
       throw new Error(`Wall ${id} must stay straight`)
-    return (p.x - origin.x) * unit.x + (p.y - origin.y) * unit.y
+    return (p.x - from.x) * unit.x + (p.y - from.y) * unit.y
   }
-  const segments = walls
-    .map((wall) => {
-      if (wall.level !== first.level) throw new Error(`Wall ${id} cannot span storeys`)
-      return { wall, from: project(wall.a), to: project(wall.b) }
-    })
-    .sort((a, b) => a.from - b.from)
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i]!
-    if (segment.to <= segment.from || (i > 0 && Math.abs(segment.from - segments[i - 1]!.to) > 1))
-      throw new Error(`Wall ${id} must be one continuous, ordered run`)
-  }
-  const start = segments[0]!
-  const finish = segments[segments.length - 1]!
-  return {
-    id: elementId(first),
-    level: first.level,
-    unit,
-    from: doc.nodes[start.wall.a]!,
-    to: doc.nodes[finish.wall.b]!,
-    length: finish.to - start.from,
-    segments: segments.map((s) => ({ ...s, from: s.from - start.from, to: s.to - start.from })),
-  }
+  const segments = chain.map((wall) => {
+    if (wall.level !== first.level) throw new Error(`Wall ${id} cannot span storeys`)
+    const start = project(wall.a),
+      end = project(wall.b)
+    if (end - start < 1) throw new Error(`Wall ${id} must be one continuous, ordered run`)
+    return { wall, from: start, to: end }
+  })
+  return { id: elementId(first), level: first.level, from, to, length, unit, segments }
 }

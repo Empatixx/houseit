@@ -5,7 +5,12 @@ import type { Draft } from 'immer'
 import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
 
-export function splitWall(draft: Draft<HouseDocument>, wallId: string, at: Point): string {
+export function splitWall(
+  draft: Draft<HouseDocument>,
+  wallId: string,
+  at: Point,
+  existingNode?: string,
+): string {
   const wall = draft.walls[wallId]!
 
   for (const end of ['a', 'b'] as const) {
@@ -18,8 +23,15 @@ export function splitWall(draft: Draft<HouseDocument>, wallId: string, at: Point
   const length = Math.hypot(b.x - a.x, b.y - a.y)
   const here = Math.hypot(at.x - a.x, at.y - a.y)
 
-  const nodeId = allocateId(draft.nodes, 'n')
-  draft.nodes[nodeId] = { id: nodeId, x: at.x, y: at.y }
+  const nodeId = existingNode ?? allocateId(draft.nodes, 'n')
+  if (
+    existingNode &&
+    (!draft.nodes[existingNode] ||
+      draft.nodes[existingNode]!.x !== at.x ||
+      draft.nodes[existingNode]!.y !== at.y)
+  )
+    throw new CommandError('split-wall: the shared node must match the junction')
+  draft.nodes[nodeId] ??= { id: nodeId, x: at.x, y: at.y }
 
   wall.element ??= wall.id
   const secondId = allocateId(draft.walls, 'w')
