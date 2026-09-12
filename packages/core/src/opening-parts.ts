@@ -1,5 +1,7 @@
 import type { HouseDocument, Opening } from './document'
 
+export type OpeningPart = Opening & { liningSide?: 'a' | 'b' }
+
 export function doorLeafSize(opening: Opening) {
   const inset = opening.frame?.face ?? 0
   return {
@@ -10,7 +12,24 @@ export function doorLeafSize(opening: Opening) {
   }
 }
 
-export function openingParts(opening: Opening, span: number): Opening[] {
+export function openingParts(opening: Opening, span: number): OpeningPart[] {
+  if (opening.leafWidth !== undefined) {
+    const first = opening.hinge === 'a' ? opening.leafWidth : opening.width - opening.leafWidth
+    return (
+      [
+        { width: first, x: 0, hinge: 'a' },
+        { width: opening.width - first, x: first, hinge: 'b' },
+      ] as const
+    ).map((leaf) => ({
+      ...opening,
+      id: `${opening.id}-leaf-${leaf.hinge}`,
+      t: opening.t + (leaf.x + leaf.width / 2 - opening.width / 2) / span,
+      width: leaf.width,
+      hinge: leaf.hinge,
+      liningSide: leaf.hinge,
+      leafWidth: undefined,
+    }))
+  }
   if (!opening.panels) return [opening]
   return opening.panels.map((p, i) => ({
     ...opening,
@@ -29,8 +48,12 @@ export function openingParts(opening: Opening, span: number): Opening[] {
     panels: undefined,
   }))
 }
-export function openingsIn(doc: HouseDocument): Opening[] {
+export function openingsIn(
+  doc: HouseDocument,
+  doors: 'leaves' | 'passages' = 'leaves',
+): OpeningPart[] {
   return Object.values(doc.openings).flatMap((o) => {
+    if (doors === 'passages' && o.kind === 'door') return [o]
     const wall = doc.walls[o.wall]
     const a = wall && doc.nodes[wall.a],
       b = wall && doc.nodes[wall.b]

@@ -43,7 +43,7 @@ export function walkClear(doc: HouseDocument, level: string, at: Point): boolean
       WALK_RADIUS +
       (wall.exterior?.layers.reduce((n, l) => n + l.thickness, 0) ?? 0)
     if (aside >= thick || along < -WALK_RADIUS || along > length + WALK_RADIUS) continue
-    const door = openingsIn(doc).some(
+    const door = openingsIn(doc, 'passages').some(
       (o) =>
         o.wall === wall.id &&
         o.kind === 'door' &&

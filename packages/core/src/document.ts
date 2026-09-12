@@ -59,11 +59,18 @@ export const OpeningSchema = z
     width: mm.positive(),
     height: mm.positive(),
     sillHeight: mm.nonnegative(),
+    leafWidth: mm.positive().optional(),
     hinge: z.enum(['a', 'b']).default('a'),
     swing: z.union([z.literal(-1), z.literal(1)]).default(1),
   })
   .superRefine((opening, ctx) => {
     const fail = (message: string) => ctx.addIssue({ code: 'custom', message })
+    if (opening.leafWidth !== undefined) {
+      if (opening.kind !== 'door' || opening.variant !== 'hinged' || opening.frame)
+        fail('a paired leaf width belongs to a plain hinged door')
+      if (opening.leafWidth >= opening.width)
+        fail('the main leaf must leave positive width for the second leaf')
+    }
     const checkLeaf = (width: number, height: number) => {
       if (opening.frame && (width <= 4 * opening.frame.face || height <= 3 * opening.frame.face))
         fail('the frame must leave positive glazing inside the door leaf')

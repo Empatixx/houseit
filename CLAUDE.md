@@ -473,6 +473,11 @@ keeps the physical hinge jamb. Each assembly leaf is checked against obstacles
 at its own width. A framed glass leaf carries its frame in both plan and 3D,
 including the separately coloured inner and outer faces.
 
+A plain hinged door accepts `--leaf-width` for the main leaf of an unequal pair.
+`--width` remains the whole passage; `--hinge` names the main leaf's outer jamb.
+Both leaves swing from outer jambs, without a centre post. `update-opening
+--leaf-width 0` restores a single leaf.
+
 The driver's `window.floorplan.show({view: 'north'})` also supports south, east,
 west, roof and overview. It changes only the camera, never the document. These
 views exist to compare a model against its elevations and roof drawing.

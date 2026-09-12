@@ -1,4 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
+import { openingParts } from '@houseit/core/opening-parts'
 import { expect, test } from 'vitest'
 import { doorPieces } from './doors'
 
@@ -134,4 +135,22 @@ test('a framed solid leaf has two opaque faces instead of a transparent infill',
   expect(new Set(faces.map((p) => p.colour))).toEqual(new Set(['#383e42', '#f1f0ea']))
   expect(faces.reduce((sum, p) => sum + p.thickness, 0)).toBe(40)
   expect(pieces.some((p) => p.takesFinish)).toBe(false)
+})
+
+test('paired wooden leaves have outer jambs and no fixed meeting post', () => {
+  const paired = { ...door, width: 1600, leafWidth: 900 }
+  const parts = openingParts(paired, 6000)
+  const pieces = parts.flatMap((part) => doorPieces(part, wall, part.t * 6000))
+  expect(pieces.filter((p) => p.key.includes('-jamb-'))).toHaveLength(2)
+  expect(
+    pieces
+      .filter((p) => p.key.endsWith('-leaf'))
+      .map((p) => p.length)
+      .sort(),
+  ).toEqual([700, 900])
+  const jambs = pieces
+    .filter((p) => p.key.includes('-jamb-'))
+    .map((p) => p.at)
+    .sort((a, b) => a - b)
+  expect(jambs[1]! - jambs[0]!).toBeCloseTo(1560, 6)
 })

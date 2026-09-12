@@ -12,17 +12,18 @@ import { length } from './length-schema'
 import { hasDoor, opensIntoOf } from './opening-direction'
 import { handOf, hingeAt } from './opening-hinge'
 import { openingById } from './openings'
-import { checkAssemblyDoors, checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
+import { checkDoorLeaves, checkOpeningAt, placeOpening, placeOpeningAt } from './place-opening'
 import { SIDE_NAMES, sideNamed } from './resolve'
 
 export const updateOpening = defineCommand({
   name: 'update-opening',
-  summary: `Change a door or a window: its size, its kind of leaf (${DOOR_VARIANTS.join(', ')}), or where in the wall it sits. --hinge left|right is viewed from the side it opens towards, facing the closed door. --opens-into names the room receiving the leaf, or outside`,
+  summary: `Change a door or a window: its size, its kind of leaf (${DOOR_VARIANTS.join(', ')}), or where in the wall it sits. --hinge left|right is viewed from the side it opens towards, facing the closed door. --opens-into names the room receiving the leaf, or outside. --leaf-width changes the main leaf of a paired door; 0 restores one leaf`,
   args: z.object({
     id: z.string().min(1),
     panels: json(PanelsSchema).optional(),
     frame: json(FrameSchema).optional(),
     width: length().optional(),
+    leafWidth: length().optional(),
     height: length().optional(),
     sill: length().optional(),
     variant: z.enum(['hinged', 'sliding', 'pocket', 'garage']).optional(),
@@ -50,6 +51,7 @@ export const updateOpening = defineCommand({
     if (
       !moving &&
       !resizing &&
+      args.leafWidth === undefined &&
       args.variant === undefined &&
       args.hinge === undefined &&
       args.opensInto === undefined &&
@@ -63,7 +65,8 @@ export const updateOpening = defineCommand({
 
     const variant = args.variant ?? opening.variant
     const width = args.width ?? opening.width
-    const swings = door && variant === 'hinged'
+    const leafWidth = args.leafWidth === undefined ? opening.leafWidth : args.leafWidth || undefined
+    const swings = door && variant === 'hinged' && leafWidth === undefined
     const leaf =
       hasDoor({ kind: opening.kind, panels: args.panels ?? opening.panels }) && variant === 'hinged'
     if (args.opensInto !== undefined && !leaf)
@@ -117,12 +120,18 @@ export const updateOpening = defineCommand({
       target.wall = spot.wall
       target.t = spot.t
       if (leaf) target.swing = spot.swing
-    } else if (resizing || args.variant !== undefined || args.opensInto !== undefined) {
+    } else if (
+      resizing ||
+      args.leafWidth !== undefined ||
+      args.variant !== undefined ||
+      args.opensInto !== undefined
+    ) {
       const swing = refit(draft, level, room, opening, width, swings, 'update-opening', into)
       if (leaf) draft.openings[opening.id]!.swing = swing
     }
 
     const target = draft.openings[opening.id]!
+    target.leafWidth = leafWidth
     target.width = width
     target.variant = variant
     if (leaf && (moving || args.hinge !== undefined)) target.hinge = hingeAt(target.swing, hand)
@@ -131,7 +140,7 @@ export const updateOpening = defineCommand({
     if (args.panels !== undefined) target.panels = args.panels
     if (args.frame !== undefined) target.frame = args.frame
     OpeningSchema.parse(target)
-    checkAssemblyDoors(draft, level, room, target, 'update-opening')
+    checkDoorLeaves(draft, level, room, target, 'update-opening')
     return { changed: [opening.id] }
   },
 })

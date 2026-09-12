@@ -1,5 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
-import { doorLeafSize } from '@houseit/core/opening-parts'
+import { doorLeafSize, type OpeningPart } from '@houseit/core/opening-parts'
 
 const DOOR_PAINT = {
   leaf: '#cdb894',
@@ -27,7 +27,7 @@ export type StandingPiece = {
 }
 
 export function doorPieces(
-  opening: Opening,
+  opening: OpeningPart,
   wall: Wall,
   centre: number,
   outside?: -1 | 1,
@@ -185,7 +185,7 @@ function framedLeaf(opening: Opening, centre: number, outside?: -1 | 1): Standin
   ]
 }
 
-function liningOf(opening: Opening, wall: Wall, centre: number): StandingPiece[] {
+function liningOf(opening: OpeningPart, wall: Wall, centre: number): StandingPiece[] {
   const width = opening.width
   const height = opening.height
   const jamb = (side: -1 | 1) => ({
@@ -200,8 +200,8 @@ function liningOf(opening: Opening, wall: Wall, centre: number): StandingPiece[]
     colour: DOOR_PAINT.lining,
   })
   return [
-    jamb(-1),
-    jamb(1),
+    ...(opening.liningSide !== 'b' ? [jamb(-1)] : []),
+    ...(opening.liningSide !== 'a' ? [jamb(1)] : []),
     {
       key: `${opening.id}-soffit`,
       at: centre,

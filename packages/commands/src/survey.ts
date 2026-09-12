@@ -39,6 +39,7 @@ export type OpeningReport = {
   width: number
   height: number
   panels?: Opening['panels']
+  leafWidth?: number
   frame?: Opening['frame']
   variant?: Opening['variant']
   hinge?: 'left' | 'right'
@@ -165,6 +166,7 @@ export function surveyRoom(
       width: opening.width,
       height: opening.height,
       ...(opening.panels ? { panels: opening.panels } : {}),
+      ...(opening.leafWidth !== undefined ? { leafWidth: opening.leafWidth } : {}),
       ...(opening.frame ? { frame: opening.frame } : {}),
       ...(hasDoor(opening) && opening.variant === 'hinged'
         ? {

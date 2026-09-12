@@ -269,14 +269,14 @@ type Facing = { wall: { id: string }; a: { x: number; y: number }; b: { x: numbe
 const spanOf = ({ a, b }: { a: { x: number; y: number }; b: { x: number; y: number } }) =>
   Math.round(Math.hypot(b.x - a.x, b.y - a.y))
 
-export function checkAssemblyDoors(
+export function checkDoorLeaves(
   doc: HouseDocument,
   level: string,
   room: Room,
   opening: Opening,
   what: string,
 ) {
-  if (!opening.panels) return
+  if (!opening.panels && opening.leafWidth === undefined) return
   const wall = doc.walls[opening.wall]!
   const a = doc.nodes[wall.a]!,
     b = doc.nodes[wall.b]!
