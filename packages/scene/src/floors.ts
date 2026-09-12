@@ -1,6 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { floorMaterial } from '@houseit/core/floor-materials'
 import { SLAB, soffitOf } from '@houseit/core/levels'
+import { siteHeight } from '@houseit/core/site'
 import { offsetOutline } from '@houseit/geometry/clear'
 import { shaftOutside, shaftsOn } from '@houseit/geometry/connections'
 import { exteriorSides } from '@houseit/geometry/exterior'
@@ -149,11 +150,33 @@ export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
   const upper =
     storey &&
     Object.values(doc.levels).find((s) => s.elevation === storey.elevation + storey.height)
-  if (!upper) return pieces
-  const floors = floorPieces(doc, upper.id).flatMap((p) =>
-    p.body.kind === 'sheet' ? [p.body] : [],
-  )
-  return pieces.map((p) => {
+  const floors = upper
+    ? floorPieces(doc, upper.id).flatMap((p) => (p.body.kind === 'sheet' ? [p.body] : []))
+    : []
+  const trimmed = pieces.flatMap<Piece>((p) => {
+    if (!p.name?.endsWith('-buildup') || p.body.kind !== 'prism' || !doc.site) return [p]
+    const elevation = doc.levels[level]!.elevation + soffit + slab + buildup
+    const surfaces = doc.site.surfaces
+      .filter((s) => {
+        const heights = s.outline.map((p) => siteHeight(s, p.x, p.y))
+        return Math.min(...heights) < elevation && Math.max(...heights) > elevation - buildup
+      })
+      .map((s) => ({
+        outline: corners(s.outline),
+        holes: floors.map((f) => f.outline),
+      }))
+    const remaining = exposedSlabTop(p.body, surfaces)
+    const body = p.body
+    return remaining === undefined
+      ? [p]
+      : remaining.map((outline, i) => ({
+          ...p,
+          name: `${p.name}-${i}`,
+          body: { ...body, outline, holes: [] },
+        }))
+  })
+  if (!upper) return trimmed
+  return trimmed.map((p) => {
     if (p.body.kind !== 'prism' || Math.abs(p.at.y + p.body.thickness / 2 - storey!.height) > 0.01)
       return p
     const top = exposedSlabTop(p.body, floors)

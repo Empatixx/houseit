@@ -20,11 +20,12 @@ const dimensions = {
   depth: length(),
   colour,
   embedded: z.coerce.boolean().optional(),
+  outside: z.coerce.boolean().optional(),
 }
 export const addColumn = defineCommand({
   name: 'add-column',
   summary:
-    'Place a structural column on a storey grid, from its floor to its soffit. Coordinates are in mm; it remains fixed when rooms change.',
+    'Place a structural column on a storey grid, from its floor to its soffit. Coordinates are in mm; --outside permits an exterior support beyond enclosed rooms.',
   args: z.object({ ...dimensions, level: z.string().optional() }),
   run: (draft, args, open) => {
     const level = levelOf(draft, args.level ?? open, 'add-column')
@@ -133,7 +134,10 @@ function checkColumn(doc: HouseDocument, level: string, column: z.infer<typeof C
           column.y,
         ),
   )
-  if (!room) throw new CommandError('column must stand inside the storey footprint')
+  if (!room && !column.outside)
+    throw new CommandError(
+      'column must stand inside the storey footprint; use --outside for an exterior support',
+    )
   for (const object of Object.values(doc.objects).filter((o) => o.level === level)) {
     const where = roomsOf(doc, level).find((r) => r.id === object.room)
     const spot = where ? standingAt(doc, level, where, object) : undefined

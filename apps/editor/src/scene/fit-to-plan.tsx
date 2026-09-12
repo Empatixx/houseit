@@ -94,6 +94,11 @@ function planBox(doc: HouseDocument, level: string): ViewBox | undefined {
     .flatMap((wall) => [doc.nodes[wall.a], doc.nodes[wall.b]])
     .filter((node) => node !== undefined)
   const points = [...nodes, ...(doc.levels[level]?.ramps ?? []).flatMap((r) => rampOutline(r))]
+  if (doc.levels[level]?.elevation === 0)
+    points.push(
+      ...(doc.site?.surfaces.filter((s) => s.name.startsWith('Stání ')).flatMap((s) => s.outline) ??
+        []),
+    )
   if (points.length === 0) return undefined
 
   const xs = points.map((node) => node.x)

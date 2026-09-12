@@ -8,6 +8,7 @@ import { unionOfBoxes } from './union'
 
 export function excavations(doc: HouseDocument): Point[][] {
   const boxes: Box[] = []
+  if (doc.site?.surfaces.length) boxes.push(doc.site.groundCutout)
   for (const level of Object.values(doc.levels).filter((l) => l.elevation < 0)) {
     const outside = exteriorSides(doc, level.id)
     const edges = [...outside].map(([id, side]) => {

@@ -12,9 +12,11 @@ import { addStair, removeStair } from './stair-run'
 import { updateObject } from './update-object'
 import { updateOpening } from './update-opening'
 import { updateRoom } from './update-room'
+import { updateSite } from './update-site'
 
 const ALL: AnyCommand[] = [
   getPlan,
+  updateSite,
   addStair,
   removeStair,
   addShaft,

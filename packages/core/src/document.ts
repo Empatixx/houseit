@@ -8,6 +8,7 @@ import { HostSchema } from './host'
 import { FrameSchema, PanelsSchema } from './opening-assembly'
 import { RoofSchema } from './roof'
 import { ROOM_KIND_IDS } from './room-kinds'
+import { SiteSchema } from './site'
 import { StairRunSchema } from './stair-flight'
 
 export const DOCUMENT_VERSION = 5
@@ -164,6 +165,7 @@ const byId = <T extends z.ZodTypeAny>(entry: T) => z.record(z.string(), entry).d
 
 const DocumentShape = z.object({
   version: z.literal(DOCUMENT_VERSION),
+  site: SiteSchema.optional(),
   levels: byId(LevelSchema),
   nodes: byId(NodeSchema),
   walls: byId(WallSchema),

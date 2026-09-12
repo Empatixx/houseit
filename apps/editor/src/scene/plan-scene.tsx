@@ -14,6 +14,7 @@ import { Ramps } from './ramps'
 import { RoomAnnotations } from './room-annotations'
 import { RoomFloors } from './room-floors'
 import { Shafts } from './shafts'
+import { Site } from './site'
 import { Spinning } from './spinning'
 import { StairRuns } from './stair-runs'
 import { StairsBelow } from './stairs-below'
@@ -40,6 +41,7 @@ export function PlanScene() {
       <color attach="background" args={['#f4f4f5']} />
 
       {shown.grid ? <DotGrid /> : null}
+      <Site />
 
       {shown.below ? <StoreyBelow /> : null}
       {shown.below ? <StairsBelow /> : null}

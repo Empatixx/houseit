@@ -28,6 +28,7 @@ export type StoreyReport = {
 }
 
 export type Answer = {
+  site?: HouseDocument['site']
   level: string
   levels: StoreyReport[]
   width?: number
@@ -59,6 +60,7 @@ export function answerFor(
   const unassigned = levelRooms.filter((room) => room.id === undefined)
   return {
     level,
+    ...(doc.site ? { site: doc.site } : {}),
     levels: levelsOf(doc).map((storey, index) => ({
       id: storey.id,
       name: storey.name,

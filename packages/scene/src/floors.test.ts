@@ -22,6 +22,50 @@ test('a room gets a floor the shape of the room', () => {
   expect(laid[0].body.holes).toEqual([])
 })
 
+test('a lower outdoor surface replaces only the floor buildup above the basement slab', () => {
+  const { doc, level } = room()
+  Object.assign(doc.levels[level]!, {
+    elevation: -3000,
+    height: 3000,
+    clearHeight: 2550,
+    slabThickness: 250,
+  })
+  const before = ceilingPieces(doc, level)
+  doc.site = {
+    groundCutout: { x0: -1000, x1: 5000, y0: -1000, y1: 5000 },
+    surfaces: [
+      {
+        id: 'walk',
+        name: 'Walk',
+        outline: [
+          { x: 2000, y: -1000 },
+          { x: 5000, y: -1000 },
+          { x: 5000, y: 5000 },
+          { x: 2000, y: 5000 },
+        ],
+        elevation: -20,
+        slope: { x: 0, y: 0 },
+        depth: 180,
+        kind: 'paving',
+        colour: '#aaaaaa',
+      },
+    ],
+    markings: [],
+    railings: [],
+  }
+  const after = ceilingPieces(doc, level)
+  expect(after.find((p) => !p.name?.includes('buildup'))).toEqual(
+    before.find((p) => !p.name?.includes('buildup')),
+  )
+  for (const p of after.filter((p) => p.name?.includes('buildup'))) {
+    if (p.body.kind !== 'prism') throw Error('prism expected')
+    expect(Math.max(...p.body.outline.map((p) => p.x))).toBeLessThanOrEqual(2000)
+  }
+  doc.levels[level]!.elevation = 0
+  const upstairs = ceilingPieces(doc, level)
+  expect(upstairs).toEqual(before)
+})
+
 test('a room with nothing laid in it still has a floor to stand on', () => {
   const { doc, level } = room()
 

@@ -7,6 +7,7 @@ import { furniturePieces } from './furniture'
 import { type Light, lightsOn } from './lights'
 import { type Piece, slab } from './pieces'
 import { roofPieces } from './roofs'
+import { sitePieces } from './site'
 import { wallPieces } from './walls'
 
 export type Storey = {
@@ -20,6 +21,7 @@ export type Reach = { min: { x: number; z: number }; max: { x: number; z: number
 
 export type World = {
   storeys: Storey[]
+  site: Piece[]
   bounds: Reach
 }
 
@@ -27,6 +29,8 @@ const ALONE = 4000
 
 export function reachOf(doc: HouseDocument): Reach {
   const nodes = Object.values(doc.nodes)
+  if (doc.site?.surfaces.length)
+    nodes.push(...doc.site.surfaces.flatMap((s) => s.outline.map((p) => ({ ...p, id: '' }))))
   if (nodes.length === 0) {
     return { min: { x: -ALONE, z: -ALONE }, max: { x: ALONE, z: ALONE } }
   }
@@ -66,6 +70,7 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
 export function worldOf(doc: HouseDocument): World {
   return {
     bounds: reachOf(doc),
+    site: sitePieces(doc),
     storeys: levelsOf(doc).map((storey) => ({
       level: storey.id,
       elevation: storey.elevation,

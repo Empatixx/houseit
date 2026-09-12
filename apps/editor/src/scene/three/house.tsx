@@ -18,6 +18,9 @@ export function House({ picking = true }: { picking?: boolean }) {
 
   return (
     <>
+      {world.site.map((piece) => (
+        <StandingPiece key={piece.name} piece={piece} />
+      ))}
       {world.storeys.map((storey) => (
         <group key={storey.level} position={[0, storey.elevation * MM, 0]}>
           {storey.lights.map((light) => (

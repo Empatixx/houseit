@@ -530,3 +530,19 @@ straight orthogonal partition whose two ends remain free inside the room.
 It reports its endpoints, thickness and height with the room. Its occupied
 floor is subtracted without closing a new room, and both ends can be walked
 around. Use `--return` when one end meets the enclosing wall.
+
+## Exterior site
+
+`update-site --site` replaces site surfaces, road/parking markings and railings
+as one JSON transaction. The answer includes the site, so it can be read back
+without inventing outdoor rooms. Surface elevations are absolute millimetres
+above the building datum at the first outline point; slope components are rise/run.
+Markings follow their host surface. Railings carry endpoint elevations, infill,
+post spacing and optional rail heights. Named floor materials can dress paving.
+The site cuts out the background lawn; its terrain must cover the replacement
+area while preserving the building and ramp voids. Site geometry is drawn in
+3D and on the datum floor plan. `add-column --outside` explicitly permits a
+structural support beyond enclosed rooms; wall, shaft and object clash checks
+still apply. An exterior finish can replace a basement floor buildup where their
+height ranges intersect, but never removes the structural slab or the buildup
+under an upper room.
