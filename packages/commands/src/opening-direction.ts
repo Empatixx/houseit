@@ -8,18 +8,19 @@ export function hasDoor(opening: Pick<Opening, 'kind' | 'panels'>): boolean {
 }
 
 export function touchesWall(room: Room, wall: Wall): boolean {
-  return room.nodes.some((from, i) => {
-    const to = room.nodes[(i + 1) % room.nodes.length]
-    return (wall.a === from && wall.b === to) || (wall.b === from && wall.a === to)
-  })
+  return roomSide(room, wall) !== undefined
 }
 
-export function sideSign(
-  a: { x: number; y: number },
-  b: { x: number; y: number },
-  point: { x: number; y: number },
-): -1 | 1 {
-  return (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x) < 0 ? -1 : 1
+export function roomSide(room: Room, wall: Wall): -1 | 1 | undefined {
+  // findFaces returns counterclockwise bounded faces: their inside is on the left.
+  // A concave room's centroid need not be on that side of every boundary wall.
+  for (let i = 0; i < room.nodes.length; i++) {
+    const from = room.nodes[i],
+      to = room.nodes[(i + 1) % room.nodes.length]
+    if (wall.a === from && wall.b === to) return 1
+    if (wall.b === from && wall.a === to) return -1
+  }
+  return undefined
 }
 
 export function directionAt(
@@ -31,28 +32,23 @@ export function directionAt(
   what: string,
 ): -1 | 1 {
   const wall = doc.walls[wallId]!
-  const a = doc.nodes[wall.a]!,
-    b = doc.nodes[wall.b]!
-  if (into === undefined) return sideSign(a, b, room.centre)
   if (into === 'outside') {
     const adjacent = roomsOf(doc, level).filter((r) => touchesWall(r, wall))
     if (adjacent.length !== 1)
       throw new CommandError(
         `${what}: this wall is not an exterior boundary, so it cannot open outside`,
       )
-    return sideSign(a, b, adjacent[0]!.centre) === 1 ? -1 : 1
+    return roomSide(adjacent[0]!, wall) === 1 ? -1 : 1
   }
-  const target = whereRoom(doc, level, into, what).room
-  if (!touchesWall(target, wall)) throw new CommandError(`${what}: ${into} is not beside this wall`)
-  return sideSign(a, b, target.centre)
+  const target = into === undefined ? room : whereRoom(doc, level, into, what).room
+  const side = roomSide(target, wall)
+  if (side === undefined)
+    throw new CommandError(`${what}: ${into ?? room.name} is not beside this wall`)
+  return side
 }
 
 export function opensIntoOf(doc: HouseDocument, rooms: Room[], opening: Opening): string {
   const wall = doc.walls[opening.wall]!
-  const a = doc.nodes[wall.a]!,
-    b = doc.nodes[wall.b]!
-  const target = rooms.find(
-    (r) => touchesWall(r, wall) && sideSign(a, b, r.centre) === opening.swing,
-  )
+  const target = rooms.find((r) => roomSide(r, wall) === opening.swing)
   return target?.name ?? target?.id ?? (target ? '(unnamed)' : 'outside')
 }

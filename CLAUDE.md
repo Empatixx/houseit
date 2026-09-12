@@ -473,6 +473,11 @@ keeps the physical hinge jamb. Each assembly leaf is checked against obstacles
 at its own width. A framed glass leaf carries its frame in both plan and 3D,
 including the separately coloured inner and outer faces.
 
+The receiving side comes from the room's directed boundary edge. A concave
+corridor's centroid can lie across its own wall; using it reversed doors that
+explicitly opened into that corridor. Placement, updates and readback must use
+the same local boundary side.
+
 A plain hinged door accepts `--leaf-width` for the main leaf of an unequal pair.
 `--width` remains the whole passage; `--hinge` names the main leaf's outer jamb.
 Both leaves swing from outer jambs, without a centre post. `update-opening

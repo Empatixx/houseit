@@ -78,3 +78,24 @@ test('an unglazed assembly door stays a walkable door beside its glazed fanlight
     runScript(createEmptyDocument(), script.replace('"kind":"door"', '"kind":"fixed"')),
   ).toThrow('glazing none belongs to a solid door')
 })
+
+test('a concave corridor receives its door on the local boundary side, including default and outside swings', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/concave-opening-direction.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  expect(swingOf(doc, doc.openings.o1!)!.x0).toBe(6000)
+  expect(swingOf(doc, doc.openings.o2!)!.x0).toBe(6000)
+  expect(swingOf(doc, doc.openings.o3!)!.x1).toBe(6000)
+  expect(askPlan(doc, 'get-plan --room WC').rooms[0]!.openings[0]).toMatchObject({
+    opensInto: 'Hall',
+    hinge: 'right',
+  })
+  const changed = runScript(doc, 'update-opening --id o1 --opens-into WC')
+  expect(swingOf(changed, changed.openings.o1!)!.x1).toBe(6000)
+  expect(askPlan(changed, 'get-plan --room WC').rooms[0]!.openings[0]).toMatchObject({
+    opensInto: 'WC',
+    hinge: 'left',
+  })
+})
