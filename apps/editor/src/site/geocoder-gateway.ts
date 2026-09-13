@@ -11,7 +11,10 @@ export type GeocoderGateway = {
 export function createNominatimGeocoder({
   fetcher = fetch,
   endpoint = NOMINATIM,
-}: { fetcher?: typeof fetch; endpoint?: string } = {}): GeocoderGateway {
+}: {
+  fetcher?: typeof fetch
+  endpoint?: string
+} = {}): GeocoderGateway {
   return {
     async searchOnce(query) {
       const trimmed = query.trim()

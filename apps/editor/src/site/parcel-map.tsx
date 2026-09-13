@@ -30,9 +30,7 @@ export const ParcelMap = forwardRef<MapRef, Props>(function ParcelMap(
     onBusy(true)
     onError('')
     try {
-      onSelect(
-        await gateway.findAt({ longitude: event.lngLat.lng, latitude: event.lngLat.lat }),
-      )
+      onSelect(await gateway.findAt({ longitude: event.lngLat.lng, latitude: event.lngLat.lat }))
     } catch (error) {
       onError(error instanceof Error ? error.message : String(error))
     } finally {
@@ -53,9 +51,7 @@ export const ParcelMap = forwardRef<MapRef, Props>(function ParcelMap(
       <Source
         id="cuzk-base"
         type="raster"
-        tiles={[
-          'https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM_WM/MapServer/tile/{z}/{y}/{x}',
-        ]}
+        tiles={['https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM_WM/MapServer/tile/{z}/{y}/{x}']}
         tileSize={256}
         maxzoom={23}
       >

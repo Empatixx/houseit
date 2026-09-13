@@ -5,9 +5,7 @@ test('searches Czech addresses once per explicit call without autocomplete state
   const fetcher = vi.fn<typeof fetch>().mockResolvedValue({
     ok: true,
     status: 200,
-    json: async () => [
-      { display_name: 'Radlická, Praha, Česko', lon: '14.401', lat: '50.061' },
-    ],
+    json: async () => [{ display_name: 'Radlická, Praha, Česko', lon: '14.401', lat: '50.061' }],
   } as Response)
   const geocoder = createNominatimGeocoder({ fetcher })
 

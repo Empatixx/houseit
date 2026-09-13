@@ -35,13 +35,15 @@ describe('ČÚZK parcel GML', () => {
   })
 
   test('reads every polygon and interior ring of a MultiSurface', () => {
-    const xml = fixture.replace(
-      '<gml:Polygon gml:id="P.CP.30317058010" srsName="EPSG:5514" srsDimension="2">',
-      '<gml:MultiSurface><gml:surfaceMember><gml:Polygon gml:id="P.CP.30317058010" srsName="EPSG:5514" srsDimension="2">',
-    ).replace(
-      '</gml:Polygon>',
-      '<gml:interior><gml:LinearRing><gml:posList>-743964 -1043814 -743963 -1043814 -743963 -1043813 -743964 -1043814</gml:posList></gml:LinearRing></gml:interior></gml:Polygon></gml:surfaceMember></gml:MultiSurface>',
-    )
+    const xml = fixture
+      .replace(
+        '<gml:Polygon gml:id="P.CP.30317058010" srsName="EPSG:5514" srsDimension="2">',
+        '<gml:MultiSurface><gml:surfaceMember><gml:Polygon gml:id="P.CP.30317058010" srsName="EPSG:5514" srsDimension="2">',
+      )
+      .replace(
+        '</gml:Polygon>',
+        '<gml:interior><gml:LinearRing><gml:posList>-743964 -1043814 -743963 -1043814 -743963 -1043813 -743964 -1043814</gml:posList></gml:LinearRing></gml:interior></gml:Polygon></gml:surfaceMember></gml:MultiSurface>',
+      )
 
     const parcel = parseParcelGml(xml)
 

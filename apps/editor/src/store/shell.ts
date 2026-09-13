@@ -1,7 +1,7 @@
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
-export type RailTab = 'plan' | 'issues' | 'view'
+export type RailTab = 'plan' | 'site' | 'issues' | 'view'
 
 type ShellState = {
   panel: boolean

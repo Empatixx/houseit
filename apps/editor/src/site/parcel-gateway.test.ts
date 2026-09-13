@@ -41,16 +41,21 @@ describe('ČÚZK parcel gateway', () => {
 
   test('returns null when the service finds no parcel', async () => {
     const empty = '<FeatureCollection xmlns="http://www.opengis.net/wfs/2.0" numberReturned="0" />'
-    const gateway = createCuzkParcelGateway({ fetcher: vi.fn<typeof fetch>().mockResolvedValue(response(empty)) })
+    const gateway = createCuzkParcelGateway({
+      fetcher: vi.fn<typeof fetch>().mockResolvedValue(response(empty)),
+    })
 
     await expect(gateway.findAt({ longitude: 14.4, latitude: 50 })).resolves.toBeNull()
   })
 
   test('reports a service timeout', async () => {
-    const fetcher = vi.fn<typeof fetch>((_input, init) =>
-      new Promise((_resolve, reject) => {
-        init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))
-      }),
+    const fetcher = vi.fn<typeof fetch>(
+      (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          )
+        }),
     )
     const gateway = createCuzkParcelGateway({ fetcher, timeoutMs: 1 })
 

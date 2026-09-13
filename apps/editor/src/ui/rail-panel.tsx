@@ -1,9 +1,11 @@
 import { checkLevel, type Problem } from '@houseit/commands/checks'
+import { removeSite } from '@houseit/commands/remove-site'
 import { surveyLevel } from '@houseit/commands/survey'
 import { objectType } from '@houseit/core/object-types'
 import { roomKindOf } from '@houseit/core/room-kinds'
 import { ChevronRightIcon } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -14,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
+import { siteDialogStore } from '../site/site-dialog-store'
 import { hoverStore } from '../store/hover'
 import {
   MEASURED,
@@ -24,12 +27,12 @@ import {
 } from '../store/selection'
 import { useShell } from '../store/shell'
 import { LAYERS, shownStore, useShown } from '../store/shown'
-import { useDocument } from '../store/store'
+import { documentStore, useDocument } from '../store/store'
 import { KindIcon } from './avatars'
 import { GAP, RAIL_OPEN_WIDTH, RAIL_PANEL_WIDTH, RAIL_WIDTH } from './edges'
 import { useCover } from './use-cover'
 
-const TITLES = { plan: 'Plan', issues: 'Issues', view: 'View' } as const
+const TITLES = { plan: 'Plan', site: 'Site', issues: 'Issues', view: 'View' } as const
 
 export function RailPanel() {
   const tab = useShell((state) => state.tab)
@@ -56,10 +59,50 @@ export function RailPanel() {
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-4 pb-4 text-sm">
         {tab === null ? null : <Heading>{TITLES[tab]}</Heading>}
         {tab === 'plan' ? <Plan /> : null}
+        {tab === 'site' ? <Site /> : null}
         {tab === 'issues' ? <Issues /> : null}
         {tab === 'view' ? <View /> : null}
       </div>
     </aside>
+  )
+}
+
+function Site() {
+  const site = useDocument((state) => state.doc.site)
+
+  if (!site) {
+    return (
+      <>
+        <Empty>Attach a cadastral parcel to see its boundary behind the floor plan.</Empty>
+        <Button onClick={() => siteDialogStore.getState().openFor({ kind: 'attach' })}>
+          Choose parcel
+        </Button>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <div className="rounded-lg border bg-background/70 p-3">
+        <p className="font-medium">Parcel {site.parcel.number}</p>
+        <p className="text-xs text-muted-foreground">{site.parcel.cadastralAreaName}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {site.parcel.areaM2.toLocaleString('cs-CZ')} m² · ČÚZK
+        </p>
+      </div>
+      <p className="rounded-lg bg-amber-50 p-2 text-xs leading-4 text-amber-900">
+        Indicative data. Verify boundaries and siting with a surveyor.
+      </p>
+      <Button
+        variant="outline"
+        onClick={() => siteDialogStore.getState().openFor({ kind: 'attach' }, site)}
+      >
+        Open cadastral map
+      </Button>
+      <Button variant="destructive" onClick={() => documentStore.getState().apply(removeSite, {})}>
+        Remove parcel
+      </Button>
+    </>
   )
 }
 

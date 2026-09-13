@@ -1,3 +1,8 @@
+import { addSite } from '@houseit/commands/add-site'
+import { quoted } from '@houseit/commands/command-line'
+import { applyCommand } from '@houseit/commands/run'
+import type { Site } from '@houseit/core/document'
+import { createEmptyDocument } from '@houseit/core/document'
 import { useEffect, useState } from 'react'
 import {
   BrowserRouter,
@@ -10,6 +15,8 @@ import {
 } from 'react-router'
 import { App } from './app'
 import { Toaster } from './components/ui/sonner'
+import { ParcelPicker } from './site/parcel-picker'
+import type { SiteDialogRequest } from './site/site-dialog-store'
 import { projectsStore, useProjects } from './store/projects/projects'
 import { documentStore } from './store/store'
 import { Home } from './ui/home/home'
@@ -22,9 +29,34 @@ export function Screens() {
         <Route path="/p/:id" element={<Project />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ParcelWorkflow />
       <Toaster position="bottom-right" />
     </BrowserRouter>
   )
+}
+
+function ParcelWorkflow() {
+  const navigate = useNavigate()
+
+  const confirm = async (site: Site, request: SiteDialogRequest) => {
+    if (request.kind === 'create') {
+      const initial = applyCommand(createEmptyDocument(), addSite, { json: JSON.stringify(site) })
+      const meta = await projectsStore.getState().create(request.name, initial)
+      navigate(`/p/${meta.id}`)
+      return
+    }
+
+    const hasSite = documentStore.getState().doc.site !== undefined
+    const source = [
+      hasSite ? 'remove-site' : undefined,
+      `add-site --json ${quoted(JSON.stringify(site))}`,
+    ]
+      .filter((line) => line !== undefined)
+      .join('\n')
+    documentStore.getState().exec(source)
+  }
+
+  return <ParcelPicker onConfirm={confirm} />
 }
 
 function Landing() {

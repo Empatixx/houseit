@@ -138,10 +138,12 @@ function attributeOf(element: Element, localName: string): string {
 }
 
 function ringOf(container: Element): MetricPoint[] {
-  const numbers = textOf(container, 'posList')
-    .split(/\s+/)
-    .map(Number)
-  if (numbers.length < 8 || numbers.length % 2 !== 0 || numbers.some((value) => !Number.isFinite(value))) {
+  const numbers = textOf(container, 'posList').split(/\s+/).map(Number)
+  if (
+    numbers.length < 8 ||
+    numbers.length % 2 !== 0 ||
+    numbers.some((value) => !Number.isFinite(value))
+  ) {
     throw new CuzkResponseError('The parcel contains an invalid coordinate list')
   }
   const points: MetricPoint[] = []
