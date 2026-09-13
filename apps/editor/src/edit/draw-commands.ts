@@ -1,5 +1,6 @@
 import { drawWall } from '@houseit/commands/draw-wall'
 import { SNAP } from '@houseit/commands/partition'
+import { applyCommand } from '@houseit/commands/run'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { sideOfWall, sideRun } from '@houseit/geometry/sides'
@@ -8,6 +9,7 @@ import { drawStore, type Guide } from '../store/draw'
 import { engineViewStore } from '../store/engine-view'
 import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
+import { pick } from './pick'
 import { endPreview, previewCommand } from './preview'
 import { runEdit } from './run-edit'
 
@@ -101,7 +103,20 @@ export function putDown(point: Point): void {
     return
   }
   drawStore.getState().put(corner)
-  if (points.length >= 2 && near(corner, first)) finishDrawing()
+  if ((points.length >= 2 && near(corner, first)) || closesRoom([...points, corner]))
+    finishDrawing()
+}
+
+function closesRoom(points: Point[]): boolean {
+  const args = drawArgs(points)
+  if (!args) return false
+  const { doc } = documentStore.getState()
+  try {
+    const next = applyCommand(doc, drawWall, args)
+    return Object.keys(next.rooms).some((id) => !doc.rooms[id])
+  } catch {
+    return false
+  }
 }
 
 toolStore.subscribe((state, previous) => {
@@ -123,7 +138,7 @@ function drawArgs(points: Point[]) {
     )
   }
   if (legs.length === 0) return undefined
-  return { ...startOf(points[0]!), walk: legs.join(', ') }
+  return { ...startOf(points[0]!), walk: legs.join(', '), level: documentStore.getState().level }
 }
 
 function startOf(
@@ -171,7 +186,12 @@ export function finishDrawing(): void {
   endPreview()
   drawStore.getState().clear()
   if (!args) return
-  if (runEdit(() => documentStore.getState().apply(drawWall, args))) toolStore.getState().arm(null)
+  const before = documentStore.getState().doc
+  if (runEdit(() => documentStore.getState().apply(drawWall, args))) {
+    toolStore.getState().arm(null)
+    const room = Object.values(documentStore.getState().doc.rooms).find((r) => !before.rooms[r.id])
+    if (room) pick({ kind: 'room', id: room.id })
+  }
 }
 
 export function cancelDrawing(): void {

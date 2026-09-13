@@ -107,8 +107,8 @@ export function BottomBar() {
             </Toggle>
           </TooltipTrigger>
           <TooltipContent>
-            Click to put corners down, square to the last; click the last corner or press Enter to
-            finish, Escape to throw it away
+            Click to put corners down. Closed rooms finish automatically; click the last corner or
+            press Enter to finish an open wall, Escape to cancel
           </TooltipContent>
         </Tooltip>
       </div>
