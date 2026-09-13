@@ -4,10 +4,10 @@ import { planExtent } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { produce } from 'immer'
 import { applyScript } from './apply-script'
-import { assertHouseFitsSite } from './site-invariant'
 import { checkLevel, type Problem } from './checks'
 import type { Touched } from './define-command'
 import { roomOfOpening } from './openings'
+import { assertHouseFitsSite } from './site-invariant'
 import { type RoomReport, surveyRoom } from './survey'
 
 export type StoreyReport = {

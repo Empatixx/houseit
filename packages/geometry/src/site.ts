@@ -8,9 +8,9 @@ import {
   inflatePaths,
   intersect,
   JoinType,
-  pointInPolygon,
-  PointInPolygonResult,
   type Paths64,
+  PointInPolygonResult,
+  pointInPolygon,
   union,
 } from 'clipper2-ts'
 
@@ -65,9 +65,7 @@ export function buildableAreaOf(site: Site): SiteArea {
           site.setbacks.defaultMm
         if (distance === 0) return
         const next = ring[(edgeIndex + 1) % ring.length]!
-        forbidden.push(
-          ...inflatePaths([[point, next]], distance, JoinType.Square, EndType.Square),
-        )
+        forbidden.push(...inflatePaths([[point, next]], distance, JoinType.Square, EndType.Square))
       })
     })
   })
@@ -100,9 +98,7 @@ export function buildingEnvelopeOf(doc: HouseDocument): SiteArea {
     const a = doc.nodes[wall.a]
     const b = doc.nodes[wall.b]
     if (!a || !b || (a.x === b.x && a.y === b.y)) continue
-    paths.push(
-      ...inflatePaths([[a, b]], wall.thickness / 2, JoinType.Square, EndType.Square),
-    )
+    paths.push(...inflatePaths([[a, b]], wall.thickness / 2, JoinType.Square, EndType.Square))
   }
 
   return paths.length === 0 ? [] : union(paths, FillRule.NonZero)

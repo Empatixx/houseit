@@ -79,10 +79,7 @@ const absoluteArea = (paths: { x: number; y: number }[][]): number =>
 describe('site coordinates', () => {
   test('places a house point by rotation and translation', () => {
     expect(
-      placedPoint(
-        { x: 1000, y: 0 },
-        { xMm: 5000, yMm: 3000, rotationMilliDegrees: 90_000 },
-      ),
+      placedPoint({ x: 1000, y: 0 }, { xMm: 5000, yMm: 3000, rotationMilliDegrees: 90_000 }),
     ).toEqual({ x: 5000, y: 4000 })
   })
 

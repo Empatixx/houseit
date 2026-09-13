@@ -1,6 +1,6 @@
 import type { ParcelPolygon, Site } from '@houseit/core/document'
 
-export type MetricPoint = { x: number; y: number }
+type MetricPoint = { x: number; y: number }
 
 export type RemoteParcel = {
   id: string
