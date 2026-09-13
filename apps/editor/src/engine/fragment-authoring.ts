@@ -1,9 +1,28 @@
 import { applyScript } from '@houseit/commands/apply-script'
 import type { ArgsOf, Touched, TypedCommand } from '@houseit/commands/define-command'
-import type { HouseDocument } from '@houseit/core/document'
-import { EditUtils, SingleThreadedFragmentsModel } from '@thatopen/fragments'
+import { type HouseDocument, parseDocument } from '@houseit/core/document'
+import {
+  EditRequestType as Edit,
+  type EditRequest,
+  EditUtils,
+  SingleThreadedFragmentsModel,
+} from '@thatopen/fragments'
 import { produce } from 'immer'
-import { documentFromGraph, graphRequests, type NativeGraph } from './authoring-graph'
+import {
+  documentFromGraph,
+  graphRequests,
+  type NativeGraph,
+  nativeItems,
+  nativeKey,
+} from './authoring-graph'
+
+export type DocumentSource = HouseDocument | Uint8Array
+export type FragmentSnapshot = {
+  base: Uint8Array
+  requests: EditRequest[]
+  nextId: number
+  doc: HouseDocument
+}
 
 export class FragmentAuthoring {
   private model: SingleThreadedFragmentsModel
@@ -11,21 +30,46 @@ export class FragmentAuthoring {
   private cursor = 0
   private nextId = 1
   private projection: HouseDocument
+  private base: Uint8Array
 
-  constructor(doc: HouseDocument) {
-    const base = EditUtils.getModelFromBuffer(EditUtils.newModel({ raw: true }), true)
-    const requests = graphRequests(doc, { items: new Map(), relations: new Map() }, 1)
-    const { model } = EditUtils.edit(base, requests, { raw: true })
-    this.model = new SingleThreadedFragmentsModel('houseit-authoring', model, true)
-    this.nextId = this.model.getMaxLocalId()
-    this.projection = documentFromGraph(this.graph)
+  constructor(source: DocumentSource) {
+    this.base = source instanceof Uint8Array ? readArchive(source) : initialModel(source)
+    this.model = new SingleThreadedFragmentsModel('houseit-authoring', this.base, true)
+    try {
+      this.nextId = this.model.getMaxLocalId()
+      const graph = this.graph
+      this.projection = documentFromGraph(graph)
+      if (source instanceof Uint8Array) {
+        const transforms = this.model.getGlobalTransforms()
+        const geometry = new Set(
+          [...this.model.getSamples().values()].map(
+            (sample) => transforms.get(sample.item)?.itemId,
+          ),
+        )
+        for (const [id, item] of graph.items)
+          if (nativeKey(item)?.startsWith('elements:') && !geometry.has(id))
+            throw new Error(`Fragment geometry for ${nativeKey(item)} is missing`)
+      }
+    } catch (error) {
+      this.model.dispose()
+      throw error
+    }
   }
 
   get graph(): NativeGraph {
-    const base = EditUtils.getModelFromBuffer(new Uint8Array(this.model.getBuffer(true)), true)
-    const items = EditUtils.getItems(base)
+    const base = EditUtils.getModelFromBuffer(this.base, true)
+    const items = nativeItems(base)
     EditUtils.applyChangesToRawData(this.model.getRequests().requests, items, 'ITEM')
     return structuredClone({ items, relations: this.model.getRelations() })
+  }
+
+  snapshot(): FragmentSnapshot {
+    return {
+      base: this.base,
+      requests: [...this.model.getRequests().requests],
+      nextId: this.nextId,
+      doc: this.projection,
+    }
   }
 
   get document() {
@@ -78,7 +122,7 @@ export class FragmentAuthoring {
       this.model.setRequests({ undoneRequests: [] })
       this.model.edit(requests)
       const projection = documentFromGraph(this.graph)
-      this.nextId = Math.max(this.nextId, ...this.graph.items.keys()) + 1
+      this.nextId = Math.max(this.nextId, ...this.model.getItemsIds()) + 1
       this.boundaries = [
         ...this.boundaries.slice(0, this.cursor + 1),
         this.model.getRequests().requests.length - 1,
@@ -112,4 +156,60 @@ export class FragmentAuthoring {
   dispose() {
     this.model.dispose()
   }
+}
+
+function initialModel(doc: HouseDocument) {
+  const base = EditUtils.getModelFromBuffer(EditUtils.newModel({ raw: true }), true)
+  return EditUtils.edit(
+    base,
+    [
+      ...graphRequests(doc, { items: new Map(), relations: new Map() }, 1),
+      { type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 2 } } },
+    ],
+    { raw: true, delta: false },
+  ).model
+}
+
+function readArchive(buffer: Uint8Array) {
+  const base = EditUtils.getModelFromBuffer(buffer, false)
+  const metadata = JSON.parse(base.metadata() ?? '{}')
+  const authoring = metadata.houseit
+  if (authoring?.schema !== 1 && authoring?.schema !== 2)
+    throw new Error('This Fragment model has no Houseit authoring data')
+  let nextId = base.maxLocalId()
+  for (const ids of [
+    EditUtils.getItemsIds(base),
+    EditUtils.getMaterialsIds(base),
+    EditUtils.getRepresentationsIds(base),
+    EditUtils.getSamplesIds(base),
+    EditUtils.getGlobalTransformsIds(base),
+    EditUtils.getLocalTransformsIds(base),
+  ])
+    for (const id of ids) nextId = Math.max(nextId, id + 1)
+  const requests: EditRequest[] = [{ type: Edit.UPDATE_MAX_LOCAL_ID, localId: nextId }]
+  if (authoring.schema === 1) {
+    const model = new SingleThreadedFragmentsModel('houseit-upgrade', buffer, false)
+    try {
+      const items = nativeItems(base)
+      for (const [wall, id] of Object.entries(authoring.wallItems as Record<string, number>)) {
+        const item = items.get(id)
+        if (!item) throw new Error(`Fragment wall ${wall} is missing`)
+        item.data.HouseitKey = { value: `elements:${wall}` }
+      }
+      requests.push(
+        ...graphRequests(
+          parseDocument(authoring.document),
+          {
+            items,
+            relations: model.getRelations(),
+          },
+          nextId,
+        ),
+        { type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 2 } } },
+      )
+    } finally {
+      model.dispose()
+    }
+  }
+  return EditUtils.edit(base, requests, { raw: true, delta: false }).model
 }

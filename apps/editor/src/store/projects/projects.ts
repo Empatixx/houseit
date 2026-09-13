@@ -1,4 +1,4 @@
-import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
+import { createEmptyDocument } from '@houseit/core/document'
 import { toast } from 'sonner'
 import { useStore } from 'zustand'
 import { createStore, type StoreApi } from 'zustand/vanilla'
@@ -12,7 +12,7 @@ import { slugOf } from './slug'
 
 const UNTITLED = 'Untitled'
 
-type Removed = { meta: ProjectMeta; doc: HouseDocument | undefined }
+type Removed = { meta: ProjectMeta; stored: unknown }
 
 export type ProjectsState = {
   list: ProjectMeta[] | undefined
@@ -51,7 +51,6 @@ export function createProjectsStore(
   const close = async () => {
     if (!store.getState().open) return
     await writer.flush()
-    await codec.close()
     store.setState({ open: null })
     docs.getState().reset()
   }
@@ -95,7 +94,8 @@ export function createProjectsStore(
         if (!doc) return undefined
         docs.getState().load(doc)
         set({ open: meta })
-        writer.schedule(id, doc, docs.getState().level)
+        const state = docs.getState()
+        writer.schedule(id, state.doc, state.level, codec.capture?.(state.authoring))
         return meta
       }),
 
@@ -134,16 +134,15 @@ export function createProjectsStore(
       const meta = await database.meta(id)
       if (!meta) return undefined
       const stored = await database.read(id)
-      const doc = stored === undefined ? undefined : await codec.decode(id, stored)
       await database.remove(id)
       set((state) => ({ list: state.list?.filter((project) => project.id !== id) }))
-      return { meta, doc }
+      return { meta, stored }
     },
 
-    restore: async ({ meta, doc }) => {
+    restore: async ({ meta, stored }) => {
       const database = await db()
       await database.put(meta)
-      if (doc) await database.write(meta.id, await codec.encode(meta.id, doc))
+      if (stored !== undefined) await database.write(meta.id, stored)
       await get().refresh()
     },
   }))
@@ -151,7 +150,7 @@ export function createProjectsStore(
   docs.subscribe((state, previous) => {
     if (state.doc === previous.doc) return
     const open = store.getState().open
-    if (open) writer.schedule(open.id, state.doc, state.level)
+    if (open) writer.schedule(open.id, state.doc, state.level, codec.capture?.(state.authoring))
   })
 
   return store

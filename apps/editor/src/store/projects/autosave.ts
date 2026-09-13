@@ -5,7 +5,7 @@ import { outlineOf } from './outline'
 export const WRITE_DELAY = 250
 
 export type Writer = {
-  schedule(id: string, doc: HouseDocument, level: string): void
+  schedule(id: string, doc: HouseDocument, level: string, encode?: () => Promise<unknown>): void
   flush(): Promise<void>
 }
 
@@ -15,7 +15,15 @@ export function createWriter(
   onError: (error: unknown) => void = () => {},
 ): Writer {
   let sequence = 0
-  let waiting: { id: string; doc: HouseDocument; level: string; sequence: number } | undefined
+  let waiting:
+    | {
+        id: string
+        doc: HouseDocument
+        level: string
+        sequence: number
+        encode?: () => Promise<unknown>
+      }
+    | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   let running: Promise<void> = Promise.resolve()
 
@@ -29,7 +37,7 @@ export function createWriter(
     running = running
       .catch(() => {})
       .then(async () => {
-        const encoded = await encode(pending.id, pending.doc)
+        const encoded = await (pending.encode ? pending.encode() : encode(pending.id, pending.doc))
         const database = await db()
         await database.write(pending.id, encoded)
         const meta = await database.meta(pending.id)
@@ -48,8 +56,8 @@ export function createWriter(
   }
 
   return {
-    schedule(id, doc, level) {
-      waiting = { id, doc, level, sequence: ++sequence }
+    schedule(id, doc, level, encode) {
+      waiting = { id, doc, level, sequence: ++sequence, encode }
       if (timer !== undefined) clearTimeout(timer)
       timer = setTimeout(() => {
         void write()

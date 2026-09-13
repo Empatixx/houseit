@@ -2,7 +2,7 @@ import type { ArgsOf, Touched, TypedCommand } from '@houseit/commands/define-com
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { levelsOf } from '@houseit/core/levels'
 import { createStore } from 'zustand/vanilla'
-import { FragmentAuthoring } from '../engine/fragment-authoring'
+import { type DocumentSource, FragmentAuthoring } from '../engine/fragment-authoring'
 
 export type DocumentState = {
   doc: HouseDocument
@@ -17,7 +17,7 @@ export type DocumentState = {
   apply: <C extends TypedCommand>(command: C, args: ArgsOf<C>) => Touched
   undo: () => void
   redo: () => void
-  load: (doc: HouseDocument) => void
+  load: (doc: DocumentSource) => void
   reset: () => void
 }
 
@@ -66,7 +66,7 @@ export function createDocumentStore(initial: HouseDocument | undefined = undefin
         set({
           authoring,
           doc: authoring.document,
-          level: levelsOf(doc)[0]!.id,
+          level: levelsOf(authoring.document)[0]!.id,
           ...authoring.history,
         })
       },

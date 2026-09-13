@@ -22,8 +22,12 @@ The wall authoring model on `that-open-engine`:
   relations and request history own the authoring state; the store document is its read projection.
   Domain commands compile wall constraints, room derivation and host behavior that That Open
   does not provide. Undo/redo selects native request boundaries, not Immer patches.
-  Fragment archives retain these native entities/relations with the wall solids; metadata
-  contains only the authoring schema marker. CLI/MCP waits for native persistence before
+  Fragment archives serialize a captured revision of that same native model, retaining its
+  local IDs and relationships. The writer compacts native item/relation requests against the
+  base buffer and derives wall shells with GeometryEngine; it owns no second editable model
+  or Fragment worker pool. Do not call native save on the live history: it appends a request.
+  Metadata contains only the authoring schema marker. Archives load directly into authoring
+  without rebuilding entities from a HouseDocument; schema-one metadata is upgraded on load. CLI/MCP waits for native persistence before
   returning success. Keep MCP tool title, description and schema stable. The React presentation adapter supplies the established
   plan symbols, finishes, gestures and walkthrough; the native viewport replacement
   in `eb29400` was withdrawn because it regressed those features.

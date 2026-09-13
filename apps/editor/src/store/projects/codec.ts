@@ -1,10 +1,11 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { migrateDocument } from '@houseit/core/migrate'
+import { type DocumentSource, FragmentAuthoring } from '../../engine/fragment-authoring'
 
 export type ProjectCodec = {
   encode(id: string, doc: HouseDocument): Promise<unknown>
-  decode(id: string, stored: unknown): Promise<HouseDocument | undefined>
-  close(): Promise<void>
+  decode(id: string, stored: unknown): Promise<DocumentSource | undefined>
+  capture?(authoring: FragmentAuthoring): () => Promise<unknown>
 }
 
 export const documentCodec: ProjectCodec = {
@@ -16,68 +17,42 @@ export const documentCodec: ProjectCodec = {
       return undefined
     }
   },
-  close: async () => {},
 }
 
 export function fragmentCodec(): ProjectCodec {
-  let current:
-    | { id: string; project: import('../../engine/fragment-project').FragmentProject }
-    | undefined
-  let running: Promise<unknown> = Promise.resolve()
-  const serial = <T>(run: () => Promise<T>): Promise<T> => {
-    const next = running.catch(() => {}).then(run)
-    running = next
-    return next
-  }
-  const close = async () => {
-    const old = current
-    current = undefined
-    if (old) await old.project.dispose()
-  }
-  const get = async (id: string) => {
-    if (current?.id !== id) {
-      await close()
-      const { FragmentProject } = await import('../../engine/fragment-project')
-      current = { id, project: new FragmentProject() }
+  const capture = (authoring: FragmentAuthoring) => {
+    const snapshot = authoring.snapshot()
+    return async () => {
+      const { writeFragment } = await import('../../engine/fragment-project')
+      return writeFragment(snapshot)
     }
-    return current!.project
   }
   return {
-    encode: (id, doc) =>
-      serial(async () => {
-        try {
-          return await (await get(id)).save(doc)
-        } catch (error) {
-          await close()
-          throw error
-        }
-      }),
-    decode: (id, stored) =>
-      serial(async () => {
-        await close()
-        if (
-          typeof stored === 'object' &&
-          stored !== null &&
-          'format' in stored &&
-          stored.format === 'houseit-fragments'
-        ) {
-          if (
-            !('version' in stored) ||
-            stored.version !== 1 ||
-            !('buffer' in stored) ||
-            !(stored.buffer instanceof ArrayBuffer || stored.buffer instanceof Uint8Array)
-          )
-            throw new Error('Invalid Houseit Fragment archive')
-          try {
-            const buffer = new Uint8Array(stored.buffer).slice().buffer
-            return await (await get(id)).load(buffer)
-          } catch (error) {
-            await close()
-            throw error
-          }
-        }
+    capture,
+    encode: async (_id, doc) => {
+      const authoring = new FragmentAuthoring(doc)
+      try {
+        return await capture(authoring)()
+      } finally {
+        authoring.dispose()
+      }
+    },
+    decode: async (id, stored) => {
+      if (
+        typeof stored !== 'object' ||
+        stored === null ||
+        !('format' in stored) ||
+        stored.format !== 'houseit-fragments'
+      )
         return documentCodec.decode(id, stored)
-      }),
-    close: () => serial(close),
+      if (
+        !('version' in stored) ||
+        stored.version !== 1 ||
+        !('buffer' in stored) ||
+        !(stored.buffer instanceof ArrayBuffer || stored.buffer instanceof Uint8Array)
+      )
+        throw new Error('Invalid Houseit Fragment archive')
+      return new Uint8Array(stored.buffer).slice()
+    },
   }
 }

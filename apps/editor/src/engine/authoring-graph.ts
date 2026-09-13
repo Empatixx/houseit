@@ -4,6 +4,7 @@ import { elementId } from '@houseit/geometry/wall-elements'
 import {
   EditRequestType as Edit,
   type EditRequest,
+  EditUtils,
   type RawItemData,
   type RawRelationData,
 } from '@thatopen/fragments'
@@ -11,6 +12,20 @@ import {
 export type NativeGraph = {
   items: Map<number, RawItemData>
   relations: Map<number, RawRelationData>
+}
+
+export function nativeItems(base: ReturnType<typeof EditUtils.getModelFromBuffer>) {
+  const items = EditUtils.getItems(base)
+  for (const item of items.values()) {
+    delete item.guid
+    for (const attribute of Object.values(item.data))
+      if (attribute.type == null) delete attribute.type
+  }
+  for (let i = 0; i < base.guidsItemsLength(); i++) {
+    const item = items.get(base.guidsItems(i)!)
+    if (item) item.guid = base.guids(i)!
+  }
+  return items
 }
 
 type Entity = {
@@ -166,6 +181,7 @@ export function graphRequests(
     }
     const data: RawItemData = {
       category: entity.category,
+      ...(previous?.guid ? { guid: previous.guid } : {}),
       data: {
         Name: { value: String(entity.parameters.name ?? entity.parameters.id ?? 'Houseit') },
         HouseitKey: { value: key },
