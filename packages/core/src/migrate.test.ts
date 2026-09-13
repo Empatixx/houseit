@@ -89,6 +89,17 @@ test('a room carries no floor until one is set', () => {
   expect(migrateDocument({ ...createEmptyDocument(), version: DOCUMENT_VERSION }).rooms).toEqual({})
 })
 
+test('a v4 document is upgraded without inventing a parcel site', () => {
+  const { site: _site, ...current } = createEmptyDocument()
+  const v4 = { ...current, version: 4 }
+
+  const migrated = migrateDocument(v4)
+
+  expect(DOCUMENT_VERSION).toBe(5)
+  expect(migrated.version).toBe(DOCUMENT_VERSION)
+  expect(migrated.site).toBeUndefined()
+})
+
 test('a v3 plan is given the walls round each of its rooms', () => {
   const level = 'l1'
   const at = (id: string, x: number, y: number) => [id, { id, x, y }] as const

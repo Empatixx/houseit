@@ -37,6 +37,7 @@ const MIGRATIONS: Record<number, Migration> = {
       ),
     }
   },
+  4: (doc) => doc,
 }
 
 function readVersion(input: unknown): number {
