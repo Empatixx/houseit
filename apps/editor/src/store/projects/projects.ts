@@ -17,7 +17,7 @@ export type ProjectsState = {
   list: ProjectMeta[] | undefined
   open: ProjectMeta | null
   refresh: () => Promise<void>
-  create: (name: string) => Promise<ProjectMeta>
+  create: (name: string, initial?: HouseDocument) => Promise<ProjectMeta>
   openProject: (id: string) => Promise<ProjectMeta | undefined>
   closeProject: () => Promise<void>
   save: () => Promise<void>
@@ -43,7 +43,7 @@ export function createProjectsStore(
       set({ list: await (await db()).list() })
     },
 
-    create: async (name) => {
+    create: async (name, initial = createEmptyDocument()) => {
       const database = await db()
       const list = await database.list()
       const called = name.trim() || UNTITLED
@@ -58,7 +58,7 @@ export function createProjectsStore(
         updatedAt: now,
       }
       await database.put(meta)
-      await database.write(meta.id, createEmptyDocument())
+      await database.write(meta.id, initial)
       set({ list: [meta, ...list] })
       return meta
     },

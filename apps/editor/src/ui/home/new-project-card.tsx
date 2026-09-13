@@ -1,7 +1,9 @@
-import { PlusIcon } from 'lucide-react'
+import { MapPinIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { siteDialogStore } from '@/site/site-dialog-store'
 import { projectsStore } from '@/store/projects/projects'
 
 export function NewProjectCard() {
@@ -50,7 +52,18 @@ export function NewProjectCard() {
           if (!name.trim()) setNaming(false)
         }}
       />
-      <span className="text-xs">Enter to make it</span>
+      <div className="flex w-full flex-col gap-2">
+        <Button className="w-full" onClick={() => void make()}>
+          <PlusIcon /> Empty project
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => siteDialogStore.getState().openFor({ kind: 'create', name })}
+        >
+          <MapPinIcon /> Start with parcel
+        </Button>
+      </div>
     </div>
   )
 }

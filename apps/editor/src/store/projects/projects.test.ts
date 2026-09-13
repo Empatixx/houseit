@@ -31,6 +31,46 @@ test('a new project gets an id from its name and a plan of its own', async () =>
   expect(store.getState().list?.map((project) => project.id)).toEqual(['byt-praha'])
 })
 
+test('a project can start with a prepared parcel document', async () => {
+  const { docs, at } = fresh()
+  const initial = createEmptyDocument()
+  initial.site = {
+    parcel: {
+      id: 'parcel-1',
+      nationalReference: '1-1',
+      number: '1',
+      cadastralAreaCode: '1',
+      cadastralAreaName: 'Test',
+      areaM2: 100,
+      polygons: [
+        {
+          outer: [
+            { x: 0, y: 0 },
+            { x: 10_000, y: 0 },
+            { x: 10_000, y: 10_000 },
+          ],
+          holes: [],
+        },
+      ],
+    },
+    source: {
+      provider: 'cuzk-inspire-cp',
+      fetchedAt: '2026-09-13T12:00:00.000Z',
+      crs: 'EPSG:5514',
+      originXmm: 0,
+      originYmm: 0,
+      attributionYear: 2026,
+    },
+    housePlacement: { xMm: 0, yMm: 0, rotationMilliDegrees: 0 },
+    setbacks: { defaultMm: 0, byEdge: {} },
+  }
+
+  const meta = await at().create('Parcel house', initial)
+  await at().openProject(meta.id)
+
+  expect(docs.getState().doc.site?.parcel.id).toBe('parcel-1')
+})
+
 test('a project with nothing for a name is still a project', async () => {
   const { at } = fresh()
 

@@ -4,7 +4,7 @@ import { FINISH_IDS, isColour, STYLE_IDS } from './finishes'
 import { HostSchema } from './host'
 import { ROOM_KIND_IDS } from './room-kinds'
 
-export const DOCUMENT_VERSION = 4
+export const DOCUMENT_VERSION = 5
 
 const mm = z.number().int()
 const id = z.string().min(1)
@@ -102,6 +102,42 @@ export const CircuitSchema = z.object({
   route: z.array(HostSchema).optional(),
 })
 
+export const PointMmSchema = z.object({ x: mm, y: mm })
+
+export const ParcelPolygonSchema = z.object({
+  outer: z.array(PointMmSchema).min(3),
+  holes: z.array(z.array(PointMmSchema).min(3)),
+})
+
+export const SiteSchema = z.object({
+  parcel: z.object({
+    id,
+    nationalReference: z.string().min(1),
+    number: z.string().min(1),
+    cadastralAreaCode: z.string().min(1),
+    cadastralAreaName: z.string().min(1),
+    areaM2: z.number().positive(),
+    polygons: z.array(ParcelPolygonSchema).min(1),
+  }),
+  source: z.object({
+    provider: z.literal('cuzk-inspire-cp'),
+    fetchedAt: z.iso.datetime(),
+    crs: z.literal('EPSG:5514'),
+    originXmm: mm,
+    originYmm: mm,
+    attributionYear: z.number().int().positive(),
+  }),
+  housePlacement: z.object({
+    xMm: mm,
+    yMm: mm,
+    rotationMilliDegrees: mm,
+  }),
+  setbacks: z.object({
+    defaultMm: mm.nonnegative(),
+    byEdge: z.record(z.string(), mm.nonnegative()),
+  }),
+})
+
 const byId = <T extends z.ZodTypeAny>(entry: T) => z.record(z.string(), entry).default({})
 
 const DocumentShape = z.object({
@@ -114,6 +150,7 @@ const DocumentShape = z.object({
   objects: byId(ObjectSchema),
   devices: byId(DeviceSchema),
   circuits: byId(CircuitSchema),
+  site: SiteSchema.optional(),
 })
 
 type Ctx = z.core.$RefinementCtx
@@ -215,6 +252,9 @@ export type Side = z.infer<typeof SideSchema>
 export type HouseObject = z.infer<typeof ObjectSchema>
 export type Device = z.infer<typeof DeviceSchema>
 export type Circuit = z.infer<typeof CircuitSchema>
+export type PointMm = z.infer<typeof PointMmSchema>
+export type ParcelPolygon = z.infer<typeof ParcelPolygonSchema>
+export type Site = z.infer<typeof SiteSchema>
 export type HouseDocument = z.infer<typeof DocumentSchema>
 
 export function parseDocument(input: unknown): HouseDocument {

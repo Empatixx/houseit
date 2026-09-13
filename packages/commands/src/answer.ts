@@ -7,6 +7,7 @@ import { applyScript } from './apply-script'
 import { checkLevel, type Problem } from './checks'
 import type { Touched } from './define-command'
 import { roomOfOpening } from './openings'
+import { assertHouseFitsSite } from './site-invariant'
 import { type RoomReport, surveyRoom } from './survey'
 
 export type StoreyReport = {
@@ -100,6 +101,7 @@ export function askPlan(doc: HouseDocument, source: string, open?: string): Answ
   let touched: Touched = { changed: [], shown: [] }
   const next = produce(doc, (draft) => {
     touched = applyScript(draft, source, open)
+    assertHouseFitsSite(draft)
   })
   return answerFor(
     next,
