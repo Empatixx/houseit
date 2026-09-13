@@ -18,7 +18,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@houseit/core": "workspace:*"
+    "@houseit/core": "workspace:*",
+    "clipper2-ts": "^2.0.1-18"
   },
   "devDependencies": {
     "@houseit/typescript-config": "workspace:*",
