@@ -4,6 +4,7 @@ import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
 import { collinear, wallsAt } from './graph'
 import { linkPoints } from './partition'
+import { validateWalls } from './validate-walls'
 import { connectCrossings, moveWallJunctions } from './wall-junctions'
 
 export function moveWallTopology(
@@ -27,6 +28,7 @@ export function moveWallTopology(
   const crossing = firstJunction(doc, walls, shift, by)
   if (crossing !== undefined) {
     const first = moveWallTopology(doc, id, crossing, scope)
+    validateWalls(doc, wall.level)
     const rest = moveWallTopology(doc, id, by - crossing, scope)
     return [...new Set([...first, ...rest])]
   }

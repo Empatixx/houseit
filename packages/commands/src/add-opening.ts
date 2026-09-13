@@ -17,7 +17,7 @@ import { checkPockets, setPocket } from './pocket-door'
 import { levelOf, SIDE_NAMES, sideNamed, whereRoom } from './resolve'
 
 import { validateWallHosts } from './validate-wall-hosts'
-import { validateWalls } from './wall'
+import { validateWalls } from './validate-walls'
 
 const DOOR_HEIGHT = 1970
 const WINDOW = { width: 1200, height: 1500, sill: 900 }

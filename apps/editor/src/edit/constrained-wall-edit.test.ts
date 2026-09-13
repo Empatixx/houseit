@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { applyCommand } from '@houseit/commands/run'
 import { updateRoom } from '@houseit/commands/update-room'
 import { updateWall } from '@houseit/commands/wall'
@@ -186,3 +187,71 @@ test('an occupied return cannot be removed by direct wall alignment', () => {
   expect(documentStore.getState().doc).toBe(before.doc)
   expect(documentStore.getState().past).toEqual(before.past)
 })
+
+test.each(['room', 'wall'])(
+  'aligning a %s boundary contracts a segment of a longer wall and roundtrips the native graph',
+  (kind) => {
+    const source = splitWallFixture()
+    documentStore.getState().exec(source)
+    const before = documentStore.getState(),
+      doc = before.doc
+    const room = Object.values(doc.rooms).find((r) => r.name === 'Living')!
+    const wall = Object.values(doc.walls).find(
+      (w) => doc.nodes[w.a]!.y === 8151 && doc.nodes[w.b]!.y === 8151 && doc.nodes[w.b]!.x === 0,
+    )!
+    const graph = structuredClone(before.authoring.graph)
+    const picked = kind === 'room' ? room.id : undefined
+    for (const by of [-151, -250, -300]) {
+      previewWallMove(wall, { x: 0, y: by }, picked)
+      const preview = previewStore.getState().doc!
+      expect(preview.nodes[preview.walls[wall.id]!.a]!.y).toBe(8000)
+      expect(preview.nodes[preview.walls[wall.id]!.b]!.y).toBe(8000)
+      expect(Object.keys(preview.walls)).toHaveLength(Object.keys(doc.walls).length - 1)
+      expect(documentStore.getState().doc).toBe(doc)
+      expect(documentStore.getState().past).toBe(before.past)
+    }
+    const preview = previewStore.getState().doc!
+    endPreview()
+    moveWallBy(wall, { x: 0, y: -300 }, picked)
+    expect(documentStore.getState().doc).toEqual(preview)
+    expect(documentStore.getState().past.length).toBe(before.past.length + 1)
+    documentStore.getState().undo()
+    expect(documentStore.getState().doc).toEqual(doc)
+    expect(documentStore.getState().authoring.graph).toEqual(graph)
+    documentStore.getState().redo()
+    expect(documentStore.getState().doc).toEqual(preview)
+  },
+)
+
+test('a long pointer jump cannot move a partition through another room or record the refused edit', () => {
+  const source = splitWallFixture()
+  documentStore.getState().exec(source)
+  const before = documentStore.getState(),
+    doc = before.doc,
+    graph = structuredClone(before.authoring.graph)
+  const wall = Object.values(doc.walls).find(
+    (w) => doc.nodes[w.a]!.x === 5000 && doc.nodes[w.b]!.x === 5000,
+  )!
+  expect(() =>
+    documentStore.getState().apply(updateWall, { id: wall.element!, by: -9000 }),
+  ).toThrow()
+  expect(documentStore.getState().doc).toBe(doc)
+  expect(documentStore.getState().past).toBe(before.past)
+  expect(documentStore.getState().authoring.graph).toEqual(graph)
+  previewWallMove(wall, { x: 9000, y: 0 })
+  const preview = previewStore.getState().doc!
+  expect(preview.nodes[preview.walls[wall.id]!.a]!.x).toBeGreaterThan(5000)
+  expect(preview.nodes[preview.walls[wall.id]!.a]!.x).toBeLessThan(6500)
+  expect(Object.keys(preview.rooms)).toEqual(Object.keys(doc.rooms))
+  endPreview()
+  moveWallBy(wall, { x: 9000, y: 0 })
+  expect(documentStore.getState().doc).toEqual(preview)
+  expect(documentStore.getState().past.length).toBe(before.past.length + 1)
+  documentStore.getState().undo()
+  expect(documentStore.getState().doc).toEqual(doc)
+  expect(documentStore.getState().authoring.graph).toEqual(graph)
+})
+
+function splitWallFixture() {
+  return readFileSync('../../fixtures/that-open/split-wall-alignment.txt', 'utf8')
+}

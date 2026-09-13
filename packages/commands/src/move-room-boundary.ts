@@ -3,7 +3,7 @@ import { roomsOf } from '@houseit/geometry/rooms'
 import { SIDES, sideOfWall } from '@houseit/geometry/sides'
 import { CommandError } from './command-error'
 import { rebind } from './rebind'
-import { validateWalls } from './wall'
+import { validateWalls } from './validate-walls'
 import { furnitureBefore, retainFurniture } from './wall-furniture'
 import { moveWallTopology } from './wall-topology'
 

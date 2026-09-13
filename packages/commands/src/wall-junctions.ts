@@ -79,13 +79,11 @@ export function moveWallJunctions(
     for (const candidate of Object.values(doc.walls).filter((w) => w.level === wall.level)) {
       if (distance(doc.nodes[candidate.a]!, doc.nodes[candidate.b]!) >= 1) continue
       const id = elementId(candidate)
-      if (
-        Object.values(doc.walls).filter((w) => elementId(w) === id).length !== 1 ||
-        anchors.some((anchor) => anchor.id === id)
+      const last = !Object.values(doc.walls).some(
+        (w) => w.id !== candidate.id && elementId(w) === id,
       )
-        throw new CommandError(
-          'update-wall: cannot collapse a wall that still has segments or hosts',
-        )
+      if (last && anchors.some((anchor) => anchor.id === id))
+        throw new CommandError('update-wall: cannot collapse a wall that still has hosts')
       const keep = moving.has(candidate.a) ? candidate.b : candidate.a
       const remove = keep === candidate.a ? candidate.b : candidate.a
       delete doc.walls[candidate.id]
@@ -96,7 +94,7 @@ export function moveWallJunctions(
       }
       if (!Object.values(doc.walls).some((w) => w.a === remove || w.b === remove))
         delete doc.nodes[remove]
-      collapsed.add(id)
+      if (last) collapsed.add(id)
     }
   }
   for (const old of prior.values()) {

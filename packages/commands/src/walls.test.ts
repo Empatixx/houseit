@@ -58,9 +58,13 @@ test('a door in the moved wall goes with it; a window in a stretched wall keeps 
 })
 
 test('a wall cannot be moved through the room on the other side', () => {
-  expect(() => runScript(house(), 'update-room --room kitchen --side east --by 9m')).toThrow(
-    /continuous|collapse|reverse/,
-  )
+  const doc = house(),
+    before = JSON.stringify(doc)
+  for (const by of [8000, 9000, 12000])
+    expect(() => runScript(doc, `update-room --room kitchen --side east --by ${by}`)).toThrow(
+      /continuous|collapse|reverse|overlap/,
+    )
+  expect(JSON.stringify(doc)).toBe(before)
 })
 
 test('a room-side move refuses to displace furniture through its boundary', () => {

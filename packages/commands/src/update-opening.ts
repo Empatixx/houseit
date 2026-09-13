@@ -19,7 +19,7 @@ import { checkPockets, pocketDirection, setPocket } from './pocket-door'
 import { SIDE_NAMES, sideNamed } from './resolve'
 
 import { validateWallHosts } from './validate-wall-hosts'
-import { validateWalls } from './wall'
+import { validateWalls } from './validate-walls'
 
 export const updateOpening = defineCommand({
   name: 'update-opening',

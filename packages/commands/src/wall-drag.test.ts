@@ -121,6 +121,6 @@ test('a move that would flatten the room beyond it is refused', () => {
     })!
 
   expect(() => runScript(start, `update-room --room wc --wall ${between} --by -2000`)).toThrow(
-    /continuous|collapse|reverse/,
+    /continuous|collapse|reverse|overlap/,
   )
 })

@@ -6,7 +6,7 @@ import { along, fractionOf } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { length } from './length-schema'
-import { validateWalls } from './wall'
+import { validateWalls } from './validate-walls'
 
 export const addDevice = defineCommand({
   name: 'add-device',
