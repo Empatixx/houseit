@@ -60,9 +60,9 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
       ...wallPieces(doc, level),
       ...roofPieces(doc, level),
     ]),
-    ...floorPieces(doc, level),
-    ...underfloorPieces(doc, level),
-    ...ceilingPieces(doc, level),
+    ...floorPieces(doc, level).map((p) => ({ ...p, role: 'floor-surface' as const })),
+    ...underfloorPieces(doc, level).map((p) => ({ ...p, role: 'slab-solid' as const })),
+    ...ceilingPieces(doc, level).map((p) => ({ ...p, role: 'slab-solid' as const })),
     ...furniturePieces(doc, level),
   ].map((piece, index) => (piece.name ? piece : { ...piece, name: `piece-${index}` }))
 }

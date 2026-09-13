@@ -7,14 +7,13 @@ import {
   Uint8BufferAttribute,
 } from 'three'
 import { describe, expect, it } from 'vitest'
-import { mapWallTile, styleWallTile, type TileWall, tileItemIds } from './wall-tile'
+import { mapFragmentTile, styleFragmentTile, type TileSurface, tileItemIds } from './fragment-tile'
 
-const wall = (id: string, transform = new Matrix4()): TileWall => ({
+const wall = (id: string, transform = new Matrix4()): TileSurface => ({
   surface: {
     id,
     transform,
-    length: 4000,
-    height: 2500,
+    mapping: { kind: 'wall', length: 4000, height: 2500 },
     materials: [
       new MeshBasicMaterial({ color: '#adc4d8' }),
       new MeshBasicMaterial({ color: '#b65030' }),
@@ -55,7 +54,7 @@ describe('Native wall tile appearance', () => {
       const transform = new Matrix4().makeRotationY(angle).setPosition(8, 3.5, -4)
       const entry = wall('w1', transform),
         geometry = face(1).applyMatrix4(transform)
-      mapWallTile(geometry, new Matrix4(), [entry, entry, entry])
+      mapFragmentTile(geometry, new Matrix4(), [entry, entry, entry])
       const uv = geometry.getAttribute('uv')
       expect(uv.getX(0)).toBeCloseTo(0, 5)
       expect(uv.getY(0)).toBeCloseTo(0, 5)
@@ -80,9 +79,9 @@ describe('Native wall tile appearance', () => {
         ),
       )
     geometry.setIndex([0, 1, 2, 3, 4, 5])
-    mapWallTile(geometry, new Matrix4(), [left, left, left, right, right, right])
+    mapFragmentTile(geometry, new Matrix4(), [left, left, left, right, right, right])
     const mesh = new Mesh(geometry)
-    styleWallTile(mesh)
+    styleFragmentTile(mesh)
     expect(geometry.groups).toEqual([
       { start: 0, count: 3, materialIndex: 0 },
       { start: 3, count: 3, materialIndex: 1 },
@@ -94,7 +93,7 @@ describe('Native wall tile appearance', () => {
       new MeshBasicMaterial({ color: '#714cb6' }),
       new MeshBasicMaterial({ color: '#714cb6' }),
     ]
-    styleWallTile(mesh)
+    styleFragmentTile(mesh)
     expect(mesh.material).toEqual([left.surface.materials[0], right.surface.materials[1]])
     expect(geometry.getAttribute('position')).toBe(positions)
     a.dispose()
@@ -107,8 +106,8 @@ describe('Native wall tile appearance', () => {
     const geometry = face(1),
       mesh = new Mesh(geometry),
       index = geometry.index
-    mapWallTile(geometry, new Matrix4(), [entry, entry, entry])
-    styleWallTile(mesh)
+    mapFragmentTile(geometry, new Matrix4(), [entry, entry, entry])
+    styleFragmentTile(mesh)
     expect(mesh.material).toEqual(entry.surface.materials)
     expect(geometry.index).toBe(index)
     geometry.dispose()
@@ -118,15 +117,81 @@ describe('Native wall tile appearance', () => {
       geometry = face(1),
       mesh = new Mesh(geometry)
     const finishes = entry.surface.materials
-    mapWallTile(geometry, new Matrix4(), [entry, entry, entry])
-    styleWallTile(mesh)
+    mapFragmentTile(geometry, new Matrix4(), [entry, entry, entry])
+    styleFragmentTile(mesh)
     expect(mesh.material).toEqual([finishes[1]])
     entry.surface.materials = [new MeshBasicMaterial({ color: '#252525' })]
-    styleWallTile(mesh)
+    styleFragmentTile(mesh)
     expect(mesh.material).toEqual(entry.surface.materials)
     entry.surface.materials = finishes
-    styleWallTile(mesh)
+    styleFragmentTile(mesh)
     expect(mesh.material).toEqual([finishes[1]])
+    geometry.dispose()
+  })
+})
+
+describe('Native floor and slab tile appearance', () => {
+  it.each([0, Math.PI * 0.31])(
+    'retains metric floor UVs on an elevated rotated surface (%s)',
+    (angle) => {
+      const transform = new Matrix4()
+        .makeRotationY(angle)
+        .multiply(new Matrix4().makeRotationX(-Math.PI / 2))
+        .setPosition(3, 6.4, -7)
+      const entry: TileSurface = {
+        surface: {
+          id: 'upper:floor',
+          transform,
+          mapping: { kind: 'flat' },
+          materials: [new MeshBasicMaterial()],
+        },
+      }
+      const geometry = face(1)
+      geometry.applyMatrix4(transform)
+      mapFragmentTile(geometry, new Matrix4(), [entry, entry, entry])
+      expect([...geometry.getAttribute('uv').array]).toEqual(
+        expect.arrayContaining([expect.closeTo(4, 5), expect.closeTo(2.5, 5)]),
+      )
+      const mesh = new Mesh(geometry)
+      styleFragmentTile(mesh)
+      expect(mesh.material).toEqual(entry.surface.materials)
+      expect(geometry.userData.houseitSides).toEqual([0, 0, 0])
+      geometry.dispose()
+    },
+  )
+  it('preserves cap/edge finishes and extrusion UVs inside one slab tile', () => {
+    const entry: TileSurface = {
+      surface: {
+        id: 'lower:slab',
+        transform: new Matrix4(),
+        mapping: { kind: 'flat' },
+        materials: [
+          new MeshBasicMaterial({ color: '#abcabc' }),
+          new MeshBasicMaterial({ color: '#f1f0ed' }),
+        ],
+      },
+    }
+    const geometry = new BufferGeometry()
+    geometry.setAttribute(
+      'position',
+      new Float32BufferAttribute(
+        [1, 2, 0.25, 4, 2, 0.25, 4, 5, 0.25, 1, 2, 0, 1, 2, 0.25, 1, 5, 0.25],
+        3,
+      ),
+    )
+    geometry.setAttribute(
+      'normal',
+      new Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0], 3),
+    )
+    geometry.setIndex([0, 1, 2, 3, 4, 5])
+    mapFragmentTile(geometry, new Matrix4(), Array(6).fill(entry))
+    expect([...geometry.getAttribute('uv').array]).toEqual([
+      1, 2, 4, 2, 4, 5, 2, 1, 2, 0.75, 5, 0.75,
+    ])
+    const mesh = new Mesh(geometry)
+    styleFragmentTile(mesh)
+    expect(mesh.material).toEqual(entry.surface.materials)
+    expect(geometry.groups.map((g) => g.materialIndex)).toEqual([0, 1])
     geometry.dispose()
   })
 })

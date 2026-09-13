@@ -2,12 +2,13 @@ import { floorMaterial } from '@houseit/core/floor-materials'
 import { openingRecesses } from '@houseit/geometry/opening-recesses'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { wellsInRoom } from '@houseit/geometry/wells'
-import { useMemo } from 'react'
-import { Path, Shape, ShapeGeometry } from 'three'
+import { useEffect, useMemo } from 'react'
+import { Matrix4, MeshBasicMaterial, Path, Shape, ShapeGeometry } from 'three'
 import { aimAt, finishDrawing, putDown } from '../edit/draw-commands'
 import { pick } from '../edit/pick'
 import { placeArmed } from '../edit/place-commands'
 import { wallUnder } from '../edit/wall-under'
+import { NativeSurface } from '../engine/fragment-display-layer'
 import { hoverStore, useHover } from '../store/hover'
 import { useDocument, usePlanDoc } from '../store/store'
 import { toolStore } from '../store/tool'
@@ -61,24 +62,42 @@ export function RoomFloors() {
       ]
       return {
         room,
-        key: `${room.nodes.join('-')}-${room.floor ?? 'bare'}-${pierced.map((it) => it.object).join('-')}`,
+        key: room.id ?? room.nodes.join('-'),
         id: room.id,
         geometry: new ShapeGeometry(shapes),
-        texture: material ? floorTexture(material) : undefined,
+        material: new MeshBasicMaterial({
+          color: '#ffffff',
+          map: material ? floorTexture(material) : null,
+        }),
       }
     })
   }, [doc, level])
 
+  useEffect(
+    () => () => {
+      for (const floor of floors) {
+        floor.geometry.dispose()
+        floor.material.dispose()
+      }
+    },
+    [floors],
+  )
+
   return (
     <>
       {floors.map((floor) => (
-        <mesh
+        <NativeSurface
           key={floor.key}
-          userData={{ houseit: floor.id ? { kind: 'room', id: floor.id } : undefined }}
-          geometry={floor.geometry}
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, 0.01, 0]}
-          receiveShadow
+          surface={{
+            id: `floor:${level}:${floor.key}`,
+            owner: floor.id ? { kind: 'room', id: floor.id } : undefined,
+            category: 'IFCCOVERING',
+            geometry: floor.geometry,
+            materials: [floor.material],
+            transform: new Matrix4().makeRotationX(-Math.PI / 2).setPosition(0, 0.01, 0),
+            mapping: { kind: 'flat' },
+            casts: false,
+          }}
           onPointerOver={(event) => {
             event.stopPropagation()
             hoverStore.getState().hover(floor.id ? { kind: 'room', id: floor.id } : null)
@@ -115,18 +134,13 @@ export function RoomFloors() {
             const edge = wallUnder(doc, level, floor.room, here)
             pick(edge ? { kind: 'wall', id: edge } : { kind: 'room', id: floor.id })
           }}
-        >
-          {floor.texture ? (
-            <meshBasicMaterial map={floor.texture} />
-          ) : (
-            <meshBasicMaterial color="#ffffff" />
-          )}
-        </mesh>
+        />
       ))}
       {floors.map((floor) =>
         floor.id && hovered?.kind === 'room' && hovered.id === floor.id ? (
           <mesh
             key={`${floor.key}-hover`}
+            userData={{ houseitHelper: true }}
             geometry={floor.geometry}
             rotation={[-Math.PI / 2, 0, 0]}
             position={[0, 0.015, 0]}

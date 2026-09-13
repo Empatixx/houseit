@@ -33,20 +33,30 @@ The wall authoring model on `that-open-engine`:
   in `eb29400` was withdrawn because it regressed those features.
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
-  Fragment interaction model mirrors the remaining non-wall geometry; it is not the document or
-  persistence model. Walls now render as native Fragments shells in each viewport's
-  `WallDisplay`, using the same FragmentsManager as its tools. The native editor owns
-  batching and delta models; HouseitKey maps a display item to the authored wall segment.
+  Fragment interaction model mirrors the remaining furniture/opening geometry; it is not the document or
+  persistence model. Walls, floors and slabs render as native Fragments shells in each viewport's
+  `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
+  batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
   Do not scan their tiles back into InteractionModel. Tile IDs go through the public native
   local-ID mapper; the wall appearance adapter retains the established per-side materials,
   UV scale and React gestures on the actual native triangles. CPU tile attributes remain
   available for those gestures via public BufferAttribute upload callbacks. A native delta
   and its parent may both occur in Highlighter selection: compare domain owners, not raw
-  alias count. Wall tiles stay in ALL_VISIBLE mode so thumbnails can use a separate camera
+  alias count. Display tiles stay in ALL_VISIBLE mode so thumbnails can use a separate camera
   without silently dropping walls outside the live camera. Canvas readiness includes native
-  wall updates; CLI pictures and project thumbnails wait for completion. View/clip collections own their disposal. Keep UI gestures
-  and layout stable when replacing engine internals. Check the
+  surface updates; CLI pictures and project thumbnails wait for completion. View/clip collections own their disposal. Keep UI gestures
+  and layout stable when replacing engine internals. Floor coverings and structural slabs carry
+  explicit scene roles; keep their existing well/recess/exposed-top derivation. The shared tile
+  adapter restores metric flat UVs and separate cap/edge finishes. Distinct opaque neutral native
+  materials keep shadow-casting walls and non-casting slabs in separate native batches; actual
+  presentation materials still come from the existing caches.
+  During a wall gesture, a temporary portal renders the registered source geometry/materials,
+  while the permanent native roots are hidden and native edit requests are coalesced. Keep this
+  preview until the final native update is ready; exclude it from InteractionModel. It is gesture
+  presentation, not a second authoring model or a permanent parallel wall/floor renderer.
+  Publish pointer movement before awaiting asynchronous native snapping; stale snap results must
+  not overwrite a newer pointer position. Check the
   installed That Open API and official documentation before adding custom tooling;
   extend native components only for Houseit domain behavior they do not provide. Record each logical change and remaining limits
   in `changelog.md`.

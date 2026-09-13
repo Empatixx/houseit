@@ -10,14 +10,13 @@ import {
   Vector3,
 } from 'three'
 
-type WallAppearance = {
+type Appearance = {
   id: string
   transform: Matrix4
-  length: number
-  height: number
+  mapping: { kind: 'wall'; length: number; height: number } | { kind: 'flat' }
   materials: Material[]
 }
-export type TileWall = { surface: WallAppearance }
+export type TileSurface = { surface: Appearance }
 
 export function tileItemIds(ids: BufferAttribute | InterleavedBufferAttribute) {
   return Array.from(
@@ -26,7 +25,11 @@ export function tileItemIds(ids: BufferAttribute | InterleavedBufferAttribute) {
   )
 }
 
-export function mapWallTile(geometry: BufferGeometry, matrix: Matrix4, vertices: TileWall[]) {
+export function mapFragmentTile(
+  geometry: BufferGeometry,
+  matrix: Matrix4,
+  vertices: TileSurface[],
+) {
   const positions = geometry.getAttribute('position')
   const normals = geometry.getAttribute('normal')
   const uv = new Float32Array(positions.count * 2)
@@ -44,9 +47,17 @@ export function mapWallTile(geometry: BufferGeometry, matrix: Matrix4, vertices:
       transform = transforms.get(entry)!
     point.fromBufferAttribute(positions, i).applyMatrix4(transform.inverse)
     normal.fromBufferAttribute(normals, i).applyMatrix3(transform.normal)
-    uv[2 * i] = point.x / (entry.surface.length / 1000)
-    uv[2 * i + 1] = point.y / (entry.surface.height / 1000)
-    sides.push(normal.z > 0.0001 ? 1 : 0)
+    const mapping = entry.surface.mapping
+    if (mapping.kind === 'wall') {
+      uv[2 * i] = point.x / (mapping.length / 1000)
+      uv[2 * i + 1] = point.y / (mapping.height / 1000)
+      sides.push(normal.z > 0.0001 ? 1 : 0)
+    } else {
+      const cap = Math.abs(normal.z) > 0.99
+      uv[2 * i] = cap || Math.abs(normal.x) < Math.abs(normal.y) ? point.x : point.y
+      uv[2 * i + 1] = cap ? point.y : 1 - point.z
+      sides.push(cap ? 0 : 1)
+    }
   }
   geometry.userData.houseitSides = sides
   geometry.setAttribute('uv', new Float32BufferAttribute(uv, 2))
@@ -54,9 +65,9 @@ export function mapWallTile(geometry: BufferGeometry, matrix: Matrix4, vertices:
   geometry.userData.houseitSurface = vertices
 }
 
-export function styleWallTile(object: Mesh) {
+export function styleFragmentTile(object: Mesh) {
   const geometry = object.geometry as BufferGeometry
-  const entries = geometry.userData.houseitSurface as TileWall[] | undefined
+  const entries = geometry.userData.houseitSurface as TileSurface[] | undefined
   if (!entries) return
   const sides = geometry.userData.houseitSides as number[]
   const materials: Material[] = []

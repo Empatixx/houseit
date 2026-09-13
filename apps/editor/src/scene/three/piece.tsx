@@ -3,12 +3,15 @@ import type { ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import {
   BufferGeometry,
+  Euler,
   ExtrudeGeometry,
   Float32BufferAttribute,
+  Matrix4,
   Path,
   Shape,
   ShapeGeometry,
 } from 'three'
+import { NativeSurface } from '../../engine/fragment-display-layer'
 import { MM } from '../plan-coordinates'
 import { Brought } from './brought'
 import { materialOf, seeThrough } from './materials'
@@ -20,11 +23,12 @@ const sided = (body: Body) => body.kind === 'sheet' && body.doubleSided !== fals
 
 type PieceProps = {
   piece: Piece
+  native?: { id: string; elevation: number }
   tint?: string
   onPick?: (event: ThreeEvent<MouseEvent>) => void
 }
 
-export function StandingPiece({ piece, tint, onPick }: PieceProps) {
+export function StandingPiece({ piece, tint, onPick, native }: PieceProps) {
   const { body, at } = piece
   const paint: Finish = tint
     ? { ...piece.paint, colour: tint, ...(piece.paint.opacity === 0 ? { opacity: 0.35 } : {}) }
@@ -64,6 +68,15 @@ export function StandingPiece({ piece, tint, onPick }: PieceProps) {
     return (
       <Flat
         body={body}
+        native={
+          native
+            ? {
+                ...native,
+                owner: piece.of,
+                category: piece.role === 'floor-surface' ? 'IFCCOVERING' : 'IFCSLAB',
+              }
+            : undefined
+        }
         shadows={piece.casts !== false && !seeThrough(paint)}
         at={[place[0], place[1] - drop, place[2]]}
         rotation={[tilt - QUARTER, turn, roll, 'YXZ']}
@@ -104,6 +117,7 @@ export function StandingPiece({ piece, tint, onPick }: PieceProps) {
 }
 
 type FlatProps = {
+  native?: { id: string; elevation: number; owner?: Piece['of']; category: string }
   body: Extract<Body, { kind: 'prism' | 'sheet' }>
   at: [number, number, number]
   rotation: [number, number, number, 'YXZ']
@@ -112,10 +126,28 @@ type FlatProps = {
   onPick?: (event: ThreeEvent<MouseEvent>) => void
 }
 
-function Flat({ body, at, rotation, material, shadows, onPick }: FlatProps) {
+function Flat({ body, at, rotation, material, shadows, onPick, native }: FlatProps) {
   const geometry = useMemo(() => flatGeometry(body), [body])
   useEffect(() => () => geometry.dispose(), [geometry])
-
+  if (native) {
+    const transform = new Matrix4().makeRotationFromEuler(new Euler(...rotation))
+    transform.setPosition(at[0], at[1] + native.elevation * MM, at[2])
+    return (
+      <NativeSurface
+        surface={{
+          id: native.id,
+          owner: native.owner,
+          category: native.category,
+          geometry,
+          materials: Array.isArray(material) ? material : [material],
+          transform,
+          mapping: { kind: 'flat' },
+          casts: shadows,
+        }}
+        onClick={onPick}
+      />
+    )
+  }
   return (
     <mesh
       castShadow={shadows}

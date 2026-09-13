@@ -44,6 +44,11 @@ export function House({ picking = true }: { picking?: boolean }) {
               <group key={piece.name} userData={{ houseit: piece.of }}>
                 <StandingPiece
                   piece={piece}
+                  native={
+                    piece.role === 'floor-surface' || piece.role === 'slab-solid'
+                      ? { id: `${storey.level}:${piece.name}`, elevation: storey.elevation }
+                      : undefined
+                  }
                   tint={picking ? tintOf(piece, selected) : undefined}
                   onPick={picking ? picker(piece.of) : undefined}
                 />

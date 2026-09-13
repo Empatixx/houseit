@@ -3,13 +3,13 @@ import { useEffect, useRef } from 'react'
 import { Vector2 } from 'three'
 import { useEngineView } from '../store/engine-view'
 import { useDocument } from '../store/store'
+import { useFragmentDisplay } from './fragment-display-layer'
 import { NativeTools } from './native-tools'
 import { useGeometryEngine } from './provider'
-import { useWallDisplay } from './wall-display-layer'
 
 export function NativeToolsLayer({ sections = true }: { sections?: boolean }) {
   const engine = useGeometryEngine()
-  const display = useWallDisplay()
+  const display = useFragmentDisplay()
   const get = useThree((state) => state.get)
   const tools = useRef<NativeTools | null>(null)
   const size = useThree((state) => state.size)

@@ -28,7 +28,7 @@ export type Body =
 export type Owner = { kind: 'wall' | 'opening' | 'room' | 'object'; id: string }
 
 export type Piece = {
-  role?: 'wall-solid'
+  role?: 'wall-solid' | 'floor-surface' | 'slab-solid'
   body: Body
   at: { x: number; y: number; z: number }
   turn?: number

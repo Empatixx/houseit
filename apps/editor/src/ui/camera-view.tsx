@@ -3,7 +3,7 @@ import type { Spot } from '@houseit/geometry/standing'
 import { PerspectiveCamera } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
-import { WallDisplayLayer } from '../engine/wall-display-layer'
+import { FragmentDisplayLayer } from '../engine/fragment-display-layer'
 import { MM } from '../scene/plan-coordinates'
 import { Ground } from '../scene/three/ground'
 import { House } from '../scene/three/house'
@@ -28,7 +28,7 @@ export function CameraView({ spot, level, onReady }: CameraViewProps) {
   return (
     <div className="aspect-[4/3] w-full overflow-hidden rounded-lg border bg-muted">
       <Canvas flat shadows dpr={[1, 2]} gl={{ preserveDrawingBuffer: true }}>
-        <WallDisplayLayer>
+        <FragmentDisplayLayer>
           <PerspectiveCamera makeDefault fov={FOV} near={0.05} far={300} />
           <Eye spot={spot} floor={floor} onReady={onReady} />
           <Sky />
@@ -36,7 +36,7 @@ export function CameraView({ spot, level, onReady }: CameraViewProps) {
           <Ground />
           <House picking={false} />
           <Shading />
-        </WallDisplayLayer>
+        </FragmentDisplayLayer>
       </Canvas>
     </div>
   )

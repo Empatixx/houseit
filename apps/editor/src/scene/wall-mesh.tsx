@@ -12,10 +12,10 @@ import { pick } from '../edit/pick'
 import { endPreview } from '../edit/preview'
 import { moveWallBy, previewWallMove, previewWallResize, resizeWall } from '../edit/wall-commands'
 import { alignWallShift } from '../edit/wall-move'
+import { NativeWallSurface } from '../engine/fragment-display-layer'
 import { activeTools } from '../engine/native-tools'
 import { useWallGeometry } from '../engine/use-wall-geometry'
 import { wallBody } from '../engine/wall-body'
-import { NativeWallSurface } from '../engine/wall-display-layer'
 import { engineViewStore } from '../store/engine-view'
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
 import { usePreview } from '../store/preview'
@@ -338,13 +338,7 @@ function useCarry() {
       if (!carried) return
       const now = pointUnder(native, canvas, camera)
       if (!now) return
-      pending = (async () => {
-        const snap = await activeTools?.snapPoint(now, {
-          kind: documentStore.getState().doc.openings[id] ? 'opening' : 'wall',
-          id,
-        })
-        if (request !== sequence || !live.current) return
-        const point = snap ?? now
+      const publish = (point: Point) => {
         let shift = { x: point.x - carried.from.x, y: point.y - carried.from.y }
         const doc = documentStore.getState().doc,
           wall = doc.walls[id]
@@ -360,6 +354,14 @@ function useCarry() {
         }
         setHeld(live.current)
         onward?.(live.current)
+      }
+      publish(now)
+      pending = (async () => {
+        const snap = await activeTools?.snapPoint(now, {
+          kind: documentStore.getState().doc.openings[id] ? 'opening' : 'wall',
+          id,
+        })
+        if (snap && request === sequence && live.current) publish(snap)
       })()
     }
     const done = async (native: PointerEvent) => {

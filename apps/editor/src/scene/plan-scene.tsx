@@ -1,7 +1,7 @@
 import { OrbitControls, OrthographicCamera } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
+import { FragmentDisplayLayer } from '../engine/fragment-display-layer'
 import { NativeToolsLayer } from '../engine/native-tools-layer'
-import { WallDisplayLayer } from '../engine/wall-display-layer'
 import { useEngineView } from '../store/engine-view'
 import { selectionStore } from '../store/selection'
 import { useShown } from '../store/shown'
@@ -44,7 +44,7 @@ export function PlanScene() {
         if (!measuring) selectionStore.getState().select(null)
       }}
     >
-      <WallDisplayLayer>
+      <FragmentDisplayLayer>
         <OrthographicCamera
           makeDefault
           position={OVERHEAD}
@@ -95,7 +95,7 @@ export function PlanScene() {
             <Spinning />
           </>
         ) : null}
-      </WallDisplayLayer>
+      </FragmentDisplayLayer>
     </Canvas>
   )
 }

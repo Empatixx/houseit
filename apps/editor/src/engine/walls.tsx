@@ -7,9 +7,9 @@ import { dragged } from '../scene/drag'
 import { toWorld } from '../scene/plan-coordinates'
 import { materialOf } from '../scene/three/materials'
 import { useSelection } from '../store/selection'
+import { NativeWallSurface } from './fragment-display-layer'
 import { useWallGeometry } from './use-wall-geometry'
 import { wallBody } from './wall-body'
-import { NativeWallSurface } from './wall-display-layer'
 
 export function EngineWalls({
   doc,

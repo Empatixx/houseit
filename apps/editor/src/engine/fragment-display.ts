@@ -18,19 +18,21 @@ import {
   type PerspectiveCamera,
 } from 'three'
 import type { Selection } from '../store/selection'
-import { mapWallTile, styleWallTile, tileItemIds } from './wall-tile'
+import { mapFragmentTile, styleFragmentTile, tileItemIds } from './fragment-tile'
 
-export type WallSurface = {
+export type DisplaySurface = {
   id: string
   geometry: BufferGeometry
   materials: Material[]
   transform: Matrix4
-  length: number
-  height: number
+  mapping: { kind: 'wall'; length: number; height: number } | { kind: 'flat' }
+  owner?: Selection
+  category: string
+  casts: boolean
 }
 
 type Entry = {
-  surface: WallSurface
+  surface: DisplaySurface
   item: number
   global: number
   representation: number
@@ -38,19 +40,19 @@ type Entry = {
 }
 const identity = { position: [0, 0, 0], xDirection: [1, 0, 0], yDirection: [0, 1, 0] }
 
-export class WallDisplay {
+export class FragmentDisplay {
   readonly components = new OBC.Components()
   readonly fragments = this.components.get(OBC.FragmentsManager)
-  readonly id = 'houseit-walls'
+  readonly id = 'houseit-display'
   readonly owners = new Map<number, Selection>()
-  readonly surfaces = new Map<string, WallSurface>()
+  readonly surfaces = new Map<string, DisplaySurface>()
   readonly roots = new Set<Object3D>()
   error: string | null = null
   private preparing = new Set<Promise<void>>()
   revision = 0
   toolsDisposal: Promise<void> | undefined
   private entries = new Map<string, Entry>()
-  private nextId = 2
+  private nextId = 3
   private dirty = false
   private dead = false
   private loaded = false
@@ -97,11 +99,16 @@ export class WallDisplay {
       this.fragments.list.get(this.id)
     )
   }
-  ids(owner: Selection): OBC.ModelIdMap {
-    const entry = owner.kind === 'wall' ? this.entries.get(owner.id) : undefined
-    return entry && this.model ? { [this.model.modelId]: new Set([entry.item]) } : {}
+  get localIds() {
+    return new Set([...this.entries.values()].map((entry) => entry.item))
   }
-  set(surface: WallSurface) {
+  ids(owner: Selection): OBC.ModelIdMap {
+    const ids = [...this.owners]
+      .filter(([, value]) => value.kind === owner.kind && value.id === owner.id)
+      .map(([id]) => id)
+    return ids.length && this.model ? { [this.model.modelId]: new Set(ids) } : {}
+  }
+  set(surface: DisplaySurface) {
     if (!surface.geometry.getAttribute('position').count) {
       this.remove(surface.id)
       return
@@ -113,7 +120,7 @@ export class WallDisplay {
     this.surfaces.delete(id)
     this.dirty = true
   }
-  frame() {
+  frame(preview = false) {
     if (this.dead) return
     const camera = this.camera()
     const key = `${camera.uuid}:${camera.matrixWorld.elements}:${camera.projectionMatrix.elements}`
@@ -122,7 +129,7 @@ export class WallDisplay {
       for (const model of this.fragments.list.values()) model.useCamera.bind(model)(camera)
       void this.fragments.core.update().catch(this.fail)
     }
-    if (this.dirty && !this.work) {
+    if (this.dirty && !this.work && !preview) {
       this.dirty = false
       this.work = this.sync()
         .catch(this.fail)
@@ -140,7 +147,12 @@ export class WallDisplay {
           {
             type: Edit.CREATE_MATERIAL,
             localId: 0,
-            data: { r: 1, g: 1, b: 1, a: 1, renderedFaces: 0, stroke: 0 },
+            data: { r: 241, g: 240, b: 237, a: 255, renderedFaces: 0, stroke: 0 },
+          },
+          {
+            type: Edit.CREATE_MATERIAL,
+            localId: 2,
+            data: { r: 247, g: 247, b: 245, a: 255, renderedFaces: 0, stroke: 0 },
           },
           { type: Edit.CREATE_LOCAL_TRANSFORM, localId: 1, data: identity },
         ],
@@ -174,13 +186,13 @@ export class WallDisplay {
           sample: this.nextId++,
         }
         this.entries.set(surface.id, entry)
-        this.owners.set(entry.item, { kind: 'wall', id: surface.id })
+        if (surface.owner) this.owners.set(entry.item, surface.owner)
         requests.push({
           type: Edit.CREATE_ITEM,
           localId: entry.item,
           data: {
-            category: 'HOUSEITWALLSEGMENT',
-            data: { HouseitKey: { value: `walls:${surface.id}` } },
+            category: surface.category,
+            data: { HouseitKey: { value: surface.id } },
           },
         })
       }
@@ -198,6 +210,17 @@ export class WallDisplay {
           },
         })
       }
+      if (old && old.casts !== surface.casts)
+        requests.push({
+          type: Edit.UPDATE_SAMPLE,
+          localId: entry.sample,
+          data: {
+            item: entry.global,
+            representation: entry.representation,
+            localTransform: 1,
+            material: surface.casts ? 0 : 2,
+          },
+        })
       if (old?.geometry === surface.geometry) continue
       const geometry = surface.geometry.clone()
       if (!geometry.index)
@@ -217,7 +240,7 @@ export class WallDisplay {
             data: {
               item: entry.global,
               representation: entry.representation,
-              material: 0,
+              material: surface.casts ? 0 : 2,
               localTransform: 1,
             },
           })
@@ -243,7 +266,7 @@ export class WallDisplay {
     if (!(object instanceof Mesh) || 'isLODGeometry' in object.geometry) return
     const geometry = object.geometry as BufferGeometry
     if (geometry.userData.houseitSurface) {
-      styleWallTile(object)
+      styleFragmentTile(object)
       return
     }
     if (geometry.userData.houseitPending) return
@@ -261,11 +284,13 @@ export class WallDisplay {
         const mapped = new Map(unique.map((id, i) => [id, entries.get(localIds[i]![0]!)]))
         const vertices = itemIds.map((id) => mapped.get(id))
         if (vertices.some((entry) => !entry))
-          throw new Error('Native wall tile contains an unknown element')
-        mapWallTile(geometry, object.matrix, vertices as Entry[])
-        object.castShadow = true
+          throw new Error('Native display tile contains an unknown element')
+        mapFragmentTile(geometry, object.matrix, vertices as Entry[])
+        const casts = new Set(vertices.map((entry) => entry!.surface.casts))
+        if (casts.size !== 1) throw new Error('Native tile mixed incompatible shadow settings')
+        object.castShadow = vertices[0]!.surface.casts
         object.receiveShadow = true
-        styleWallTile(object)
+        styleFragmentTile(object)
       })
       .catch(this.fail)
       .finally(() => this.preparing.delete(work))

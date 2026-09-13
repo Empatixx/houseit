@@ -2,8 +2,8 @@ import { planExtent } from '@houseit/geometry/dimensions'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
+import { useFragmentDisplay } from '../engine/fragment-display-layer'
 import { useGeometryEngine } from '../engine/provider'
-import { useWallDisplay } from '../engine/wall-display-layer'
 import { projectsStore } from '../store/projects/projects'
 import { documentStore } from '../store/store'
 import { picture } from './picture'
@@ -12,7 +12,7 @@ const OPENED = 1500
 const SETTLED = 1000
 
 export function PlanPicture() {
-  const walls = useWallDisplay()
+  const walls = useFragmentDisplay()
   const engine = useGeometryEngine()
   const gl = useThree((state) => state.gl)
   const scene = useThree((state) => state.scene)
