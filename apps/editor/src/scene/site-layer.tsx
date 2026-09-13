@@ -1,9 +1,10 @@
 import type { PointMm } from '@houseit/core/document'
+import { Html } from '@react-three/drei'
 import { useMemo } from 'react'
 import { BufferGeometry, Path, Shape, ShapeGeometry, ShapePath, Vector3 } from 'three'
 import { useShown } from '../store/shown'
 import { usePlanDoc } from '../store/store'
-import { MM } from './plan-coordinates'
+import { MM, toWorld } from './plan-coordinates'
 import { drawingOfSite } from './site-drawing'
 
 export function SiteLayer() {
@@ -45,16 +46,33 @@ export function SiteLayer() {
           <meshBasicMaterial color="#b9ddc2" transparent opacity={0.42} depthWrite={false} />
         </mesh>
       ))}
-      {geometry.edges.map((edge) => (
-        <lineSegments
-          key={edge.id}
-          geometry={edge.geometry}
-          position={[0, -0.02, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-        >
-          <lineBasicMaterial color={edge.setbackMm > 0 ? '#9b5d48' : '#506f59'} />
-        </lineSegments>
-      ))}
+      {geometry.edges.map((edge) => {
+        const middle = {
+          x: (edge.from.x + edge.to.x) / 2,
+          y: (edge.from.y + edge.to.y) / 2,
+        }
+        return (
+          <group key={edge.id}>
+            <lineSegments
+              geometry={edge.geometry}
+              position={[0, -0.02, 0]}
+              rotation={[-Math.PI / 2, 0, 0]}
+            >
+              <lineBasicMaterial color={edge.setbackMm > 0 ? '#9b5d48' : '#506f59'} />
+            </lineSegments>
+            <Html
+              position={toWorld(middle.x, middle.y, 10)}
+              center
+              zIndexRange={[4, 1]}
+              style={{ pointerEvents: 'none' }}
+            >
+              <span className="pointer-events-none inline-flex size-5 select-none items-center justify-center rounded-full border border-amber-800/40 bg-white/90 text-[10px] font-semibold text-amber-900 shadow-sm">
+                {edge.number}
+              </span>
+            </Html>
+          </group>
+        )
+      })}
     </group>
   )
 }

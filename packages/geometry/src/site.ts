@@ -52,6 +52,125 @@ export function edgeId(polygon: number, ring: number, edge: number): string {
   return `p${polygon}:r${ring}:e${edge}`
 }
 
+export function parcelEdgeIds(site: Site): string[] {
+  return site.parcel.polygons.flatMap((polygon, polygonIndex) =>
+    [polygon.outer, ...polygon.holes].flatMap((ring, ringIndex) =>
+      ring.map((_, edgeIndex) => edgeId(polygonIndex, ringIndex, edgeIndex)),
+    ),
+  )
+}
+
+export function centeredSiteForHouse(doc: HouseDocument, site: Site): Site {
+  const rotation = site.housePlacement.rotationMilliDegrees
+  const rotatedEnvelope = buildingEnvelopeOf(doc).map((path) =>
+    path.map((point) => placedPoint(point, { xMm: 0, yMm: 0, rotationMilliDegrees: rotation })),
+  )
+  const rotatedHouse = rotatedEnvelope.flat()
+  const parcel = site.parcel.polygons.flatMap((polygon) => polygon.outer)
+  if (rotatedHouse.length === 0 || parcel.length === 0) return site
+
+  const centre = (points: PointMm[]) => {
+    const xs = points.map((point) => point.x)
+    const ys = points.map((point) => point.y)
+    return {
+      x: Math.round((Math.min(...xs) + Math.max(...xs)) / 2),
+      y: Math.round((Math.min(...ys) + Math.max(...ys)) / 2),
+    }
+  }
+  const houseCentre = centre(rotatedHouse)
+  const parcelCentre = centre(parcel)
+  const placementAt = (point: PointMm): Placement => ({
+    xMm: point.x - houseCentre.x,
+    yMm: point.y - houseCentre.y,
+    rotationMilliDegrees: rotation,
+  })
+  const buildable = buildableAreaOf(site)
+  const fits = (placement: Placement) => {
+    const placed = rotatedEnvelope.map((path) =>
+      path.map((point) => ({ x: point.x + placement.xMm, y: point.y + placement.yMm })),
+    )
+    return Math.abs(areaPaths(difference(placed, buildable, FillRule.EvenOdd))) < 0.5
+  }
+  const centred = placementAt(parcelCentre)
+  if (fits(centred)) return { ...site, housePlacement: centred }
+
+  const bounds = (points: PointMm[]) => ({
+    left: Math.min(...points.map((point) => point.x)),
+    top: Math.min(...points.map((point) => point.y)),
+    right: Math.max(...points.map((point) => point.x)),
+    bottom: Math.max(...points.map((point) => point.y)),
+  })
+  const houseBounds = bounds(rotatedHouse)
+  const relative = {
+    left: houseBounds.left - houseCentre.x,
+    top: houseBounds.top - houseCentre.y,
+    right: houseBounds.right - houseCentre.x,
+    bottom: houseBounds.bottom - houseCentre.y,
+  }
+  const candidates: PointMm[] = []
+
+  for (const path of buildable) {
+    if (path.length < 3) continue
+    const areaBounds = bounds(path)
+    const left = areaBounds.left - relative.left
+    const right = areaBounds.right - relative.right
+    const top = areaBounds.top - relative.top
+    const bottom = areaBounds.bottom - relative.bottom
+    if (left > right || top > bottom) continue
+
+    const coordinates = (
+      start: number,
+      end: number,
+      houseSpan: number,
+      vertices: number[],
+      before: number,
+      after: number,
+    ) => {
+      const values = new Set<number>([start, end, Math.round((start + end) / 2)])
+      const divisions = Math.min(
+        64,
+        Math.max(1, Math.ceil((end - start) / Math.max(250, houseSpan / 2))),
+      )
+      for (let index = 0; index <= divisions; index += 1) {
+        values.add(Math.round(start + ((end - start) * index) / divisions))
+      }
+      const vertexStep = Math.max(1, Math.ceil(vertices.length / 64))
+      for (let index = 0; index < vertices.length; index += vertexStep) {
+        const value = vertices[index]!
+        values.add(value - before)
+        values.add(value - after)
+      }
+      return [...values].filter((value) => value >= start && value <= end)
+    }
+    const xs = coordinates(
+      left,
+      right,
+      houseBounds.right - houseBounds.left,
+      path.map((point) => point.x),
+      relative.left,
+      relative.right,
+    )
+    const ys = coordinates(
+      top,
+      bottom,
+      houseBounds.bottom - houseBounds.top,
+      path.map((point) => point.y),
+      relative.top,
+      relative.bottom,
+    )
+    for (const x of xs) for (const y of ys) candidates.push({ x, y })
+  }
+
+  candidates.sort(
+    (a, b) =>
+      (a.x - parcelCentre.x) ** 2 +
+      (a.y - parcelCentre.y) ** 2 -
+      ((b.x - parcelCentre.x) ** 2 + (b.y - parcelCentre.y) ** 2),
+  )
+  const found = candidates.map(placementAt).find(fits)
+  return { ...site, housePlacement: found ?? centred }
+}
+
 export function buildableAreaOf(site: Site): SiteArea {
   const parcel = parcelAreaOf(site)
   const forbidden: Paths64 = []

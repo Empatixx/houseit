@@ -3,6 +3,7 @@ import { quoted } from '@houseit/commands/command-line'
 import { applyCommand } from '@houseit/commands/run'
 import type { Site } from '@houseit/core/document'
 import { createEmptyDocument } from '@houseit/core/document'
+import { centeredSiteForHouse } from '@houseit/geometry/site'
 import { useEffect, useState } from 'react'
 import {
   BrowserRouter,
@@ -46,10 +47,12 @@ function ParcelWorkflow() {
       return
     }
 
-    const hasSite = documentStore.getState().doc.site !== undefined
+    const doc = documentStore.getState().doc
+    const hasSite = doc.site !== undefined
+    const placed = centeredSiteForHouse(doc, site)
     const source = [
       hasSite ? 'remove-site' : undefined,
-      `add-site --json ${quoted(JSON.stringify(site))}`,
+      `add-site --json ${quoted(JSON.stringify(placed))}`,
     ]
       .filter((line) => line !== undefined)
       .join('\n')

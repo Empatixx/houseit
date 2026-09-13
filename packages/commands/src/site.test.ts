@@ -84,6 +84,20 @@ test('updates placement, the default setback and one edge', () => {
   })
 })
 
+test('rejects a setback override for an edge that is not in the parcel', () => {
+  const withSite = applyWithPatches(createEmptyDocument(), addSite, {
+    json: JSON.stringify(site()),
+  }).doc
+
+  expect(() =>
+    applyWithPatches(withSite, updateSite, {
+      edge: 'p0:r0:e99',
+      edgeSetback: 7000,
+    }),
+  ).toThrow(/unknown parcel edge/i)
+  expect(withSite.site?.setbacks.byEdge).toEqual({})
+})
+
 test('allows a house inside the selected parcel', () => {
   const add = `add-site --json ${quoted(JSON.stringify(site()))}`
 

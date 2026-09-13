@@ -44,6 +44,7 @@ test('prepares parcel, buildable and edge geometry in house coordinates', () => 
     'p0:r0:e2',
     'p0:r0:e3',
   ])
+  expect(drawing.edges.map((edge) => edge.number)).toEqual([1, 2, 3, 4])
   expect(drawing.edges[0]?.setbackMm).toBe(2000)
   expect(drawing.edges[1]?.setbackMm).toBe(1000)
   expect(drawing.buildable.length).toBeGreaterThan(0)

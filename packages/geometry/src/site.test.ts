@@ -4,6 +4,7 @@ import { describe, expect, test } from 'vitest'
 import {
   buildableAreaOf,
   buildingEnvelopeOf,
+  centeredSiteForHouse,
   houseFitsSite,
   placedPoint,
   pointInArea,
@@ -125,6 +126,36 @@ describe('buildable area', () => {
 })
 
 describe('house fit', () => {
+  test('centres an existing positive-coordinate house on the parcel', () => {
+    const doc = rectangularHouse(1000, 2000, 5000, 6000)
+    const centered = centeredSiteForHouse(doc, squareSite())
+
+    expect(centered.housePlacement).toEqual({
+      xMm: 2000,
+      yMm: 1000,
+      rotationMilliDegrees: 0,
+    })
+    doc.site = centered
+    expect(houseFitsSite(doc)).toBe(true)
+  })
+
+  test('finds a valid position when a concave parcel bounding-box centre is outside', () => {
+    const doc = rectangularHouse(0, 0, 1500, 1500)
+    const site = squareSite()
+    site.parcel.polygons[0]!.outer = [
+      { x: 0, y: 0 },
+      { x: 10_000, y: 0 },
+      { x: 10_000, y: 3000 },
+      { x: 3000, y: 3000 },
+      { x: 3000, y: 10_000 },
+      { x: 0, y: 10_000 },
+    ]
+
+    doc.site = centeredSiteForHouse(doc, site)
+
+    expect(houseFitsSite(doc)).toBe(true)
+  })
+
   test('includes half the wall thickness in the building envelope', () => {
     const envelope = buildingEnvelopeOf(rectangularHouse(100, 100, 9900, 9900))
 

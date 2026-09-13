@@ -1,3 +1,5 @@
+import type { Site } from '@houseit/core/document'
+import { parcelEdgeIds } from '@houseit/geometry/site'
 import { z } from 'zod'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
@@ -34,6 +36,9 @@ export const updateSite = defineCommand({
     }
     if (args.setback !== undefined) site.setbacks.defaultMm = args.setback
     if (args.edge !== undefined && args.edgeSetback !== undefined) {
+      if (!parcelEdgeIds(site as Site).includes(args.edge)) {
+        throw new CommandError(`update-site: unknown parcel edge ${args.edge}`)
+      }
       site.setbacks.byEdge[args.edge] = args.edgeSetback
     }
     return { changed: ['site'] }

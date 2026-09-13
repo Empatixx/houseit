@@ -4,7 +4,7 @@ import { buildableAreaOf, edgeId, sitePointInHouse } from '@houseit/geometry/sit
 export type SiteDrawing = {
   parcels: Array<{ outer: PointMm[]; holes: PointMm[][] }>
   buildable: PointMm[][]
-  edges: Array<{ id: string; from: PointMm; to: PointMm; setbackMm: number }>
+  edges: Array<{ id: string; number: number; from: PointMm; to: PointMm; setbackMm: number }>
 }
 
 export function drawingOfSite(site: Site): SiteDrawing {
@@ -22,6 +22,7 @@ export function drawingOfSite(site: Site): SiteDrawing {
         const id = edgeId(polygonIndex, ringIndex, edgeIndex)
         edges.push({
           id,
+          number: edges.length + 1,
           from: intoHouse(from),
           to: intoHouse(ring[(edgeIndex + 1) % ring.length]!),
           setbackMm: site.setbacks.byEdge[id] ?? site.setbacks.defaultMm,
