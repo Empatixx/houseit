@@ -11,6 +11,7 @@ import { Furniture } from './furniture/furniture'
 import { PlanPicture } from './plan-picture'
 import { RoomAnnotations } from './room-annotations'
 import { RoomFloors } from './room-floors'
+import { SiteLayer } from './site-layer'
 import { Spinning } from './spinning'
 import { StairsBelow } from './stairs-below'
 import { StoreyBelow } from './storey-below'
@@ -36,6 +37,7 @@ export function PlanScene() {
       <color attach="background" args={['#f4f4f5']} />
 
       {shown.grid ? <DotGrid /> : null}
+      <SiteLayer />
 
       {shown.below ? <StoreyBelow /> : null}
       {shown.below ? <StairsBelow /> : null}

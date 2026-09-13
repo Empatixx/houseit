@@ -28,6 +28,22 @@ export function placedPoint(point: PointMm, placement: Placement): PointMm {
   }
 }
 
+export function sitePointInHouse(point: PointMm, placement: Placement): PointMm {
+  const angle = (placement.rotationMilliDegrees * Math.PI) / 180_000
+  const cosine = Math.cos(angle)
+  const sine = Math.sin(angle)
+  const x = point.x - placement.xMm
+  const y = point.y - placement.yMm
+  const whole = (value: number) => {
+    const rounded = Math.round(value)
+    return Object.is(rounded, -0) ? 0 : rounded
+  }
+  return {
+    x: whole(x * cosine + y * sine),
+    y: whole(-x * sine + y * cosine),
+  }
+}
+
 export function parcelAreaOf(site: Site): SiteArea {
   return site.parcel.polygons.flatMap((polygon) => [polygon.outer, ...polygon.holes])
 }

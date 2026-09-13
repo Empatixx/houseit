@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
+import { SiteControls } from '../site/site-controls'
 import { siteDialogStore } from '../site/site-dialog-store'
 import { hoverStore } from '../store/hover'
 import {
@@ -93,6 +94,7 @@ function Site() {
       <p className="rounded-lg bg-amber-50 p-2 text-xs leading-4 text-amber-900">
         Indicative data. Verify boundaries and siting with a surveyor.
       </p>
+      <SiteControls site={site} />
       <Button
         variant="outline"
         onClick={() => siteDialogStore.getState().openFor({ kind: 'attach' }, site)}

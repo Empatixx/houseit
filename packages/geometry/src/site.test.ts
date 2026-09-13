@@ -7,6 +7,7 @@ import {
   houseFitsSite,
   placedPoint,
   pointInArea,
+  sitePointInHouse,
 } from './site'
 
 const squareSite = (size = 10_000): Site => ({
@@ -83,6 +84,15 @@ describe('site coordinates', () => {
         { xMm: 5000, yMm: 3000, rotationMilliDegrees: 90_000 },
       ),
     ).toEqual({ x: 5000, y: 4000 })
+  })
+
+  test('maps a site point back into the house drawing', () => {
+    expect(
+      sitePointInHouse(
+        { x: 5000, y: 4000 },
+        { xMm: 5000, yMm: 3000, rotationMilliDegrees: 90_000 },
+      ),
+    ).toEqual({ x: 1000, y: 0 })
   })
 })
 
