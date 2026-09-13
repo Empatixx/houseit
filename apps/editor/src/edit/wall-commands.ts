@@ -5,9 +5,11 @@ import { removeWall, updateWall } from '@houseit/commands/wall'
 import type { Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { wallElement } from '@houseit/geometry/wall-elements'
+import { previewStore } from '../store/preview'
 import { documentStore } from '../store/store'
+import { constrainWallEdit } from './constrained-wall-edit'
 import { sayError } from './notice'
-import { endPreview, previewCommand } from './preview'
 import { roomRef } from './room-ref'
 import { runEdit } from './run-edit'
 import { wallMoveArgsOf, wallNamedBy } from './wall-move'
@@ -33,29 +35,32 @@ export function setWall(
 }
 
 export function moveWallBy(wall: Wall, shift: Point, roomId?: string): boolean {
+  return runEdit(() => {
+    const edit = constrainedMove(wall, shift, roomId)
+    edit?.commit()
+  })
+}
+
+function constrainedMove(wall: Wall, shift: Point, roomId?: string) {
+  const { doc, level, apply } = documentStore.getState()
   if (roomId) {
-    const { doc, level } = documentStore.getState()
     const args = wallMoveArgsOf(doc, level, wall, shift, roomId)
-    return args ? runEdit(() => documentStore.getState().apply(updateRoom, args)) : false
+    if (!args) return undefined
+    const edit = constrainWallEdit(doc, updateRoom, (by) => ({ ...args, by }), 0, args.by)
+    return { doc: edit.doc, commit: () => edit.changed && apply(updateRoom, edit.args) }
   }
   const args = wallMoveArgs(wall, shift)
-  if (args.by === 0) return true
-  return runEdit(() => documentStore.getState().apply(updateWall, args))
+  const edit = constrainWallEdit(doc, updateWall, (by) => ({ ...args, by }), 0, args.by)
+  return { doc: edit.doc, commit: () => edit.changed && apply(updateWall, edit.args) }
 }
 
 export function previewWallMove(wall: Wall, shift: Point, roomId?: string): void {
-  if (roomId) {
-    const { doc, level } = documentStore.getState()
-    const args = wallMoveArgsOf(doc, level, wall, shift, roomId)
-    if (args) previewCommand(updateRoom, args)
-    return
+  try {
+    const edit = constrainedMove(wall, shift, roomId)
+    if (edit) previewStore.getState().show(edit.doc)
+  } catch (error) {
+    previewStore.getState().refuse(error instanceof Error ? error.message : String(error))
   }
-  const args = wallMoveArgs(wall, shift)
-  if (args.by === 0) {
-    endPreview()
-    return
-  }
-  previewCommand(updateWall, args)
 }
 
 export function knockThroughToBiggest(room: Room): boolean {
@@ -98,16 +103,29 @@ export function removeStub(wall: Wall): boolean {
   return runEdit(() => documentStore.getState().apply(removeWall, { id: wall.element ?? wall.id }))
 }
 
-function wallLengthArgs(wall: Wall, end: 'from' | 'to', length: number) {
-  return { id: wall.element ?? wall.id, end, length: Math.max(10, Math.round(length / 10) * 10) }
-}
-
-export function resizeWall(wall: Wall, end: 'from' | 'to', length: number): boolean {
-  return runEdit(() =>
-    documentStore.getState().apply(updateWall, wallLengthArgs(wall, end, length)),
+function constrainedResize(wall: Wall, end: 'from' | 'to', length: number) {
+  const { doc } = documentStore.getState()
+  const element = wallElement(doc, wall.id)
+  return constrainWallEdit(
+    doc,
+    updateWall,
+    (length) => ({ id: element.id, end, length }),
+    element.length,
+    Math.max(10, Math.round(length)),
   )
 }
 
+export function resizeWall(wall: Wall, end: 'from' | 'to', length: number): boolean {
+  return runEdit(() => {
+    const edit = constrainedResize(wall, end, length)
+    if (edit.changed) documentStore.getState().apply(updateWall, edit.args)
+  })
+}
+
 export function previewWallResize(wall: Wall, end: 'from' | 'to', length: number): void {
-  previewCommand(updateWall, wallLengthArgs(wall, end, length))
+  try {
+    previewStore.getState().show(constrainedResize(wall, end, length).doc)
+  } catch (error) {
+    previewStore.getState().refuse(error instanceof Error ? error.message : String(error))
+  }
 }
