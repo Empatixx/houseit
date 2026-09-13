@@ -89,6 +89,55 @@ test('whole-wall editing still moves all its segments', () => {
   ).toBe(true)
 })
 
+test('an independent wall pulled after alignment leaves the neighbouring room rectangular', () => {
+  const initial = house(),
+    id = boundary(initial, 'Upper', 8000)
+  const doc = runScript(
+    initial,
+    `update-room --room Upper --wall ${id} --by 151\nupdate-room --room Upper --wall ${id} --by -151`,
+  )
+  const neighbour = Object.values(doc.walls).find(
+    (w) => w.id !== id && points(doc, w.id).every((p) => p.y === 8000),
+  )!
+  const next = runScript(doc, `update-wall --id ${id} --by -4009`)
+  expect(points(next, id).map((p) => p.y)).toEqual([12009, 12009])
+  expect(points(next, neighbour.id)).toEqual(points(doc, neighbour.id))
+  expect(area(next, 'Right')).toBe(area(doc, 'Right'))
+  expect(openingPosition(next, 'o2')).toEqual(openingPosition(doc, 'o2'))
+  expect(Object.keys(next.rooms)).toEqual(Object.keys(doc.rooms))
+  for (const wall of Object.values(next.walls)) {
+    const [a, b] = points(next, wall.id)
+    expect(a!.x === b!.x || a!.y === b!.y).toBe(true)
+  }
+  const aligned = runScript(next, `update-wall --id ${id} --by 4009`)
+  expect(points(aligned, id)).toEqual(points(doc, id))
+  expect(area(aligned, 'Right')).toBe(area(doc, 'Right'))
+})
+
+test('a split independent element moves all its segments without tilting an aligned continuation', () => {
+  const initial = house(),
+    id = boundary(initial, 'Upper', 8000)
+  const right = Object.values(initial.rooms)
+    .find((room) => room.name === 'Right')!
+    .loop.find((id) => points(initial, id).every((p) => p.y === 8000))!
+  const detached = runScript(initial, `update-room --room Right --wall ${right} --by 500`)
+  const doc = runScript(
+    detached,
+    `update-room --room Right --wall ${right} --by -500\nadd-wall --from '{"x":2500,"y":6000}' --to '{"x":2500,"y":8000}' --thickness 150`,
+  )
+  const element = wallElement(doc, id)
+  expect(element.segments.length).toBeGreaterThan(1)
+  const next = runScript(doc, `update-wall --id ${element.id} --by -1000`)
+  for (const segment of element.segments)
+    expect(points(next, segment.wall.id).map((p) => p.y)).toEqual([9000, 9000])
+  expect(area(next, 'Right')).toBe(area(doc, 'Right'))
+  expect(openingPosition(next, 'o2')).toEqual(openingPosition(doc, 'o2'))
+  for (const wall of Object.values(next.walls)) {
+    const [a, b] = points(next, wall.id)
+    expect(a!.x === b!.x || a!.y === b!.y).toBe(true)
+  }
+})
+
 test('electrical hosts follow only the moved room boundary and prevent removal of an occupied return', () => {
   const initial = house(),
     id = boundary(initial, 'Lower', 4000)

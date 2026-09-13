@@ -104,6 +104,8 @@ export function moveWallJunctions(
     const next = wallElement(doc, old.id)
     if (next.length < 10 || next.unit.x * old.unit.x + next.unit.y * old.unit.y <= 0)
       throw new CommandError(`update-wall: connected wall ${old.id} would collapse or reverse`)
+    if (Math.abs(cross(old.unit, delta(next.from, next.to))) > 1.5)
+      throw new CommandError(`update-wall: connected wall ${old.id} would rotate`)
   }
   for (const anchor of anchors) {
     const old = prior.get(anchor.id)!,

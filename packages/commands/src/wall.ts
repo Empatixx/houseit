@@ -17,8 +17,8 @@ import { levelOf } from './resolve'
 
 import { validateWallHosts } from './validate-wall-hosts'
 import { furnitureBefore, retainFurniture } from './wall-furniture'
-import { moveWallJunctions } from './wall-junctions'
 import { resizeWallEnd } from './wall-length'
+import { moveWallTopology } from './wall-topology'
 
 const positive = () => length().pipe(z.number().positive())
 const point = json(z.object({ x: length(), y: length() }))
@@ -92,7 +92,7 @@ export const updateWall = defineCommand({
       .map((r) => r.id!)
     const affected =
       args.length === undefined
-        ? moveWallJunctions(draft, element.id, args.by ?? 0, { collapse: true })
+        ? moveWallTopology(draft, element.id, args.by ?? 0, 'element')
         : resizeWallEnd(draft, element.id, args.length, args.end ?? 'to')
     for (const { wall } of wallElement(draft, element.id).segments) {
       if (args.thickness !== undefined) wall.thickness = args.thickness
