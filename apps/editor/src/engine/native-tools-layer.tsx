@@ -5,25 +5,33 @@ import { useEngineView } from '../store/engine-view'
 import { useDocument } from '../store/store'
 import { NativeTools } from './native-tools'
 import { useGeometryEngine } from './provider'
+import { useWallDisplay } from './wall-display-layer'
 
 export function NativeToolsLayer({ sections = true }: { sections?: boolean }) {
   const engine = useGeometryEngine()
+  const display = useWallDisplay()
   const get = useThree((state) => state.get)
   const tools = useRef<NativeTools | null>(null)
   const size = useThree((state) => state.size)
   const doc = useDocument((state) => state.doc)
   const view = useEngineView((state) => state.view)
   useEffect(() => {
-    const instance = new NativeTools(get, () => engine.status.pending === 0, sections)
+    const instance = new NativeTools(
+      display.components,
+      display,
+      get,
+      () => engine.status.pending === 0 && !display.busy,
+      sections,
+    )
     tools.current = instance
     const hook = (window as unknown as { __houseit?: Record<string, unknown> }).__houseit
     if (import.meta.env.DEV && hook) hook.native = instance
     return () => {
       tools.current = null
       if (hook?.native === instance) delete hook.native
-      void instance.dispose()
+      display.toolsDisposal = instance.dispose()
     }
-  }, [get, engine, sections])
+  }, [get, engine, sections, display])
   useEffect(() => {
     tools.current?.request()
   }, [doc, view])

@@ -33,8 +33,19 @@ The wall authoring model on `that-open-engine`:
   in `eb29400` was withdrawn because it regressed those features.
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
-  Fragment interaction model mirrors owned geometry; it is not the document or
-  persistence model. View/clip collections own their disposal. Keep UI gestures
+  Fragment interaction model mirrors the remaining non-wall geometry; it is not the document or
+  persistence model. Walls now render as native Fragments shells in each viewport's
+  `WallDisplay`, using the same FragmentsManager as its tools. The native editor owns
+  batching and delta models; HouseitKey maps a display item to the authored wall segment.
+  These per-camera models are derived presentation, never a second authoring/history authority.
+  Do not scan their tiles back into InteractionModel. Tile IDs go through the public native
+  local-ID mapper; the wall appearance adapter retains the established per-side materials,
+  UV scale and React gestures on the actual native triangles. CPU tile attributes remain
+  available for those gestures via public BufferAttribute upload callbacks. A native delta
+  and its parent may both occur in Highlighter selection: compare domain owners, not raw
+  alias count. Wall tiles stay in ALL_VISIBLE mode so thumbnails can use a separate camera
+  without silently dropping walls outside the live camera. Canvas readiness includes native
+  wall updates; CLI pictures and project thumbnails wait for completion. View/clip collections own their disposal. Keep UI gestures
   and layout stable when replacing engine internals. Check the
   installed That Open API and official documentation before adding custom tooling;
   extend native components only for Houseit domain behavior they do not provide. Record each logical change and remaining limits

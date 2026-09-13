@@ -1,6 +1,7 @@
 import { OrbitControls, OrthographicCamera } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { NativeToolsLayer } from '../engine/native-tools-layer'
+import { WallDisplayLayer } from '../engine/wall-display-layer'
 import { useEngineView } from '../store/engine-view'
 import { selectionStore } from '../store/selection'
 import { useShown } from '../store/shown'
@@ -43,49 +44,58 @@ export function PlanScene() {
         if (!measuring) selectionStore.getState().select(null)
       }}
     >
-      <OrthographicCamera makeDefault position={OVERHEAD} zoom={45} up={UP} near={0.1} far={200} />
-      <OrbitControls
-        makeDefault
-        enabled={view === 'plan' && !measuring}
-        enableRotate={false}
-        enableDamping={false}
-      />
+      <WallDisplayLayer>
+        <OrthographicCamera
+          makeDefault
+          position={OVERHEAD}
+          zoom={45}
+          up={UP}
+          near={0.1}
+          far={200}
+        />
+        <OrbitControls
+          makeDefault
+          enabled={view === 'plan' && !measuring}
+          enableRotate={false}
+          enableDamping={false}
+        />
 
-      <color attach="background" args={['#f4f4f5']} />
+        <color attach="background" args={['#f4f4f5']} />
 
-      {view === 'plan' ? (
-        <>
-          {shown.grid ? <DotGrid /> : null}
-          <Site />
+        {view === 'plan' ? (
+          <>
+            {shown.grid ? <DotGrid /> : null}
+            <Site />
 
-          {shown.below ? <StoreyBelow /> : null}
-          {shown.below ? <StairsBelow /> : null}
-          {shown.floors ? <RoomFloors /> : null}
-          {shown.furniture ? <Furniture /> : null}
-          <Walls />
-          <Columns />
-          <Shafts />
-          <StairRuns />
-          <Ramps />
-          {shown.labels ? <RoomAnnotations /> : null}
-          <Dimensions />
-          <Drawing />
-          <FitToPlan />
-          <PlanPicture />
-        </>
-      ) : (
-        <>
-          <Lighting />
-          <House />
-        </>
-      )}
-      <NativeToolsLayer />
-      {view === 'plan' ? (
-        <>
-          <Zooming />
-          <Spinning />
-        </>
-      ) : null}
+            {shown.below ? <StoreyBelow /> : null}
+            {shown.below ? <StairsBelow /> : null}
+            {shown.floors ? <RoomFloors /> : null}
+            {shown.furniture ? <Furniture /> : null}
+            <Walls />
+            <Columns />
+            <Shafts />
+            <StairRuns />
+            <Ramps />
+            {shown.labels ? <RoomAnnotations /> : null}
+            <Dimensions />
+            <Drawing />
+            <FitToPlan />
+            <PlanPicture />
+          </>
+        ) : (
+          <>
+            <Lighting />
+            <House />
+          </>
+        )}
+        <NativeToolsLayer />
+        {view === 'plan' ? (
+          <>
+            <Zooming />
+            <Spinning />
+          </>
+        ) : null}
+      </WallDisplayLayer>
     </Canvas>
   )
 }

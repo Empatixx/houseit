@@ -36,7 +36,7 @@ export class InteractionModel {
       let node: Object3D | null = object
       let owner: Selection | undefined
       while (node) {
-        if (!node.visible || node.userData.houseitHelper) return
+        if (!node.visible || node.userData.houseitHelper || node.userData.houseitNative) return
         owner ??= node.userData.houseit
         node = node.parent
       }
@@ -50,7 +50,7 @@ export class InteractionModel {
       let node: Object3D | null = object
       let owner: Selection | undefined
       while (node) {
-        if (!node.visible || node.userData.houseitHelper) return
+        if (!node.visible || node.userData.houseitHelper || node.userData.houseitNative) return
         owner ??= node.userData.houseit
         node = node.parent
       }

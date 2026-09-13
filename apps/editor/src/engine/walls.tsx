@@ -9,6 +9,7 @@ import { materialOf } from '../scene/three/materials'
 import { useSelection } from '../store/selection'
 import { useWallGeometry } from './use-wall-geometry'
 import { wallBody } from './wall-body'
+import { NativeWallSurface } from './wall-display-layer'
 
 export function EngineWalls({
   doc,
@@ -61,14 +62,14 @@ function EngineWall({
   )
   if (!geometry) return null
   return (
-    <mesh
-      userData={{ houseit: { kind: 'wall', id: wall.id } }}
+    <NativeWallSurface
+      id={wall.id}
+      length={body.length}
+      height={body.height}
       geometry={geometry}
-      material={materials}
-      position={toWorld(a.x, a.y, wall.baseOffset)}
-      rotation={[0, Math.atan2(b.y - a.y, b.x - a.x), 0]}
-      castShadow
-      receiveShadow
+      materials={materials}
+      position={toWorld(a.x, a.y, doc.levels[wall.level]!.elevation + wall.baseOffset)}
+      angle={Math.atan2(b.y - a.y, b.x - a.x)}
       onClick={
         picking
           ? (event) => {

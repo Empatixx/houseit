@@ -2,6 +2,8 @@ import { planExtent } from '@houseit/geometry/dimensions'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
+import { useGeometryEngine } from '../engine/provider'
+import { useWallDisplay } from '../engine/wall-display-layer'
 import { projectsStore } from '../store/projects/projects'
 import { documentStore } from '../store/store'
 import { picture } from './picture'
@@ -10,11 +12,18 @@ const OPENED = 1500
 const SETTLED = 1000
 
 export function PlanPicture() {
+  const walls = useWallDisplay()
+  const engine = useGeometryEngine()
   const gl = useThree((state) => state.gl)
   const scene = useThree((state) => state.scene)
 
   useEffect(() => {
     const take = () => {
+      if (walls.error) return
+      if (walls.busy || engine.status.pending) {
+        timer = setTimeout(take, 100)
+        return
+      }
       const open = projectsStore.getState().open
       if (!open) return
       const { doc, level } = documentStore.getState()
@@ -38,7 +47,7 @@ export function PlanPicture() {
       clearTimeout(timer)
       stop()
     }
-  }, [gl, scene])
+  }, [gl, scene, walls, engine])
 
   return null
 }

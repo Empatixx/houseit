@@ -3,9 +3,9 @@ import type { Point } from '@houseit/geometry/outlines'
 import { wallCaps } from '@houseit/geometry/wall-caps'
 import { elementId, wallElement } from '@houseit/geometry/wall-elements'
 import { INK, planPieces, type WallPiece } from '@houseit/scene/wall-pieces'
-import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
+import { type ThreeElements, type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Group, OrthographicCamera } from 'three'
+import { type Group, MeshBasicMaterial, type OrthographicCamera } from 'three'
 import { aimAt, putDown } from '../edit/draw-commands'
 import { moveOpeningTo } from '../edit/opening-commands'
 import { pick } from '../edit/pick'
@@ -15,6 +15,7 @@ import { alignWallShift } from '../edit/wall-move'
 import { activeTools } from '../engine/native-tools'
 import { useWallGeometry } from '../engine/use-wall-geometry'
 import { wallBody } from '../engine/wall-body'
+import { NativeWallSurface } from '../engine/wall-display-layer'
 import { engineViewStore } from '../store/engine-view'
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
 import { usePreview } from '../store/preview'
@@ -135,8 +136,14 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
         const emphasis = emphasisOf(piece.opening)
 
         return (
-          <mesh
+          <WallPart
             key={piece.key}
+            native={native}
+            wallId={wall.id}
+            length={body.length}
+            height={body.height}
+            colour={tinted(piece, emphasis)}
+            hidden={piece.hidden}
             userData={{
               houseit: opening
                 ? { kind: 'opening', id: opening.id }
@@ -202,13 +209,7 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
             {native ? null : (
               <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
             )}
-            <meshBasicMaterial
-              color={tinted(piece, emphasis)}
-              transparent={piece.hidden}
-              opacity={piece.hidden ? 0 : 1}
-              depthWrite={!piece.hidden}
-            />
-          </mesh>
+          </WallPart>
         )
       })}
 
@@ -391,4 +392,59 @@ function useCarry() {
   }
 
   return { held, down }
+}
+
+function WallPart({
+  native,
+  wallId,
+  length,
+  height,
+  colour,
+  hidden,
+  children,
+  ...props
+}: ThreeElements['mesh'] & {
+  native: boolean
+  wallId: string
+  length: number
+  height: number
+  colour: string
+  hidden?: boolean
+}) {
+  const materials = useMemo(() => [new MeshBasicMaterial({ color: colour })], [colour])
+  useEffect(
+    () => () => {
+      for (const material of materials) material.dispose()
+    },
+    [materials],
+  )
+  if (!native)
+    return (
+      <mesh {...props}>
+        {children}
+        <meshBasicMaterial
+          color={colour}
+          transparent={hidden}
+          opacity={hidden ? 0 : 1}
+          depthWrite={!hidden}
+        />
+      </mesh>
+    )
+  if (!props.geometry) return null
+  return (
+    <NativeWallSurface
+      id={wallId}
+      geometry={props.geometry}
+      materials={materials}
+      position={props.position as [number, number, number]}
+      angle={(props.rotation as [number, number, number])[1]}
+      length={length}
+      height={height}
+      onClick={props.onClick}
+      onPointerDown={props.onPointerDown}
+      onPointerMove={props.onPointerMove}
+      onPointerOver={props.onPointerOver}
+      onPointerOut={props.onPointerOut}
+    />
+  )
 }

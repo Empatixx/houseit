@@ -2,10 +2,9 @@ import type { Point } from '@houseit/geometry/outlines'
 import type { RootState } from '@react-three/fiber'
 import * as OBC from '@thatopen/components'
 import * as OBF from '@thatopen/components-front'
-import { SnappingClass } from '@thatopen/fragments'
-import workerUrl from '@thatopen/fragments/worker?url'
+import { type RaycastResult, SnappingClass } from '@thatopen/fragments'
 import { toast } from 'sonner'
-import { Color, DoubleSide, MeshBasicMaterial, Vector2, Vector3 } from 'three'
+import { Box3, Color, DoubleSide, MeshBasicMaterial, Vector2, Vector3 } from 'three'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
@@ -18,20 +17,20 @@ import { toolStore } from '../store/tool'
 import { clearOf, viewStore } from '../store/view'
 import { InteractionModel } from './interaction-model'
 import { PresentationCamera, PresentationRenderer, PresentationScene } from './presentation-world'
+import type { WallDisplay } from './wall-display'
 
 export let activeTools: NativeTools | null = null
 const toolsStore = createStore<{ tools: NativeTools | null }>(() => ({ tools: null }))
 export const useNativeTools = () => useStore(toolsStore, (state) => state.tools)
 
 export class NativeTools {
-  readonly components = new OBC.Components()
-  readonly world = this.components.get(OBC.Worlds).create()
-  readonly fragments = this.components.get(OBC.FragmentsManager)
-  readonly highlighter = this.components.get(OBF.Highlighter)
-  readonly measure = this.components.get(OBF.LengthMeasurement)
-  readonly views = this.components.get(OBC.Views)
-  readonly clips = this.components.get(OBF.ClipStyler)
-  readonly model = new InteractionModel(this.fragments)
+  readonly world
+  readonly fragments
+  readonly highlighter
+  readonly measure
+  readonly views
+  readonly clips
+  readonly model
   private camera: PresentationCamera
   private dead = false
   private running: Promise<void> | null = null
@@ -42,29 +41,36 @@ export class NativeTools {
   private lastView = ''
   private clip: OBF.ClipEdges | undefined
   private lastDoc = documentStore.getState().doc
-  private cameraKey = ''
   private lastScan = 0
+  private wallRevision = -1
   private pointerDown = false
   private releasedAt = 0
   private automatic = new Set<OBF.Line>()
 
   constructor(
+    readonly components: OBC.Components,
+    readonly walls: WallDisplay,
     private get: () => RootState,
     private geometryReady: () => boolean,
     private sections: boolean,
   ) {
+    this.world = this.components.get(OBC.Worlds).create()
+    this.fragments = this.components.get(OBC.FragmentsManager)
+    this.highlighter = this.components.get(OBF.Highlighter)
+    this.measure = this.components.get(OBF.LengthMeasurement)
+    this.views = this.components.get(OBC.Views)
+    this.clips = this.components.get(OBF.ClipStyler)
+    this.model = new InteractionModel(this.fragments)
     const { scene, gl, camera } = get()
     this.world.scene = new PresentationScene(this.components, scene)
     this.world.renderer = new PresentationRenderer(this.components, gl)
     this.camera = new PresentationCamera(this.components, camera)
     this.world.camera = this.camera
-    this.fragments.init(workerUrl)
-    this.fragments.core.settings.autoCoordinate = false
     this.fragments.list.onItemSet.add(({ value: model }) => {
       if (this.dead) return
       const assign = model.useCamera.bind(model)
       assign(this.world.camera.three as RootState['camera'])
-      scene.add(model.object)
+      if (!model.object.userData.houseitNative) scene.add(model.object)
     })
     this.world.onCameraChanged.add((camera) => {
       get().set({ camera: camera.three as RootState['camera'] })
@@ -130,7 +136,12 @@ export class NativeTools {
       if (engineViewStore.getState().measure === 'none') return
       event.preventDefault()
       event.stopPropagation()
-      void this.measure.create().catch(this.fail)
+      void (async () => {
+        if (this.measure.mode === 'edge') {
+          if (!this.measure.isDragging) await this.measure.create()
+          this.measure.endCreation()
+        } else await this.measure.create()
+      })().catch(this.fail)
     }
     const press = () => {
       this.pointerDown = true
@@ -169,12 +180,14 @@ export class NativeTools {
   get status() {
     return {
       backend: '@thatopen/components',
-      busy: !!this.running,
-      items: this.model.owners.size,
+      busy: !!this.running || this.walls.busy,
+      items: this.model.owners.size + this.walls.owners.size,
+      wallItems: this.walls.owners.size,
+      wallBusy: this.walls.busy,
       measurements: [...this.measure.list].map((line) => line.value),
       nativeSelection: this.highlighter.selection.select,
       view: engineViewStore.getState().view,
-      error: engineViewStore.getState().error,
+      error: this.walls.error ?? engineViewStore.getState().error,
       openViews: [...this.views.list.values()].filter((view) => view.camera === this.world.camera)
         .length,
       sharedCamera: this.world.camera.three === this.get().camera,
@@ -197,16 +210,6 @@ export class NativeTools {
     if (this.dead) return
     if (!this.views.hasOpenViews && this.camera.three !== this.get().camera)
       this.camera.three = this.get().camera
-    const camera = this.world.camera.three
-    const key = `${camera.uuid}:${camera.matrixWorld.elements}:${camera.projectionMatrix.elements}`
-    if (key !== this.cameraKey) {
-      this.cameraKey = key
-      for (const model of new Set(this.fragments.list.values())) {
-        const assign = model.useCamera.bind(model)
-        assign(camera as RootState['camera'])
-      }
-      void this.fragments.core.update().catch(this.fail)
-    }
     if (performance.now() - this.lastScan > 600 && !previewStore.getState().doc && !this.running) {
       this.lastScan = performance.now()
       this.request()
@@ -240,13 +243,16 @@ export class NativeTools {
         if (!this.automatic.has(line)) this.measure.list.delete(line)
       this.lastDoc = doc
     }
-    const changed = await this.model.sync(this.get().scene)
+    const sceneChanged = await this.model.sync(this.get().scene)
+    const changed = sceneChanged || this.wallRevision !== this.walls.revision
+    this.wallRevision = this.walls.revision
     if (this.dead) return
     if (changed) {
       const classifier = this.components.get(OBC.Classifier)
       classifier.list.delete('Houseit')
       classifier.addGroupItems('Houseit', 'current', {
         [this.model.id]: new Set(this.model.owners.keys()),
+        [this.walls.model?.modelId ?? this.walls.id]: new Set(this.walls.owners.keys()),
       })
       this.components.get(OBC.SnapResolvers).get().clear()
       await this.highlight()
@@ -262,7 +268,7 @@ export class NativeTools {
       await this.highlighter.clear('select')
       const selected = selectionStore.getState().selected
       if (this.dead || request !== this.selecting || !selected) return
-      const ids = this.model.ids(selected)
+      const ids = { ...this.model.ids(selected), ...this.walls.ids(selected) }
       if (Object.keys(ids).length) await this.highlighter.highlightByID('select', ids, false)
     })
     return this.highlightWork
@@ -272,13 +278,21 @@ export class NativeTools {
     shellStore.getState().showPanel(true)
   }
   async pickAtPointer() {
-    if (this.running || this.dead) return null
+    if (this.running || this.walls.busy || this.dead) return null
     const hit = await this.components.get(OBC.Raycasters).get(this.world).castRay()
     if (!hit || !('localId' in hit) || typeof hit.localId !== 'number') return null
-    return this.model.owners.get(hit.localId) ?? null
+    return (
+      ('fragments' in hit &&
+      ((hit as RaycastResult).fragments.modelId === this.walls.id ||
+        (hit as RaycastResult).fragments.parentModelId === this.walls.id)
+        ? this.walls.owners
+        : this.model.owners
+      ).get(hit.localId) ?? null
+    )
   }
   async snapPoint(point: Point, exclude?: Selection): Promise<Point | null> {
-    if (!engineViewStore.getState().snap || this.running || this.dead) return null
+    if (!engineViewStore.getState().snap || this.running || this.walls.busy || this.dead)
+      return null
     const projected = new Vector3(point.x / 1000, 0, -point.y / 1000).project(
       this.world.camera.three,
     )
@@ -295,7 +309,13 @@ export class NativeTools {
       })
     if (!hit || !('snappingClass' in hit) || !('localId' in hit) || typeof hit.localId !== 'number')
       return null
-    const owner = this.model.owners.get(hit.localId)
+    const owner = (
+      'fragments' in hit &&
+      ((hit as RaycastResult).fragments.modelId === this.walls.id ||
+        (hit as RaycastResult).fragments.parentModelId === this.walls.id)
+        ? this.walls.owners
+        : this.model.owners
+    ).get(hit.localId)
     if (owner && exclude && owner.kind === exclude.kind && owner.id === exclude.id) return null
     const result = { x: hit.point.x * 1000, y: -hit.point.z * 1000 }
     if (owner?.kind === 'wall') {
@@ -345,7 +365,8 @@ export class NativeTools {
       this.lastView = key
       return true
     }
-    const bounds = this.model.model?.box
+    const bounds = new Box3()
+    for (const model of [this.model.model, this.walls.model]) if (model) bounds.union(model.box)
     if (!bounds || bounds.isEmpty() || bounds.getSize(new Vector3()).y < 0.05) return false
     this.lastView = key
     const centre = bounds.getCenter(new Vector3())
@@ -385,7 +406,8 @@ export class NativeTools {
     return true
   }
   private async frameView(view: OBC.View) {
-    const bounds = this.model.model?.box
+    const bounds = new Box3()
+    for (const model of [this.model.model, this.walls.model]) if (model) bounds.union(model.box)
     if (!bounds || bounds.isEmpty()) return
     await view.camera.controls.fitToBox(bounds, false, {
       paddingTop: 0.5,
@@ -441,6 +463,5 @@ export class NativeTools {
     this.clips.list.clear()
     this.views.list.clear()
     this.world.renderer?.three.clippingPlanes.splice(0)
-    this.components.dispose()
   }
 }

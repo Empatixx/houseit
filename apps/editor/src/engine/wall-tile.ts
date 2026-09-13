@@ -1,0 +1,78 @@
+import {
+  type BufferAttribute,
+  type BufferGeometry,
+  Float32BufferAttribute,
+  type InterleavedBufferAttribute,
+  type Material,
+  Matrix3,
+  type Matrix4,
+  type Mesh,
+  Vector3,
+} from 'three'
+
+type WallAppearance = {
+  id: string
+  transform: Matrix4
+  length: number
+  height: number
+  materials: Material[]
+}
+export type TileWall = { surface: WallAppearance }
+
+export function tileItemIds(ids: BufferAttribute | InterleavedBufferAttribute) {
+  return Array.from(
+    { length: ids.count },
+    (_, i) => ids.getX(i) * 16777216 + ids.getY(i) * 65536 + ids.getZ(i) * 256 + ids.getW(i) - 1,
+  )
+}
+
+export function mapWallTile(geometry: BufferGeometry, matrix: Matrix4, vertices: TileWall[]) {
+  const positions = geometry.getAttribute('position')
+  const normals = geometry.getAttribute('normal')
+  const uv = new Float32Array(positions.count * 2)
+  const sides: number[] = []
+  const point = new Vector3(),
+    normal = new Vector3()
+  const transforms = new Map(
+    [...new Set(vertices)].map((entry) => {
+      const inverse = entry!.surface.transform.clone().invert().multiply(matrix)
+      return [entry, { inverse, normal: new Matrix3().getNormalMatrix(inverse) }]
+    }),
+  )
+  for (let i = 0; i < positions.count; i++) {
+    const entry = vertices[i]!,
+      transform = transforms.get(entry)!
+    point.fromBufferAttribute(positions, i).applyMatrix4(transform.inverse)
+    normal.fromBufferAttribute(normals, i).applyMatrix3(transform.normal)
+    uv[2 * i] = point.x / (entry.surface.length / 1000)
+    uv[2 * i + 1] = point.y / (entry.surface.height / 1000)
+    sides.push(normal.z > 0.0001 ? 1 : 0)
+  }
+  geometry.userData.houseitSides = sides
+  geometry.setAttribute('uv', new Float32BufferAttribute(uv, 2))
+
+  geometry.userData.houseitSurface = vertices
+}
+
+export function styleWallTile(object: Mesh) {
+  const geometry = object.geometry as BufferGeometry
+  const entries = geometry.userData.houseitSurface as TileWall[] | undefined
+  if (!entries) return
+  const sides = geometry.userData.houseitSides as number[]
+  const materials: Material[] = []
+  geometry.clearGroups()
+  for (let i = 0; i < geometry.index!.count; i += 3) {
+    const vertex = geometry.index!.getX(i)
+    const appearance = entries[vertex]!.surface
+    const material = appearance.materials[appearance.materials.length === 1 ? 0 : sides[vertex]!]!
+    let index = materials.indexOf(material)
+    if (index < 0) {
+      index = materials.length
+      materials.push(material)
+    }
+    const last = geometry.groups.at(-1)
+    if (last?.materialIndex === index) last.count += 3
+    else geometry.addGroup(i, 3, index)
+  }
+  object.material = materials
+}

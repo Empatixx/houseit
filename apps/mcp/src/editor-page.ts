@@ -163,6 +163,11 @@ export async function pictureOf(page: Page): Promise<Buffer> {
   await page.bringToFront().catch(() => undefined)
   await waitForCanvas(page).catch(() => undefined)
   await page.waitForTimeout(SETTLE_MS)
+  await page.waitForFunction(() => {
+    const state = document.querySelector('canvas')?.dataset.houseitRender
+    if (state === 'error') throw new Error('The native wall renderer failed')
+    return state !== 'pending'
+  })
   const canvas = page.locator('canvas').first()
   const clear = await clearOnPage(page).catch(() => undefined)
   const box = clear ? await canvas.boundingBox() : null
