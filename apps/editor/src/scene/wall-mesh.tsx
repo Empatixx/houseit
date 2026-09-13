@@ -11,6 +11,7 @@ import { moveOpeningTo } from '../edit/opening-commands'
 import { pick } from '../edit/pick'
 import { endPreview } from '../edit/preview'
 import { moveWallBy, previewWallMove, previewWallResize, resizeWall } from '../edit/wall-commands'
+import { alignWallShift } from '../edit/wall-move'
 import { activeTools } from '../engine/native-tools'
 import { useWallGeometry } from '../engine/use-wall-geometry'
 import { wallBody } from '../engine/wall-body'
@@ -343,9 +344,18 @@ function useCarry() {
         })
         if (request !== sequence || !live.current) return
         const point = snap ?? now
+        let shift = { x: point.x - carried.from.x, y: point.y - carried.from.y }
+        const doc = documentStore.getState().doc,
+          wall = doc.walls[id]
+        if (wall && engineViewStore.getState().snap && 'isOrthographicCamera' in camera) {
+          const ortho = camera as OrthographicCamera
+          const tolerance =
+            (6 * (ortho.top - ortho.bottom)) / (ortho.zoom * canvas.clientHeight * MM)
+          shift = alignWallShift(doc, wall, shift, tolerance)
+        }
         live.current = {
           ...carried,
-          shift: { x: point.x - carried.from.x, y: point.y - carried.from.y },
+          shift,
         }
         setHeld(live.current)
         onward?.(live.current)

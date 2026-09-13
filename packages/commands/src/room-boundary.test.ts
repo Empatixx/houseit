@@ -121,3 +121,26 @@ test('invalid local movement refuses the complete script including earlier chang
   ).toThrow(/move-wall/)
   expect(JSON.stringify(doc)).toBe(original)
 })
+
+test('a room can pass an intermediate return and align with a farther neighbouring roofline', () => {
+  const initial = runScript(
+    house(),
+    'add-room --from Right --side east --width 3500 --name Study --material beech',
+  )
+  const upper = boundary(initial, 'Upper', 8000)
+  const study = Object.values(initial.rooms)
+    .find((room) => room.name === 'Study')!
+    .loop.find((id) => points(initial, id).every((p) => p.y === 8000))!
+  const doc = runScript(
+    initial,
+    `update-room --room Upper --wall ${upper} --by -410\nupdate-room --room Study --wall ${study} --by 853`,
+  )
+  const next = runScript(doc, `update-room --room Upper --wall ${upper} --by 1263`)
+  expect(points(next, upper).map((p) => p.y)).toEqual([8853, 8853])
+  expect(points(next, study)).toEqual(points(doc, study))
+  expect(area(next, 'Right')).toBe(area(doc, 'Right'))
+  expect(Object.keys(next.rooms)).toEqual(Object.keys(doc.rooms))
+  const back = runScript(next, `update-room --room Upper --wall ${upper} --by -1263`)
+  expect(points(back, upper).map((p) => p.y)).toEqual([7590, 7590])
+  expect(area(back, 'Upper')).toBe(area(doc, 'Upper'))
+})

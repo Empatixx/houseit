@@ -11,7 +11,12 @@ import { validateWalls } from './wall'
 import { furnitureBefore, retainFurniture } from './wall-furniture'
 import { connectCrossings, moveWallJunctions } from './wall-junctions'
 
-export function moveRoomBoundary(doc: HouseDocument, roomId: string, wallId: string, by: number) {
+export function moveRoomBoundary(
+  doc: HouseDocument,
+  roomId: string,
+  wallId: string,
+  by: number,
+): { changed: string[]; at: string } {
   try {
     const room = doc.rooms[roomId]
     const wall = doc.walls[wallId]
@@ -31,6 +36,12 @@ export function moveRoomBoundary(doc: HouseDocument, roomId: string, wallId: str
     const shift = {
       x: Math.round((-(b.y - a.y) / span) * distance),
       y: Math.round(((b.x - a.x) / span) * distance),
+    }
+    const crossing = firstJunction(doc, wall, shift, by)
+    if (crossing !== undefined) {
+      const first = moveRoomBoundary(doc, roomId, wallId, crossing)
+      const rest = moveRoomBoundary(doc, roomId, wallId, by - crossing)
+      return { changed: [...new Set([...first.changed, ...rest.changed])], at: room.level }
     }
     const furniture = furnitureBefore(doc, room.level)
     const groups = new Set([elementId(wall)])
@@ -92,8 +103,30 @@ export function moveRoomBoundary(doc: HouseDocument, roomId: string, wallId: str
       at: room.level,
     }
   } catch (error) {
-    throw new CommandError(`move-wall: ${error instanceof Error ? error.message : String(error)}`)
+    const message = error instanceof Error ? error.message : String(error)
+    throw new CommandError(`move-wall: ${message.replace(/^(?:(?:move|update)-wall: )+/, '')}`)
   }
+}
+
+function firstJunction(
+  doc: HouseDocument,
+  wall: Wall,
+  shift: { x: number; y: number },
+  by: number,
+) {
+  const squared = shift.x ** 2 + shift.y ** 2
+  let nearest = 1
+  for (const node of [wall.a, wall.b]) {
+    const here = doc.nodes[node]!
+    for (const other of wallsAt(doc, wall.level, node)) {
+      if (other.id === wall.id || collinear(doc, wall, other)) continue
+      const far = doc.nodes[other.a === node ? other.b : other.a]!
+      const fraction = ((far.x - here.x) * shift.x + (far.y - here.y) * shift.y) / squared
+      if (fraction > 0 && fraction < nearest) nearest = fraction
+    }
+  }
+  const step = Math.round(by * nearest)
+  return step !== 0 && Math.abs(step) < Math.abs(by) ? step : undefined
 }
 
 function separateRuns(doc: HouseDocument, groups: Set<string>) {
