@@ -4,6 +4,7 @@ import { planExtent } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { produce } from 'immer'
 import { applyScript } from './apply-script'
+import { assertHouseFitsSite } from './site-invariant'
 import { checkLevel, type Problem } from './checks'
 import type { Touched } from './define-command'
 import { roomOfOpening } from './openings'
@@ -100,6 +101,7 @@ export function askPlan(doc: HouseDocument, source: string, open?: string): Answ
   let touched: Touched = { changed: [], shown: [] }
   const next = produce(doc, (draft) => {
     touched = applyScript(draft, source, open)
+    assertHouseFitsSite(draft)
   })
   return answerFor(
     next,

@@ -2,6 +2,7 @@ import type { HouseDocument } from '@houseit/core/document'
 import { enablePatches, type Patch, produceWithPatches } from 'immer'
 import { applyScript } from './apply-script'
 import type { ArgsOf, Touched, TypedCommand } from './define-command'
+import { assertHouseFitsSite } from './site-invariant'
 
 enablePatches()
 
@@ -20,6 +21,7 @@ export function runScriptWithPatches(
   let touched: Touched = { changed: [], shown: [] }
   const [next, patches, inversePatches] = produceWithPatches(doc, (draft) => {
     touched = applyScript(draft, source, open)
+    assertHouseFitsSite(draft)
   })
   return { doc: next, patches, inversePatches, touched }
 }
@@ -33,6 +35,7 @@ export function applyWithPatches<C extends TypedCommand>(
   let touched: Touched = { changed: [], shown: [] }
   const [next, patches, inversePatches] = produceWithPatches(doc, (draft) => {
     const said = command.apply(draft, args, open)
+    assertHouseFitsSite(draft)
     touched = {
       changed: said?.changed ?? [],
       shown: said?.shown ?? [],
