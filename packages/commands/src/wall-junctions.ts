@@ -9,7 +9,12 @@ const cross = (u: Point, v: Point) => u.x * v.y - u.y * v.x
 const delta = (a: Point, b: Point) => ({ x: b.x - a.x, y: b.y - a.y })
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 
-export function moveWallJunctions(doc: HouseDocument, id: string, by: number): string[] {
+export function moveWallJunctions(
+  doc: HouseDocument,
+  id: string,
+  by: number,
+  options: { connect?: boolean; collapse?: boolean } = {},
+): string[] {
   const wall = wallElement(doc, id)
   const moving = new Set(wall.segments.flatMap((s) => [s.wall.a, s.wall.b]))
   const affected = new Set(
@@ -69,7 +74,33 @@ export function moveWallJunctions(doc: HouseDocument, id: string, by: number): s
     positions.set(node, { x: Math.round(next.x), y: Math.round(next.y) })
   }
   for (const [id, point] of positions) Object.assign(doc.nodes[id]!, point)
+  const collapsed = new Set<string>()
+  if (options.collapse) {
+    for (const candidate of Object.values(doc.walls).filter((w) => w.level === wall.level)) {
+      if (distance(doc.nodes[candidate.a]!, doc.nodes[candidate.b]!) >= 1) continue
+      const id = elementId(candidate)
+      if (
+        Object.values(doc.walls).filter((w) => elementId(w) === id).length !== 1 ||
+        anchors.some((anchor) => anchor.id === id)
+      )
+        throw new CommandError(
+          'update-wall: cannot collapse a wall that still has segments or hosts',
+        )
+      const keep = moving.has(candidate.a) ? candidate.b : candidate.a
+      const remove = keep === candidate.a ? candidate.b : candidate.a
+      delete doc.walls[candidate.id]
+      for (const other of Object.values(doc.walls)) {
+        if (other.level !== wall.level) continue
+        if (other.a === remove) other.a = keep
+        if (other.b === remove) other.b = keep
+      }
+      if (!Object.values(doc.walls).some((w) => w.a === remove || w.b === remove))
+        delete doc.nodes[remove]
+      collapsed.add(id)
+    }
+  }
   for (const old of prior.values()) {
+    if (collapsed.has(old.id)) continue
     const next = wallElement(doc, old.id)
     if (next.length < 10 || next.unit.x * old.unit.x + next.unit.y * old.unit.y <= 0)
       throw new CommandError(`update-wall: connected wall ${old.id} would collapse or reverse`)
@@ -91,7 +122,8 @@ export function moveWallJunctions(doc: HouseDocument, id: string, by: number): s
     anchor.host.wall = part.wall.id
     anchor.host.t = (at - part.from) / (part.to - part.from)
   }
-  for (const id of connectCrossings(doc, wall.level)) affected.add(id)
+  if (options.connect !== false)
+    for (const id of connectCrossings(doc, wall.level)) affected.add(id)
   return [...affected]
 }
 

@@ -1,5 +1,6 @@
 import { removeRoom } from '@houseit/commands/remove-room'
 import { surveyRoom } from '@houseit/commands/survey'
+import { updateRoom } from '@houseit/commands/update-room'
 import { removeWall, updateWall } from '@houseit/commands/wall'
 import type { Wall } from '@houseit/core/document'
 import type { Point } from '@houseit/geometry/outlines'
@@ -9,7 +10,7 @@ import { sayError } from './notice'
 import { endPreview, previewCommand } from './preview'
 import { roomRef } from './room-ref'
 import { runEdit } from './run-edit'
-import { wallNamedBy } from './wall-move'
+import { wallMoveArgsOf, wallNamedBy } from './wall-move'
 
 function wallMoveArgs(wall: Wall, shift: Point) {
   const { doc } = documentStore.getState()
@@ -31,13 +32,24 @@ export function setWall(
   )
 }
 
-export function moveWallBy(wall: Wall, shift: Point): boolean {
+export function moveWallBy(wall: Wall, shift: Point, roomId?: string): boolean {
+  if (roomId) {
+    const { doc, level } = documentStore.getState()
+    const args = wallMoveArgsOf(doc, level, wall, shift, roomId)
+    return args ? runEdit(() => documentStore.getState().apply(updateRoom, args)) : false
+  }
   const args = wallMoveArgs(wall, shift)
   if (args.by === 0) return true
   return runEdit(() => documentStore.getState().apply(updateWall, args))
 }
 
-export function previewWallMove(wall: Wall, shift: Point): void {
+export function previewWallMove(wall: Wall, shift: Point, roomId?: string): void {
+  if (roomId) {
+    const { doc, level } = documentStore.getState()
+    const args = wallMoveArgsOf(doc, level, wall, shift, roomId)
+    if (args) previewCommand(updateRoom, args)
+    return
+  }
   const args = wallMoveArgs(wall, shift)
   if (args.by === 0) {
     endPreview()

@@ -95,7 +95,7 @@ test('the side the plan reads off a wall is the side the command moves', () => {
   expect(disagreed).toEqual([])
 })
 
-test('a small nudge moves the independent wall without inserting a step', () => {
+test('a small room-boundary nudge inserts a local return', () => {
   const start = house()
   const wall = Object.values(start.rooms)
     .find((room) => room.name === 'kuchyň')!
@@ -107,7 +107,7 @@ test('a small nudge moves the independent wall without inserting a step', () => 
     })!
 
   const next = runScript(start, `update-room --room kuchyň --wall ${wall} --by 100`)
-  expect(Object.keys(next.walls)).toEqual(Object.keys(start.walls))
+  expect(Object.keys(next.walls)).toHaveLength(Object.keys(start.walls).length + 1)
   expect(next.nodes[next.walls[wall]!.a]!.y).toBe(start.nodes[start.walls[wall]!.a]!.y - 100)
 })
 

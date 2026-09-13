@@ -43,7 +43,15 @@ export class FragmentProject {
   }
 
   async load(buffer: ArrayBuffer): Promise<HouseDocument> {
-    await this.fragments.load(buffer.slice(0), { modelId: this.modelId })
+    const base = EditUtils.getModelFromBuffer(new Uint8Array(buffer), false)
+    let nextId = base.maxLocalId()
+    for (const id of EditUtils.getItems(base).keys()) nextId = Math.max(nextId, id + 1)
+    const normalized = EditUtils.edit(
+      base,
+      [{ type: EditRequestType.UPDATE_MAX_LOCAL_ID, localId: nextId }],
+      { raw: true, delta: false },
+    ).model
+    await this.fragments.load(normalized, { modelId: this.modelId, raw: true })
     this.loaded = true
     const metadata = await this.model.getMetadata<{ houseit?: Authoring }>()
     const authoring = metadata.houseit
@@ -133,15 +141,20 @@ export class FragmentProject {
       item.data.HouseitKey = { value: `elements:${wall}` }
     }
     const requests = graphRequests(doc, graph, await this.model.getMaxLocalId())
-    await editor.edit(this.modelId, [
-      ...requests,
-      {
-        type: EditRequestType.UPDATE_METADATA,
-        localId: 0,
-        data: { houseit: { schema: 2 } satisfies Authoring },
-      },
-    ])
-    await editor.save(this.modelId)
+    const archive = EditUtils.edit(
+      graph.base,
+      [
+        ...requests,
+        {
+          type: EditRequestType.UPDATE_METADATA,
+          localId: 0,
+          data: { houseit: { schema: 2 } satisfies Authoring },
+        },
+      ],
+      { raw: true, delta: false },
+    )
+    await this.fragments.disposeModel(this.modelId)
+    await this.fragments.load(archive.model, { modelId: this.modelId, raw: true })
     documentFromGraph(await this.readGraph())
     const buffer = new Uint8Array(await this.model.getBuffer(false)).slice().buffer
     this.signatures = next
@@ -153,7 +166,7 @@ export class FragmentProject {
       new Uint8Array(await this.model.getBuffer(true)),
       true,
     )
-    return { items: EditUtils.getItems(base), relations: await this.model.getRelations() }
+    return { base, items: EditUtils.getItems(base), relations: await this.model.getRelations() }
   }
 
   async dispose() {

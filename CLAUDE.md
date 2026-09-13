@@ -35,6 +35,7 @@ The wall authoring model on `that-open-engine`:
   installed That Open API and official documentation before adding custom tooling;
   extend native components only for Houseit domain behavior they do not provide. Record each logical change and remaining limits
   in `changelog.md`.
+- **Room circles edit room boundaries.** A selected room handle uses `update-room --wall <segment> --by <mm>` to move just that segment and create a return where needed. Direct independent-wall dragging uses `update-wall` for the full element. Preview and commit use the same typed command; retain selection and native undo.
 - **No verb for looking.** Every command answers with what it touched, those rooms
   read back in full — each wall with what opens and stands on it and the stretches
   still free — and everything now wrong with the plan. `describe`, `measure` and

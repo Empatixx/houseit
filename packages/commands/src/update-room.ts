@@ -18,6 +18,7 @@ import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
 import { json } from './json-schema'
 import { length } from './length-schema'
+import { moveRoomBoundary } from './move-room-boundary'
 import { moveWall } from './move-wall'
 import { SIDE_NAMES, sideNamed, whereRoom } from './resolve'
 import { PartitionSchema, roomPartition } from './room-partition'
@@ -92,13 +93,15 @@ export const updateRoom = defineCommand({
     const changed =
       args.by === undefined
         ? [room.id]
-        : (moveWall.apply(draft, {
-            room: args.room,
-            ...(args.side === undefined ? {} : { side: args.side }),
-            ...(args.wall === undefined ? {} : { wall: args.wall }),
-            by: args.by,
-            level,
-          })?.changed ?? [room.id])
+        : args.wall !== undefined
+          ? moveRoomBoundary(draft, room.id, args.wall, args.by).changed
+          : (moveWall.apply(draft, {
+              room: args.room,
+              ...(args.side === undefined ? {} : { side: args.side }),
+              ...(args.wall === undefined ? {} : { wall: args.wall }),
+              by: args.by,
+              level,
+            })?.changed ?? [room.id])
 
     if (args.exterior !== undefined) {
       const outside = exteriorSides(draft, level)

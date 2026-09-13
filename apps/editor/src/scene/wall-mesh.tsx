@@ -32,7 +32,7 @@ type WallMeshProps = {
   pickedRoom?: string
 }
 
-export function WallMesh({ wall, doc, ofPickedRoom, outside }: WallMeshProps) {
+export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallMeshProps) {
   const body = useMemo(() => wallBody(doc, wall, true), [doc, wall])
   const geometry = useWallGeometry(body)
   const plainly = usePlain()
@@ -221,9 +221,10 @@ export function WallMesh({ wall, doc, ofPickedRoom, outside }: WallMeshProps) {
               wall.id,
               (carried) => {
                 endPreview()
-                if (carried) moveWallBy(wall, carried.shift)
+                if (carried) moveWallBy(wall, carried.shift, ofPickedRoom ? pickedRoom : undefined)
               },
-              (carried) => previewWallMove(wall, carried.shift),
+              (carried) =>
+                previewWallMove(wall, carried.shift, ofPickedRoom ? pickedRoom : undefined),
             )
           }
         />

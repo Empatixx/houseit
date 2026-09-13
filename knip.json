@@ -4,7 +4,7 @@
     ".": {
       "entry": ["scripts/*.mjs"],
       "project": ["scripts/*.mjs"],
-      "ignoreDependencies": ["playwright-core"],
+      "ignoreDependencies": ["playwright-core", "^@modelcontextprotocol/sdk(/.*)?$"],
       "ignoreBinaries": ["sips", "pdftocairo", "pdftotext"]
     },
     "packages/core": {

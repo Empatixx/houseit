@@ -191,7 +191,7 @@ test('what stood in the room knocked into stays put as well', () => {
   expect(shelf.at!.x).toBeLessThan(4500)
 })
 
-test('a topology segment selects its complete independent wall without adding steps', () => {
+test('a room boundary segment moves locally and adds a return', () => {
   const start = house()
   const south = report(start, 'kitchen').sides.find((side) => side.side === 'south')!
   const wall = south.walls[0]!.id
@@ -201,8 +201,8 @@ test('a topology segment selects its complete independent wall without adding st
   const kitchen = report(doc, 'kitchen')
   const outer = report(doc, 'house')
   expect(kitchen.depth - report(start, 'kitchen').depth).toBe(500)
-  expect(outer.depth - report(start, 'house').depth).toBe(500)
-  expect(Object.keys(doc.walls)).toEqual(Object.keys(start.walls))
+  expect(outer.depth).toBe(report(start, 'house').depth)
+  expect(Object.keys(doc.walls)).toHaveLength(Object.keys(start.walls).length + 1)
   expect(roomsOf(doc, level(doc))).toHaveLength(3)
 })
 
@@ -227,15 +227,14 @@ test('every room keeps its name and floor when its independent wall moves', () =
   }
 })
 
-test('an independent wall moved out and back retains its topology', () => {
+test('a room boundary moved out and back removes the collapsed return', () => {
   const start = house()
   const wall = report(start, 'kitchen').sides.find((side) => side.side === 'south')!.walls[0]!.id
   const out = runScript(start, `update-room --room kitchen --wall ${wall} --by 500`)
-  const stepped = Object.keys(out.walls).length
 
   const back = runScript(out, `update-room --room kitchen --wall ${wall} --by -500`)
 
-  expect(Object.keys(back.walls).length).toBe(stepped)
+  expect(Object.keys(back.walls).length).toBe(Object.keys(start.walls).length)
   expect(back.nodes).toEqual(start.nodes)
   expect(report(back, 'kitchen').depth).toBe(report(start, 'kitchen').depth)
   expect(
