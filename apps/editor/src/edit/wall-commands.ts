@@ -12,7 +12,7 @@ import { constrainWallEdit } from './constrained-wall-edit'
 import { sayError } from './notice'
 import { roomRef } from './room-ref'
 import { runEdit } from './run-edit'
-import { wallMoveArgsOf, wallNamedBy } from './wall-move'
+import { wallAlignmentShifts, wallMoveArgsOf, wallNamedBy } from './wall-move'
 
 function wallMoveArgs(wall: Wall, shift: Point) {
   const { doc } = documentStore.getState()
@@ -43,14 +43,20 @@ export function moveWallBy(wall: Wall, shift: Point, roomId?: string): boolean {
 
 function constrainedMove(wall: Wall, shift: Point, roomId?: string) {
   const { doc, level, apply } = documentStore.getState()
+  const alignments = wallAlignmentShifts(doc, wall)
   if (roomId) {
     const args = wallMoveArgsOf(doc, level, wall, shift, roomId)
     if (!args) return undefined
-    const edit = constrainWallEdit(doc, updateRoom, (by) => ({ ...args, by }), 0, args.by)
+    const stops = alignments.flatMap((shift) => {
+      const args = wallMoveArgsOf(doc, level, wall, shift, roomId)
+      return args ? [args.by] : []
+    })
+    const edit = constrainWallEdit(doc, updateRoom, (by) => ({ ...args, by }), 0, args.by, stops)
     return { doc: edit.doc, commit: () => edit.changed && apply(updateRoom, edit.args) }
   }
   const args = wallMoveArgs(wall, shift)
-  const edit = constrainWallEdit(doc, updateWall, (by) => ({ ...args, by }), 0, args.by)
+  const stops = alignments.map((shift) => wallMoveArgs(wall, shift).by)
+  const edit = constrainWallEdit(doc, updateWall, (by) => ({ ...args, by }), 0, args.by, stops)
   return { doc: edit.doc, commit: () => edit.changed && apply(updateWall, edit.args) }
 }
 

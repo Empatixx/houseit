@@ -92,7 +92,7 @@ export const updateWall = defineCommand({
       .map((r) => r.id!)
     const affected =
       args.length === undefined
-        ? moveWallJunctions(draft, element.id, args.by ?? 0)
+        ? moveWallJunctions(draft, element.id, args.by ?? 0, { collapse: true })
         : resizeWallEnd(draft, element.id, args.length, args.end ?? 'to')
     for (const { wall } of wallElement(draft, element.id).segments) {
       if (args.thickness !== undefined) wall.thickness = args.thickness

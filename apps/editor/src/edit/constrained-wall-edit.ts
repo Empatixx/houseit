@@ -11,8 +11,9 @@ export function constrainWallEdit<C extends TypedCommand>(
   argsAt: (value: number) => ArgsOf<C>,
   from: number,
   to: number,
+  stops: number[] = [],
 ) {
-  const key = JSON.stringify([command.name, argsAt(from), argsAt(to)])
+  const key = JSON.stringify([command.name, argsAt(from), argsAt(to), stops])
   const trial = (value: number): Result | undefined => {
     try {
       return { value, doc: applyCommand(source, command, argsAt(value)) }
@@ -28,6 +29,16 @@ export function constrainWallEdit<C extends TypedCommand>(
       let low = 0,
         high = Math.ceil(Math.abs(to - from))
       const direction = Math.sign(to - from)
+      const candidates = [...new Set(stops)]
+        .filter((value) => (value - from) * direction > 0 && (to - value) * direction >= 0)
+        .sort((a, b) => direction * (b - a))
+      for (const value of candidates) {
+        const candidate = trial(value)
+        if (!candidate) continue
+        result = candidate
+        low = Math.abs(value - from)
+        break
+      }
       while (high - low > 1) {
         const middle = Math.floor((low + high) / 2)
         const candidate = trial(from + direction * middle)

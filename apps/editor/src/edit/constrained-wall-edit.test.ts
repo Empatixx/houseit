@@ -94,3 +94,95 @@ test('a free endpoint stops exactly where its hosted window still fits', () => {
   expect(resizeWall(wall, 'to', 10)).toBe(true)
   expect(documentStore.getState().doc).toEqual(preview)
 })
+
+function steppedHouse() {
+  documentStore
+    .getState()
+    .exec(
+      [
+        'add-room --shape rectangle --width 12000 --depth 8000 --name Hall --material natural-oak',
+        'add-room --from Hall --side west --width 5000 --name Living --material natural-oak',
+        'add-room --from Hall --side east --width 5500 --name Study --material natural-oak',
+      ].join('\n'),
+    )
+  const { doc } = documentStore.getState()
+  const north = (name: string) =>
+    Object.values(doc.rooms)
+      .find((r) => r.name === name)!
+      .loop.find(
+        (id) => doc.nodes[doc.walls[id]!.a]!.y === 8000 && doc.nodes[doc.walls[id]!.b]!.y === 8000,
+      )!
+  documentStore
+    .getState()
+    .exec(
+      `update-room --room Living --wall ${north('Living')} --by 151\nupdate-room --room Study --wall ${north('Study')} --by 151`,
+    )
+  return north
+}
+
+test.each(['room', 'wall'])(
+  'a %s drag can raise the corridor through an invalid short-return interval',
+  (kind) => {
+    const north = steppedHouse()
+    const before = documentStore.getState(),
+      wall = before.doc.walls[north('Hall')]!
+    const room = Object.values(before.doc.rooms).find((r) => r.name === 'Hall')!.id
+    const picked = kind === 'room' ? room : undefined
+    for (const y of [151, 200, 300]) {
+      previewWallMove(wall, { x: 0, y }, picked)
+      const doc = previewStore.getState().doc!
+      expect(doc.nodes[doc.walls[wall.id]!.a]!.y).toBe(8151)
+      expect(doc.nodes[doc.walls[wall.id]!.b]!.y).toBe(8151)
+    }
+    const preview = previewStore.getState().doc
+    endPreview()
+    moveWallBy(wall, { x: 0, y: 300 }, picked)
+    expect(documentStore.getState().doc).toEqual(preview)
+    expect(documentStore.getState().past.length).toBe(before.past.length + 1)
+    documentStore.getState().undo()
+    expect(documentStore.getState().doc).toEqual(before.doc)
+  },
+)
+
+test.each(['Living', 'Study'])(
+  'lowering %s to the corridor removes its return without moving the other rooms',
+  (name) => {
+    const north = steppedHouse()
+    const before = documentStore.getState(),
+      wall = before.doc.walls[north(name)]!
+    const room = Object.values(before.doc.rooms).find((r) => r.name === name)!.id
+    previewWallMove(wall, { x: 0, y: -300 }, room)
+    const preview = previewStore.getState().doc!
+    expect(preview.nodes[preview.walls[wall.id]!.a]!.y).toBe(8000)
+    for (const other of ['Hall', name === 'Living' ? 'Study' : 'Living']) {
+      const w = before.doc.walls[north(other)]!
+      expect(preview.nodes[preview.walls[w.id]!.a]!.y).toBe(before.doc.nodes[w.a]!.y)
+      expect(preview.nodes[preview.walls[w.id]!.b]!.y).toBe(before.doc.nodes[w.b]!.y)
+    }
+    endPreview()
+    moveWallBy(wall, { x: 0, y: -300 }, room)
+    expect(documentStore.getState().doc).toEqual(preview)
+  },
+)
+
+test('an occupied return cannot be removed by direct wall alignment', () => {
+  const north = steppedHouse()
+  const doc = documentStore.getState().doc
+  const step = Object.values(doc.walls).find(
+    (w) =>
+      doc.nodes[w.a]!.x === 5000 &&
+      doc.nodes[w.b]!.x === 5000 &&
+      Math.abs(doc.nodes[w.a]!.y - doc.nodes[w.b]!.y) === 151,
+  )!
+  documentStore
+    .getState()
+    .exec(`add-device --kind socket --wall ${step.id} --along 75 --height 350`)
+  const before = documentStore.getState(),
+    wall = before.doc.walls[north('Hall')]!
+  expect(() =>
+    documentStore.getState().apply(updateWall, { id: wall.element ?? wall.id, by: -151 }),
+  ).toThrow(/hosts/)
+  moveWallBy(wall, { x: 0, y: 300 })
+  expect(documentStore.getState().doc).toBe(before.doc)
+  expect(documentStore.getState().past).toEqual(before.past)
+})

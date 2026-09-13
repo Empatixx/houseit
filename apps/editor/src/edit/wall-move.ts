@@ -55,16 +55,29 @@ export function alignWallShift(
   const offset = nx * shift.x + ny * shift.y
   let correction = tolerance
   let found = false
+  for (const target of wallAlignmentShifts(doc, wall)) {
+    const delta = nx * target.x + ny * target.y - offset
+    if (Math.abs(delta) >= Math.abs(correction)) continue
+    correction = delta
+    found = true
+  }
+  return found ? { x: shift.x + nx * correction, y: shift.y + ny * correction } : shift
+}
+
+export function wallAlignmentShifts(doc: HouseDocument, wall: Wall): Point[] {
+  const a = doc.nodes[wall.a]!,
+    b = doc.nodes[wall.b]!
+  const length = Math.hypot(b.x - a.x, b.y - a.y)
+  const nx = -(b.y - a.y) / length,
+    ny = (b.x - a.x) / length
+  const offsets = new Set<number>()
   for (const other of Object.values(doc.walls)) {
     if (other.level !== wall.level || other.id === wall.id) continue
     const from = doc.nodes[other.a]!,
       to = doc.nodes[other.b]!
     const span = Math.hypot(to.x - from.x, to.y - from.y)
     if (Math.abs(nx * (to.x - from.x) + ny * (to.y - from.y)) > span * 1e-6) continue
-    const delta = nx * (from.x - a.x) + ny * (from.y - a.y) - offset
-    if (Math.abs(delta) >= Math.abs(correction)) continue
-    correction = delta
-    found = true
+    offsets.add(nx * (from.x - a.x) + ny * (from.y - a.y))
   }
-  return found ? { x: shift.x + nx * correction, y: shift.y + ny * correction } : shift
+  return [...offsets].map((offset) => ({ x: nx * offset, y: ny * offset }))
 }
