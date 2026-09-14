@@ -21,6 +21,7 @@ const CATEGORIES: Record<NonNullable<Piece['role']>, string> = {
   'shaft-solid': 'IFCBUILDINGELEMENTPROXY',
   'roof-solid': 'IFCROOF',
   'column-solid': 'IFCCOLUMN',
+  'facade-covering': 'IFCCOVERING',
 }
 
 export function House({ picking = true }: { picking?: boolean }) {

@@ -37,6 +37,7 @@ export type Piece = {
     | 'shaft-solid'
     | 'roof-solid'
     | 'column-solid'
+    | 'facade-covering'
   body: Body
   at: { x: number; y: number; z: number }
   turn?: number

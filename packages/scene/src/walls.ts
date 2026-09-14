@@ -215,6 +215,7 @@ function standingWall(
                   (band.along.to >= span || (l + r) / 2 <= band.along.to + growA))),
           )
           facade.push({
+            role: 'facade-covering',
             body: {
               kind: 'box',
               width: r - l,

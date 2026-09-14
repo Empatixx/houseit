@@ -34,7 +34,7 @@ The wall authoring model on `that-open-engine`:
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
   Fragment interaction model remains for eligible non-native owned meshes; it is not the document or
-  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts, roofs and columns render as native Fragments shells in each viewport's
+  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts, roofs, columns and facades render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
   batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
@@ -103,6 +103,17 @@ The wall authoring model on `that-open-engine`:
   or editing controls are introduced. `native-column-proof.mjs` covers repeated geometry, resize
   detachment, embedded-to-free movement, exterior/upper supports, native cuts/snapping, collision
   walking and archives; `--shaft` exercises the shared skin at enclosures around columns.
+  Exterior coats carry `facade-covering`/IFCCOVERING and keep their wall owner and existing piece
+  names. The shared source mapping preserves exposed-box skins at corners, colour bands, plinths
+  and openings. Keep facade height through slab/buildup and the summed layer thickness in the shared
+  scene generator; the engine does not supply those building rules. Facades no longer enter the
+  invisible InteractionModel. Their native IDs resolve to the host wall for selection; walk mode
+  keeps its existing non-picking behavior, while section views support facade clicks. The exterior
+  schema currently describes colours and layer thicknesses, not named texture finishes; this display
+  migration does not extend CLI schemas. Textured interior wall finishes already use native walls.
+  `native-facade-proof.mjs` covers plinths, bounded bands, openings and persistence; `--continuity`
+  covers multi-storey coats, corners and embedded columns. `live-wall-preview-proof.mjs --facade`
+  verifies the coat after actual wall dragging and a single undo.
   During a wall, opening or furniture gesture, a temporary portal renders the registered source geometry/materials,
   while the permanent native roots are hidden and native edit requests are coalesced. Keep this
   preview until the final native update is ready; exclude it from InteractionModel. It is gesture
