@@ -579,8 +579,8 @@ bun run typecheck && bun run lint && bun run depcruise && bun run knip
 
 ## Browser regressions
 
-Run `bun run test:regression` for the 13 interaction/archive scenarios, or add `--all`
-for all 32 UI/display cases and variants. `--only <id,id>` selects cases; `--all --list`
+Run `bun run test:regression` for the 14 interaction/archive scenarios, or add `--all`
+for all 33 UI/display cases and variants. `--only <id,id>` selects cases; `--all --list`
 prints the registry. Chrome runs headless by default; `--headed` opens a visible window.
 The runner owns a dedicated browser on a free CDP port and reuses an existing editor
 or starts its own. It only shuts down processes it started. Keep cases sequential;
@@ -601,8 +601,7 @@ are discarded; logs/screenshots and `report.json` go to an ignored per-run direc
 `add-room --boundary` accepts a measured wall-centre chain as JSON, each corner
 with the thickness of its outgoing wall. It reuses and splits shared walls,
 refuses inconsistent thicknesses and overlapping rooms, and assigns exactly one
-face. It is the way in from construction documentation; there is still no
-independent wall command. Prefer relative cuts for ordinary design.
+face. It is the way in from construction documentation; independent walls also use `add-wall` / `update-wall` / `remove-wall`. Prefer relative cuts for ordinary design.
 
 `update-room --exterior` dresses exterior walls with named layers and colour
 bands measured above the storey's floor. The outside comes from the wall graph.
