@@ -1,26 +1,23 @@
 import { excavations } from '@houseit/geometry/excavation'
-import type { Point } from '@houseit/geometry/outlines'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import {
   BufferAttribute,
+  type BufferGeometry,
   CanvasTexture,
   MeshStandardMaterial,
-  Path,
-  PlaneGeometry,
   RepeatWrapping,
-  Shape,
-  ShapeGeometry,
   SRGBColorSpace,
 } from 'three'
+import { GROUND_REACH } from '../../engine/ground-geometry'
+import { useNativeGeometry } from '../../engine/use-wall-geometry'
 import { useDocument } from '../../store/store'
 import { useWalk } from '../../store/walk'
 import { PieceMesh } from './piece-mesh'
 
-const REACH = 400
+const REACH = GROUND_REACH
 const TILE = 6
 const WEAVE = 2048
-const PATCHES = 128
 const OVERLAP = 32
 
 type Tone = [number, number, number]
@@ -136,25 +133,7 @@ function turf() {
 
 const TILTS = [0.7, 2.31]
 
-function lawn(holes: Point[][]) {
-  const shape = new Shape()
-  shape.moveTo(-REACH / 2, -REACH / 2)
-  shape.lineTo(REACH / 2, -REACH / 2)
-  shape.lineTo(REACH / 2, REACH / 2)
-  shape.lineTo(-REACH / 2, REACH / 2)
-  shape.closePath()
-  for (const ring of holes) {
-    const path = new Path()
-    ring.forEach((p, i) => {
-      if (i === 0) path.moveTo(p.x / 1000, p.y / 1000)
-      else path.lineTo(p.x / 1000, p.y / 1000)
-    })
-    path.closePath()
-    shape.holes.push(path)
-  }
-  const geometry = holes.length
-    ? new ShapeGeometry(shape)
-    : new PlaneGeometry(REACH, REACH, PATCHES, PATCHES)
+function lawn(geometry: BufferGeometry) {
   const sweep = field(8, 1277)
   const worn = field(26, 6011)
   const positions = geometry.getAttribute('position')
@@ -184,9 +163,16 @@ export function Ground() {
   const site = useWalk((s) => s.inspection?.site !== false)
   const gl = useThree((state) => state.gl)
   const doc = useDocument((state) => state.doc)
-  const key = JSON.stringify(excavations(doc))
-  const geometry = useMemo(() => lawn(JSON.parse(key) as Point[][]), [key])
-  useEffect(() => () => geometry.dispose(), [geometry])
+  const holes = useMemo(
+    () => excavations(doc).map((ring) => ring.map((p) => ({ x: p.x, z: -p.y }))),
+    [doc],
+  )
+  const native = useNativeGeometry({ kind: 'ground', holes })
+  const geometry = useMemo(
+    () => (native.geometry ? lawn(native.geometry.clone()) : null),
+    [native.geometry],
+  )
+  useEffect(() => () => geometry?.dispose(), [geometry])
   const grass = useMemo(() => {
     const texture = new CanvasTexture(turf())
     texture.wrapS = RepeatWrapping
@@ -203,12 +189,12 @@ export function Ground() {
   )
   useEffect(() => () => material.dispose(), [material])
 
-  if (!site) return null
+  if (!site || !geometry) return null
   return (
     <PieceMesh
       native={{ id: 'terrain:ground', elevation: 0, category: 'IFCGEOGRAPHICELEMENT' }}
       geometry={geometry}
-      geometryKey={`terrain:${key}`}
+      geometryKey={native.key}
       material={material}
       rotation={[-Math.PI / 2, 0, 0, 'YXZ']}
       at={[0, -0.01, 0]}

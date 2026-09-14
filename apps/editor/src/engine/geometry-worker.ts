@@ -1,11 +1,8 @@
 import { GeometryEngine } from '@thatopen/fragments'
 import { IfcAPI } from 'web-ifc'
 import wasmUrl from 'web-ifc/web-ifc.wasm?url'
+import { generateGeometry } from './generate-geometry'
 import type { GeometryRequest, GeometryResponse } from './geometry-protocol'
-import { primitiveGeometry } from './primitive-geometry'
-import { profileGeometry } from './profile-geometry'
-import { sheetGeometry } from './sheet-geometry'
-import { wallGeometry } from './wall-geometry'
 
 const api = new IfcAPI()
 const engine = api.Init(() => wasmUrl, true).then(() => new GeometryEngine(api))
@@ -14,14 +11,7 @@ self.onmessage = (event: MessageEvent<GeometryRequest>) => {
   queue = queue.then(async () => {
     const { id, input } = event.data
     try {
-      const geometry =
-        input.kind === 'wall'
-          ? wallGeometry(await engine, input.body)
-          : input.kind === 'profile'
-            ? profileGeometry(await engine, input.body)
-            : input.kind === 'sheets'
-              ? sheetGeometry(await engine, input)
-              : primitiveGeometry(await engine, input.body)
+      const geometry = generateGeometry(await engine, input)
       const data = {
         positions: new Float32Array(geometry.getAttribute('position').array),
         normals: new Float32Array(geometry.getAttribute('normal').array),

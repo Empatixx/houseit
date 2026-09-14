@@ -14,7 +14,7 @@ import { moveWallBy, previewWallMove, previewWallResize, resizeWall } from '../e
 import { alignWallShift } from '../edit/wall-move'
 import { NativeSurface } from '../engine/fragment-display-layer'
 import { activeTools } from '../engine/native-tools'
-import { useWallGeometry } from '../engine/use-wall-geometry'
+import { useNativeGeometry, useWallGeometry } from '../engine/use-wall-geometry'
 import { wallBody } from '../engine/wall-body'
 import { engineViewStore } from '../store/engine-view'
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
@@ -428,12 +428,20 @@ function WallPart({
     ],
     [colour, hidden],
   )
+  const generated = useNativeGeometry(
+    !native && !hidden
+      ? {
+          kind: 'primitive',
+          body: { kind: 'box', width: piece.length, height: piece.height, depth: piece.thickness },
+        }
+      : null,
+  )
   const box = useMemo(
     () =>
-      native
+      native || !hidden
         ? undefined
         : new BoxGeometry(piece.length * MM, piece.height * MM, piece.thickness * MM),
-    [native, piece.length, piece.height, piece.thickness],
+    [native, hidden, piece.length, piece.height, piece.thickness],
   )
   useEffect(() => () => box?.dispose(), [box])
   useEffect(
@@ -442,9 +450,8 @@ function WallPart({
     },
     [materials],
   )
-  if (!native && (!opening || hidden))
-    return <mesh {...props} geometry={box} material={materials[0]} />
-  const geometry = native ? props.geometry : box
+  if (!native && hidden) return <mesh {...props} geometry={box} material={materials[0]} />
+  const geometry = native ? props.geometry : generated.geometry
   if (!geometry) return null
   const position = props.position as [number, number, number]
   const angle = (props.rotation as [number, number, number])[1]
@@ -452,17 +459,20 @@ function WallPart({
     <NativeSurface
       gesture={gesture}
       surface={{
-        id: native ? `wall:${wallId}` : `opening:${wallId}:${piece.key}`,
-        owner: native ? { kind: 'wall', id: wallId } : { kind: 'opening', id: opening!.id },
+        id: native
+          ? `wall:${wallId}`
+          : `${opening ? 'opening' : 'wall-part'}:${wallId}:${piece.key}`,
+        owner:
+          native || !opening ? { kind: 'wall', id: wallId } : { kind: 'opening', id: opening.id },
         category: native
           ? 'HOUSEITWALLSEGMENT'
-          : { door: 'IFCDOOR', window: 'IFCWINDOW', assembly: 'IFCBUILDINGELEMENTPROXY' }[
-              opening!.kind
-            ],
+          : opening
+            ? { door: 'IFCDOOR', window: 'IFCWINDOW', assembly: 'IFCBUILDINGELEMENTPROXY' }[
+                opening.kind
+              ]
+            : 'IFCCOVERING',
         geometry,
-        geometryKey: native
-          ? undefined
-          : `opening-box:${piece.length}:${piece.height}:${piece.thickness}`,
+        geometryKey: native ? undefined : generated.key,
         materials,
         transform: new Matrix4().makeRotationY(angle).setPosition(...position),
         mapping: native ? { kind: 'wall', length, height } : { kind: 'source', geometry },

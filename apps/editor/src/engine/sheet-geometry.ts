@@ -10,6 +10,26 @@ export type SheetInput = {
   textureSize?: { width: number; depth: number }
 }
 
+export function rectangleSheet(size: { width: number; depth: number }): SheetInput {
+  const x = size.width / 2,
+    z = size.depth / 2
+  return {
+    kind: 'sheets',
+    textureSize: size,
+    profiles: [
+      {
+        outline: [
+          { x, z },
+          { x, z: -z },
+          { x: -x, z: -z },
+          { x: -x, z },
+        ],
+        holes: [],
+      },
+    ],
+  }
+}
+
 export function sheetGeometry(engine: GeometryEngine, input: SheetInput) {
   const parts = input.profiles.map((profile) =>
     profileGeometry(engine, { ...profile, kind: 'sheet' }),
