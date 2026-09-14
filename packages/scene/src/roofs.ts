@@ -130,7 +130,7 @@ export function roofPieces(doc: HouseDocument, level: string): Piece[] {
         }),
       )
     }
-    return pieces.map((piece, i) => ({ ...piece, name: `roof-${index}-${i}` }))
+    return pieces.map((piece, i) => ({ ...piece, role: 'roof-solid', name: `roof-${index}-${i}` }))
   })
 }
 

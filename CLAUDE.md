@@ -34,7 +34,7 @@ The wall authoring model on `that-open-engine`:
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
   Fragment interaction model remains for eligible non-native owned meshes; it is not the document or
-  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps and shaft parts render as native Fragments shells in each viewport's
+  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts and roofs render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
   batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
@@ -88,6 +88,14 @@ The wall authoring model on `that-open-engine`:
   and shaft plan marks remain schematic UI presentation. `native-connection-proof.mjs` covers
   all ramp directions, site elevations/base offsets, enclosed lifts and shafts around columns,
   including native/source geometry, edge snapping, cuts, actual keyboard walking and archives.
+  Roof prisms/facets, parapets, coping and drains carry `roof-solid`/IFCROOF and use the same
+  source-triangle mapping, preserving existing finishes and slopes. Roof shaping, validation,
+  shaft voids and index-based piece names remain shared Houseit rules; roof parts retain their
+  unowned UI semantics. Register and release NativeSurface in layout effects together: a passive
+  old-component cleanup can otherwise remove its replacement under the same ID after a body-type
+  change. `native-roof-proof.mjs` covers reordered/deleted roofs, mixed materials and noncoplanar
+  facets; `--shaft` covers a roof opening and its removal/restoration. Facet roofs still have the
+  existing limitation that they do not subtract shaft voids; this migration does not change it.
   During a wall, opening or furniture gesture, a temporary portal renders the registered source geometry/materials,
   while the permanent native roots are hidden and native edit requests are coalesced. Keep this
   preview until the final native update is ready; exclude it from InteractionModel. It is gesture

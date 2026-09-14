@@ -127,7 +127,7 @@ export function NativeSurface({ surface, gesture = false, ...events }: Props) {
   }, [display, id, gesture])
   const current = useRef(events)
   current.current = events
-  useEffect(() => {
+  useLayoutEffect(() => {
     const forwarded = Object.fromEntries(
       eventNames.map((name) => [
         name,
