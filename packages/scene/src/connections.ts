@@ -82,6 +82,7 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
         paint: { colour: s.colour },
       }),
       name: `stair-${s.id}-${t.step}`,
+      role: 'stair-solid' as const,
     }))
   })
   return [...ramps, ...guides, ...enclosure, ...stairs]

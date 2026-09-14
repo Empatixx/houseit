@@ -33,8 +33,8 @@ The wall authoring model on `that-open-engine`:
   in `eb29400` was withdrawn because it regressed those features.
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
-  Fragment interaction model mirrors the remaining stair and structural geometry; it is not the document or
-  persistence model. Walls, floors, slabs, furniture and opening fills render as native Fragments shells in each viewport's
+  Fragment interaction model mirrors the remaining structural geometry; it is not the document or
+  persistence model. Walls, floors, slabs, furniture, opening fills and 3D stairs render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
   batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
@@ -68,6 +68,16 @@ The wall authoring model on `that-open-engine`:
   dragged; they are not native measurement geometry and are excluded from InteractionModel.
   Start the local opening preview only after pointer movement, so an ordinary click does not hide
   its own hit target. Permanent opening surfaces are not mirrored into InteractionModel.
+  Catalogue stairs and measured `add-stair` flights/landings carry the explicit `stair-solid` role
+  and render as IFCSTAIR items through that same shared NativeSurface path. Preserve source
+  triangulation/UVs for their prisms too. Keep `treadsOf`, storey rise, base offset, thickness,
+  wells and walking rules shared; this is a display migration, not a new staircase authoring model.
+  Catalogue parts retain their object owner; measured runs retain their existing unowned presentation.
+  Current-floor catalogue glyphs are already native. The measured 2D flight annotations and
+  translucent stairs-below plan overlay remain UI presentation; do not claim those are IFCSTAIR items.
+  `native-stair-proof.mjs` covers all five catalogue shapes, repeated instances and `--measured`
+  covers the basement's three flights and irregular landings. Run `live-furniture-preview-proof.mjs
+  --stairs` for real staircase dragging/rotation and native snapping during the preview.
   During a wall, opening or furniture gesture, a temporary portal renders the registered source geometry/materials,
   while the permanent native roots are hidden and native edit requests are coalesced. Keep this
   preview until the final native update is ready; exclude it from InteractionModel. It is gesture

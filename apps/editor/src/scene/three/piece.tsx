@@ -85,11 +85,12 @@ export function StandingPiece({ piece, tint, onPick, native: display }: PiecePro
                 ...native,
                 owner: piece.of,
                 category:
-                  piece.of?.kind === 'object'
+                  native.category ??
+                  (piece.of?.kind === 'object'
                     ? 'IFCFURNISHINGELEMENT'
                     : piece.role === 'floor-surface'
                       ? 'IFCCOVERING'
-                      : 'IFCSLAB',
+                      : 'IFCSLAB'),
               }
             : undefined
         }
@@ -165,7 +166,11 @@ function Flat({ body, at, rotation, material, shadows, onPick, native }: FlatPro
     <PieceMesh
       native={native}
       geometry={geometry}
-      geometryKey={native?.owner?.kind === 'object' ? JSON.stringify(body) : undefined}
+      geometryKey={
+        native?.owner?.kind === 'object' || native?.category === 'IFCSTAIR'
+          ? JSON.stringify(body)
+          : undefined
+      }
       material={material}
       at={at}
       rotation={rotation}

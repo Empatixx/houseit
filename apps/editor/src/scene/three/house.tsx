@@ -1,4 +1,3 @@
-import { isStaircase } from '@houseit/core/stairs'
 import type { Owner, Piece } from '@houseit/scene/pieces'
 import { worldOf } from '@houseit/scene/world'
 import { useMemo } from 'react'
@@ -48,19 +47,22 @@ export function House({ picking = true }: { picking?: boolean }) {
                   native={
                     piece.role === 'floor-surface' ||
                     piece.role === 'slab-solid' ||
+                    piece.role === 'stair-solid' ||
                     piece.of?.kind === 'opening' ||
-                    (piece.of?.kind === 'object' && !isStaircase(doc.objects[piece.of.id]!.type))
+                    piece.of?.kind === 'object'
                       ? {
                           id: `${storey.level}:${piece.name}`,
                           elevation: storey.elevation,
                           category:
-                            piece.of?.kind === 'opening'
-                              ? doc.openings[piece.of.id]?.kind === 'door'
-                                ? 'IFCDOOR'
-                                : doc.openings[piece.of.id]?.kind === 'window'
-                                  ? 'IFCWINDOW'
-                                  : 'IFCBUILDINGELEMENTPROXY'
-                              : undefined,
+                            piece.role === 'stair-solid'
+                              ? 'IFCSTAIR'
+                              : piece.of?.kind === 'opening'
+                                ? doc.openings[piece.of.id]?.kind === 'door'
+                                  ? 'IFCDOOR'
+                                  : doc.openings[piece.of.id]?.kind === 'window'
+                                    ? 'IFCWINDOW'
+                                    : 'IFCBUILDINGELEMENTPROXY'
+                                : undefined,
                         }
                       : undefined
                   }
