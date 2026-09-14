@@ -95,12 +95,15 @@ function standingWall(
     }),
   )
 
-  const parts = openings.flatMap((o) => openingParts(o, span))
+  const parts = openings.flatMap((o) =>
+    openingParts(o, span).map((part) => ({ ...part, opening: o.id })),
+  )
   const leaves = parts.flatMap((opening) => {
     const into = opening.kind === 'door' ? worn[opening.swing > 0 ? 0 : 1] : undefined
     return owned(
-      { kind: 'opening', id: opening.id },
+      { kind: 'opening', id: opening.opening },
       doorPieces(opening, wall, growA + opening.t * span, outside).map((piece) => ({
+        name: `opening-${piece.key}`,
         body: {
           kind: 'box' as const,
           width: piece.length,
@@ -146,7 +149,8 @@ function standingWall(
           : opening.infill === 'frosted'
             ? { colour: '#dce5e8', opacity: 0.92 }
             : { colour: PAINT.glass, opacity: 0.45 },
-      of: { kind: 'opening' as const, id: opening.id },
+      name: `opening-${opening.id}-pane`,
+      of: { kind: 'opening' as const, id: opening.opening },
     }))
 
   const facade: Piece[] = []
@@ -253,7 +257,7 @@ function standingWall(
         ? []
         : [{ at: centre, base: sill, height: frame.face, width: opening.width - 2 * frame.face }]),
     ]
-    return strips.flatMap((strip) =>
+    return strips.flatMap((strip, index) =>
       ([1, -1] as const).map((side) => ({
         body: {
           kind: 'box' as const,
@@ -268,7 +272,8 @@ function standingWall(
         ),
         turn: angle,
         paint: { colour: side === outside ? frame.outside : frame.inside },
-        of: { kind: 'opening' as const, id: opening.id.split('-panel-')[0]! },
+        name: `opening-${opening.id}-frame-${index}-${side}`,
+        of: { kind: 'opening' as const, id: opening.opening },
       })),
     )
   })

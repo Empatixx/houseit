@@ -5,14 +5,14 @@ import { elementId, wallElement } from '@houseit/geometry/wall-elements'
 import { INK, planPieces, type WallPiece } from '@houseit/scene/wall-pieces'
 import { type ThreeElements, type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { type Group, MeshBasicMaterial, type OrthographicCamera } from 'three'
+import { BoxGeometry, type Group, Matrix4, MeshBasicMaterial, type OrthographicCamera } from 'three'
 import { aimAt, putDown } from '../edit/draw-commands'
 import { moveOpeningTo } from '../edit/opening-commands'
 import { pick } from '../edit/pick'
 import { endPreview } from '../edit/preview'
 import { moveWallBy, previewWallMove, previewWallResize, resizeWall } from '../edit/wall-commands'
 import { alignWallShift } from '../edit/wall-move'
-import { NativeWallSurface } from '../engine/fragment-display-layer'
+import { NativeSurface } from '../engine/fragment-display-layer'
 import { activeTools } from '../engine/native-tools'
 import { useWallGeometry } from '../engine/use-wall-geometry'
 import { wallBody } from '../engine/wall-body'
@@ -144,6 +144,9 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
             height={body.height}
             colour={tinted(piece, emphasis)}
             hidden={piece.hidden}
+            opening={opening ? { id: opening.id, kind: opening.kind } : undefined}
+            piece={piece}
+            gesture={heldOpening && (held!.shift.x !== 0 || held!.shift.y !== 0)}
             userData={{
               houseit: opening
                 ? { kind: 'opening', id: opening.id }
@@ -205,11 +208,7 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
                 aimAt({ x: event.point.x / MM, y: -event.point.z / MM })
               }
             }}
-          >
-            {native ? null : (
-              <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
-            )}
-          </WallPart>
+          />
         )
       })}
 
@@ -403,7 +402,9 @@ function WallPart({
   height,
   colour,
   hidden,
-  children,
+  opening,
+  piece,
+  gesture,
   ...props
 }: ThreeElements['mesh'] & {
   native: boolean
@@ -412,36 +413,62 @@ function WallPart({
   height: number
   colour: string
   hidden?: boolean
+  opening?: { id: string; kind: 'door' | 'window' | 'assembly' }
+  piece: WallPiece
+  gesture: boolean
 }) {
-  const materials = useMemo(() => [new MeshBasicMaterial({ color: colour })], [colour])
+  const materials = useMemo(
+    () => [
+      new MeshBasicMaterial({
+        color: colour,
+        transparent: !!hidden,
+        opacity: hidden ? 0 : 1,
+        depthWrite: !hidden,
+      }),
+    ],
+    [colour, hidden],
+  )
+  const box = useMemo(
+    () =>
+      native
+        ? undefined
+        : new BoxGeometry(piece.length * MM, piece.height * MM, piece.thickness * MM),
+    [native, piece.length, piece.height, piece.thickness],
+  )
+  useEffect(() => () => box?.dispose(), [box])
   useEffect(
     () => () => {
       for (const material of materials) material.dispose()
     },
     [materials],
   )
-  if (!native)
-    return (
-      <mesh {...props}>
-        {children}
-        <meshBasicMaterial
-          color={colour}
-          transparent={hidden}
-          opacity={hidden ? 0 : 1}
-          depthWrite={!hidden}
-        />
-      </mesh>
-    )
-  if (!props.geometry) return null
+  if (!native && (!opening || hidden))
+    return <mesh {...props} geometry={box} material={materials[0]} />
+  const geometry = native ? props.geometry : box
+  if (!geometry) return null
+  const position = props.position as [number, number, number]
+  const angle = (props.rotation as [number, number, number])[1]
   return (
-    <NativeWallSurface
-      id={wallId}
-      geometry={props.geometry}
-      materials={materials}
-      position={props.position as [number, number, number]}
-      angle={(props.rotation as [number, number, number])[1]}
-      length={length}
-      height={height}
+    <NativeSurface
+      gesture={gesture}
+      surface={{
+        id: native ? `wall:${wallId}` : `opening:${wallId}:${piece.key}`,
+        owner: native ? { kind: 'wall', id: wallId } : { kind: 'opening', id: opening!.id },
+        category: native
+          ? 'HOUSEITWALLSEGMENT'
+          : { door: 'IFCDOOR', window: 'IFCWINDOW', assembly: 'IFCBUILDINGELEMENTPROXY' }[
+              opening!.kind
+            ],
+        geometry,
+        geometryKey: native
+          ? undefined
+          : `opening-box:${piece.length}:${piece.height}:${piece.thickness}`,
+        materials,
+        transform: new Matrix4().makeRotationY(angle).setPosition(...position),
+        mapping: native ? { kind: 'wall', length, height } : { kind: 'source', geometry },
+        casts: native,
+        receives: native,
+      }}
       onClick={props.onClick}
       onPointerDown={props.onPointerDown}
       onPointerMove={props.onPointerMove}

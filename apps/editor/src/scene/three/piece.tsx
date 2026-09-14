@@ -24,7 +24,7 @@ const sided = (body: Body) => body.kind === 'sheet' && body.doubleSided !== fals
 
 type PieceProps = {
   piece: Piece
-  native?: { id: string; elevation: number }
+  native?: { id: string; elevation: number; category?: string }
   tint?: string
   onPick?: (event: ThreeEvent<MouseEvent>) => void
 }

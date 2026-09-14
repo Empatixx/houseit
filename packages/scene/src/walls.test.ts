@@ -143,3 +143,27 @@ test('a colour band reaching a wall end also covers the coat return at that end'
     coat.some((p) => p.paint.colour === '#ffffff' && p.at.x < 0 && p.at.y > 900 && p.at.y < 1800),
   ).toBe(false)
 })
+
+test('assembly leaves, panes and frames select their real opening with distinct piece names', () => {
+  const { doc, level } = room()
+  doc.openings.o1 = opening({
+    id: 'o1',
+    wall: 'w1',
+    kind: 'assembly',
+    width: 2600,
+    height: 2600,
+    frame: { depth: 74, face: 60, outside: '#383e42', inside: '#f1f0ea' },
+    panels: [
+      { kind: 'door', glazing: 'none', x: 0, z: 0, width: 1000, height: 2100 },
+      { kind: 'fixed', x: 0, z: 2100, width: 1000, height: 500 },
+      { kind: 'fixed', x: 1000, z: 0, width: 1600, height: 2600 },
+    ],
+  })
+  const pieces = wallPieces(doc, level).filter((p) => p.of?.kind === 'opening')
+  expect(pieces.length).toBeGreaterThan(20)
+  expect(pieces.every((p) => p.of?.id === 'o1')).toBe(true)
+  expect(pieces.some((p) => p.paint.opacity === 0.45)).toBe(true)
+  expect(pieces.some((p) => p.paint.colour === '#383e42')).toBe(true)
+  const names = pieces.flatMap((p) => (p.name ? [p.name] : []))
+  expect(new Set(names).size).toBe(names.length)
+})

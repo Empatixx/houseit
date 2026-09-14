@@ -48,8 +48,20 @@ export function House({ picking = true }: { picking?: boolean }) {
                   native={
                     piece.role === 'floor-surface' ||
                     piece.role === 'slab-solid' ||
+                    piece.of?.kind === 'opening' ||
                     (piece.of?.kind === 'object' && !isStaircase(doc.objects[piece.of.id]!.type))
-                      ? { id: `${storey.level}:${piece.name}`, elevation: storey.elevation }
+                      ? {
+                          id: `${storey.level}:${piece.name}`,
+                          elevation: storey.elevation,
+                          category:
+                            piece.of?.kind === 'opening'
+                              ? doc.openings[piece.of.id]?.kind === 'door'
+                                ? 'IFCDOOR'
+                                : doc.openings[piece.of.id]?.kind === 'window'
+                                  ? 'IFCWINDOW'
+                                  : 'IFCBUILDINGELEMENTPROXY'
+                              : undefined,
+                        }
                       : undefined
                   }
                   tint={picking ? tintOf(piece, selected) : undefined}

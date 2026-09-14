@@ -36,13 +36,15 @@ export function planPieces(
   span: number,
   outside?: 1 | -1,
 ): WallPiece[] {
-  openings = openings.flatMap((o) =>
-    openingParts(o, span).filter((p) => !o.panels || p.sillHeight < 1500),
+  const parts = openings.flatMap((o) =>
+    openingParts(o, span)
+      .filter((p) => !o.panels || p.sillHeight < 1500)
+      .map((p) => ({ ...p, opening: o.id })),
   )
   const line = lineWeight(wall.thickness)
   const inner = wall.thickness - 2 * line
-  const holes = openings.map((opening) => spanAround(growA + opening.t * span, opening.width))
-  const doorways = openings.flatMap((opening, index) =>
+  const holes = parts.map((opening) => spanAround(growA + opening.t * span, opening.width))
+  const doorways = parts.flatMap((opening, index) =>
     opening.kind === 'door' || (opening.frame?.inset !== undefined && opening.sillHeight === 0)
       ? [holes[index]!]
       : [],
@@ -87,7 +89,7 @@ export function planPieces(
       })
     }
   }
-  openings.forEach((opening, index) => {
+  parts.forEach((opening, index) => {
     const hole = holes[index]!
     const before = pieces.length
     drawOpening(opening, hole, line, inner, wall, pieces)
@@ -96,7 +98,7 @@ export function planPieces(
       if (glass !== -1) pieces.splice(glass, 1)
     }
     for (const piece of pieces.slice(before)) {
-      piece.opening = opening.id.split('-panel-')[0]!
+      piece.opening = opening.opening
       if (piece.key.endsWith('-glass')) continue
       piece.aside = (piece.aside ?? 0) + frameOffset(opening, wall, outside)
     }

@@ -210,3 +210,19 @@ test('the swing is a quarter circle as wide as the door, the way the reference d
     expect(Math.hypot(dash.at - 2600, dash.aside! - face)).toBeCloseTo(radius)
   }
 })
+
+test('both unequal door leaves and their hit areas belong to the real opening', () => {
+  const door: Opening = {
+    ...window_,
+    kind: 'door',
+    width: 1600,
+    leafWidth: 1000,
+    sillHeight: 0,
+    height: 2100,
+  }
+  const pieces = plan([door]).filter((p) => p.key.startsWith('o1-'))
+  expect(pieces.some((p) => p.key.includes('-leaf-a-'))).toBe(true)
+  expect(pieces.some((p) => p.key.includes('-leaf-b-'))).toBe(true)
+  expect(pieces.every((p) => p.opening === door.id)).toBe(true)
+  expect(new Set(pieces.map((p) => p.key)).size).toBe(pieces.length)
+})

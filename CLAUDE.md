@@ -33,8 +33,8 @@ The wall authoring model on `that-open-engine`:
   in `eb29400` was withdrawn because it regressed those features.
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
-  Fragment interaction model mirrors the remaining opening/stair and structural geometry; it is not the document or
-  persistence model. Walls, floors, slabs and furniture render as native Fragments shells in each viewport's
+  Fragment interaction model mirrors the remaining stair and structural geometry; it is not the document or
+  persistence model. Walls, floors, slabs, furniture and opening fills render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
   batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
@@ -61,11 +61,18 @@ The wall authoring model on `that-open-engine`:
   Brought normalizes static GLB assets once per size, bakes their hierarchy into source buffers and
   disposes only its generated geometry/paint materials. The catalogue, SVGs, procedural builders,
   footprints, stacking and domain commands remain shared Houseit presentation/business rules.
-  During a wall or furniture gesture, a temporary portal renders the registered source geometry/materials,
+  Opening frames, leaves, handles and glazing use that same path in 3D; plan opening boxes and
+  swing marks use NativeSurface too. Preserve explicit parent opening IDs for assembly panels and
+  paired leaves, and give every derived piece a stable, distinct name. Never select a synthetic
+  panel/leaf ID. Transparent doorway hit areas remain UI helpers so an empty passage can still be
+  dragged; they are not native measurement geometry and are excluded from InteractionModel.
+  Start the local opening preview only after pointer movement, so an ordinary click does not hide
+  its own hit target. Permanent opening surfaces are not mirrored into InteractionModel.
+  During a wall, opening or furniture gesture, a temporary portal renders the registered source geometry/materials,
   while the permanent native roots are hidden and native edit requests are coalesced. Keep this
   preview until the final native update is ready; exclude it from InteractionModel. It is gesture
   presentation, not a second authoring model or a permanent parallel wall/floor renderer.
-  Local furniture previews keep native snapping available through the public model's
+  Local opening/furniture previews keep native snapping available through the public model's
   raycastWithSnapping API against the committed geometry, excluding the carried object; native
   edit/preparation work still blocks queries. GPU scene picking cannot see the hidden native roots.
   Publish pointer movement before awaiting asynchronous native snapping; stale snap results must
