@@ -9,6 +9,13 @@ import {
   type RawRelationData,
 } from '@thatopen/fragments'
 
+import {
+  type AuthoringEntity as Entity,
+  extractNested,
+  orderedRelation,
+  restoreNested,
+} from './nested-authoring'
+
 export type NativeGraph = {
   items: Map<number, RawItemData>
   relations: Map<number, RawRelationData>
@@ -28,12 +35,6 @@ export function nativeItems(base: ReturnType<typeof EditUtils.getModelFromBuffer
   return items
 }
 
-type Entity = {
-  category: string
-  parameters: Record<string, unknown>
-  links: Record<string, string[]>
-}
-
 const categories = {
   levels: 'IFCBUILDINGSTOREY',
   nodes: 'HOUSEITJUNCTION',
@@ -50,7 +51,7 @@ const keyOf = (collection: string, id: string) => `${collection}:${id}`
 export const nativeKey = (item: RawItemData) => item.data.HouseitKey?.value as string | undefined
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
-function entitiesOf(doc: HouseDocument): Map<string, Entity> {
+function entitiesOf(doc: HouseDocument, nested = true): Map<string, Entity> {
   const entities = new Map<string, Entity>()
   entities.set('project', {
     category: 'IFCPROJECT',
@@ -144,10 +145,11 @@ function entitiesOf(doc: HouseDocument): Map<string, Entity> {
       'devices',
     )
   }
+  if (nested) extractNested(doc, entities)
   for (const entity of entities.values()) {
     for (const [name, targets] of Object.entries(entity.links)) {
       if (targets.length === 0) delete entity.links[name]
-      else if (name !== 'BoundedBy' && name !== 'Supplies') targets.sort()
+      else if (name !== 'BoundedBy' && name !== 'Supplies' && !orderedRelation(name)) targets.sort()
     }
   }
   return entities
@@ -186,6 +188,9 @@ export function graphRequests(
         Name: { value: String(entity.parameters.name ?? entity.parameters.id ?? 'Houseit') },
         HouseitKey: { value: key },
         Parameters: { value: JSON.stringify(entity.parameters) },
+        ...(entity.collections
+          ? { NestedCollections: { value: JSON.stringify(entity.collections) } }
+          : {}),
         RelationCounts: {
           value: JSON.stringify(
             Object.fromEntries(
@@ -222,7 +227,7 @@ export function graphRequests(
   return requests
 }
 
-export function documentFromGraph(graph: NativeGraph): HouseDocument {
+export function documentFromGraph(graph: NativeGraph, nested = true): HouseDocument {
   const entities = new Map<string, Entity>()
   const keys = new Map<number, string>()
   for (const [id, item] of graph.items) {
@@ -231,7 +236,14 @@ export function documentFromGraph(graph: NativeGraph): HouseDocument {
     if (entities.has(key)) throw new Error(`Duplicate Fragment authoring key ${key}`)
     const encoded = item.data.Parameters?.value
     if (typeof encoded !== 'string') throw new Error(`Fragment ${key} has no authoring parameters`)
-    entities.set(key, { category: item.category, parameters: JSON.parse(encoded), links: {} })
+    entities.set(key, {
+      category: item.category,
+      parameters: JSON.parse(encoded),
+      links: {},
+      ...(item.data.NestedCollections
+        ? { collections: JSON.parse(String(item.data.NestedCollections.value)) }
+        : {}),
+    })
     keys.set(id, key)
   }
   for (const [id, key] of keys) {
@@ -276,6 +288,7 @@ export function documentFromGraph(graph: NativeGraph): HouseDocument {
     for (const [key, entity] of entities) {
       if (!key.startsWith(`${collection}:`)) continue
       const record = { ...entity.parameters }
+      if (nested && collection === 'levels') restoreNested(entities, key, record)
       if (collection === 'walls' || collection === 'rooms' || collection === 'objects')
         record.level = single(entity, 'ContainedIn', 'levels')
       if (collection === 'walls') {
@@ -292,12 +305,25 @@ export function documentFromGraph(graph: NativeGraph): HouseDocument {
       records[key.slice(collection.length + 1)] = record
     }
   }
+  if (nested) {
+    const terrain = entities.get('terrain')
+    if (!terrain) throw new Error('Fragment model has no terrain element')
+    if (terrain.collections?.length) {
+      const site = { ...terrain.parameters }
+      restoreNested(entities, 'terrain', site)
+      doc.site = site
+    }
+  }
   const result = parseDocument(doc)
-  const expected = entitiesOf(result)
+  const expected = entitiesOf(result, nested)
   if (entities.size !== expected.size) throw new Error('Fragment authoring elements disagree')
   for (const [key, entity] of expected) {
     const actual = entities.get(key)
-    if (!actual || actual.category !== entity.category)
+    if (
+      !actual ||
+      actual.category !== entity.category ||
+      !same(actual.collections, entity.collections)
+    )
       throw new Error(`Invalid Fragment element ${key}`)
     const names = Object.keys(entity.links)
     if (

@@ -5,6 +5,7 @@ const mm = z.number().int()
 const point = z.object({ x: mm, y: mm })
 export const RoofSchema = z
   .object({
+    id: z.string().min(1).optional(),
     name: z.string().min(1),
     outline: z.array(point).min(3),
     finish: z.enum(['membrane', 'planted', 'gravel']),

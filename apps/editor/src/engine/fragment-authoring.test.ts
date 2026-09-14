@@ -143,3 +143,120 @@ test('readback rejects missing room boundaries and conflicting physical opening 
     authoring.dispose()
   }
 })
+
+test.each(['columns', 'connections', 'three-flights', 'site'])(
+  '%s CLI elements have independent native identities and ordered parent relationships',
+  (name) => {
+    const { authoring, level } = make()
+    try {
+      authoring.exec(
+        readFileSync(
+          new URL(`../../../../fixtures/building-proof/${name}.txt`, import.meta.url),
+          'utf8',
+        ),
+        level,
+      )
+      const graph = authoring.graph
+      const ids = keyed(authoring)
+      for (const storey of Object.values(authoring.document.levels)) {
+        const parent = ids.get(`levels:${storey.id}`)!
+        const parameters = JSON.parse(String(graph.items.get(parent)!.data.Parameters!.value))
+        for (const collection of ['columns', 'roofs', 'ramps', 'shafts', 'stairs'] as const) {
+          expect(parameters).not.toHaveProperty(collection)
+          const records = storey[collection]
+          if (!records?.length) continue
+          const children = graph.relations.get(parent)!.data[`HasParts:${collection}`]!
+          expect(children).toHaveLength(records.length)
+          expect(
+            children.map(
+              (id) => JSON.parse(String(graph.items.get(id)!.data.Parameters!.value)).id,
+            ),
+          ).toEqual(records.map((record) => record.id))
+          for (const id of children)
+            expect(graph.relations.get(id)!.data.ContainedIn).toEqual([parent])
+        }
+      }
+      expect(
+        JSON.parse(String(graph.items.get(ids.get('project')!)!.data.Parameters!.value)),
+      ).not.toHaveProperty('site')
+      if (name === 'connections') {
+        const ramp = [...graph.items].find(([, item]) => item.category === 'IFCRAMP')![0]
+        expect(graph.relations.get(ramp)!.data.ConnectsTo).toHaveLength(1)
+        expect(
+          JSON.parse(String(graph.items.get(ramp)!.data.Parameters!.value)),
+        ).not.toHaveProperty('to')
+      }
+      if (name === 'site') {
+        const marking = [...graph.items].find(
+          ([, item]) => item.category === 'IFCSURFACEFEATURE',
+        )![0]
+        const surface = graph.relations.get(marking)!.data.MappedTo![0]!
+        expect(JSON.parse(String(graph.items.get(surface)!.data.Parameters!.value)).id).toBe('bay')
+      }
+      expect(documentFromGraph(graph)).toEqual(authoring.document)
+      authoring.undo()
+      expect(authoring.graph.items.size).toBe(3)
+      authoring.redo()
+      expect(authoring.graph).toEqual(graph)
+      const broken = authoring.graph
+      const child = [...broken.items].find(
+        ([, item]) =>
+          item.category ===
+          (name === 'site'
+            ? 'IFCSURFACEFEATURE'
+            : name === 'three-flights'
+              ? 'IFCSTAIR'
+              : 'IFCCOLUMN'),
+      )![0]
+      broken.relations.get(child)!.data.ContainedIn = [ids.get('project')!]
+      expect(() => documentFromGraph(broken)).toThrow(/Fragment relationships/)
+    } finally {
+      authoring.dispose()
+    }
+  },
+)
+
+test('roof identity survives replacing legacy roof JSON, renaming, reordering and undo', () => {
+  const { authoring, level } = make()
+  try {
+    authoring.exec(
+      readFileSync(
+        new URL('../../../../fixtures/building-proof/columns.txt', import.meta.url),
+        'utf8',
+      ),
+      level,
+    )
+    const first = authoring.document.levels[level]!.roofs![0]!
+    const originalIds = keyed(authoring)
+    const { id: _, ...legacy } = first
+    const set = (roofs: unknown[]) =>
+      authoring.exec(`update-level --roofs '${JSON.stringify(roofs)}'`, level)
+    set([{ ...legacy, depth: legacy.depth + 10 }])
+    expect(authoring.document.levels[level]!.roofs![0]!.id).toBe(first.id)
+    set([{ ...authoring.document.levels[level]!.roofs![0]!, name: 'Renamed' }])
+    const renamed = authoring.document.levels[level]!.roofs![0]!
+    set([renamed, { ...legacy, name: 'Second' }])
+    const pair = authoring.document.levels[level]!.roofs!
+    expect(pair[0]!.id).not.toBe(pair[1]!.id)
+    set([...pair].reverse())
+    expect(authoring.document.levels[level]!.roofs!.map((roof) => roof.id)).toEqual([
+      pair[1]!.id,
+      first.id,
+    ])
+    for (const [key, id] of originalIds) expect(keyed(authoring).get(key)).toBe(id)
+    authoring.undo()
+    expect(authoring.document.levels[level]!.roofs).toEqual(pair)
+    authoring.redo()
+    const before = authoring.graph
+    expect(() => set([renamed, renamed])).toThrow(/Duplicate roof id/)
+    expect(authoring.graph).toEqual(before)
+    set([])
+    expect([...authoring.graph.items.values()].some((item) => item.category === 'IFCROOF')).toBe(
+      false,
+    )
+    authoring.undo()
+    expect(authoring.graph).toEqual(before)
+  } finally {
+    authoring.dispose()
+  }
+})
