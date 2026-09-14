@@ -7,7 +7,7 @@ import { MM } from '../plan-coordinates'
 import { type NativePiece, PieceMesh } from './piece-mesh'
 
 type SymbolPlateProps = {
-  native?: NativePiece
+  native: NativePiece
   body: Extract<Body, { kind: 'symbol' }>
   paint: Finish
   tint?: string

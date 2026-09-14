@@ -24,13 +24,13 @@ const sided = (body: Body) => body.kind === 'sheet' && body.doubleSided !== fals
 
 type PieceProps = {
   piece: Piece
-  native?: { id: string; elevation: number; category?: string }
+  native: { id: string; elevation: number; category?: string }
   tint?: string
   onPick?: (event: ThreeEvent<MouseEvent>) => void
 }
 
 export function StandingPiece({ piece, tint, onPick, native: display }: PieceProps) {
-  const native = display ? { ...display, owner: piece.of } : undefined
+  const native = { ...display, owner: piece.of }
   const { body, at } = piece
   const paint: Finish = tint
     ? { ...piece.paint, colour: tint, ...(piece.paint.opacity === 0 ? { opacity: 0.35 } : {}) }
@@ -79,21 +79,16 @@ export function StandingPiece({ piece, tint, onPick, native: display }: PiecePro
     return (
       <Flat
         body={body}
-        native={
-          native
-            ? {
-                ...native,
-                owner: piece.of,
-                category:
-                  native.category ??
-                  (piece.of?.kind === 'object'
-                    ? 'IFCFURNISHINGELEMENT'
-                    : piece.role === 'floor-surface'
-                      ? 'IFCCOVERING'
-                      : 'IFCSLAB'),
-              }
-            : undefined
-        }
+        native={{
+          ...native,
+          category:
+            native.category ??
+            (piece.of?.kind === 'object'
+              ? 'IFCFURNISHINGELEMENT'
+              : piece.role === 'floor-surface'
+                ? 'IFCCOVERING'
+                : 'IFCSLAB'),
+        }}
         shadows={piece.casts !== false && !seeThrough(paint)}
         at={[place[0], place[1] - drop, place[2]]}
         rotation={[tilt - QUARTER, turn, roll, 'YXZ']}
@@ -150,7 +145,7 @@ function Solid({
 }
 
 type FlatProps = {
-  native?: { id: string; elevation: number; owner?: Piece['of']; category: string }
+  native: { id: string; elevation: number; owner?: Piece['of']; category: string }
   body: Extract<Body, { kind: 'prism' | 'sheet' }>
   at: [number, number, number]
   rotation: [number, number, number, 'YXZ']
@@ -167,11 +162,11 @@ function Flat({ body, at, rotation, material, shadows, onPick, native }: FlatPro
       native={native}
       geometry={geometry}
       geometryKey={
-        native?.owner?.kind === 'object' ||
-        native?.category === 'IFCSTAIR' ||
-        native?.category === 'IFCRAMP' ||
-        native?.category === 'IFCROOF' ||
-        native?.category === 'IFCGEOGRAPHICELEMENT'
+        native.owner?.kind === 'object' ||
+        native.category === 'IFCSTAIR' ||
+        native.category === 'IFCRAMP' ||
+        native.category === 'IFCROOF' ||
+        native.category === 'IFCGEOGRAPHICELEMENT'
           ? JSON.stringify(body)
           : undefined
       }
@@ -267,7 +262,7 @@ function BoxSkin({
   useEffect(() => () => geometry.dispose(), [geometry])
   return (
     <PieceMesh
-      native={native ? { ...native, owner: piece.of } : undefined}
+      native={{ ...native, owner: piece.of }}
       geometry={geometry}
       geometryKey={JSON.stringify(piece.body)}
       material={materialOf(paint, false)}

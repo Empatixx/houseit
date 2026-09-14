@@ -32,13 +32,12 @@ The wall authoring model on `that-open-engine`:
   plan symbols, finishes, gestures and walkthrough; the native viewport replacement
   in `eb29400` was withdrawn because it regressed those features.
   Native measurements, snapping, ID selection and cut views now use a public That Open
-  World adapter over the shared presentation scene/camera/renderer. A disposable
-  Fragment interaction model remains for eligible non-native owned meshes; it is not the document or
-  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts, roofs, columns, facades and exterior site geometry render as native Fragments shells in each viewport's
+  World adapter over the shared presentation scene/camera/renderer. Tools query the displayed
+  Fragments directly; there is no separate interaction model or scene-to-geometry copying. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts, roofs, columns, facades and exterior site geometry render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
   batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
-  Do not scan their tiles back into InteractionModel. Tile IDs go through the public native
+  Do not create invisible interaction copies. Tile IDs go through the public native
   local-ID mapper; the wall appearance adapter retains the established per-side materials,
   UV scale and React gestures on the actual native triangles. CPU tile attributes remain
   available for those gestures via public BufferAttribute upload callbacks. A native delta
@@ -65,9 +64,9 @@ The wall authoring model on `that-open-engine`:
   swing marks use NativeSurface too. Preserve explicit parent opening IDs for assembly panels and
   paired leaves, and give every derived piece a stable, distinct name. Never select a synthetic
   panel/leaf ID. Transparent doorway hit areas remain UI helpers so an empty passage can still be
-  dragged; they are not native measurement geometry and are excluded from InteractionModel.
+  dragged; they are UI hit targets, not native measurement geometry.
   Start the local opening preview only after pointer movement, so an ordinary click does not hide
-  its own hit target. Permanent opening surfaces are not mirrored into InteractionModel.
+  its own hit target.
   Catalogue stairs and measured `add-stair` flights/landings carry the explicit `stair-solid` role
   and render as IFCSTAIR items through that same shared NativeSurface path. Preserve source
   triangulation/UVs for their prisms too. Keep `treadsOf`, storey rise, base offset, thickness,
@@ -106,8 +105,8 @@ The wall authoring model on `that-open-engine`:
   Exterior coats carry `facade-covering`/IFCCOVERING and keep their wall owner and existing piece
   names. The shared source mapping preserves exposed-box skins at corners, colour bands, plinths
   and openings. Keep facade height through slab/buildup and the summed layer thickness in the shared
-  scene generator; the engine does not supply those building rules. Facades no longer enter the
-  invisible InteractionModel. Their native IDs resolve to the host wall for selection; walk mode
+  scene generator; the engine does not supply those building rules. Native facade IDs resolve
+  to the host wall for selection; walk mode
   keeps its existing non-picking behavior, while section views support facade clicks. The exterior
   schema currently describes colours and layer thicknesses, not named texture finishes; this display
   migration does not extend CLI schemas. Textured interior wall finishes already use native walls.
@@ -128,9 +127,19 @@ The wall authoring model on `that-open-engine`:
   covers textures, rails, source/vertex colours, empty lawn, native tools, edits and archives;
   `--ramp` covers basement/ramp excavation holes. Run the existing connection proof with
   `--fixture=site-ramp` for actual collision-enabled ramp traversal with the terrain visible.
+  StandingPiece, PieceMesh, imported assets and symbol plates require a native identity; there is
+  no ordinary building-mesh fallback. Keep source buffers/materials for appearance and gesture
+  previews. Lights, sky, hit targets, handles and schematic plan annotations remain presentation.
+  NativeTools refreshes on document/storey, native display revision or view-setting changes, not
+  periodic scene scans. Keep a pending refresh until geometry and pointer gestures settle; do not
+  drop a request just because a native update or drag is currently running. The display owns model
+  insertion, tile preparation and cameras; tools do not insert a second model into the scene.
+  Browser proofs assert that every loaded model belongs to the display (including native deltas),
+  not merely that an invisible model contains no owned items. The presentation proof also checks
+  idle tools perform no refresh while preserving measurement, snapping, cuts and camera switching.
   During a wall, opening or furniture gesture, a temporary portal renders the registered source geometry/materials,
   while the permanent native roots are hidden and native edit requests are coalesced. Keep this
-  preview until the final native update is ready; exclude it from InteractionModel. It is gesture
+  preview until the final native update is ready; tools still query committed native geometry. It is gesture
   presentation, not a second authoring model or a permanent parallel wall/floor renderer.
   Local opening/furniture previews keep native snapping available through the public model's
   raycastWithSnapping API against the committed geometry, excluding the carried object; native

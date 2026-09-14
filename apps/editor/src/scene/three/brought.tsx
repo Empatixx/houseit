@@ -13,7 +13,7 @@ type BroughtProps = {
   file: string
   size: { width: number; height: number; depth: number }
   paint: Finish
-  native?: NativePiece
+  native: NativePiece
   at: [number, number, number]
   rotation: [number, number, number, 'YXZ']
   onPick?: (event: ThreeEvent<MouseEvent>) => void
@@ -91,7 +91,7 @@ export function Brought({ file, size, paint, native, at, rotation, onPick }: Bro
       {built.map((mesh, i) => (
         <PieceMesh
           key={mesh.id}
-          native={native ? { ...native, id: `${native.id}:${i}` } : undefined}
+          native={{ ...native, id: `${native.id}:${i}` }}
           geometry={mesh.geometry}
           geometryKey={`model:${file}:${width}:${height}:${depth}:${i}`}
           material={materials[i]!}

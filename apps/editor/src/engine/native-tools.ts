@@ -4,7 +4,7 @@ import * as OBC from '@thatopen/components'
 import * as OBF from '@thatopen/components-front'
 import { type RaycastResult, SnappingClass } from '@thatopen/fragments'
 import { toast } from 'sonner'
-import { Box3, Color, DoubleSide, MeshBasicMaterial, Vector2, Vector3 } from 'three'
+import { Color, DoubleSide, MeshBasicMaterial, Vector2, Vector3 } from 'three'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
@@ -16,7 +16,6 @@ import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
 import { clearOf, viewStore } from '../store/view'
 import type { FragmentDisplay } from './fragment-display'
-import { InteractionModel } from './interaction-model'
 import { PresentationCamera, PresentationRenderer, PresentationScene } from './presentation-world'
 
 export let activeTools: NativeTools | null = null
@@ -30,7 +29,6 @@ export class NativeTools {
   readonly measure
   readonly views
   readonly clips
-  readonly model
   private camera: PresentationCamera
   private dead = false
   private running: Promise<void> | null = null
@@ -41,7 +39,7 @@ export class NativeTools {
   private lastView = ''
   private clip: OBF.ClipEdges | undefined
   private lastDoc = documentStore.getState().doc
-  private lastScan = 0
+  private updateRequested = false
   private displayRevision = -1
   private pointerDown = false
   private releasedAt = 0
@@ -60,18 +58,11 @@ export class NativeTools {
     this.measure = this.components.get(OBF.LengthMeasurement)
     this.views = this.components.get(OBC.Views)
     this.clips = this.components.get(OBF.ClipStyler)
-    this.model = new InteractionModel(this.fragments)
     const { scene, gl, camera } = get()
     this.world.scene = new PresentationScene(this.components, scene)
     this.world.renderer = new PresentationRenderer(this.components, gl)
     this.camera = new PresentationCamera(this.components, camera)
     this.world.camera = this.camera
-    this.fragments.list.onItemSet.add(({ value: model }) => {
-      if (this.dead) return
-      const assign = model.useCamera.bind(model)
-      assign(this.world.camera.three as RootState['camera'])
-      if (!model.object.userData.houseitNative) scene.add(model.object)
-    })
     this.world.onCameraChanged.add((camera) => {
       get().set({ camera: camera.three as RootState['camera'] })
       for (const model of new Set(this.fragments.list.values())) {
@@ -180,8 +171,8 @@ export class NativeTools {
   get status() {
     return {
       backend: '@thatopen/components',
-      busy: !!this.running || this.display.busy,
-      items: this.model.owners.size + this.display.owners.size,
+      busy: this.updateRequested || !!this.running || this.display.busy,
+      items: this.display.owners.size,
       wallItems: [...this.display.owners.values()].filter((owner) => owner.kind === 'wall').length,
       surfaceItems: this.display.localIds.size,
       wallBusy: this.display.busy,
@@ -211,14 +202,10 @@ export class NativeTools {
     if (this.dead) return
     if (!this.views.hasOpenViews && this.camera.three !== this.get().camera)
       this.camera.three = this.get().camera
-    if (performance.now() - this.lastScan > 600 && !previewStore.getState().doc && !this.running) {
-      this.lastScan = performance.now()
-      this.request()
-    }
-  }
-  request() {
-    clearTimeout(this.timer)
+    if (this.displayRevision !== this.display.revision) this.request()
+    if (!this.updateRequested || this.timer || this.running) return
     this.timer = setTimeout(() => {
+      this.timer = undefined
       if (
         this.dead ||
         this.running ||
@@ -228,6 +215,7 @@ export class NativeTools {
         previewStore.getState().doc
       )
         return
+      this.updateRequested = false
       this.running = this.update()
         .catch(this.fail)
         .finally(() => {
@@ -235,6 +223,9 @@ export class NativeTools {
           if (!this.dead) engineViewStore.setState({ busy: false })
         })
     }, 80)
+  }
+  request() {
+    this.updateRequested = true
   }
   private async update() {
     engineViewStore.setState({ busy: true })
@@ -244,15 +235,13 @@ export class NativeTools {
         if (!this.automatic.has(line)) this.measure.list.delete(line)
       this.lastDoc = doc
     }
-    const sceneChanged = await this.model.sync(this.get().scene)
-    const changed = sceneChanged || this.displayRevision !== this.display.revision
+    const changed = this.displayRevision !== this.display.revision
     this.displayRevision = this.display.revision
     if (this.dead) return
     if (changed) {
       const classifier = this.components.get(OBC.Classifier)
       classifier.list.delete('Houseit')
       classifier.addGroupItems('Houseit', 'current', {
-        [this.model.id]: new Set(this.model.owners.keys()),
         [this.display.model?.modelId ?? this.display.id]: this.display.localIds,
       })
       this.components.get(OBC.SnapResolvers).get().clear()
@@ -269,7 +258,7 @@ export class NativeTools {
       await this.highlighter.clear('select')
       const selected = selectionStore.getState().selected
       if (this.dead || request !== this.selecting || !selected) return
-      const ids = { ...this.model.ids(selected), ...this.display.ids(selected) }
+      const ids = this.display.ids(selected)
       if (Object.keys(ids).length) await this.highlighter.highlightByID('select', ids, false)
     })
     return this.highlightWork
@@ -282,14 +271,13 @@ export class NativeTools {
     if (this.running || this.display.busy || this.dead) return null
     const hit = await this.components.get(OBC.Raycasters).get(this.world).castRay()
     if (!hit || !('localId' in hit) || typeof hit.localId !== 'number') return null
-    return (
-      ('fragments' in hit &&
-      ((hit as RaycastResult).fragments.modelId === this.display.id ||
-        (hit as RaycastResult).fragments.parentModelId === this.display.id)
-        ? this.display.owners
-        : this.model.owners
-      ).get(hit.localId) ?? null
-    )
+    return this.ownerOf(hit as RaycastResult) ?? null
+  }
+  private ownerOf(hit: RaycastResult) {
+    return hit.fragments?.modelId === this.display.id ||
+      hit.fragments?.parentModelId === this.display.id
+      ? this.display.owners.get(hit.localId)
+      : undefined
   }
   async snapPoint(point: Point, exclude?: Selection): Promise<Point | null> {
     if (!engineViewStore.getState().snap || this.running || !this.display.canSnap || this.dead)
@@ -312,13 +300,7 @@ export class NativeTools {
     })
     if (!hit || !('snappingClass' in hit) || !('localId' in hit) || typeof hit.localId !== 'number')
       return null
-    const owner = (
-      'fragments' in hit &&
-      ((hit as RaycastResult).fragments.modelId === this.display.id ||
-        (hit as RaycastResult).fragments.parentModelId === this.display.id)
-        ? this.display.owners
-        : this.model.owners
-    ).get(hit.localId)
+    const owner = this.ownerOf(hit as RaycastResult)
     if (owner && exclude && owner.kind === exclude.kind && owner.id === exclude.id) return null
     const result = { x: hit.point.x * 1000, y: -hit.point.z * 1000 }
     if (owner?.kind === 'wall') {
@@ -350,25 +332,17 @@ export class NativeTools {
       box.left + ((projected.x + 1) * box.width) / 2,
       box.top + ((1 - projected.y) * box.height) / 2,
     )
-    const models = [this.display.model, this.model.model].filter((model) => model !== undefined)
-    const hits = (
-      await Promise.all(
-        models.map((model) =>
-          model.raycastWithSnapping({
-            camera: this.get().camera,
-            dom,
-            mouse,
-            snappingClasses: [SnappingClass.POINT, SnappingClass.LINE],
-          }),
-        ),
-      )
-    ).flatMap((hits) => hits ?? [])
+    const hits =
+      (await this.display.model?.raycastWithSnapping({
+        camera: this.get().camera,
+        dom,
+        mouse,
+        snappingClasses: [SnappingClass.POINT, SnappingClass.LINE],
+      })) ?? []
     return (
       hits
         .filter((hit) => {
-          const owners =
-            hit.fragments.modelId === this.model.id ? this.model.owners : this.display.owners
-          const owner = owners.get(hit.localId)
+          const owner = this.ownerOf(hit)
           return !exclude || !owner || owner.kind !== exclude.kind || owner.id !== exclude.id
         })
         .sort(
@@ -402,8 +376,7 @@ export class NativeTools {
       this.lastView = key
       return true
     }
-    const bounds = new Box3()
-    for (const model of [this.model.model, this.display.model]) if (model) bounds.union(model.box)
+    const bounds = this.display.model?.box
     if (!bounds || bounds.isEmpty() || bounds.getSize(new Vector3()).y < 0.05) return false
     this.lastView = key
     const centre = bounds.getCenter(new Vector3())
@@ -443,8 +416,7 @@ export class NativeTools {
     return true
   }
   private async frameView(view: OBC.View) {
-    const bounds = new Box3()
-    for (const model of [this.model.model, this.display.model]) if (model) bounds.union(model.box)
+    const bounds = this.display.model?.box
     if (!bounds || bounds.isEmpty()) return
     await view.camera.controls.fitToBox(bounds, false, {
       paddingTop: 0.5,

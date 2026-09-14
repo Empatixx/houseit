@@ -7,7 +7,7 @@ import { MM } from '../plan-coordinates'
 export type NativePiece = { id: string; elevation: number; owner?: Owner; category?: string }
 
 type Props = {
-  native?: NativePiece
+  native: NativePiece
   geometry: BufferGeometry
   geometryKey?: string
   material: Material | Material[]
@@ -29,35 +29,22 @@ export function PieceMesh({
   receives = true,
   onPick,
 }: Props) {
-  if (native) {
-    const transform = new Matrix4().makeRotationFromEuler(new Euler(...rotation))
-    transform.setPosition(at[0], at[1] + native.elevation * MM, at[2])
-    return (
-      <NativeSurface
-        surface={{
-          id: native.id,
-          owner: native.owner,
-          category: native.category ?? 'IFCFURNISHINGELEMENT',
-          geometry,
-          geometryKey,
-          materials: Array.isArray(material) ? material : [material],
-          transform,
-          mapping: geometryKey ? { kind: 'source', geometry } : { kind: 'flat' },
-          casts: shadows,
-          receives,
-        }}
-        onClick={onPick}
-      />
-    )
-  }
+  const transform = new Matrix4().makeRotationFromEuler(new Euler(...rotation))
+  transform.setPosition(at[0], at[1] + native.elevation * MM, at[2])
   return (
-    <mesh
-      geometry={geometry}
-      material={material}
-      position={at}
-      rotation={rotation}
-      castShadow={shadows}
-      receiveShadow={receives}
+    <NativeSurface
+      surface={{
+        id: native.id,
+        owner: native.owner,
+        category: native.category ?? 'IFCFURNISHINGELEMENT',
+        geometry,
+        geometryKey,
+        materials: Array.isArray(material) ? material : [material],
+        transform,
+        mapping: geometryKey ? { kind: 'source', geometry } : { kind: 'flat' },
+        casts: shadows,
+        receives,
+      }}
       onClick={onPick}
     />
   )

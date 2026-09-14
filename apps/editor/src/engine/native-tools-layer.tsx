@@ -1,7 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import { Vector2 } from 'three'
-import { useEngineView } from '../store/engine-view'
 import { useDocument } from '../store/store'
 import { useFragmentDisplay } from './fragment-display-layer'
 import { NativeTools } from './native-tools'
@@ -14,7 +13,7 @@ export function NativeToolsLayer({ sections = true }: { sections?: boolean }) {
   const tools = useRef<NativeTools | null>(null)
   const size = useThree((state) => state.size)
   const doc = useDocument((state) => state.doc)
-  const view = useEngineView((state) => state.view)
+  const level = useDocument((state) => state.level)
   useEffect(() => {
     const instance = new NativeTools(
       display.components,
@@ -34,7 +33,7 @@ export function NativeToolsLayer({ sections = true }: { sections?: boolean }) {
   }, [get, engine, sections, display])
   useEffect(() => {
     tools.current?.request()
-  }, [doc, view])
+  }, [doc, level])
   useEffect(() => {
     tools.current?.world.renderer?.resize(new Vector2(size.width, size.height))
   }, [size])
