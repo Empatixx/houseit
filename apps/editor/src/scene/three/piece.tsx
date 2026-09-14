@@ -1,13 +1,7 @@
 import type { Body, Finish, Piece } from '@houseit/scene/pieces'
 import type { ThreeEvent } from '@react-three/fiber'
 import { type ComponentProps, useEffect, useMemo } from 'react'
-import {
-  BoxGeometry,
-  BufferGeometry,
-  CylinderGeometry,
-  Float32BufferAttribute,
-  SphereGeometry,
-} from 'three'
+import { BufferGeometry, Float32BufferAttribute } from 'three'
 import { useNativeGeometry } from '../../engine/use-wall-geometry'
 import { MM } from '../plan-coordinates'
 import { Brought } from './brought'
@@ -121,23 +115,8 @@ function Solid({
 }: Omit<ComponentProps<typeof PieceMesh>, 'geometry'> & {
   body: Extract<Body, { kind: 'box' | 'drum' | 'ball' }>
 }) {
-  const key = JSON.stringify(body)
-  const geometry = useMemo(() => {
-    const shape = JSON.parse(key) as typeof body
-    if (shape.kind === 'box')
-      return new BoxGeometry(shape.width * MM, shape.height * MM, shape.depth * MM)
-    if (shape.kind === 'drum')
-      return new CylinderGeometry(
-        shape.top * MM,
-        shape.radius * MM,
-        shape.height * MM,
-        28,
-        1,
-        shape.open,
-      ).scale(1, 1, shape.stretch)
-    return new SphereGeometry(shape.radius * MM, 18, 14)
-  }, [key])
-  useEffect(() => () => geometry.dispose(), [geometry])
+  const { geometry, key } = useNativeGeometry({ kind: 'primitive', body })
+  if (!geometry) return null
   return <PieceMesh {...props} geometry={geometry} geometryKey={key} />
 }
 
