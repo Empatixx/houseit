@@ -1,13 +1,20 @@
 import { levelBelow } from '@houseit/core/levels'
-import type { RoomReport } from '../survey'
+import { roomKindOf } from '@houseit/core/room-kinds'
+import type { OpeningReport, RoomReport } from '../survey'
 import { doorsOf, type Problem, type Rule } from './rule'
+
+type LeadsOut = (door: OpeningReport) => boolean
 
 export const reach: Rule = ({ reports, level, doc }) => {
   const problems: Problem[] = []
   if (reports.length === 0) return problems
 
-  const named = reports.filter((room) => room.name !== undefined)
-  const entrances = entrancesTo(named)
+  const outdoors = new Set(
+    reports.filter((room) => roomKindOf(room)?.outdoor).map((room) => room.name),
+  )
+  const named = reports.filter((room) => room.name !== undefined && !outdoors.has(room.name))
+  const leadsOut: LeadsOut = (door) => door.to === 'outside' || outdoors.has(door.to)
+  const entrances = entrancesTo(named, leadsOut)
   if (entrances.length === 0) {
     problems.push({
       code: 'house.no-entrance',
@@ -30,7 +37,7 @@ export const reach: Rule = ({ reports, level, doc }) => {
   }
 
   if (entrances.length > 0) {
-    const reached = walkFrom(entrances, named)
+    const reached = walkFrom(entrances, named, leadsOut)
     for (const room of named) {
       if (!reached.has(room.name!) && doorsOf(room).length > 0) {
         problems.push({
@@ -45,15 +52,15 @@ export const reach: Rule = ({ reports, level, doc }) => {
   return problems
 }
 
-function entrancesTo(named: RoomReport[]): RoomReport[] {
-  const outside = named.filter((room) => doorsOf(room).some((door) => door.to === 'outside'))
+function entrancesTo(named: RoomReport[], leadsOut: LeadsOut): RoomReport[] {
+  const outside = named.filter((room) => doorsOf(room).some(leadsOut))
   const landings = named.filter(
-    (room) => (room.wells?.length ?? 0) > 0 && !doorsOf(room).some((door) => door.to === 'outside'),
+    (room) => (room.wells?.length ?? 0) > 0 && !doorsOf(room).some(leadsOut),
   )
   return [...outside, ...landings]
 }
 
-function walkFrom(entrances: RoomReport[], named: RoomReport[]): Set<string> {
+function walkFrom(entrances: RoomReport[], named: RoomReport[], leadsOut: LeadsOut): Set<string> {
   const reached = new Set<string>()
   const queue = entrances.map((room) => room.name!)
   while (queue.length > 0) {
@@ -62,7 +69,7 @@ function walkFrom(entrances: RoomReport[], named: RoomReport[]): Set<string> {
     reached.add(name)
     const room = named.find((candidate) => candidate.name === name)
     for (const door of room ? doorsOf(room) : []) {
-      if (door.to !== undefined && door.to !== 'outside' && !reached.has(door.to)) {
+      if (door.to !== undefined && !leadsOut(door) && !reached.has(door.to)) {
         queue.push(door.to)
       }
     }

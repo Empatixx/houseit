@@ -1,6 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { floorMaterial } from '@houseit/core/floor-materials'
 import { SLAB } from '@houseit/core/levels'
+import { roomKindOf } from '@houseit/core/room-kinds'
 import type { Point } from '@houseit/geometry/outlines'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { holesIn, stairwaysOn, wellsInRoom } from '@houseit/geometry/wells'
@@ -9,6 +10,7 @@ import { type Corner, type Finish, type Piece, prism, sheet } from './pieces'
 
 const BARE = '#f7f7f5'
 const PLASTER = '#f4f3f0'
+const GLASS = { colour: '#a7c8e6', opacity: 0.3 }
 
 const corners = (outline: Point[]): Corner[] => outline.map(({ x, y }) => ({ x, z: -y }))
 
@@ -39,7 +41,9 @@ export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
   const top = doc.levels[level]?.height ?? 0
   const wells = stairwaysOn(doc, level)
 
-  return roomsOf(doc, level).map((room) => {
+  return roomsOf(doc, level).flatMap((room) => {
+    const kind = roomKindOf(room)
+    if (kind?.outdoor) return []
     const outline = room.nodes.map((id) => doc.nodes[id]!)
     const holes = holesIn(
       outline,
@@ -50,7 +54,9 @@ export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {
       thickness: SLAB,
       outline: corners(outline),
       holes: holes.map((hole) => corners(hole.outline)),
-      paint: paintFor(room.id === undefined ? undefined : doc.rooms[room.id]?.ceiling, PLASTER),
+      paint: kind?.glazed
+        ? GLASS
+        : paintFor(room.id === undefined ? undefined : doc.rooms[room.id]?.ceiling, PLASTER),
     })
     const named = { ...lid, name: `lid-${room.nodes.join('-')}`, casts: false }
     return room.id ? { ...named, of: { kind: 'room' as const, id: room.id } } : named

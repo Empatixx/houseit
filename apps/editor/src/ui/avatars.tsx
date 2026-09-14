@@ -8,11 +8,14 @@ import {
   DoorOpenIcon,
   DumbbellIcon,
   FootprintsIcon,
+  Grid3x3Icon,
   type LucideIcon,
   PackageIcon,
+  RouteIcon,
   ShirtIcon,
   ShoppingBasketIcon,
   SofaIcon,
+  SproutIcon,
   SunIcon,
   ToiletIcon,
   UtensilsCrossedIcon,
@@ -36,7 +39,10 @@ const KIND_ICONS: Record<string, LucideIcon> = {
   hall: FootprintsIcon,
   storage: PackageIcon,
   gym: DumbbellIcon,
+  'winter-garden': SproutIcon,
   terrace: SunIcon,
+  paving: Grid3x3Icon,
+  path: RouteIcon,
 }
 
 export function KindIcon({ id, className }: { id: string | undefined; className?: string }) {

@@ -59,3 +59,12 @@ test('no flat slab stops the sun, because a plan walked through is lit from abov
   expect(ceilingPieces(doc, level)[0]?.casts).toBe(false)
   expect(floorPieces(doc, level)[0]?.casts).toBe(false)
 })
+
+test('a terrace is open to the sky, and a winter garden is roofed in glass', () => {
+  const { doc, level } = room()
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'Terasa', loop: [] }
+  expect(ceilingPieces(doc, level)).toEqual([])
+
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'Zimní zahrada', loop: [] }
+  expect(ceilingPieces(doc, level)[0]?.paint.opacity).toBeLessThan(1)
+})

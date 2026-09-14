@@ -1,4 +1,5 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
+import { type Enclosure, enclosureOf, enclosuresOf } from '@houseit/geometry/enclosure'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { doorPieces } from './doors'
 import { besideWall, type Dressed, paintFor } from './dressing'
@@ -8,10 +9,12 @@ import { solidPieces } from './wall-pieces'
 const PAINT = {
   wall: '#f1f0ed',
   glass: '#a7c8e6',
+  frame: '#3d4246',
 } as const
 
 const PANE = 40
 const SUNK = 30
+const RAIL = 60
 
 export function wallPieces(doc: HouseDocument, level: string): Piece[] {
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
@@ -19,11 +22,15 @@ export function wallPieces(doc: HouseDocument, level: string): Piece[] {
   for (const wall of walls) {
     for (const node of [wall.a, wall.b]) degrees.set(node, (degrees.get(node) ?? 0) + 1)
   }
-  const dressed: Dressed[] = roomsOf(doc, level).map((room) => ({
+  const rooms = roomsOf(doc, level)
+  const enclosures = enclosuresOf(doc, level, rooms)
+  const dressed: Dressed[] = rooms.map((room) => ({
     outline: room.nodes.map((id) => doc.nodes[id]!),
     worn: room.id === undefined ? undefined : doc.rooms[room.id],
   }))
-  return walls.flatMap((wall) => standingWall(doc, wall, degrees, dressed))
+  return walls.flatMap((wall) =>
+    standingWall(doc, wall, degrees, dressed, enclosureOf(enclosures, wall.id)),
+  )
 }
 
 function standingWall(
@@ -31,10 +38,11 @@ function standingWall(
   wall: Wall,
   degrees: Map<string, number>,
   dressed: Dressed[],
+  enclosure: Enclosure,
 ): Piece[] {
   const a = doc.nodes[wall.a]
   const b = doc.nodes[wall.b]
-  if (!a || !b) return []
+  if (!a || !b || enclosure === 'edge') return []
   const dx = b.x - a.x
   const dy = b.y - a.y
   const span = Math.hypot(dx, dy)
@@ -58,6 +66,24 @@ function standingWall(
 
   const built = solidPieces(wall, openings, length, growA, span)
   const worn = besideWall(dressed, a, b, wall.thickness)
+
+  const glazing = owned(
+    { kind: 'wall', id: wall.id },
+    built.flatMap((piece) => [
+      {
+        body: { kind: 'box' as const, width: piece.length, height: piece.height, depth: PANE },
+        at: standing(piece.at, 0, wall.baseOffset + piece.base + piece.height / 2),
+        turn: angle,
+        paint: { colour: PAINT.glass, opacity: 0.35 },
+      },
+      {
+        body: { kind: 'box' as const, width: piece.length, height: RAIL, depth: piece.thickness },
+        at: standing(piece.at, 0, wall.baseOffset + piece.base + piece.height - RAIL / 2),
+        turn: angle,
+        paint: { colour: PAINT.frame },
+      },
+    ]),
+  )
 
   const solids = owned(
     { kind: 'wall', id: wall.id },
@@ -97,9 +123,12 @@ function standingWall(
         },
         at: standing(piece.at, piece.aside, wall.baseOffset + piece.base + piece.height / 2),
         turn: angle + piece.turn,
-        paint: piece.takesFinish
-          ? paintFor(into?.doors, piece.colour, { width: piece.length, height: piece.height })
-          : { colour: piece.colour },
+        paint:
+          enclosure === 'glass' && piece.takesFinish
+            ? { colour: PAINT.glass, opacity: 0.35 }
+            : piece.takesFinish
+              ? paintFor(into?.doors, piece.colour, { width: piece.length, height: piece.height })
+              : { colour: piece.colour },
       })),
     )
   })
@@ -123,5 +152,5 @@ function standingWall(
       of: { kind: 'opening' as const, id: opening.id },
     }))
 
-  return [...solids, ...leaves, ...panes]
+  return [...(enclosure === 'glass' ? glazing : solids), ...leaves, ...panes]
 }

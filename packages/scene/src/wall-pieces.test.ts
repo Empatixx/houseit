@@ -210,3 +210,18 @@ test('the swing is a quarter circle as wide as the door, the way the reference d
     expect(Math.hypot(dash.at - 2600, dash.aside! - face)).toBeCloseTo(radius)
   }
 })
+
+test('the edge of a paved surface is one thin line, and nothing is cut into it', () => {
+  const pieces = planPieces(wall, [window_], 6000, 0, 6000, 'edge')
+
+  expect(pieces).toHaveLength(1)
+  expect(pieces[0]!.thickness).toBe(lineWeight(wall.thickness))
+  expect(pieces[0]!.length).toBe(6000)
+})
+
+test('a glazed wall is drawn the way a window is, the whole way along', () => {
+  const pieces = planPieces(wall, [], 6000, 0, 6000, 'glass')
+
+  expect(pieces.map((piece) => piece.colour)).toEqual([INK.outline, INK.glass, INK.outline])
+  expect(pieces[2]!.thickness).toBe(lineWeight(wall.thickness))
+})

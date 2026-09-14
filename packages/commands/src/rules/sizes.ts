@@ -15,7 +15,7 @@ export const sizes: Rule = ({ reports }) => {
       })
     }
     const ratio = Math.max(room.width, room.depth) / Math.max(1, Math.min(room.width, room.depth))
-    if (!kind.passage && ratio > 3) {
+    if (!kind.passage && !kind.outdoor && ratio > 3) {
       problems.push({
         code: 'room.bad-ratio',
         severity: 'warning',

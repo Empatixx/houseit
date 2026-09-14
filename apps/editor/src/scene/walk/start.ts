@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { isOutdoor } from '@houseit/geometry/enclosure'
 import type { Point } from '@houseit/geometry/outlines'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { piecesOf, standingAt } from '@houseit/geometry/standing'
@@ -11,7 +12,9 @@ const STEPS = 9
 export type Start = { at: Point; yaw: number }
 
 export function startOf(doc: HouseDocument, level: string): Start | undefined {
-  const rooms = roomsOf(doc, level)
+  const all = roomsOf(doc, level)
+  const indoors = all.filter((room) => !isOutdoor(room))
+  const rooms = indoors.length > 0 ? indoors : all
   if (rooms.length === 0) return undefined
   const biggest = rooms.reduce((best, next) => (next.area > best.area ? next : best))
 

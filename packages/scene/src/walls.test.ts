@@ -73,3 +73,30 @@ test('a wall standing on another storey is not this storey business', () => {
 
   expect(wallPieces(doc, level).some((piece) => piece.of?.id === 'w1')).toBe(false)
 })
+
+test('nothing stands round a terrace: its edge is drawn, not built', () => {
+  const { doc, level } = room()
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'Terasa', kind: 'terrace', loop: [] }
+
+  expect(wallPieces(doc, level)).toEqual([])
+})
+
+test('a winter garden stands in glass under a frame, not in plaster', () => {
+  const { doc, level } = room()
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'Zimní zahrada', loop: [] }
+
+  const built = wallPieces(doc, level).filter((piece) => piece.of?.id === 'w1')
+  expect(built.map((piece) => piece.paint.opacity)).toEqual([0.35, undefined])
+})
+
+test('a door in a glazed wall is a glass leaf, not a painted one', () => {
+  const { doc, level } = room()
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'Zimní zahrada', loop: [] }
+  doc.openings.o1 = opening({ id: 'o1', wall: 'w1', kind: 'door', variant: 'sliding' })
+
+  const leaves = wallPieces(doc, level).filter(
+    (piece) => piece.of?.id === 'o1' && piece.paint.colour !== '#3d4246',
+  )
+  expect(leaves.length).toBeGreaterThan(0)
+  expect(leaves.some((piece) => piece.paint.opacity === 0.35)).toBe(true)
+})
