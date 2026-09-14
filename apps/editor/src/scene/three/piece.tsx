@@ -167,7 +167,9 @@ function Flat({ body, at, rotation, material, shadows, onPick, native }: FlatPro
       native={native}
       geometry={geometry}
       geometryKey={
-        native?.owner?.kind === 'object' || native?.category === 'IFCSTAIR'
+        native?.owner?.kind === 'object' ||
+        native?.category === 'IFCSTAIR' ||
+        native?.category === 'IFCRAMP'
           ? JSON.stringify(body)
           : undefined
       }

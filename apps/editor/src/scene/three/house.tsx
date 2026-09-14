@@ -12,6 +12,14 @@ import { MM } from '../plan-coordinates'
 import { StandingPiece } from './piece'
 
 const FLOOR_PICKED = '#9db9ff'
+const CATEGORIES: Record<NonNullable<Piece['role']>, string> = {
+  'wall-solid': 'IFCWALL',
+  'floor-surface': 'IFCCOVERING',
+  'slab-solid': 'IFCSLAB',
+  'stair-solid': 'IFCSTAIR',
+  'ramp-solid': 'IFCRAMP',
+  'shaft-solid': 'IFCBUILDINGELEMENTPROXY',
+}
 
 export function House({ picking = true }: { picking?: boolean }) {
   const doc = usePlanDoc()
@@ -45,24 +53,19 @@ export function House({ picking = true }: { picking?: boolean }) {
                 <StandingPiece
                   piece={piece}
                   native={
-                    piece.role === 'floor-surface' ||
-                    piece.role === 'slab-solid' ||
-                    piece.role === 'stair-solid' ||
-                    piece.of?.kind === 'opening' ||
-                    piece.of?.kind === 'object'
+                    piece.role || piece.of?.kind === 'opening' || piece.of?.kind === 'object'
                       ? {
                           id: `${storey.level}:${piece.name}`,
                           elevation: storey.elevation,
-                          category:
-                            piece.role === 'stair-solid'
-                              ? 'IFCSTAIR'
-                              : piece.of?.kind === 'opening'
-                                ? doc.openings[piece.of.id]?.kind === 'door'
-                                  ? 'IFCDOOR'
-                                  : doc.openings[piece.of.id]?.kind === 'window'
-                                    ? 'IFCWINDOW'
-                                    : 'IFCBUILDINGELEMENTPROXY'
-                                : undefined,
+                          category: piece.role
+                            ? CATEGORIES[piece.role]
+                            : piece.of?.kind === 'opening'
+                              ? doc.openings[piece.of.id]?.kind === 'door'
+                                ? 'IFCDOOR'
+                                : doc.openings[piece.of.id]?.kind === 'window'
+                                  ? 'IFCWINDOW'
+                                  : 'IFCBUILDINGELEMENTPROXY'
+                              : undefined,
                         }
                       : undefined
                   }

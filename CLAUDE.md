@@ -33,8 +33,8 @@ The wall authoring model on `that-open-engine`:
   in `eb29400` was withdrawn because it regressed those features.
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
-  Fragment interaction model mirrors the remaining structural geometry; it is not the document or
-  persistence model. Walls, floors, slabs, furniture, opening fills and 3D stairs render as native Fragments shells in each viewport's
+  Fragment interaction model remains for eligible non-native owned meshes; it is not the document or
+  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps and shaft parts render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
   batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
@@ -78,6 +78,16 @@ The wall authoring model on `that-open-engine`:
   `native-stair-proof.mjs` covers all five catalogue shapes, repeated instances and `--measured`
   covers the basement's three flights and irregular landings. Run `live-furniture-preview-proof.mjs
   --stairs` for real staircase dragging/rotation and native snapping during the preview.
+  Ramp solids and shaft guides/enclosures use the same path with `ramp-solid`/`shaft-solid`
+  roles and IFCRAMP/IFCBUILDINGELEMENTPROXY categories. House maps every scene role through one
+  exhaustive category table. Preserve both sloping faces of ramp prisms through source-triangle
+  mapping, and keep exposed-box trimming where enclosures meet columns. Equal guide geometry
+  shares native representations. These pieces retain their existing unowned UI semantics; their
+  actual 3D geometry is now available to native snapping/sections without inventing selection IDs.
+  Their former unowned meshes were not copied by InteractionModel. The 2D ramp arrow/percentage
+  and shaft plan marks remain schematic UI presentation. `native-connection-proof.mjs` covers
+  all ramp directions, site elevations/base offsets, enclosed lifts and shafts around columns,
+  including native/source geometry, edge snapping, cuts, actual keyboard walking and archives.
   During a wall, opening or furniture gesture, a temporary portal renders the registered source geometry/materials,
   while the permanent native roots are hidden and native edit requests are coalesced. Keep this
   preview until the final native update is ready; exclude it from InteractionModel. It is gesture

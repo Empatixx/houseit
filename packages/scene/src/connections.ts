@@ -37,6 +37,7 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
         at: { x: 0, y: r.baseOffset - r.thickness / 2, z: 0 },
         paint: { colour: r.colour },
         name: `ramp-${r.id}`,
+        role: 'ramp-solid',
       },
     ]
   })
@@ -55,6 +56,7 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
         paint: { colour: '#6e7478' },
       }),
       name: `shaft-${s.id}-${side}`,
+      role: 'shaft-solid' as const,
     }))
   })
   const enclosure = shaftsOn(doc, level).flatMap((s) =>
@@ -63,6 +65,7 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
       const block = (base: number, height: number, colour: string): Piece => ({
         ...slab({ x: p.x, z: -p.y, w: p.width, d: p.depth, h: height, base, paint: { colour } }),
         name: `shaft-${s.id}-enclosure-${level}-${index}-${base}`,
+        role: 'shaft-solid',
       })
       return p.door
         ? [
