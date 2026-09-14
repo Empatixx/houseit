@@ -34,7 +34,7 @@ The wall authoring model on `that-open-engine`:
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
   Fragment interaction model remains for eligible non-native owned meshes; it is not the document or
-  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts, roofs, columns and facades render as native Fragments shells in each viewport's
+  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts, roofs, columns, facades and exterior site geometry render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
   batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
@@ -114,6 +114,20 @@ The wall authoring model on `that-open-engine`:
   `native-facade-proof.mjs` covers plinths, bounded bands, openings and persistence; `--continuity`
   covers multi-storey coats, corners and embedded columns. `live-wall-preview-proof.mjs --facade`
   verifies the coat after actual wall dragging and a single undo.
+  3D site surfaces/markings/railings carry `site-surface`/`site-marking`/`site-railing`, mapped to
+  IFCGEOGRAPHICELEMENT/IFCSURFACEFEATURE/IFCRAILING. Use absolute site elevations, including both
+  sloped prism faces, and preserve named textures, road marking offsets, rail member rotations and
+  transparent glass. The 400 m contextual lawn also uses NativeSurface, preserving its seeded
+  texture, vertex colours and excavation holes. The shared source appearance mapper restores RGB
+  vertex colours where present and uses neutral white for other geometry in the same tile. Never
+  replace native positions/indices to restore appearance. Ground geometry is keyed by excavations,
+  so unrelated document edits do not rebuild the lawn; dispose its geometry, texture and material.
+  Site parts retain their unowned UI semantics. Datum-plan surface fills, constant-screen-width
+  rail/marking lines, parking labels and the camera-following sky remain presentation. Do not claim
+  an InteractionModel reduction for previously unowned site/ground meshes. `native-site-proof.mjs`
+  covers textures, rails, source/vertex colours, empty lawn, native tools, edits and archives;
+  `--ramp` covers basement/ramp excavation holes. Run the existing connection proof with
+  `--fixture=site-ramp` for actual collision-enabled ramp traversal with the terrain visible.
   During a wall, opening or furniture gesture, a temporary portal renders the registered source geometry/materials,
   while the permanent native roots are hidden and native edit requests are coalesced. Keep this
   preview until the final native update is ready; exclude it from InteractionModel. It is gesture

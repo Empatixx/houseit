@@ -170,7 +170,8 @@ function Flat({ body, at, rotation, material, shadows, onPick, native }: FlatPro
         native?.owner?.kind === 'object' ||
         native?.category === 'IFCSTAIR' ||
         native?.category === 'IFCRAMP' ||
-        native?.category === 'IFCROOF'
+        native?.category === 'IFCROOF' ||
+        native?.category === 'IFCGEOGRAPHICELEMENT'
           ? JSON.stringify(body)
           : undefined
       }

@@ -38,6 +38,9 @@ export type Piece = {
     | 'roof-solid'
     | 'column-solid'
     | 'facade-covering'
+    | 'site-surface'
+    | 'site-marking'
+    | 'site-railing'
   body: Body
   at: { x: number; y: number; z: number }
   turn?: number

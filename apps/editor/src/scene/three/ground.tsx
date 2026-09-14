@@ -1,10 +1,11 @@
 import { excavations } from '@houseit/geometry/excavation'
 import type { Point } from '@houseit/geometry/outlines'
 import { useThree } from '@react-three/fiber'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
   BufferAttribute,
   CanvasTexture,
+  MeshStandardMaterial,
   Path,
   PlaneGeometry,
   RepeatWrapping,
@@ -14,6 +15,7 @@ import {
 } from 'three'
 import { useDocument } from '../../store/store'
 import { useWalk } from '../../store/walk'
+import { PieceMesh } from './piece-mesh'
 
 const REACH = 400
 const TILE = 6
@@ -182,7 +184,9 @@ export function Ground() {
   const site = useWalk((s) => s.inspection?.site !== false)
   const gl = useThree((state) => state.gl)
   const doc = useDocument((state) => state.doc)
-  const geometry = useMemo(() => lawn(excavations(doc)), [doc])
+  const key = JSON.stringify(excavations(doc))
+  const geometry = useMemo(() => lawn(JSON.parse(key) as Point[][]), [key])
+  useEffect(() => () => geometry.dispose(), [geometry])
   const grass = useMemo(() => {
     const texture = new CanvasTexture(turf())
     texture.wrapS = RepeatWrapping
@@ -192,16 +196,23 @@ export function Ground() {
     texture.anisotropy = gl.capabilities.getMaxAnisotropy()
     return texture
   }, [gl])
+  useEffect(() => () => grass.dispose(), [grass])
+  const material = useMemo(
+    () => new MeshStandardMaterial({ map: grass, vertexColors: true, roughness: 1, metalness: 0 }),
+    [grass],
+  )
+  useEffect(() => () => material.dispose(), [material])
 
   if (!site) return null
   return (
-    <mesh
-      receiveShadow
+    <PieceMesh
+      native={{ id: 'terrain:ground', elevation: 0, category: 'IFCGEOGRAPHICELEMENT' }}
       geometry={geometry}
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, -0.01, 0]}
-    >
-      <meshStandardMaterial map={grass} vertexColors roughness={1} metalness={0} />
-    </mesh>
+      geometryKey={`terrain:${key}`}
+      material={material}
+      rotation={[-Math.PI / 2, 0, 0, 'YXZ']}
+      at={[0, -0.01, 0]}
+      shadows={false}
+    />
   )
 }

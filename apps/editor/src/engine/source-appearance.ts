@@ -1,8 +1,14 @@
 import type { BufferGeometry, Matrix4 } from 'three'
-import { Matrix3, Vector3 } from 'three'
+import { Float32BufferAttribute, Matrix3, Vector3 } from 'three'
 import type { TileSurface } from './display-surface'
 
-type Triangle = { points: Vector3[]; uv: number[][]; normals: Vector3[]; material: number }
+type Triangle = {
+  points: Vector3[]
+  uv: number[][]
+  normals: Vector3[]
+  colours?: Vector3[]
+  material: number
+}
 type Index = { exact: Map<string, Triangle[]>; nearby: Map<string, Triangle[]> }
 const cache = new WeakMap<BufferGeometry, Index>()
 const centreOf = (points: Vector3[]) =>
@@ -28,6 +34,7 @@ function triangles(geometry: BufferGeometry) {
   const position = geometry.getAttribute('position'),
     uv = geometry.getAttribute('uv'),
     normal = geometry.getAttribute('normal'),
+    colour = geometry.getAttribute('color'),
     index = geometry.index
   for (let i = 0; i < (index?.count ?? position.count); i += 3) {
     const ids = [0, 1, 2].map((j) => (index ? index.getX(i + j) : i + j))
@@ -35,6 +42,7 @@ function triangles(geometry: BufferGeometry) {
     const triangle = {
       points,
       normals: ids.map((id) => new Vector3().fromBufferAttribute(normal, id)),
+      colours: colour ? ids.map((id) => new Vector3().fromBufferAttribute(colour, id)) : undefined,
       uv: ids.map((id) => (uv ? [uv.getX(id), uv.getY(id)] : [0, 0])),
       material:
         geometry.groups.find((g) => i >= g.start && i < g.start + g.count)?.materialIndex ?? 0,
@@ -63,6 +71,11 @@ export function restoreSourceAppearance(
     normal = geometry.getAttribute('normal'),
     index = geometry.index!
   const inverses = new Map<TileSurface, Matrix4>()
+  const colours = vertices.some(
+    (v) => v.surface.mapping.kind === 'source' && v.surface.mapping.geometry.hasAttribute('color'),
+  )
+    ? new Float32BufferAttribute(new Float32Array(position.count * 3).fill(1), 3)
+    : undefined
   for (let i = 0; i < index.count; i += 3) {
     const ids = [index.getX(i), index.getX(i + 1), index.getX(i + 2)]
     const entry = vertices[ids[0]!]!,
@@ -103,7 +116,10 @@ export function restoreSourceAppearance(
       sides[ids[j]!] = triangle.material
       const n = triangle.normals[corner]!.clone().applyMatrix3(normalTransform).normalize()
       normal.setXYZ(ids[j]!, n.x, n.y, n.z)
+      const colour = triangle.colours?.[corner]
+      if (colour) colours?.setXYZ(ids[j]!, colour.x, colour.y, colour.z)
     }
   }
   normal.needsUpdate = true
+  if (colours) geometry.setAttribute('color', colours)
 }

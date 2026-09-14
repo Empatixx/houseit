@@ -22,6 +22,7 @@ export function sitePieces(doc: HouseDocument): Piece[] {
     const material = s.material ? floorMaterial(s.material) : undefined
     return {
       name: `site-${s.id}`,
+      role: 'site-surface',
       body: {
         kind: 'prism',
         outline: s.outline.map((p) => ({ x: p.x, z: -p.y })),
@@ -59,6 +60,7 @@ export function sitePieces(doc: HouseDocument): Piece[] {
           line.colour,
         ),
         name: `site-${line.id}-${i}`,
+        role: 'site-marking',
         casts: false,
       })
     })
@@ -144,5 +146,9 @@ export function sitePieces(doc: HouseDocument): Piece[] {
       }
     })
   }
-  return pieces.map((p, i) => ({ ...p, name: p.name ?? `site-rail-${i}` }))
+  return pieces.map((p, i) => ({
+    ...p,
+    role: p.role ?? 'site-railing',
+    name: p.name ?? `site-rail-${i}`,
+  }))
 }

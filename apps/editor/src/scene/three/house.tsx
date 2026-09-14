@@ -22,6 +22,9 @@ const CATEGORIES: Record<NonNullable<Piece['role']>, string> = {
   'roof-solid': 'IFCROOF',
   'column-solid': 'IFCCOLUMN',
   'facade-covering': 'IFCCOVERING',
+  'site-surface': 'IFCGEOGRAPHICELEMENT',
+  'site-marking': 'IFCSURFACEFEATURE',
+  'site-railing': 'IFCRAILING',
 }
 
 export function House({ picking = true }: { picking?: boolean }) {
@@ -32,7 +35,14 @@ export function House({ picking = true }: { picking?: boolean }) {
 
   return (
     <>
-      {site && world.site.map((piece) => <StandingPiece key={piece.name} piece={piece} />)}
+      {site &&
+        world.site.map((piece) => (
+          <StandingPiece
+            key={piece.name}
+            piece={piece}
+            native={{ id: `site:${piece.name}`, elevation: 0, category: CATEGORIES[piece.role!] }}
+          />
+        ))}
       {world.storeys.map((storey) => (
         <group key={storey.level} position={[0, storey.elevation * MM, 0]}>
           {storey.lights.map((light) => (
