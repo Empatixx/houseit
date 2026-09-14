@@ -34,7 +34,7 @@ The wall authoring model on `that-open-engine`:
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
   Fragment interaction model remains for eligible non-native owned meshes; it is not the document or
-  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts and roofs render as native Fragments shells in each viewport's
+  persistence model. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts, roofs and columns render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
   batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
@@ -96,6 +96,13 @@ The wall authoring model on `that-open-engine`:
   change. `native-roof-proof.mjs` covers reordered/deleted roofs, mixed materials and noncoplanar
   facets; `--shaft` covers a roof opening and its removal/restoration. Facet roofs still have the
   existing limitation that they do not subtract shaft voids; this migration does not change it.
+  Structural columns carry `column-solid`/IFCCOLUMN through that same path, including exposed-box
+  skins where they meet walls and shaft enclosures. Their height still follows the storey soffit;
+  embedded/outside permissions, occupied-floor derivation and walking collisions remain domain rules.
+  Columns retain their existing unowned 3D semantics and dark schematic plan marks; no new selection
+  or editing controls are introduced. `native-column-proof.mjs` covers repeated geometry, resize
+  detachment, embedded-to-free movement, exterior/upper supports, native cuts/snapping, collision
+  walking and archives; `--shaft` exercises the shared skin at enclosures around columns.
   During a wall, opening or furniture gesture, a temporary portal renders the registered source geometry/materials,
   while the permanent native roots are hidden and native edit requests are coalesced. Keep this
   preview until the final native update is ready; exclude it from InteractionModel. It is gesture

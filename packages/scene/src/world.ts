@@ -55,6 +55,7 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
           paint: { colour: column.colour },
         }),
         name: `column-${column.id}`,
+        role: 'column-solid' as const,
       })),
       ...connectionPieces(doc, level),
       ...wallPieces(doc, level),

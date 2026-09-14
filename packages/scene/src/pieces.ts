@@ -36,6 +36,7 @@ export type Piece = {
     | 'ramp-solid'
     | 'shaft-solid'
     | 'roof-solid'
+    | 'column-solid'
   body: Body
   at: { x: number; y: number; z: number }
   turn?: number
