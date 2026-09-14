@@ -16,6 +16,7 @@ import {
   type PerspectiveCamera,
 } from 'three'
 import type { Selection } from '../store/selection'
+import { compactDisplayBuffer, stageDisplayEdit } from './display-edits'
 import type { DisplaySurface } from './display-surface'
 import { mapFragmentTile, styleFragmentTile, tileItemIds } from './fragment-tile'
 
@@ -43,23 +44,37 @@ export class FragmentDisplay {
   revision = 0
   toolsDisposal: Promise<void> | undefined
   readonly gestures = new Set<string>()
+  readonly transient = new Set<number>()
   private transparentMaterials = new Map<string, number>()
   private representations = new Map<string, { id: number; geometry: BufferGeometry }>()
   private entries = new Map<string, Entry>()
+  private modelItems = new Map<string, Set<number>>()
   private nextId = 5
   private dirty = false
   private dead = false
   private loaded = false
   private work: Promise<void> | null = null
   private cameraKey = ''
+  private preview = false
+  private compact = false
+  private compactAfter = 0
+  pointerDown = false
+  private queries = 0
+  private retaining = new Set<Object3D>()
+  private retired = new Map<number, EditRequest>()
 
   constructor(
     private camera: () => PerspectiveCamera | OrthographicCamera,
     private changed: () => void,
     private report: (error: unknown) => void,
   ) {
-    this.fragments.init(workerUrl)
+    const options = { classicWorker: false, maxWorkers: 2, threadGroups: { background: 1 } }
+    this.fragments.init(workerUrl, options)
     this.fragments.core.settings.autoCoordinate = false
+    this.fragments.core.settings.maxUpdateRate = 0
+    this.fragments.core.settings.meshConnectionRate = 0
+    this.fragments.core.settings.meshConnectionThreshold = 1
+    this.fragments.core.settings.threadUpdaterDelay = 32
     this.fragments.list.onItemSet.add(({ value: model }) => {
       if (model.modelId !== this.id && model.parentModelId !== this.id) return
       model.object.userData.houseitNative = true
@@ -74,7 +89,9 @@ export class FragmentDisplay {
       }
     })
     this.fragments.list.onItemDeleted.add((id) => {
-      for (const root of this.roots) if (root.name === id) this.roots.delete(root)
+      this.modelItems.delete(id)
+      for (const root of this.roots)
+        if (root.name === id && !this.retaining.has(root)) this.roots.delete(root)
       this.changed()
     })
   }
@@ -85,7 +102,20 @@ export class FragmentDisplay {
     this.report(error)
   }
   get busy() {
-    return this.dirty || !!this.work || this.preparing.size > 0
+    return this.dirty || !!this.work || this.preparing.size > 0 || (this.compact && !this.preview)
+  }
+  async query<T>(read: () => Promise<T>): Promise<T> {
+    this.queries++
+    try {
+      await this.work
+      while (this.preparing.size) await Promise.allSettled(this.preparing)
+      return await read()
+    } finally {
+      this.queries--
+    }
+  }
+  get previewing() {
+    return this.preview
   }
   get canSnap() {
     return (
@@ -93,7 +123,7 @@ export class FragmentDisplay {
       !this.error &&
       !this.work &&
       this.preparing.size === 0 &&
-      (!this.dirty || this.gestures.size > 0)
+      (!this.dirty || this.gestures.size > 0 || this.preview)
     )
   }
   get model() {
@@ -109,7 +139,12 @@ export class FragmentDisplay {
     const ids = [...this.owners]
       .filter(([, value]) => value.kind === owner.kind && value.id === owner.id)
       .map(([id]) => id)
-    return ids.length && this.model ? { [this.model.modelId]: new Set(ids) } : {}
+    return Object.fromEntries(
+      [...this.modelItems].flatMap(([modelId, items]) => {
+        const selected = ids.filter((id) => items.has(id))
+        return selected.length ? [[modelId, new Set(selected)]] : []
+      }),
+    )
   }
   set(surface: DisplaySurface) {
     if (!surface.geometry.getAttribute('position').count) {
@@ -124,6 +159,10 @@ export class FragmentDisplay {
     this.dirty = true
   }
   frame(preview = false) {
+    if (this.preview && !preview) this.compactAfter = performance.now() + 250
+    if (this.preview !== preview) this.transient.clear()
+    this.preview = preview
+    this.fragments.core.settings.threadUpdaterDelay = preview ? 0 : 32
     if (this.dead) return
     const camera = this.camera()
     const key = `${camera.uuid}:${camera.matrixWorld.elements}:${camera.projectionMatrix.elements}`
@@ -132,7 +171,12 @@ export class FragmentDisplay {
       for (const model of this.fragments.list.values()) model.useCamera.bind(model)(camera)
       void this.fragments.core.update().catch(this.fail)
     }
-    if (this.dirty && !this.work && !preview) {
+    if (
+      (this.dirty || (this.compact && !preview && performance.now() >= this.compactAfter)) &&
+      !this.work &&
+      this.preparing.size === 0 &&
+      this.queries === 0
+    ) {
       this.dirty = false
       this.work = this.sync()
         .catch(this.fail)
@@ -204,6 +248,11 @@ export class FragmentDisplay {
           },
         })
       }
+      if (
+        this.preview &&
+        (!old || old.geometry !== surface.geometry || !old.transform.equals(surface.transform))
+      )
+        this.transient.add(entry.item)
       entry.surface = surface
       if (!old?.transform.equals(surface.transform)) {
         const e = surface.transform.elements
@@ -220,12 +269,16 @@ export class FragmentDisplay {
       }
       const key = surface.geometryKey ?? surface.id
       let representation = this.representations.get(key)
+      if (representation && !surface.geometryKey && representation.geometry !== surface.geometry) {
+        requests.push({ type: Edit.DELETE_REPRESENTATION, localId: representation.id })
+        representation = undefined
+      }
       const create = !representation
       if (!representation) {
         representation = { id: this.nextId++, geometry: surface.geometry }
         this.representations.set(key, representation)
       }
-      if (create || (!surface.geometryKey && representation.geometry !== surface.geometry)) {
+      if (create) {
         const geometry = surface.geometry.clone()
         if (!geometry.index)
           geometry.setIndex(
@@ -233,7 +286,7 @@ export class FragmentDisplay {
           )
         try {
           requests.push({
-            type: create ? Edit.CREATE_REPRESENTATION : Edit.UPDATE_REPRESENTATION,
+            type: Edit.CREATE_REPRESENTATION,
             localId: representation.id,
             data: GeomsFbUtils.representationFromGeometry(
               geometry,
@@ -306,13 +359,41 @@ export class FragmentDisplay {
     }
     if (requests.length) {
       requests.push({ type: Edit.UPDATE_MAX_LOCAL_ID, localId: this.nextId })
-      await this.fragments.core.editor.edit(this.id, requests)
+      await this.fragments.core.editor.edit(this.id, stageDisplayEdit(requests, this.retired))
       for (const model of this.fragments.list.values())
         if (model.modelId === this.id || model.parentModelId === this.id)
           await model.setLodMode(LodMode.ALL_VISIBLE)
       await this.fragments.core.update(true)
       this.error = null
       this.revision++
+    }
+    if (requests.length) {
+      this.compact = true
+      this.compactAfter = performance.now() + 250
+    }
+    if (this.compact && !this.preview && performance.now() >= this.compactAfter) {
+      this.compact = false
+      await Promise.allSettled(this.preparing)
+      const previous = this.fragments.list.get(this.id)!
+      const { requests } = await this.fragments.core.editor.getModelRequests(this.id)
+      const buffer = compactDisplayBuffer(
+        new Uint8Array(await previous.getBuffer(true)),
+        requests,
+        this.retired.values(),
+        this.nextId,
+      )
+      this.retaining.add(previous.object)
+      await previous.dispose({ keepInScene: true })
+      await this.fragments.core.load(buffer, { modelId: this.id, raw: true, camera: this.camera() })
+      await this.fragments.list.get(this.id)?.setLodMode(LodMode.ALL_VISIBLE)
+      await this.fragments.core.update(true)
+      await Promise.allSettled(this.preparing)
+      await this.fragments.core.editor.reset(this.id)
+      this.retaining.delete(previous.object)
+      this.roots.delete(previous.object)
+      previous.finalizeDispose()
+      this.retired.clear()
+      this.changed()
     }
     for (const model of this.fragments.list.values())
       if (model.modelId === this.id || model.parentModelId === this.id)
@@ -336,6 +417,9 @@ export class FragmentDisplay {
     const work = Promise.all(unique.map((id) => model.getLocalIdsFromItemIds([id])))
       .then((localIds) => {
         if (this.dead || !model.tiles.has(object.userData.tileId)) return
+        const items = this.modelItems.get(model.modelId) ?? new Set<number>()
+        for (const ids of localIds) for (const id of ids) items.add(id)
+        this.modelItems.set(model.modelId, items)
         const entries = new Map([...this.entries.values()].map((entry) => [entry.item, entry]))
         const mapped = new Map(unique.map((id, i) => [id, entries.get(localIds[i]![0]!)]))
         const vertices = itemIds.map((id) => mapped.get(id))

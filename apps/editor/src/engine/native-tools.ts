@@ -280,12 +280,16 @@ export class NativeTools {
       : undefined
   }
   async snapPoint(point: Point, exclude?: Selection): Promise<Point | null> {
-    if (!engineViewStore.getState().snap || this.running || !this.display.canSnap || this.dead)
+    return this.display.query(() => this.snap(point, exclude))
+  }
+  private async snap(point: Point, exclude?: Selection): Promise<Point | null> {
+    if (!engineViewStore.getState().snap || this.running || !this.display.canSnap || this.dead) {
       return null
+    }
     const projected = new Vector3(point.x / 1000, 0, -point.y / 1000).project(
       this.world.camera.three,
     )
-    const hit = await (this.display.gestures.size
+    const hit = await (this.display.previewing
       ? this.snapPreview(projected, exclude)
       : this.components
           .get(OBC.Raycasters)
@@ -332,16 +336,22 @@ export class NativeTools {
       box.left + ((projected.x + 1) * box.width) / 2,
       box.top + ((1 - projected.y) * box.height) / 2,
     )
-    const hits =
-      (await this.display.model?.raycastWithSnapping({
-        camera: this.get().camera,
-        dom,
-        mouse,
-        snappingClasses: [SnappingClass.POINT, SnappingClass.LINE],
-      })) ?? []
+    const hits = (
+      await Promise.all(
+        [...this.display.fragments.list.values()].map((model) =>
+          model.raycastWithSnapping({
+            camera: this.get().camera,
+            dom,
+            mouse,
+            snappingClasses: [SnappingClass.POINT, SnappingClass.LINE],
+          }),
+        ),
+      )
+    ).flatMap((hits) => hits ?? [])
     return (
       hits
         .filter((hit) => {
+          if (this.display.transient.has(hit.localId)) return false
           const owner = this.ownerOf(hit)
           return !exclude || !owner || owner.kind !== exclude.kind || owner.id !== exclude.id
         })

@@ -66,19 +66,29 @@ export function styleFragmentTile(object: Mesh) {
   if (!entries) return
   const sides = geometry.userData.houseitSides as number[]
   const materials: Material[] = []
+  const visible = geometry.groups.map((group) => ({
+    start: group.start,
+    end: Math.min(geometry.index!.count, group.start + group.count),
+  }))
   geometry.clearGroups()
-  for (let i = 0; i < geometry.index!.count; i += 3) {
-    const vertex = geometry.index!.getX(i)
-    const appearance = entries[vertex]!.surface
-    const material = appearance.materials[appearance.materials.length === 1 ? 0 : sides[vertex]!]!
-    let index = materials.indexOf(material)
-    if (index < 0) {
-      index = materials.length
-      materials.push(material)
+  for (const range of visible)
+    for (let i = range.start; i < range.end; i += 3) {
+      const vertex = geometry.index!.getX(i)
+      const appearance = entries[vertex]!.surface
+      const material = appearance.materials[appearance.materials.length === 1 ? 0 : sides[vertex]!]!
+      let index = materials.indexOf(material)
+      if (index < 0) {
+        index = materials.length
+        materials.push(material)
+      }
+      const last = geometry.groups.at(-1)
+      if (last?.materialIndex === index && last.start + last.count === i) last.count += 3
+      else geometry.addGroup(i, 3, index)
     }
-    const last = geometry.groups.at(-1)
-    if (last?.materialIndex === index) last.count += 3
-    else geometry.addGroup(i, 3, index)
-  }
-  object.material = materials.length === 1 ? materials[0]! : materials
+  const single = materials.length === 1 && geometry.groups.length === 1
+  const range = single
+    ? geometry.groups[0]!
+    : { start: 0, count: geometry.groups.length ? geometry.index!.count : 0 }
+  geometry.setDrawRange(range.start, range.count)
+  object.material = single ? materials[0]! : materials
 }

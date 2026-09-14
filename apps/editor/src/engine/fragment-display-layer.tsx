@@ -1,10 +1,4 @@
-import {
-  createPortal,
-  type ThreeElements,
-  type ThreeEvent,
-  useFrame,
-  useThree,
-} from '@react-three/fiber'
+import { type ThreeElements, type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
 import {
   createContext,
   type ReactNode,
@@ -23,7 +17,7 @@ import type { DisplaySurface } from './display-surface'
 import { FragmentDisplay } from './fragment-display'
 import { useGeometryEngine } from './provider'
 
-const Context = createContext<{ display: FragmentDisplay; preview: boolean } | null>(null)
+const Context = createContext<{ display: FragmentDisplay } | null>(null)
 type Events = Pick<
   ThreeElements['group'],
   'onDoubleClick' | 'onClick' | 'onPointerDown' | 'onPointerMove' | 'onPointerOver' | 'onPointerOut'
@@ -42,8 +36,6 @@ export function FragmentDisplayLayer({ children }: { children: ReactNode }) {
   const get = useThree((state) => state.get)
   const engine = useGeometryEngine()
   const documentPreview = usePreview((state) => state.doc !== null)
-  const [settling, setSettling] = useState(false)
-  const preview = documentPreview || settling
   const [, update] = useReducer((n) => n + 1, 0)
   const [display, setDisplay] = useState<FragmentDisplay | null>(null)
   useEffect(() => {
@@ -57,19 +49,29 @@ export function FragmentDisplayLayer({ children }: { children: ReactNode }) {
         if (alive) toast.error(String(error), { id: 'fragment-display' })
       },
     )
+    const canvas = get().gl.domElement
+    const down = () => {
+      instance.pointerDown = true
+    }
+    const up = () => {
+      instance.pointerDown = false
+    }
+    canvas.addEventListener('pointerdown', down, true)
+    window.addEventListener('pointerup', up, true)
+    window.addEventListener('pointercancel', up, true)
     handlers.set(instance, new Map())
     setDisplay(instance)
     return () => {
       alive = false
+      canvas.removeEventListener('pointerdown', down, true)
+      window.removeEventListener('pointerup', up, true)
+      window.removeEventListener('pointercancel', up, true)
       delete get().gl.domElement.dataset.houseitRender
       void instance.dispose().then(() => instance.components.dispose())
     }
   }, [get])
   useFrame(() => {
-    const dragging = documentPreview || !!display?.gestures.size
-    display?.frame(dragging)
-    const keepPreview = dragging || (settling && (!!display?.busy || engine.status.pending > 0))
-    if (keepPreview !== settling) setSettling(keepPreview)
+    display?.frame(documentPreview || display.pointerDown || display.gestures.size > 0)
     get().gl.domElement.dataset.houseitRender = display?.error
       ? 'error'
       : !display || display.busy || engine.status.pending > 0
@@ -94,9 +96,9 @@ export function FragmentDisplayLayer({ children }: { children: ReactNode }) {
   )
   if (!display) return null
   return (
-    <Context value={{ display, preview }}>
+    <Context value={{ display }}>
       {children}
-      <group {...events} visible={!preview}>
+      <group {...events}>
         {[...display.roots].map((root) => (
           <primitive key={root.uuid} object={root} dispose={null} />
         ))}
@@ -115,8 +117,6 @@ type Props = Events & { surface: DisplaySurface; gesture?: boolean }
 
 export function NativeSurface({ surface, gesture = false, ...events }: Props) {
   const display = useFragmentDisplay()
-  const scene = useThree((state) => state.scene)
-  const preview = useContext(Context)!.preview
   const { id } = surface
   useLayoutEffect(() => {
     if (gesture) display.gestures.add(id)
@@ -146,22 +146,7 @@ export function NativeSurface({ surface, gesture = false, ...events }: Props) {
   useLayoutEffect(() => {
     display.set(surface)
   }, [display, surface])
-  return preview
-    ? createPortal(
-        <mesh
-          geometry={surface.geometry}
-          material={surface.materials.length === 1 ? surface.materials[0] : surface.materials}
-          matrix={surface.transform}
-          matrixAutoUpdate={false}
-          castShadow={surface.casts}
-          receiveShadow={surface.receives !== false}
-          dispose={null}
-          userData={{ houseitHelper: true, houseitPreview: surface.id }}
-          {...events}
-        />,
-        scene,
-      )
-    : null
+  return null
 }
 
 export function NativeWallSurface({
