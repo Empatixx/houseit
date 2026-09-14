@@ -2,7 +2,7 @@ import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
 import { createDocumentStore } from '../store/document-store'
 import { openProjects } from '../store/projects/db'
-import { createProjectsStore } from '../store/projects/projects'
+import { createProjectsStore } from '../store/projects/project-store'
 import { selectionStore } from '../store/selection'
 import { viewStore } from '../store/view'
 import { installFloorplanBridge } from './floorplan-bridge'
@@ -74,6 +74,22 @@ test('every exec answers with the rooms it touched and what is wrong with the pl
   expect(result.ok && result.answer.rooms).toHaveLength(1)
   expect(result.ok && result.answer.rooms[0]).toMatchObject({ name: 'dům' })
   expect(result.ok && result.answer.problems.map((it) => it.code)).toContain('house.no-entrance')
+})
+
+test('reading through the bridge leaves an undone edit available to redo', async () => {
+  const store = createDocumentStore()
+  const bridge = await bridgeOn(store)
+  bridge.exec(floor)
+  bridge.exec('update-room --room dům --name house')
+  store.getState().undo()
+  const before = store.getState()
+
+  const result = bridge.exec('get-plan --room dům')
+
+  expect(result).toMatchObject({ ok: true, answer: { changed: [], rooms: [{ name: 'dům' }] } })
+  expect(store.getState()).toBe(before)
+  store.getState().redo()
+  expect(bridge.getPlan().rooms[0]?.name).toBe('house')
 })
 
 test('a change answers the same way, and names what it changed', async () => {

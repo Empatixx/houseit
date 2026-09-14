@@ -1,6 +1,6 @@
 import { createEmptyDocument } from '@houseit/core/document'
-import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
-import { expect, test } from 'vitest'
+import { IDBFactory as FakeIndexedDb, IDBObjectStore } from 'fake-indexeddb'
+import { expect, test, vi } from 'vitest'
 import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
 
 const fresh = () => openProjects(new FakeIndexedDb())
@@ -61,17 +61,45 @@ test('removing a project takes its document with it', async () => {
   expect(await db.read('byt')).toBeUndefined()
 })
 
-test('an unavailable database allows browsing but explicitly refuses writes', async () => {
+test('an unavailable database rejects instead of reporting an empty project list', async () => {
   const sealed = {
     open: () => {
       throw new Error('access denied')
     },
   } as unknown as IDBFactory
-  const db = await openProjects(sealed)
+  await expect(openProjects(sealed)).rejects.toThrow('access denied')
+})
 
-  expect(await db.list()).toEqual([])
-  expect(await db.read('byt')).toBeUndefined()
-  await expect(db.write('byt', createEmptyDocument())).rejects.toThrow(/storage is unavailable/)
-  await expect(db.put(meta('byt'))).rejects.toThrow(/storage is unavailable/)
-  await expect(db.remove('byt')).rejects.toThrow(/storage is unavailable/)
+test('a failed read rejects instead of reporting a missing document', async () => {
+  const db = await fresh()
+  const doc = createEmptyDocument()
+  await db.write('byt', doc)
+  const get = vi.spyOn(IDBObjectStore.prototype, 'get').mockImplementationOnce(() => {
+    throw new Error('read failed')
+  })
+  try {
+    await expect(db.read('byt')).rejects.toThrow('read failed')
+  } finally {
+    get.mockRestore()
+  }
+  expect(await db.read('byt')).toEqual(doc)
+})
+
+test('an aborted write rejects instead of reporting success', async () => {
+  const db = await fresh()
+  const put = IDBObjectStore.prototype.put
+  const abort = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementationOnce(function (
+    this: IDBObjectStore,
+    ...args
+  ) {
+    const request = put.apply(this, args)
+    this.transaction.abort()
+    return request
+  })
+  try {
+    await expect(db.write('byt', createEmptyDocument())).rejects.toBeDefined()
+    expect(await db.read('byt')).toBeUndefined()
+  } finally {
+    abort.mockRestore()
+  }
 })

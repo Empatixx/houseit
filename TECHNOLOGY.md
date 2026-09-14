@@ -1,194 +1,142 @@
-# Technology
+# Architecture on `that-open-engine`
 
-What each part is built with, and why it is that and not something else.
+This describes the implementation on the active That Open branch. The remaining
+engine migration is tracked in [goal.md](goal.md); separate reliability, modularity
+and performance work is in [maintenance progress](docs/maintenance/progress.md).
 
-Most of this is lifted from `cdx-daemon/frontend`, which already has a tuned toolchain.
-Reusing it means the linter rules, tsconfig and test setup are proven rather than
-guessed. Where houseit diverges, the reason is stated.
+## Data and edit flow
 
-## At a glance
-
-| Area | Choice |
-| --- | --- |
-| Runtime, package manager | Bun |
-| Monorepo | Turborepo with boundary tags |
-| Language | TypeScript, `strict` + `noUncheckedIndexedAccess` |
-| Lint and format | Biome |
-| Dead code, dependency rules | knip, dependency-cruiser |
-| Tests | Vitest, Playwright for end-to-end |
-| UI | React, Tailwind, shadcn/ui, react-router |
-| Rendering | three.js via react-three-fiber |
-| Annotations | drei `Html`, in the scene graph |
-| Geometry | ours: shoelace, ray casting, planar subdivision |
-| State | Zustand + Immer |
-| Schemas | Zod |
-| Agent interface | `@modelcontextprotocol/sdk` |
-| Browser bridge | `playwright-core` over CDP |
-
-## Foundation
-
-**Bun** as runtime, package manager and test runner. **Turborepo** on top, with the
-`boundaries` tags from cdx-daemon — `app`, `lib`, `config` — so `apps/editor` cannot
-import from `apps/mcp`, and library packages cannot reach into applications. The layering
-in the README is enforced by the build, not by discipline.
-
-**TypeScript** from `@workspace/typescript-config`: `strict`, `noUncheckedIndexedAccess`,
-`isolatedModules`, NodeNext resolution. `noUncheckedIndexedAccess` matters more here than
-in a typical app — this code indexes into arrays of nodes and walls constantly, and it
-turns a class of runtime crashes into compile errors.
-
-**Biome** for both linting and formatting, config copied from cdx-daemon: single quotes,
-semicolons as needed, 100 columns, kebab-case filenames, `noBarrelFile` as an error. No
-ESLint, no Prettier.
-
-**knip** and **dependency-cruiser** run in the `prebuild` task. A geometry package that
-grows an accidental import of three.js should fail the build, not get noticed in review
-six weeks later.
-
-## Rendering
-
-**three.js with react-three-fiber.** The plan view is an orthographic camera looking
-straight down; the 3D view is the same scene with the camera moved. Walls, openings and
-later the electrical and plumbing layers are authored once and appear in both.
-
-The alternative was a hand-written Canvas 2D renderer for the plan and three.js for 3D
-later. Rejected: that means writing selection, highlighting, layer filtering and drawing
-twice, then keeping two implementations in agreement. Since 3D with building services is
-the destination and not a maybe, the second renderer would be built and then thrown away.
-
-React-three-fiber specifically, rather than three.js directly, because it reconciles the
-scene declaratively from state. The usual objection to retained-mode renderers — that you
-end up hand-syncing a node tree against your store — does not apply when the reconciler
-does it, exactly as React does for the DOM.
-
-`@react-three/drei` supplies `OrthographicCamera`, `Line` (wrapping `Line2`, since
-`THREE.Line` ignores `linewidth`), `Html` and `CameraControls`. `LineMaterial` runs with
-`worldUnits: false` so walls keep a constant on-screen width at any zoom.
-
-**Annotations are DOM, positioned by the scene.** Room names, areas and dimension strings
-are screen-space work that a shader does badly, so they are HTML — drei's `Html`, given a
-world position and left to the reconciler. A 2D canvas overlay projecting world coordinates
-to screen was the plan and was never built: `Html` already does the projection, and text
-that is text can be selected, styled by Tailwind and read by a screen reader. The split it
-was meant to keep still holds — geometry in three.js because it exists in 3D, annotations
-outside it because they never will.
-
-`three-mesh-bvh` for raycast acceleration and `three-bvh-csg` for boolean openings are
-both deferred. Rectangular openings triangulate by hand and current scenes are small;
-adding either before there is a measured problem is speculative.
-
-### Hit-testing does not belong to the renderer
-
-Clicking does not ask *what did I hit on screen*. It asks *what is near this point in the
-model* — the closest node, a wall midpoint, a perpendicular foot, the intersection of two
-extended walls. Most of those snap targets are not drawn at all, so a raycaster cannot
-find them.
-
-So the pipeline is: pointer → unproject a ray onto the level plane → query
-`packages/geometry` → ranked snap candidates. Raycasting is barely used.
-
-The consequence is that `packages/geometry` never imports three.js, is testable in Vitest
-with no browser, and the renderer choice stays cheap to revisit.
-
-## Geometry
-
-**The geometry is ours, and `@flatten-js/core` never arrived.** It was pencilled in for
-segment intersections, offsets and booleans once snapping landed, and it is still in no
-package.json. What was written instead held: area and centroid are shoelace arithmetic,
-point-in-room is ray casting written out by hand, and unions and cuts are in
-`packages/geometry`. The reason the library was not reached for is the reason it would not
-have helped — a face may repeat a vertex where a wall dangles into a room, so it is not a
-simple polygon, and a general library refuses it.
-
-Face detection — recovering rooms from the wall graph — is ours: sort edges by angle at
-each node, then walk consistently leftmost turns. It is a standard planar-subdivision
-algorithm and lives in `packages/geometry` with heavy unit tests, because everything
-downstream trusts it.
-
-**Integer millimetres everywhere.** Floating point coordinates drift, drifted nodes stop
-coinciding, and face detection produces garbage when they do not. Rounding happens once,
-at input.
-
-## State
-
-**Zustand** for the store, **Immer** for updates. Undo and redo are built on
-`produceWithPatches` — each command produces a patch pair, which is a far smaller and more
-reliable history than snapshotting documents.
-
-Zustand is not used in cdx-daemon; that project runs on TanStack Query because it talks to
-a server. houseit fetches nothing, so Query, Router and i18next are all left out.
-
-## Schemas and the command CLI
-
-**Zod** validates the document and every command's arguments. The document carries a
-`version` field and a chain of migration functions, tested against stored fixtures. The
-model will change; in-progress plans should survive that.
-
-**Command parsing** is `shell-quote` to split the incoming string into argv, then a
-hand-written strict parser, then Zod for validation. `node:util.parseArgs` was the first
-choice and is wrong: commands execute inside the browser tab, where bundlers stub Node
-built-ins out silently and the failure only appears at runtime. A dependency-cruiser rule
-now forbids Node built-ins in the library packages. Knowing every option up front — the
-schema already said so — makes the parser a couple of dozen lines with better messages
-than a general-purpose one. No commander, no yargs.
-
-A command is declared once:
-
-```ts
-export const addOpening = defineCommand({
-  name: 'add-opening',
-  summary: 'Put a door or a window in a room, on a side',
-  args: z.object({
-    room: z.string().min(1),
-    kind: z.enum(['door', 'window']),
-    side: z.enum(SIDE_NAMES).optional(),
-    width: length().optional(),
-  }),
-  run: (draft, args, open) => { /* mutates the Immer draft */ },
-})
+```mermaid
+flowchart LR
+  CLI[Node CLI / MCP] --> Bridge[Browser bridge]
+  UI[React UI gestures] --> Typed[Typed commands]
+  Bridge --> Parser[CLI parser]
+  Parser --> Typed
+  Typed --> Authoring[FragmentAuthoring transaction]
+  Authoring --> Native[Native items / relations / request history]
+  Native --> Projection[HouseDocument read projection]
+  Projection --> Rules[Construction rules and readback]
+  Projection --> Scene[Scene piece descriptions]
+  Scene --> Worker[GeometryEngine worker]
+  Worker --> Display[Fragments display and native tools]
+  Native --> Snapshot[Captured revision]
+  Snapshot --> Archive[Fragment serializer]
+  Archive --> DB[IndexedDB]
 ```
 
-That declaration drives four consumers: the CLI parser, the generated MCP tool
-description the agent reads, `--help`, and runtime validation. There is no second place
-to update when a command changes.
+`core`, `geometry`, `commands` and `scene` are plain TypeScript libraries. They
+contain construction and placement rules, not renderer objects. Dependency Cruiser
+forbids React, Three.js and Node built-ins there; Turbo boundaries keep apps from
+importing one another. Explicit file imports replace barrel exports.
 
-## Agent interface
+The editor composes these libraries with That Open, Zustand and React. `edit/`
+translates gestures into typed commands. CLI strings are parsed only at the driver
+boundary. A script is transactional; a failed command discards its draft. Queries
+such as `get-plan` skip topology rebinding.
 
-**`@modelcontextprotocol/sdk`** over stdio, exposing exactly one tool — `floorplan`,
-taking a command string. One tool rather than one per action, so adding a command does not
-change the tool surface, and so the agent can batch several commands into a single
-transaction.
+## Authoring and identity
 
-**`playwright-core` connecting over CDP** to Chrome started with
-`--remote-debugging-port`. The MCP server calls `page.evaluate` against
-`window.floorplan.exec`. It carries no state of its own; the tab is the source of truth,
-so what the agent reads is what is on screen.
+`engine/fragment-authoring.ts` owns one public That Open
+`SingleThreadedFragmentsModel`. Items, relations and native request boundaries are
+the authoring authority. `authoring-graph.ts` maps domain entities and relationships
+to/from native records. `nested-authoring.ts` gives columns, roofs, ramps, shafts,
+measured stairs and site parts independent native identities and relations. Wall
+elements keep stable identities when topology splits
+into segments; named rooms store IDs, boundary references, anchors and finishes.
+Their geometry and area are derived.
 
-Chrome and CDP are a hard requirement of this design. **Tauri is not an option**, despite
-cdx-daemon shipping one — it runs on WKWebView on macOS, which offers no CDP endpoint,
-and the bridge would have nothing to attach to.
+`store/document-store.ts` publishes the current `HouseDocument` projection and
+history availability. Immer provides drafts for command compilation; editor undo
+and redo select native request boundaries. Patch helpers in `packages/commands`
+remain useful for pure command consumers and tests, but are not the editor's
+history authority. Read-only queries preserve document and store references.
 
-The alternatives considered were a shared JSON file watched by the app, and manual
-copy-paste of exported JSON. Both work without CDP, but neither lets the agent read live
-editor state, which is the point.
+## Generation and presentation
 
-## Conventions
+GeometryEngine runs in a shared worker with asynchronous request IDs and a bounded
+geometry cache. Supported walls, profiles, primitives, sheets and terrain go through
+that path. Houseit retains construction semantics: room closure, openings/hosts,
+floor/well derivation, roofs, furniture placement and circulation.
 
-- Integer millimetres for every length. Degrees for angles, at boundaries only.
-- kebab-case filenames, enforced by Biome.
-- No barrel files. Import from the module that defines the thing.
-- `packages/core`, `packages/geometry` and `packages/commands` import no DOM, no React and
-  no three.js. Enforced by dependency-cruiser.
-- Vitest for `packages/*`, Playwright for editor interaction and the MCP bridge.
+`FragmentDisplay` manages derived per-viewport models, native representations and
+local-ID/owner mapping. These models are presentation, not independent authoring
+histories. Native tools query the displayed Fragments for selection, snapping,
+measurements and cuts. There is no permanent invisible interaction copy.
 
-## Deliberately not used
+React/R3F hosts cameras, scene composition, UI handles and annotations. Appearance
+adapters retain materials, UVs and plan symbols on native geometry. Imports, text,
+textures and genuine UI helpers remain application responsibilities. Temporary
+source-mesh gesture previews and complete archive geometry are tracked in the
+parallel migration; removing R3F alone would not complete that work.
 
-| Not used | Why |
+`ui/panel.tsx` resolves selection and delegates to separate room, wall, opening,
+object and camera inspectors. Shared field controls are in `ui/panels/fields.tsx`.
+Furniture glyph presentation, drag, rotation and ghost dimensions have separate
+modules; all commits still go through typed commands.
+
+## Projects and persistence
+
+`store/projects/project-store.ts` owns project transitions, the database connection,
+writer and save state. It imports neither React nor Sonner nor routing. The small
+`projects.ts` composition module supplies the browser singleton and React hook.
+A dependency rule protects persistence from UI imports.
+
+`codec.ts` captures a native authoring revision. `fragment-project.ts` serializes
+that snapshot without appending a request to live history. At the maintenance
+baseline, archives contain authoring data for the project but native geometry only
+for walls; full geometry serialization is a separate migration requirement.
+Native authoring schema 3 upgrades schemas 1/2 while retaining native IDs; stored
+legacy documents also have loading paths and fixtures.
+
+`autosave.ts` serializes encoding/writes, retains retryable failures and coalesces
+pending edits. It publishes pending/saving/error/saved state. Only the latest queued
+revision becoming durable produces saved state. IndexedDB has separate metadata
+and document stores; failed open/read/write operations reject. Document creation
+precedes publishing its metadata so a failed write cannot appear as a valid empty
+project. This is not a cross-tab synchronization protocol.
+
+`SaveNotice` displays a persistent error with retry at the top right, then updates
+the same toast on success. Ordinary saves are quiet. UI navigation follows a
+successful close/flush; failed close retains the document and native history. An
+unload listener protects pending edits. CLI/MCP explicitly awaits `bridge.save()`
+before reporting durable success.
+
+## Commands and extensions
+
+Zod schemas define command arguments. `defineCommand` provides typed application,
+strict argument parsing and metadata for generated help. The browser bridge returns
+structured results and construction warnings. The MCP tool title, description and
+input schema remain stable; command help is returned as data.
+
+The current schema already has disciplines, wall/level hosts, devices and circuits.
+Electrical wall-device commands exist. This is not yet a complete MEP workflow.
+New professions must reuse command transactions, host relationships, validation and
+scene descriptions instead of creating their own document/history or renderer.
+Concrete composition points and host obligations are documented in
+[discipline extensions](docs/maintenance/discipline-extensions.md).
+
+## Toolchain and verification
+
+| Concern | Implementation |
 | --- | --- |
-| Next.js | No server, no SSR, no routing. Pure cost. |
-| Tauri | WKWebView has no CDP, which breaks the agent bridge. |
-| Konva, Fabric, PixiJS, tldraw | A second renderer that cannot become the 3D view. |
-| TanStack Query | Nothing is fetched. TanStack Router was rejected too, until plans became projects: `react-router` now carries the home screen and `/p/<id>`. |
-| ESLint, Prettier | Biome covers both. |
-| commander, yargs, `node:util.parseArgs` | The first two are heavy; the third is unavailable in the browser, where commands run. |
-| Stored room polygons | Rooms are derived. Storing them invites desynchronisation. |
+| Packages and orchestration | Bun workspaces, Turbo |
+| Type checks | TypeScript, strict indexed access |
+| Formatting and lint | Biome |
+| Dependency checks | Turbo boundaries, Dependency Cruiser, Knip |
+| State and argument validation | Zod, Zustand, Immer drafts |
+| Native engine | Installed `@thatopen/fragments`, components and GeometryEngine |
+| UI | React, R3F, Three.js, Tailwind, shadcn/ui, Sonner, react-router |
+| Unit/integration tests | Vitest, fake IndexedDB, real native archive fixtures |
+| Browser regressions | Isolated Chrome/Playwright sessions and CLI commands |
+| Agent driver | Node, MCP SDK, Playwright/CDP |
+
+`bun run build` runs the dependency checks, lint, types, tests and production builds.
+`bun run test:regression` runs actual interaction/archive scenarios; see
+[regression tests](docs/regression-tests.md). Tests run under Vitest, not Bun's
+native test runner. The Node CLI/MCP runtime is required by the current driver.
+
+Known scaling costs include full native graph projection/validation after edits,
+readback surveys and scene updates. Measure them on representative models before
+adding global caches. The optional performance scenario records command/save
+latency, pointer-to-frame timing and main-thread heap across project switches;
+these development measurements are not production FPS or total GPU/worker memory.

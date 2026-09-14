@@ -16,6 +16,8 @@ import {
   nativeKey,
 } from './authoring-graph'
 
+import { normalizeAuthoringDocument } from './nested-authoring'
+
 export type DocumentSource = HouseDocument | Uint8Array
 export type FragmentSnapshot = {
   base: Uint8Array
@@ -111,7 +113,11 @@ export class FragmentAuthoring {
 
   private commit(doc: HouseDocument) {
     if (doc === this.projection) return
-    const requests = graphRequests(doc, this.graph, this.nextId)
+    const requests = graphRequests(
+      normalizeAuthoringDocument(doc, this.projection),
+      this.graph,
+      this.nextId,
+    )
     if (!requests.length) return
     const previous = this.model.getRequests()
     const checkpoint = {
@@ -163,8 +169,12 @@ function initialModel(doc: HouseDocument) {
   return EditUtils.edit(
     base,
     [
-      ...graphRequests(doc, { items: new Map(), relations: new Map() }, 1),
-      { type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 2 } } },
+      ...graphRequests(
+        normalizeAuthoringDocument(doc),
+        { items: new Map(), relations: new Map() },
+        1,
+      ),
+      { type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 3 } } },
     ],
     { raw: true, delta: false },
   ).model
@@ -174,7 +184,7 @@ function readArchive(buffer: Uint8Array) {
   const base = EditUtils.getModelFromBuffer(buffer, false)
   const metadata = JSON.parse(base.metadata() ?? '{}')
   const authoring = metadata.houseit
-  if (authoring?.schema !== 1 && authoring?.schema !== 2)
+  if (![1, 2, 3].includes(authoring?.schema))
     throw new Error('This Fragment model has no Houseit authoring data')
   let nextId = base.maxLocalId()
   for (const ids of [
@@ -187,25 +197,31 @@ function readArchive(buffer: Uint8Array) {
   ])
     for (const id of ids) nextId = Math.max(nextId, id + 1)
   const requests: EditRequest[] = [{ type: Edit.UPDATE_MAX_LOCAL_ID, localId: nextId }]
-  if (authoring.schema === 1) {
+  if (authoring.schema < 3) {
     const model = new SingleThreadedFragmentsModel('houseit-upgrade', buffer, false)
     try {
       const items = nativeItems(base)
-      for (const [wall, id] of Object.entries(authoring.wallItems as Record<string, number>)) {
+      for (const [wall, id] of Object.entries(
+        (authoring.wallItems ?? {}) as Record<string, number>,
+      )) {
         const item = items.get(id)
         if (!item) throw new Error(`Fragment wall ${wall} is missing`)
         item.data.HouseitKey = { value: `elements:${wall}` }
       }
       requests.push(
         ...graphRequests(
-          parseDocument(authoring.document),
+          normalizeAuthoringDocument(
+            authoring.schema === 1
+              ? parseDocument(authoring.document)
+              : documentFromGraph({ items, relations: model.getRelations() }, false),
+          ),
           {
             items,
             relations: model.getRelations(),
           },
           nextId,
         ),
-        { type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 2 } } },
+        { type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 3 } } },
       )
     } finally {
       model.dispose()

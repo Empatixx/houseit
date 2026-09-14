@@ -9,12 +9,13 @@ import {
   SingleThreadedFragmentsModel,
 } from '@thatopen/fragments'
 import { IDBFactory } from 'fake-indexeddb'
+import { Color } from 'three'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import { IfcAPI } from 'web-ifc'
 import { createDocumentStore } from '../store/document-store'
 import { fragmentCodec } from '../store/projects/codec'
 import { openProjects } from '../store/projects/db'
-import { createProjectsStore } from '../store/projects/projects'
+import { createProjectsStore } from '../store/projects/project-store'
 import { nativeKey } from './authoring-graph'
 import { FragmentAuthoring } from './fragment-authoring'
 import { writeFragment } from './fragment-project'
@@ -78,7 +79,12 @@ test('the archive retains the live native graph and ids, with actual wall geomet
       const wall = [...first.items].find(([, item]) => nativeKey(item) === 'elements:w1')![0]
       expect(model.getItemsIdsWithGeometry()).toEqual([wall])
       expect(model.getItemsVolume([wall])).toBeCloseTo(5 * 2.55 * 0.3 - 1.2 * 1.5 * 0.3, 4)
-      expect(model.getMetadata()).toEqual({ houseit: { schema: 2 } })
+      expect(model.getMetadata()).toEqual({ houseit: { schema: 3 } })
+      const material = [...model.getMaterials().values()][0]!
+      const colour = new Color('#f1f0ed')
+      expect(material.a).toBe(255)
+      for (const channel of ['r', 'g', 'b'] as const)
+        expect(Math.abs(material[channel] - colour[channel] * 255)).toBeLessThan(1)
       expect(authoring.history).toEqual(history)
       authoring.exec('update-wall --id w1 --by 500', level)
       const moved = authoring.graph
@@ -342,6 +348,111 @@ test('schema-one archives upgrade their metadata into native relationships witho
         expect(next.graph).toEqual(loaded.graph)
       } finally {
         next.dispose()
+      }
+    } finally {
+      loaded.dispose()
+    }
+  } finally {
+    authoring.dispose()
+  }
+})
+
+test.each(['columns', 'connections', 'three-flights', 'site'])(
+  '%s independent elements survive archive load and editing with the same native IDs',
+  async (name) => {
+    const authoring = new FragmentAuthoring(createEmptyDocument())
+    try {
+      const level = Object.keys(authoring.document.levels)[0]!
+      authoring.exec(
+        readFileSync(
+          new URL(`../../../../fixtures/building-proof/${name}.txt`, import.meta.url),
+          'utf8',
+        ),
+        level,
+      )
+      const graph = authoring.graph
+      const archive = await writeFragment(authoring.snapshot(), generate)
+      const loaded = new FragmentAuthoring(new Uint8Array(archive.buffer))
+      try {
+        expect(loaded.graph).toEqual(graph)
+        expect(loaded.document).toEqual(authoring.document)
+        loaded.exec('update-level --name Renamed', level)
+        expect([...loaded.graph.items.keys()]).toEqual([...graph.items.keys()])
+        loaded.undo()
+        expect(loaded.graph).toEqual(graph)
+        loaded.redo()
+        const saved = await writeFragment(loaded.snapshot(), generate)
+        const again = new FragmentAuthoring(new Uint8Array(saved.buffer))
+        try {
+          expect(again.graph).toEqual(loaded.graph)
+        } finally {
+          again.dispose()
+        }
+      } finally {
+        loaded.dispose()
+      }
+    } finally {
+      authoring.dispose()
+    }
+  },
+)
+
+test('schema-two nested archives upgrade to independent elements and retain existing item IDs', async () => {
+  const authoring = new FragmentAuthoring(createEmptyDocument())
+  try {
+    const level = Object.keys(authoring.document.levels)[0]!
+    authoring.exec(
+      readFileSync(
+        new URL('../../../../fixtures/building-proof/columns.txt', import.meta.url),
+        'utf8',
+      ),
+      level,
+    )
+    const archive = await writeFragment(authoring.snapshot(), generate)
+    const base = EditUtils.getModelFromBuffer(new Uint8Array(archive.buffer), false)
+    const requests: EditRequest[] = []
+    const retained = new Map<string, number>()
+    for (const [localId, original] of authoring.graph.items) {
+      const key = nativeKey(original)!
+      if (key === 'terrain' || key.startsWith('columns:') || key.startsWith('roofs:')) {
+        requests.push({ type: Edit.DELETE_ITEM, localId }, { type: Edit.DELETE_RELATION, localId })
+        continue
+      }
+      retained.set(key, localId)
+      if (key !== 'project' && !key.startsWith('levels:')) continue
+      const item = structuredClone(original)
+      delete item.data.NestedCollections
+      const relations = structuredClone(authoring.graph.relations.get(localId) ?? { data: {} })
+      for (const name of Object.keys(relations.data))
+        if (name === 'ContainsTerrain' || name.startsWith('HasParts:')) delete relations.data[name]
+      item.data.RelationCounts = {
+        value: JSON.stringify(
+          Object.fromEntries(
+            Object.entries(relations.data).map(([name, targets]) => [name, targets.length]),
+          ),
+        ),
+      }
+      if (key.startsWith('levels:')) {
+        const storey = structuredClone(authoring.document.levels[key.slice('levels:'.length)]!)
+        for (const roof of storey.roofs ?? []) delete roof.id
+        item.data.Parameters = { value: JSON.stringify(storey) }
+      }
+      requests.push({ type: Edit.UPDATE_ITEM, localId, data: item })
+      requests.push({ type: Edit.UPDATE_RELATION, localId, data: relations })
+    }
+    requests.push({ type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 2 } } })
+    const legacy = EditUtils.edit(base, requests, { raw: false, delta: false }).model
+    const loaded = new FragmentAuthoring(legacy)
+    try {
+      expect(loaded.document).toEqual(authoring.document)
+      const keys = new Map([...loaded.graph.items].map(([id, item]) => [nativeKey(item), id]))
+      for (const [key, id] of retained) expect(keys.get(key)).toBe(id)
+      const saved = await writeFragment(loaded.snapshot(), generate)
+      const again = new FragmentAuthoring(new Uint8Array(saved.buffer))
+      try {
+        expect(again.graph).toEqual(loaded.graph)
+      } finally {
+        again.dispose()
       }
     } finally {
       loaded.dispose()
