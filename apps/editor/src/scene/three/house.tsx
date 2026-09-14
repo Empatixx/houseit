@@ -1,3 +1,4 @@
+import { isStaircase } from '@houseit/core/stairs'
 import type { Owner, Piece } from '@houseit/scene/pieces'
 import { worldOf } from '@houseit/scene/world'
 import { useMemo } from 'react'
@@ -45,7 +46,9 @@ export function House({ picking = true }: { picking?: boolean }) {
                 <StandingPiece
                   piece={piece}
                   native={
-                    piece.role === 'floor-surface' || piece.role === 'slab-solid'
+                    piece.role === 'floor-surface' ||
+                    piece.role === 'slab-solid' ||
+                    (piece.of?.kind === 'object' && !isStaircase(doc.objects[piece.of.id]!.type))
                       ? { id: `${storey.level}:${piece.name}`, elevation: storey.elevation }
                       : undefined
                   }

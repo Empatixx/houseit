@@ -11,11 +11,12 @@ import { piecesOf, type Spot, standingAt, turnOf } from '@houseit/geometry/stand
 import { Line } from '@react-three/drei'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Shape, ShapeGeometry, type Texture } from 'three'
+import { Euler, Matrix4, MeshBasicMaterial, Shape, ShapeGeometry, type Texture } from 'three'
 import { aimAt, putDown } from '../../edit/draw-commands'
 import { moveTo, turnTo } from '../../edit/object-commands'
 import { pick } from '../../edit/pick'
 import { placeArmedIn } from '../../edit/place-commands'
+import { NativeSurface } from '../../engine/fragment-display-layer'
 import { activeTools } from '../../engine/native-tools'
 import { engineViewStore } from '../../store/engine-view'
 import { EMPHASIS, hoverStore, useHover } from '../../store/hover'
@@ -103,8 +104,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   const spin = useSpin(object, spot, picked)
   const nativeFootprint = useMemo(() => {
     const parts = partsOf(object.type)
-    if (parts.length === 1) return undefined
-    return new ShapeGeometry(
+    const geometry = new ShapeGeometry(
       parts.map((part) => {
         const shape = new Shape()
         const x0 = (part.x0 - 0.5) * object.width * MM,
@@ -119,9 +119,17 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
         return shape
       }),
     )
+    const position = geometry.getAttribute('position'),
+      uv = geometry.getAttribute('uv')
+    for (let i = 0; i < position.count; i++)
+      uv.setXY(
+        i,
+        position.getX(i) / (object.width * MM) + 0.5,
+        position.getY(i) / (object.depth * MM) + 0.5,
+      )
+    return geometry
   }, [object.type, object.width, object.depth])
   useEffect(() => () => nativeFootprint?.dispose(), [nativeFootprint])
-  if (!plain) return null
 
   const texture = (picked ? marked : undefined) ?? plain
   const at = { x: spot.at.x + drag.shift.x, y: spot.at.y + drag.shift.y }
@@ -134,6 +142,22 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
       ? EMPHASIS.hovered.tint
       : '#ffffff'
 
+  const material = useMemo(
+    () =>
+      new MeshBasicMaterial({
+        map: texture,
+        color: tint,
+        transparent: true,
+        alphaTest: 0.02,
+        opacity: drag.live ? 0.7 : 1,
+      }),
+    [texture, tint, drag.live],
+  )
+  useEffect(() => () => material.dispose(), [material])
+  if (!plain) return null
+  const transform = new Matrix4()
+    .makeRotationFromEuler(new Euler(-Math.PI / 2, 0, turn + Math.PI))
+    .setPosition(...toWorld(at.x, at.y, symbolHeight(stack)))
   const reach = (Math.hypot(object.width, object.depth) / 2 + 280) * Math.SQRT1_2
   const grip = { x: at.x + reach, y: at.y + reach }
 
@@ -147,10 +171,19 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
       {drag.live ? (
         <Ghost object={object} spot={spot} at={at} texture={plain} stack={stack} />
       ) : null}
-      <mesh
-        userData={{ houseit: { kind: 'object', id: object.id }, houseitGeometry: nativeFootprint }}
-        position={toWorld(at.x, at.y, symbolHeight(stack))}
-        rotation={[-Math.PI / 2, 0, turn + Math.PI]}
+      <NativeSurface
+        surface={{
+          id: `object:${object.id}`,
+          owner: { kind: 'object', id: object.id },
+          category: 'IFCFURNISHINGELEMENT',
+          geometry: nativeFootprint,
+          geometryKey: `glyph:${object.type}:${object.width}:${object.depth}`,
+          materials: [material],
+          transform,
+          mapping: { kind: 'source', geometry: nativeFootprint },
+          casts: false,
+        }}
+        gesture={drag.live || spin.preview !== null}
         onPointerOver={(event) => {
           if (!on(event)) return
           event.stopPropagation()
@@ -190,16 +223,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
             aimAt({ x: event.point.x / MM, y: -event.point.z / MM })
           }
         }}
-      >
-        <planeGeometry args={[object.width * MM, object.depth * MM]} />
-        <meshBasicMaterial
-          map={texture}
-          color={tint}
-          transparent
-          alphaTest={0.02}
-          opacity={drag.live ? 0.7 : 1}
-        />
-      </mesh>
+      />
       {picked ? (
         <>
           {spin.open ? (
@@ -418,6 +442,8 @@ function useDrag(object: HouseObject, spot: Spot) {
       if (!carried) return
       const now = pointUnder(native, canvas, camera)
       if (!now) return
+      carried.shift = { x: now.x - carried.from.x, y: now.y - carried.from.y }
+      setShift(carried.shift)
       pending = (async () => {
         const snap = await activeTools?.snapPoint(now, { kind: 'object', id: object.id })
         if (request !== sequence || !held.current) return

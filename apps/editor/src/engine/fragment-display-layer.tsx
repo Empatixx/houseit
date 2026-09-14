@@ -19,7 +19,8 @@ import {
 import { toast } from 'sonner'
 import { type BufferGeometry, type Material, Matrix4 } from 'three'
 import { usePreview } from '../store/preview'
-import { type DisplaySurface, FragmentDisplay } from './fragment-display'
+import type { DisplaySurface } from './display-surface'
+import { FragmentDisplay } from './fragment-display'
 import { useGeometryEngine } from './provider'
 
 const Context = createContext<{ display: FragmentDisplay; preview: boolean } | null>(null)
@@ -40,9 +41,9 @@ const eventNames = [
 export function FragmentDisplayLayer({ children }: { children: ReactNode }) {
   const get = useThree((state) => state.get)
   const engine = useGeometryEngine()
-  const dragging = usePreview((state) => state.doc !== null)
+  const documentPreview = usePreview((state) => state.doc !== null)
   const [settling, setSettling] = useState(false)
-  const preview = dragging || settling
+  const preview = documentPreview || settling
   const [, update] = useReducer((n) => n + 1, 0)
   const [display, setDisplay] = useState<FragmentDisplay | null>(null)
   useEffect(() => {
@@ -65,6 +66,7 @@ export function FragmentDisplayLayer({ children }: { children: ReactNode }) {
     }
   }, [get])
   useFrame(() => {
+    const dragging = documentPreview || !!display?.gestures.size
     display?.frame(dragging)
     const keepPreview = dragging || (settling && (!!display?.busy || engine.status.pending > 0))
     if (keepPreview !== settling) setSettling(keepPreview)
@@ -109,13 +111,20 @@ export function useFragmentDisplay() {
   return display.display
 }
 
-type Props = Events & { surface: DisplaySurface }
+type Props = Events & { surface: DisplaySurface; gesture?: boolean }
 
-export function NativeSurface({ surface, ...events }: Props) {
+export function NativeSurface({ surface, gesture = false, ...events }: Props) {
   const display = useFragmentDisplay()
   const scene = useThree((state) => state.scene)
   const preview = useContext(Context)!.preview
   const { id } = surface
+  useLayoutEffect(() => {
+    if (gesture) display.gestures.add(id)
+    else display.gestures.delete(id)
+    return () => {
+      display.gestures.delete(id)
+    }
+  }, [display, id, gesture])
   const current = useRef(events)
   current.current = events
   useEffect(() => {
@@ -145,7 +154,7 @@ export function NativeSurface({ surface, ...events }: Props) {
           matrix={surface.transform}
           matrixAutoUpdate={false}
           castShadow={surface.casts}
-          receiveShadow
+          receiveShadow={surface.receives !== false}
           dispose={null}
           userData={{ houseitHelper: true, houseitPreview: surface.id }}
           {...events}

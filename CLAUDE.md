@@ -33,8 +33,8 @@ The wall authoring model on `that-open-engine`:
   in `eb29400` was withdrawn because it regressed those features.
   Native measurements, snapping, ID selection and cut views now use a public That Open
   World adapter over the shared presentation scene/camera/renderer. A disposable
-  Fragment interaction model mirrors the remaining furniture/opening geometry; it is not the document or
-  persistence model. Walls, floors and slabs render as native Fragments shells in each viewport's
+  Fragment interaction model mirrors the remaining opening/stair and structural geometry; it is not the document or
+  persistence model. Walls, floors, slabs and furniture render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
   batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
   These per-camera models are derived presentation, never a second authoring/history authority.
@@ -51,10 +51,23 @@ The wall authoring model on `that-open-engine`:
   adapter restores metric flat UVs and separate cap/edge finishes. Distinct opaque neutral native
   materials keep shadow-casting walls and non-casting slabs in separate native batches; actual
   presentation materials still come from the existing caches.
-  During a wall gesture, a temporary portal renders the registered source geometry/materials,
+  Furniture symbols and 3D pieces use the same NativeSurface path; repeated immutable geometry keys
+  share native representations, while samples keep independent transforms and owners. A resize must
+  detach only the changed sample, and unused representations are removed only after their final use.
+  Preserve source triangulation through public GeometryProcessSettings (threshold 0) for furniture;
+  tile appearance restores source UVs, smooth normals and material groups without replacing native
+  positions/indices. Keep shadow settings separate in native batches. Transparent surfaces have their
+  own batches and retain a single material where possible so postprocessing detects transparency.
+  Brought normalizes static GLB assets once per size, bakes their hierarchy into source buffers and
+  disposes only its generated geometry/paint materials. The catalogue, SVGs, procedural builders,
+  footprints, stacking and domain commands remain shared Houseit presentation/business rules.
+  During a wall or furniture gesture, a temporary portal renders the registered source geometry/materials,
   while the permanent native roots are hidden and native edit requests are coalesced. Keep this
   preview until the final native update is ready; exclude it from InteractionModel. It is gesture
   presentation, not a second authoring model or a permanent parallel wall/floor renderer.
+  Local furniture previews keep native snapping available through the public model's
+  raycastWithSnapping API against the committed geometry, excluding the carried object; native
+  edit/preparation work still blocks queries. GPU scene picking cannot see the hidden native roots.
   Publish pointer movement before awaiting asynchronous native snapping; stale snap results must
   not overwrite a newer pointer position. Check the
   installed That Open API and official documentation before adding custom tooling;

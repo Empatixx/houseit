@@ -1,20 +1,21 @@
 import type { Body, Corner, Finish, Piece } from '@houseit/scene/pieces'
 import type { ThreeEvent } from '@react-three/fiber'
-import { useEffect, useMemo } from 'react'
+import { type ComponentProps, useEffect, useMemo } from 'react'
 import {
+  BoxGeometry,
   BufferGeometry,
-  Euler,
+  CylinderGeometry,
   ExtrudeGeometry,
   Float32BufferAttribute,
-  Matrix4,
   Path,
   Shape,
   ShapeGeometry,
+  SphereGeometry,
 } from 'three'
-import { NativeSurface } from '../../engine/fragment-display-layer'
 import { MM } from '../plan-coordinates'
 import { Brought } from './brought'
 import { materialOf, seeThrough } from './materials'
+import { PieceMesh } from './piece-mesh'
 import { SymbolPlate } from './symbol-plate'
 
 const QUARTER = Math.PI / 2
@@ -28,7 +29,8 @@ type PieceProps = {
   onPick?: (event: ThreeEvent<MouseEvent>) => void
 }
 
-export function StandingPiece({ piece, tint, onPick, native }: PieceProps) {
+export function StandingPiece({ piece, tint, onPick, native: display }: PieceProps) {
+  const native = display ? { ...display, owner: piece.of } : undefined
   const { body, at } = piece
   const paint: Finish = tint
     ? { ...piece.paint, colour: tint, ...(piece.paint.opacity === 0 ? { opacity: 0.35 } : {}) }
@@ -40,15 +42,22 @@ export function StandingPiece({ piece, tint, onPick, native }: PieceProps) {
 
   if (body.kind === 'model') {
     return (
-      <group position={place} rotation={[tilt, turn, roll, 'YXZ']} onClick={onPick}>
-        <Brought file={body.file} size={body} paint={paint} />
-      </group>
+      <Brought
+        file={body.file}
+        size={body}
+        paint={paint}
+        native={native}
+        at={place}
+        rotation={[tilt, turn, roll, 'YXZ']}
+        onPick={onPick}
+      />
     )
   }
 
   if (body.kind === 'symbol') {
     return (
       <SymbolPlate
+        native={native}
         body={body}
         paint={piece.paint}
         tint={tint}
@@ -60,7 +69,9 @@ export function StandingPiece({ piece, tint, onPick, native }: PieceProps) {
   }
 
   if (body.kind === 'box' && body.faces) {
-    return <BoxSkin piece={piece} faces={body.faces} paint={paint} onPick={onPick} />
+    return (
+      <BoxSkin native={native} piece={piece} faces={body.faces} paint={paint} onPick={onPick} />
+    )
   }
 
   if (body.kind === 'prism' || body.kind === 'sheet') {
@@ -73,7 +84,12 @@ export function StandingPiece({ piece, tint, onPick, native }: PieceProps) {
             ? {
                 ...native,
                 owner: piece.of,
-                category: piece.role === 'floor-surface' ? 'IFCCOVERING' : 'IFCSLAB',
+                category:
+                  piece.of?.kind === 'object'
+                    ? 'IFCFURNISHINGELEMENT'
+                    : piece.role === 'floor-surface'
+                      ? 'IFCCOVERING'
+                      : 'IFCSLAB',
               }
             : undefined
         }
@@ -94,26 +110,42 @@ export function StandingPiece({ piece, tint, onPick, native }: PieceProps) {
   }
 
   return (
-    <mesh
-      castShadow={piece.casts !== false && !seeThrough(paint)}
-      receiveShadow
-      position={place}
+    <Solid
+      body={body}
+      native={native}
+      at={place}
       rotation={[tilt, turn, roll, 'YXZ']}
-      scale={body.kind === 'drum' ? [1, 1, body.stretch] : undefined}
       material={materialOf(paint, sided(body))}
-      onClick={onPick}
-    >
-      {body.kind === 'box' ? (
-        <boxGeometry args={[body.width * MM, body.height * MM, body.depth * MM]} />
-      ) : body.kind === 'drum' ? (
-        <cylinderGeometry
-          args={[body.top * MM, body.radius * MM, body.height * MM, 28, 1, body.open]}
-        />
-      ) : (
-        <sphereGeometry args={[body.radius * MM, 18, 14]} />
-      )}
-    </mesh>
+      shadows={piece.casts !== false && !seeThrough(paint)}
+      onPick={onPick}
+    />
   )
+}
+
+function Solid({
+  body,
+  ...props
+}: Omit<ComponentProps<typeof PieceMesh>, 'geometry'> & {
+  body: Extract<Body, { kind: 'box' | 'drum' | 'ball' }>
+}) {
+  const key = JSON.stringify(body)
+  const geometry = useMemo(() => {
+    const shape = JSON.parse(key) as typeof body
+    if (shape.kind === 'box')
+      return new BoxGeometry(shape.width * MM, shape.height * MM, shape.depth * MM)
+    if (shape.kind === 'drum')
+      return new CylinderGeometry(
+        shape.top * MM,
+        shape.radius * MM,
+        shape.height * MM,
+        28,
+        1,
+        shape.open,
+      ).scale(1, 1, shape.stretch)
+    return new SphereGeometry(shape.radius * MM, 18, 14)
+  }, [key])
+  useEffect(() => () => geometry.dispose(), [geometry])
+  return <PieceMesh {...props} geometry={geometry} geometryKey={key} />
 }
 
 type FlatProps = {
@@ -129,34 +161,16 @@ type FlatProps = {
 function Flat({ body, at, rotation, material, shadows, onPick, native }: FlatProps) {
   const geometry = useMemo(() => flatGeometry(body), [body])
   useEffect(() => () => geometry.dispose(), [geometry])
-  if (native) {
-    const transform = new Matrix4().makeRotationFromEuler(new Euler(...rotation))
-    transform.setPosition(at[0], at[1] + native.elevation * MM, at[2])
-    return (
-      <NativeSurface
-        surface={{
-          id: native.id,
-          owner: native.owner,
-          category: native.category,
-          geometry,
-          materials: Array.isArray(material) ? material : [material],
-          transform,
-          mapping: { kind: 'flat' },
-          casts: shadows,
-        }}
-        onClick={onPick}
-      />
-    )
-  }
   return (
-    <mesh
-      castShadow={shadows}
-      receiveShadow
+    <PieceMesh
+      native={native}
       geometry={geometry}
+      geometryKey={native?.owner?.kind === 'object' ? JSON.stringify(body) : undefined}
       material={material}
-      position={at}
+      at={at}
       rotation={rotation}
-      onClick={onPick}
+      shadows={shadows}
+      onPick={onPick}
     />
   )
 }
@@ -205,7 +219,13 @@ function shapeOf(outline: Corner[], holes: Corner[][]): Shape {
   return shape
 }
 
-function BoxSkin({ piece, faces, paint, onPick }: PieceProps & { faces: number[]; paint: Finish }) {
+function BoxSkin({
+  piece,
+  faces,
+  paint,
+  onPick,
+  native,
+}: PieceProps & { faces: number[]; paint: Finish }) {
   const geometry = useMemo(() => {
     const geometry = new BufferGeometry()
     geometry.setAttribute(
@@ -237,14 +257,15 @@ function BoxSkin({ piece, faces, paint, onPick }: PieceProps & { faces: number[]
   }, [faces, piece.body])
   useEffect(() => () => geometry.dispose(), [geometry])
   return (
-    <mesh
+    <PieceMesh
+      native={native ? { ...native, owner: piece.of } : undefined}
       geometry={geometry}
+      geometryKey={JSON.stringify(piece.body)}
       material={materialOf(paint, false)}
-      position={[piece.at.x * MM, piece.at.y * MM, piece.at.z * MM]}
-      rotation={[0, piece.turn ?? 0, 0]}
-      castShadow={piece.casts !== false}
-      receiveShadow
-      onClick={onPick}
+      at={[piece.at.x * MM, piece.at.y * MM, piece.at.z * MM]}
+      rotation={[0, piece.turn ?? 0, 0, 'YXZ']}
+      shadows={piece.casts !== false}
+      onPick={onPick}
     />
   )
 }

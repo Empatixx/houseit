@@ -9,14 +9,8 @@ import {
   type Mesh,
   Vector3,
 } from 'three'
-
-type Appearance = {
-  id: string
-  transform: Matrix4
-  mapping: { kind: 'wall'; length: number; height: number } | { kind: 'flat' }
-  materials: Material[]
-}
-export type TileSurface = { surface: Appearance }
+import type { TileSurface } from './display-surface'
+import { restoreSourceAppearance } from './source-appearance'
 
 export function tileItemIds(ids: BufferAttribute | InterleavedBufferAttribute) {
   return Array.from(
@@ -52,13 +46,14 @@ export function mapFragmentTile(
       uv[2 * i] = point.x / (mapping.length / 1000)
       uv[2 * i + 1] = point.y / (mapping.height / 1000)
       sides.push(normal.z > 0.0001 ? 1 : 0)
-    } else {
+    } else if (mapping.kind === 'flat') {
       const cap = Math.abs(normal.z) > 0.99
       uv[2 * i] = cap || Math.abs(normal.x) < Math.abs(normal.y) ? point.x : point.y
       uv[2 * i + 1] = cap ? point.y : 1 - point.z
       sides.push(cap ? 0 : 1)
-    }
+    } else sides.push(0)
   }
+  restoreSourceAppearance(geometry, matrix, vertices, uv, sides)
   geometry.userData.houseitSides = sides
   geometry.setAttribute('uv', new Float32BufferAttribute(uv, 2))
 
@@ -85,5 +80,5 @@ export function styleFragmentTile(object: Mesh) {
     if (last?.materialIndex === index) last.count += 3
     else geometry.addGroup(i, 3, index)
   }
-  object.material = materials
+  object.material = materials.length === 1 ? materials[0]! : materials
 }

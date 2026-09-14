@@ -10,26 +10,14 @@ import {
 import workerUrl from '@thatopen/fragments/worker?url'
 import {
   type BufferGeometry,
-  type Material,
-  type Matrix4,
   Mesh,
   type Object3D,
   type OrthographicCamera,
   type PerspectiveCamera,
 } from 'three'
 import type { Selection } from '../store/selection'
+import type { DisplaySurface } from './display-surface'
 import { mapFragmentTile, styleFragmentTile, tileItemIds } from './fragment-tile'
-
-export type DisplaySurface = {
-  id: string
-  geometry: BufferGeometry
-  materials: Material[]
-  transform: Matrix4
-  mapping: { kind: 'wall'; length: number; height: number } | { kind: 'flat' }
-  owner?: Selection
-  category: string
-  casts: boolean
-}
 
 type Entry = {
   surface: DisplaySurface
@@ -37,7 +25,10 @@ type Entry = {
   global: number
   representation: number
   sample: number
+  material: number
 }
+const materialId = (surface: DisplaySurface) =>
+  surface.receives === false ? (surface.casts ? 4 : 3) : surface.casts ? 0 : 2
 const identity = { position: [0, 0, 0], xDirection: [1, 0, 0], yDirection: [0, 1, 0] }
 
 export class FragmentDisplay {
@@ -51,8 +42,11 @@ export class FragmentDisplay {
   private preparing = new Set<Promise<void>>()
   revision = 0
   toolsDisposal: Promise<void> | undefined
+  readonly gestures = new Set<string>()
+  private transparentMaterials = new Map<string, number>()
+  private representations = new Map<string, { id: number; geometry: BufferGeometry }>()
   private entries = new Map<string, Entry>()
-  private nextId = 3
+  private nextId = 5
   private dirty = false
   private dead = false
   private loaded = false
@@ -92,6 +86,15 @@ export class FragmentDisplay {
   }
   get busy() {
     return this.dirty || !!this.work || this.preparing.size > 0
+  }
+  get canSnap() {
+    return (
+      this.loaded &&
+      !this.error &&
+      !this.work &&
+      this.preparing.size === 0 &&
+      (!this.dirty || this.gestures.size > 0)
+    )
   }
   get model() {
     return (
@@ -154,6 +157,11 @@ export class FragmentDisplay {
             localId: 2,
             data: { r: 247, g: 247, b: 245, a: 255, renderedFaces: 0, stroke: 0 },
           },
+          ...[3, 4].map((localId) => ({
+            type: Edit.CREATE_MATERIAL as const,
+            localId,
+            data: { r: 247 - localId, g: 247, b: 245, a: 255, renderedFaces: 0, stroke: 0 },
+          })),
           { type: Edit.CREATE_LOCAL_TRANSFORM, localId: 1, data: identity },
         ],
         { raw: true, delta: false },
@@ -167,7 +175,6 @@ export class FragmentDisplay {
       if (this.surfaces.has(id)) continue
       requests.push(
         { type: Edit.DELETE_SAMPLE, localId: entry.sample },
-        { type: Edit.DELETE_REPRESENTATION, localId: entry.representation },
         { type: Edit.DELETE_GLOBAL_TRANSFORM, localId: entry.global },
         { type: Edit.DELETE_ITEM, localId: entry.item },
       )
@@ -182,8 +189,9 @@ export class FragmentDisplay {
           surface,
           item: this.nextId++,
           global: this.nextId++,
-          representation: this.nextId++,
+          representation: -1,
           sample: this.nextId++,
+          material: -1,
         }
         this.entries.set(surface.id, entry)
         if (surface.owner) this.owners.set(entry.item, surface.owner)
@@ -210,43 +218,91 @@ export class FragmentDisplay {
           },
         })
       }
-      if (old && old.casts !== surface.casts)
+      const key = surface.geometryKey ?? surface.id
+      let representation = this.representations.get(key)
+      const create = !representation
+      if (!representation) {
+        representation = { id: this.nextId++, geometry: surface.geometry }
+        this.representations.set(key, representation)
+      }
+      if (create || (!surface.geometryKey && representation.geometry !== surface.geometry)) {
+        const geometry = surface.geometry.clone()
+        if (!geometry.index)
+          geometry.setIndex(
+            Array.from({ length: geometry.getAttribute('position').count }, (_, i) => i),
+          )
+        try {
+          requests.push({
+            type: create ? Edit.CREATE_REPRESENTATION : Edit.UPDATE_REPRESENTATION,
+            localId: representation.id,
+            data: GeomsFbUtils.representationFromGeometry(
+              geometry,
+              undefined,
+              surface.mapping.kind === 'source'
+                ? {
+                    threshold: 0,
+                    precision: 1e6,
+                    normalPrecision: 1e7,
+                    planePrecision: 1e3,
+                    faceThreshold: 0.6,
+                    forceTransparentSpaces: true,
+                  }
+                : undefined,
+            ),
+          })
+          representation.geometry = surface.geometry
+        } finally {
+          geometry.dispose()
+        }
+      }
+      let material = materialId(surface)
+      if (surface.materials.some((value) => value.transparent)) {
+        let dedicated = this.transparentMaterials.get(surface.id)
+        if (dedicated === undefined) {
+          dedicated = this.nextId++
+          this.transparentMaterials.set(surface.id, dedicated)
+          requests.push({
+            type: Edit.CREATE_MATERIAL,
+            localId: dedicated,
+            data: {
+              r: dedicated % 256,
+              g: Math.floor(dedicated / 256) % 256,
+              b: Math.floor(dedicated / 65536) % 256,
+              a: 255,
+              renderedFaces: 0,
+              stroke: 0,
+            },
+          })
+        }
+        material = dedicated
+      }
+      if (!old || entry.material !== material || entry.representation !== representation.id) {
+        entry.material = material
+        entry.representation = representation.id
         requests.push({
-          type: Edit.UPDATE_SAMPLE,
+          type: old ? Edit.UPDATE_SAMPLE : Edit.CREATE_SAMPLE,
           localId: entry.sample,
           data: {
             item: entry.global,
             representation: entry.representation,
+            material,
             localTransform: 1,
-            material: surface.casts ? 0 : 2,
           },
         })
-      if (old?.geometry === surface.geometry) continue
-      const geometry = surface.geometry.clone()
-      if (!geometry.index)
-        geometry.setIndex(
-          Array.from({ length: geometry.getAttribute('position').count }, (_, i) => i),
-        )
-      try {
-        requests.push({
-          type: old ? Edit.UPDATE_REPRESENTATION : Edit.CREATE_REPRESENTATION,
-          localId: entry.representation,
-          data: GeomsFbUtils.representationFromGeometry(geometry),
-        })
-        if (!old)
-          requests.push({
-            type: Edit.CREATE_SAMPLE,
-            localId: entry.sample,
-            data: {
-              item: entry.global,
-              representation: entry.representation,
-              material: surface.casts ? 0 : 2,
-              localTransform: 1,
-            },
-          })
-      } finally {
-        geometry.dispose()
       }
+    }
+    const used = new Set(
+      [...this.surfaces.values()].map((surface) => surface.geometryKey ?? surface.id),
+    )
+    for (const [key, representation] of this.representations)
+      if (!used.has(key)) {
+        requests.push({ type: Edit.DELETE_REPRESENTATION, localId: representation.id })
+        this.representations.delete(key)
+      }
+    for (const [id, material] of this.transparentMaterials) {
+      if (this.surfaces.get(id)?.materials.some((value) => value.transparent)) continue
+      requests.push({ type: Edit.DELETE_MATERIAL, localId: material })
+      this.transparentMaterials.delete(id)
     }
     if (requests.length) {
       requests.push({ type: Edit.UPDATE_MAX_LOCAL_ID, localId: this.nextId })
@@ -286,10 +342,10 @@ export class FragmentDisplay {
         if (vertices.some((entry) => !entry))
           throw new Error('Native display tile contains an unknown element')
         mapFragmentTile(geometry, object.matrix, vertices as Entry[])
-        const casts = new Set(vertices.map((entry) => entry!.surface.casts))
-        if (casts.size !== 1) throw new Error('Native tile mixed incompatible shadow settings')
+        const settings = new Set(vertices.map((entry) => materialId(entry!.surface)))
+        if (settings.size !== 1) throw new Error('Native tile mixed incompatible shadow settings')
         object.castShadow = vertices[0]!.surface.casts
-        object.receiveShadow = true
+        object.receiveShadow = vertices[0]!.surface.receives !== false
         styleFragmentTile(object)
       })
       .catch(this.fail)

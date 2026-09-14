@@ -1,7 +1,7 @@
 import type { FragmentsManager, ModelIdMap } from '@thatopen/components'
 import { EditUtils } from '@thatopen/fragments'
 import {
-  BufferGeometry,
+  type BufferGeometry,
   type Material,
   Matrix4,
   Mesh,
@@ -41,7 +41,7 @@ export class InteractionModel {
         node = node.parent
       }
       if (owner)
-        signature += `${keyOf(owner)}:${sourceGeometry(object).uuid}:${object.matrixWorld.elements};`
+        signature += `${keyOf(owner)}:${object.geometry.uuid}:${object.matrixWorld.elements};`
     })
     if (this.loaded && signature === this.sceneSignature) return false
     const entries = new Map<string, Item>()
@@ -54,11 +54,11 @@ export class InteractionModel {
         owner ??= node.userData.houseit
         node = node.parent
       }
-      const source = sourceGeometry(object)
+      const source = object.geometry
       if (!owner || !source.getAttribute('position')) return
       const key = keyOf(owner)
       const item = entries.get(key) ?? { owner, signature: '', geometries: [] }
-      item.signature += `${sourceGeometry(object).uuid}:${object.matrixWorld.elements.join(',')};`
+      item.signature += `${object.geometry.uuid}:${object.matrixWorld.elements.join(',')};`
       const geometry = source.index ? source.toNonIndexed() : source.clone()
       for (const name of Object.keys(geometry.attributes))
         if (name !== 'position' && name !== 'normal') geometry.deleteAttribute(name)
@@ -173,10 +173,4 @@ export class InteractionModel {
         for (const geometry of item.geometries) geometry.dispose()
     }
   }
-}
-
-function sourceGeometry(object: Mesh): BufferGeometry {
-  return object.userData.houseitGeometry instanceof BufferGeometry
-    ? object.userData.houseitGeometry
-    : object.geometry
 }

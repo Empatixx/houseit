@@ -7,7 +7,8 @@ import {
   Uint8BufferAttribute,
 } from 'three'
 import { describe, expect, it } from 'vitest'
-import { mapFragmentTile, styleFragmentTile, type TileSurface, tileItemIds } from './fragment-tile'
+import type { TileSurface } from './display-surface'
+import { mapFragmentTile, styleFragmentTile, tileItemIds } from './fragment-tile'
 
 const wall = (id: string, transform = new Matrix4()): TileSurface => ({
   surface: {
@@ -108,7 +109,7 @@ describe('Native wall tile appearance', () => {
       index = geometry.index
     mapFragmentTile(geometry, new Matrix4(), [entry, entry, entry])
     styleFragmentTile(mesh)
-    expect(mesh.material).toEqual(entry.surface.materials)
+    expect([mesh.material].flat()).toEqual(entry.surface.materials)
     expect(geometry.index).toBe(index)
     geometry.dispose()
   })
@@ -119,13 +120,13 @@ describe('Native wall tile appearance', () => {
     const finishes = entry.surface.materials
     mapFragmentTile(geometry, new Matrix4(), [entry, entry, entry])
     styleFragmentTile(mesh)
-    expect(mesh.material).toEqual([finishes[1]])
+    expect(mesh.material).toBe(finishes[1])
     entry.surface.materials = [new MeshBasicMaterial({ color: '#252525' })]
     styleFragmentTile(mesh)
-    expect(mesh.material).toEqual(entry.surface.materials)
+    expect([mesh.material].flat()).toEqual(entry.surface.materials)
     entry.surface.materials = finishes
     styleFragmentTile(mesh)
-    expect(mesh.material).toEqual([finishes[1]])
+    expect(mesh.material).toBe(finishes[1])
     geometry.dispose()
   })
 })
@@ -154,7 +155,7 @@ describe('Native floor and slab tile appearance', () => {
       )
       const mesh = new Mesh(geometry)
       styleFragmentTile(mesh)
-      expect(mesh.material).toEqual(entry.surface.materials)
+      expect([mesh.material].flat()).toEqual(entry.surface.materials)
       expect(geometry.userData.houseitSides).toEqual([0, 0, 0])
       geometry.dispose()
     },
@@ -190,7 +191,7 @@ describe('Native floor and slab tile appearance', () => {
     ])
     const mesh = new Mesh(geometry)
     styleFragmentTile(mesh)
-    expect(mesh.material).toEqual(entry.surface.materials)
+    expect([mesh.material].flat()).toEqual(entry.surface.materials)
     expect(geometry.groups.map((g) => g.materialIndex)).toEqual([0, 1])
     geometry.dispose()
   })

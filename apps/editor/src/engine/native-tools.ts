@@ -292,22 +292,24 @@ export class NativeTools {
     )
   }
   async snapPoint(point: Point, exclude?: Selection): Promise<Point | null> {
-    if (!engineViewStore.getState().snap || this.running || this.display.busy || this.dead)
+    if (!engineViewStore.getState().snap || this.running || !this.display.canSnap || this.dead)
       return null
     const projected = new Vector3(point.x / 1000, 0, -point.y / 1000).project(
       this.world.camera.three,
     )
-    const hit = await this.components
-      .get(OBC.Raycasters)
-      .get(this.world)
-      .castRay({
-        position: new Vector2(projected.x, projected.y),
-        snappingClasses: [SnappingClass.POINT, SnappingClass.LINE],
-      })
-      .catch((error) => {
-        this.fail(error)
-        return null
-      })
+    const hit = await (this.display.gestures.size
+      ? this.snapPreview(projected, exclude)
+      : this.components
+          .get(OBC.Raycasters)
+          .get(this.world)
+          .castRay({
+            position: new Vector2(projected.x, projected.y),
+            snappingClasses: [SnappingClass.POINT, SnappingClass.LINE],
+          })
+    ).catch((error) => {
+      this.fail(error)
+      return null
+    })
     if (!hit || !('snappingClass' in hit) || !('localId' in hit) || typeof hit.localId !== 'number')
       return null
     const owner = (
@@ -340,6 +342,40 @@ export class NativeTools {
       }
     }
     return result
+  }
+  private async snapPreview(projected: Vector3, exclude?: Selection) {
+    const dom = this.get().gl.domElement,
+      box = dom.getBoundingClientRect()
+    const mouse = new Vector2(
+      box.left + ((projected.x + 1) * box.width) / 2,
+      box.top + ((1 - projected.y) * box.height) / 2,
+    )
+    const models = [this.display.model, this.model.model].filter((model) => model !== undefined)
+    const hits = (
+      await Promise.all(
+        models.map((model) =>
+          model.raycastWithSnapping({
+            camera: this.get().camera,
+            dom,
+            mouse,
+            snappingClasses: [SnappingClass.POINT, SnappingClass.LINE],
+          }),
+        ),
+      )
+    ).flatMap((hits) => hits ?? [])
+    return (
+      hits
+        .filter((hit) => {
+          const owners =
+            hit.fragments.modelId === this.model.id ? this.model.owners : this.display.owners
+          const owner = owners.get(hit.localId)
+          return !exclude || !owner || owner.kind !== exclude.kind || owner.id !== exclude.id
+        })
+        .sort(
+          (a, b) =>
+            (a.rayDistance ?? Infinity) - (b.rayDistance ?? Infinity) || a.distance - b.distance,
+        )[0] ?? null
+    )
   }
   dimension(from: Vector3, to: Vector3) {
     const line = new OBF.Line(from, to)
