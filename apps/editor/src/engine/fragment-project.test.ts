@@ -9,6 +9,7 @@ import {
   SingleThreadedFragmentsModel,
 } from '@thatopen/fragments'
 import { IDBFactory } from 'fake-indexeddb'
+import { Color } from 'three'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import { IfcAPI } from 'web-ifc'
 import { createDocumentStore } from '../store/document-store'
@@ -79,6 +80,11 @@ test('the archive retains the live native graph and ids, with actual wall geomet
       expect(model.getItemsIdsWithGeometry()).toEqual([wall])
       expect(model.getItemsVolume([wall])).toBeCloseTo(5 * 2.55 * 0.3 - 1.2 * 1.5 * 0.3, 4)
       expect(model.getMetadata()).toEqual({ houseit: { schema: 3 } })
+      const material = [...model.getMaterials().values()][0]!
+      const colour = new Color('#f1f0ed')
+      expect(material.a).toBe(255)
+      for (const channel of ['r', 'g', 'b'] as const)
+        expect(Math.abs(material[channel] - colour[channel] * 255)).toBeLessThan(1)
       expect(authoring.history).toEqual(history)
       authoring.exec('update-wall --id w1 --by 500', level)
       const moved = authoring.graph

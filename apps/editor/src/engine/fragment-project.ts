@@ -56,7 +56,14 @@ async function encode(
     {
       type: Edit.CREATE_MATERIAL,
       localId: material,
-      data: { r: colour.r, g: colour.g, b: colour.b, a: 1, renderedFaces: 0, stroke: 0 },
+      data: {
+        r: colour.r * 255,
+        g: colour.g * 255,
+        b: colour.b * 255,
+        a: 255,
+        renderedFaces: 0,
+        stroke: 0,
+      },
     },
     { type: Edit.CREATE_LOCAL_TRANSFORM, localId: localTransform, data: identity },
   )
