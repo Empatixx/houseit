@@ -1,4 +1,9 @@
-import type { GeometryData, GeometryRequest, GeometryResponse } from './geometry-protocol'
+import type {
+  GeometryData,
+  GeometryInput,
+  GeometryRequest,
+  GeometryResponse,
+} from './geometry-protocol'
 import type { WallBody } from './wall-body'
 
 export class GeometryClient {
@@ -32,14 +37,18 @@ export class GeometryClient {
   }
 
   wall(body: WallBody): Promise<GeometryData> {
+    return this.geometry({ kind: 'wall', body })
+  }
+
+  geometry(input: GeometryInput): Promise<GeometryData> {
     if (this.failure) return Promise.reject(this.failure)
-    const key = JSON.stringify(body)
+    const key = JSON.stringify(input)
     const cached = this.cache.get(key)
     if (cached) return cached
     const id = ++this.next
     const result = new Promise<GeometryData>((resolve, reject) => {
       this.pending.set(id, { resolve, reject })
-      this.worker.postMessage({ id, body } satisfies GeometryRequest)
+      this.worker.postMessage({ id, input } satisfies GeometryRequest)
     })
     this.cache.set(key, result)
     if (this.cache.size > 256) this.cache.delete(this.cache.keys().next().value!)

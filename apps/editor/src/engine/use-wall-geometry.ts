@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { BufferGeometry, Float32BufferAttribute } from 'three'
+import type { GeometryInput } from './geometry-protocol'
 import { useGeometryEngine } from './provider'
 import type { WallBody } from './wall-body'
 
 export function useWallGeometry(body: WallBody) {
+  return useNativeGeometry({ kind: 'wall', body }).geometry
+}
+
+export function useNativeGeometry(input: GeometryInput) {
   const engine = useGeometryEngine()
-  const [geometry, setGeometry] = useState<BufferGeometry | null>(null)
-  const key = JSON.stringify(body)
-  useEffect(() => () => geometry?.dispose(), [geometry])
+  const [result, setResult] = useState<{ geometry: BufferGeometry; key: string } | null>(null)
+  const key = JSON.stringify(input)
+  useEffect(() => () => result?.geometry.dispose(), [result])
   useEffect(() => {
     let live = true
     let made: BufferGeometry | undefined
     void engine
-      .wall(body)
+      .geometry(input)
       .then((data) => {
         if (!live) return
         made = new BufferGeometry()
@@ -22,7 +27,7 @@ export function useWallGeometry(body: WallBody) {
         made.setAttribute('uv', new Float32BufferAttribute(data.uv, 2))
         for (const group of data.groups)
           made.addGroup(group.start, group.count, group.materialIndex)
-        setGeometry(made)
+        setResult({ geometry: made, key })
       })
       .catch((error: unknown) => {
         if (live)
@@ -34,5 +39,5 @@ export function useWallGeometry(body: WallBody) {
       live = false
     }
   }, [engine, key])
-  return geometry
+  return result ?? { geometry: null, key }
 }
