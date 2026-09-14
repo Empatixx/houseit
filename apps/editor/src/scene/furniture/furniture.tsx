@@ -11,13 +11,14 @@ import { piecesOf, type Spot, standingAt, turnOf } from '@houseit/geometry/stand
 import { Line } from '@react-three/drei'
 import { type ThreeEvent, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Euler, Matrix4, MeshBasicMaterial, Shape, ShapeGeometry, type Texture } from 'three'
+import { Euler, Matrix4, MeshBasicMaterial, type Texture } from 'three'
 import { aimAt, putDown } from '../../edit/draw-commands'
 import { moveTo, turnTo } from '../../edit/object-commands'
 import { pick } from '../../edit/pick'
 import { placeArmedIn } from '../../edit/place-commands'
 import { NativeSurface } from '../../engine/fragment-display-layer'
 import { activeTools } from '../../engine/native-tools'
+import { useNativeGeometry } from '../../engine/use-wall-geometry'
 import { engineViewStore } from '../../store/engine-view'
 import { EMPHASIS, hoverStore, useHover } from '../../store/hover'
 import { useSelection } from '../../store/selection'
@@ -102,34 +103,30 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   const marked = useSymbol(picked ? symbol : '', pickedSurface(surface), object, PICKED_HATCH)
   const drag = useDrag(object, spot)
   const spin = useSpin(object, spot, picked)
-  const nativeFootprint = useMemo(() => {
-    const parts = partsOf(object.type)
-    const geometry = new ShapeGeometry(
-      parts.map((part) => {
-        const shape = new Shape()
-        const x0 = (part.x0 - 0.5) * object.width * MM,
-          x1 = (part.x1 - 0.5) * object.width * MM
-        const y0 = (0.5 - part.y0) * object.depth * MM,
-          y1 = (0.5 - part.y1) * object.depth * MM
-        shape.moveTo(x0, y0)
-        shape.lineTo(x1, y0)
-        shape.lineTo(x1, y1)
-        shape.lineTo(x0, y1)
-        shape.closePath()
-        return shape
+  const profiles = useMemo(
+    () =>
+      partsOf(object.type).map((part) => {
+        const x0 = (part.x0 - 0.5) * object.width,
+          x1 = (part.x1 - 0.5) * object.width
+        const z0 = (part.y0 - 0.5) * object.depth,
+          z1 = (part.y1 - 0.5) * object.depth
+        return {
+          outline: [
+            { x: x0, z: z0 },
+            { x: x1, z: z0 },
+            { x: x1, z: z1 },
+            { x: x0, z: z1 },
+          ],
+          holes: [],
+        }
       }),
-    )
-    const position = geometry.getAttribute('position'),
-      uv = geometry.getAttribute('uv')
-    for (let i = 0; i < position.count; i++)
-      uv.setXY(
-        i,
-        position.getX(i) / (object.width * MM) + 0.5,
-        position.getY(i) / (object.depth * MM) + 0.5,
-      )
-    return geometry
-  }, [object.type, object.width, object.depth])
-  useEffect(() => () => nativeFootprint?.dispose(), [nativeFootprint])
+    [object.type, object.width, object.depth],
+  )
+  const { geometry: nativeFootprint, key: geometryKey } = useNativeGeometry({
+    kind: 'sheets',
+    profiles,
+    textureSize: { width: object.width, depth: object.depth },
+  })
 
   const texture = (picked ? marked : undefined) ?? plain
   const at = { x: spot.at.x + drag.shift.x, y: spot.at.y + drag.shift.y }
@@ -154,7 +151,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
     [texture, tint, drag.live],
   )
   useEffect(() => () => material.dispose(), [material])
-  if (!plain) return null
+  if (!plain || !nativeFootprint) return null
   const transform = new Matrix4()
     .makeRotationFromEuler(new Euler(-Math.PI / 2, 0, turn + Math.PI))
     .setPosition(...toWorld(at.x, at.y, symbolHeight(stack)))
@@ -177,7 +174,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
           owner: { kind: 'object', id: object.id },
           category: 'IFCFURNISHINGELEMENT',
           geometry: nativeFootprint,
-          geometryKey: `glyph:${object.type}:${object.width}:${object.depth}`,
+          geometryKey,
           materials: [material],
           transform,
           mapping: { kind: 'source', geometry: nativeFootprint },

@@ -1,8 +1,10 @@
 import type { PrimitiveBody } from './primitive-geometry'
 import type { ProfileBody } from './profile-geometry'
+import type { SheetInput } from './sheet-geometry'
 import type { WallBody } from './wall-body'
 
 export type GeometryInput =
+  | SheetInput
   | { kind: 'wall'; body: WallBody }
   | { kind: 'profile'; body: ProfileBody }
   | { kind: 'primitive'; body: PrimitiveBody }

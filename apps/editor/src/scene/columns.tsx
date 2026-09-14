@@ -1,4 +1,6 @@
+import { Matrix4 } from 'three'
 import { useDocument, usePlanDoc } from '../store/store'
+import { PlanBody } from './plan-body'
 import { MM } from './plan-coordinates'
 
 export function Columns() {
@@ -7,10 +9,17 @@ export function Columns() {
   return (
     <>
       {(doc.levels[level]?.columns ?? []).map((c) => (
-        <mesh key={c.id} position={[c.x * MM, 3, -c.y * MM]}>
-          <boxGeometry args={[c.width * MM, 0.03, c.depth * MM]} />
-          <meshBasicMaterial color="#343638" />
-        </mesh>
+        <PlanBody
+          key={c.id}
+          id={`column:${level}:${c.id}`}
+          category="IFCCOLUMN"
+          input={{
+            kind: 'primitive',
+            body: { kind: 'box', width: c.width, height: 30, depth: c.depth },
+          }}
+          colour="#343638"
+          transform={new Matrix4().makeTranslation(c.x * MM, 3, -c.y * MM)}
+        />
       ))}
     </>
   )

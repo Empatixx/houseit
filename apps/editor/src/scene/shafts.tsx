@@ -1,5 +1,7 @@
 import { shaftsOn, shaftWallParts } from '@houseit/geometry/connections'
+import { Matrix4 } from 'three'
 import { useDocument, usePlanDoc } from '../store/store'
+import { PlanBody } from './plan-body'
 import { MM } from './plan-coordinates'
 
 export function Shafts() {
@@ -9,10 +11,17 @@ export function Shafts() {
     <>
       {shaftsOn(doc, level).flatMap((s) =>
         shaftWallParts(s).map((p) => (
-          <mesh key={`${s.id}-${p.x}-${p.y}`} position={[p.x * MM, 3, -p.y * MM]}>
-            <boxGeometry args={[p.width * MM, 0.03, p.depth * MM]} />
-            <meshBasicMaterial color={p.door ? '#a3a7aa' : '#343638'} />
-          </mesh>
+          <PlanBody
+            key={`${s.id}-${p.x}-${p.y}`}
+            id={`shaft:${s.id}:${p.x}:${p.y}`}
+            category={p.door ? 'IFCDOOR' : 'IFCWALL'}
+            input={{
+              kind: 'primitive',
+              body: { kind: 'box', width: p.width, height: 30, depth: p.depth },
+            }}
+            colour={p.door ? '#a3a7aa' : '#343638'}
+            transform={new Matrix4().makeTranslation(p.x * MM, 3, -p.y * MM)}
+          />
         )),
       )}
     </>

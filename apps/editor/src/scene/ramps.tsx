@@ -1,6 +1,8 @@
 import { rampDirection, rampHeights } from '@houseit/geometry/connections'
 import { Html, Line } from '@react-three/drei'
+import { Matrix4 } from 'three'
 import { useDocument, usePlanDoc } from '../store/store'
+import { PlanBody } from './plan-body'
 import { MM } from './plan-coordinates'
 
 export function Ramps() {
@@ -20,12 +22,21 @@ export function Ramps() {
         const middle = point(0.5)
         return (
           <group key={r.id}>
-            <mesh position={[middle[0], 0.02, middle[2]]}>
-              <boxGeometry
-                args={[(d.x ? r.length : r.width) * MM, 0.02, (d.x ? r.width : r.length) * MM]}
-              />
-              <meshBasicMaterial color={r.colour} />
-            </mesh>
+            <PlanBody
+              id={`ramp:${level}:${r.id}`}
+              category="IFCRAMP"
+              input={{
+                kind: 'primitive',
+                body: {
+                  kind: 'box',
+                  width: d.x ? r.length : r.width,
+                  height: 20,
+                  depth: d.x ? r.width : r.length,
+                },
+              }}
+              colour={r.colour}
+              transform={new Matrix4().makeTranslation(middle[0], 0.02, middle[2])}
+            />
             <Line
               points={[
                 point(0, -r.width / 2),

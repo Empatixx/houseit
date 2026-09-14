@@ -1,41 +1,33 @@
 import { floorMaterial } from '@houseit/core/floor-materials'
 import { Html, Line } from '@react-three/drei'
-import { useMemo } from 'react'
-import { Shape, ShapeGeometry } from 'three'
+import { Matrix4 } from 'three'
 import { useDocument, usePlanDoc } from '../store/store'
+import { PlanBody } from './plan-body'
 import { MM } from './plan-coordinates'
 
 export function Site() {
   const doc = usePlanDoc()
   const level = useDocument((s) => s.level)
   const site = doc.site
-  const surfaces = useMemo(
-    () =>
-      site?.surfaces.map((s) => {
-        const shape = new Shape()
-        s.outline.forEach((p, i) => {
-          if (i) shape.lineTo(p.x * MM, p.y * MM)
-          else shape.moveTo(p.x * MM, p.y * MM)
-        })
-        shape.closePath()
-        return { ...s, geometry: new ShapeGeometry(shape) }
-      }) ?? [],
-    [site],
-  )
   if (!site || doc.levels[level]?.elevation !== 0) return null
   return (
     <>
-      {surfaces.map((s) => (
-        <mesh
+      {site.surfaces.map((s) => (
+        <PlanBody
           key={s.id}
-          geometry={s.geometry}
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, -0.05, 0]}
-        >
-          <meshBasicMaterial
-            color={(s.material && floorMaterial(s.material)?.colour) || s.colour}
-          />
-        </mesh>
+          id={`site:surface:${s.id}`}
+          category="IFCGEOGRAPHICELEMENT"
+          input={{
+            kind: 'profile',
+            body: {
+              kind: 'sheet',
+              outline: s.outline.map((p) => ({ x: p.x, z: -p.y })),
+              holes: [],
+            },
+          }}
+          colour={(s.material && floorMaterial(s.material)?.colour) || s.colour}
+          transform={new Matrix4().makeRotationX(-Math.PI / 2).setPosition(0, -0.05, 0)}
+        />
       ))}
       {site.markings.map((m) => (
         <Line
@@ -53,7 +45,7 @@ export function Site() {
           lineWidth={2}
         />
       ))}
-      {surfaces
+      {site.surfaces
         .filter((s) => s.name.startsWith('Stání '))
         .map((s) => (
           <Html

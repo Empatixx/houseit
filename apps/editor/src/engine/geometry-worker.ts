@@ -4,6 +4,7 @@ import wasmUrl from 'web-ifc/web-ifc.wasm?url'
 import type { GeometryRequest, GeometryResponse } from './geometry-protocol'
 import { primitiveGeometry } from './primitive-geometry'
 import { profileGeometry } from './profile-geometry'
+import { sheetGeometry } from './sheet-geometry'
 import { wallGeometry } from './wall-geometry'
 
 const api = new IfcAPI()
@@ -18,7 +19,9 @@ self.onmessage = (event: MessageEvent<GeometryRequest>) => {
           ? wallGeometry(await engine, input.body)
           : input.kind === 'profile'
             ? profileGeometry(await engine, input.body)
-            : primitiveGeometry(await engine, input.body)
+            : input.kind === 'sheets'
+              ? sheetGeometry(await engine, input)
+              : primitiveGeometry(await engine, input.body)
       const data = {
         positions: new Float32Array(geometry.getAttribute('position').array),
         normals: new Float32Array(geometry.getAttribute('normal').array),

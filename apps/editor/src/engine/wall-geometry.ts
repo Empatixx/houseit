@@ -1,6 +1,7 @@
 import type { GeometryEngine } from '@thatopen/fragments'
-import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Mesh, MeshBasicMaterial } from 'three'
+import { BufferGeometry, Float32BufferAttribute, Mesh, MeshBasicMaterial } from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
+import { primitiveGeometry } from './primitive-geometry'
 import type { WallBody } from './wall-body'
 
 const MM = 0.001
@@ -64,8 +65,16 @@ export function wallGeometry(engine: GeometryEngine, body: WallBody): BufferGeom
         .filter((o) => o.base < body.height && o.base + o.height > 0)
         .map((o) => {
           const cut = new Mesh(
-            new BoxGeometry(o.width * MM, o.height * MM, body.thickness * MM + 0.02),
+            primitiveGeometry(engine, {
+              kind: 'box',
+              width: o.width,
+              height: o.height,
+              depth: body.thickness + 20,
+            }),
             new MeshBasicMaterial(),
+          )
+          cut.geometry.setIndex(
+            Array.from({ length: cut.geometry.getAttribute('position').count }, (_, i) => i),
           )
           cut.position.set(o.at * MM, (o.base + o.height / 2) * MM, 0)
           cut.updateMatrixWorld(true)
