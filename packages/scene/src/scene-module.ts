@@ -18,8 +18,9 @@ export function piecesForModules(
     .flatMap((module) =>
       module.pieces(doc, level).map((piece, index) => {
         const name = piece.name ?? `${module.discipline}-piece-${index}`
-        if (names.has(name)) throw new Error(`Duplicate scene piece: ${name}`)
-        names.add(name)
+        const key = `${piece.role === 'wall-solid' ? 'wall' : 'surface'}:${name}`
+        if (names.has(key)) throw new Error(`Duplicate scene piece: ${name}`)
+        names.add(key)
         return piece.name ? piece : { ...piece, name }
       }),
     )

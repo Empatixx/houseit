@@ -39,3 +39,23 @@ test('conflicting piece identities fail before they can overwrite native display
     ),
   ).toThrow('Duplicate scene piece: same')
 })
+
+test('native wall bodies and their facade surfaces retain separate display identities', () => {
+  const doc = createEmptyDocument(),
+    level = Object.keys(doc.levels)[0]!
+  const piece = { ...slab({ w: 1, h: 1, d: 1, paint: { colour: '#fff' } }), name: 'wall-w1-1' }
+  const result = piecesForModules(
+    [
+      {
+        discipline: 'architecture',
+        pieces: () => [
+          { ...piece, role: 'wall-solid' },
+          { ...piece, role: 'facade-covering' },
+        ],
+      },
+    ],
+    doc,
+    level,
+  )
+  expect(result.map((part) => part.name)).toEqual(['wall-w1-1', 'wall-w1-1'])
+})
