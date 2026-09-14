@@ -41,42 +41,42 @@ node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg get-plan --room kitchen
 node scripts/reset-plan.mjs        # empties the plan in the tab, for starting over
 ```
 
-## The document model
+## The model and architecture
 
-Five ideas carry the whole thing. They are worth understanding before touching the code,
-because everything downstream — 3D, electrical layouts, plumbing — depends on them.
+The active migration branch is **`that-open-engine`**. Its native display and
+regression branches are already included in its history. See [TECHNOLOGY.md](TECHNOLOGY.md)
+for module boundaries, [goal.md](goal.md) for remaining engine migration, and
+[maintenance progress](docs/maintenance/progress.md) for the separate maintenance work.
 
-**The plan is 3D from the start.** Walls carry height and base offset; the document has
-levels. The floor plan view is an orthographic camera looking down at the same scene the
-3D view uses. There is no separate 2D model.
+**Native authoring owns the project.** `FragmentAuthoring` commits typed commands
+and CLI scripts into a That Open `SingleThreadedFragmentsModel`. Native items,
+relationships and request boundaries own editing and undo/redo. `HouseDocument`
+(version 5) is the read projection consumed by domain rules and UI. Immer supplies
+transaction drafts; the editor's undo history uses native requests.
 
-**Walls are a graph, rooms are not stored.** The document holds nodes and wall segments.
-Rooms are derived by finding the faces of that graph, recomputed after every edit. One
-source of truth, so a plan can never be internally inconsistent. Drag a wall and every
-room touching it updates itself.
+**Walls are independent elements.** `add-wall`, `update-wall` and `remove-wall`
+operate on stable element IDs. Intersections split wall topology into segments.
+Closed spaces are derived from that graph. Named rooms have stable IDs, boundary
+references, anchors and finishes; their areas and visible polygons are derived.
 
-**Nothing has absolute coordinates.** A socket is not a point in space — it is
-`{ wall: 'w3', t: 0.4, z: 300, side: 'a' }`. Move the wall and the socket moves with it.
-This is the single decision that makes electrical layouts possible later; anchoring
-things absolutely would scatter them across the room on the first dispositional change.
+**Hosts express relationships.** Wall-mounted devices store a wall reference,
+position along it, height and side. Level hosts store a level and local coordinates.
+Wall edits preserve or explicitly reject invalid hosts. Furniture uses room
+relationships and placement parameters. Coordinates are integer millimetres in
+the domain and converted to metres at the presentation boundary.
 
-**Rooms have no stable identity, so labels are anchors.** Because rooms are derived,
-they cannot host anything and cannot carry a name. A room name is a point —
-`{ level, x, y, name: 'kitchen' }` — matched after each edit to whichever face contains
-it. That is what keeps the kitchen labelled as the kitchen after you move a partition.
-Ceiling fixtures host on the level for the same reason.
-
-**Elements are tagged by discipline.** `architecture`, `electrical`, `plumbing`, `hvac`.
-Disciplines drive layer visibility, and both the plan view and the 3D view are the same
-pure function of `(document, visible layers)`.
-
-All lengths are integer millimetres. Never floats — accumulated drift stops nodes from
-coinciding, and face detection collapses when they do not.
+**That Open and Houseit have distinct responsibilities.** GeometryEngine generates
+supported geometry in a worker; Fragments displays it and supplies native picking,
+snapping, measurements and sections. Houseit supplies construction rules, floor-plan
+symbols, materials and gestures. React/R3F hosts the scene and UI. Full archive
+geometry and the remaining authoring migration are tracked separately in `goal.md`.
 
 ## Commands
 
-One MCP tool, `floorplan`, taking a command string. It parses like a CLI, and there are
-thirteen of them: four nouns, each made, changed and taken out again, and one question.
+One MCP tool, `floorplan`, takes a command string. The registry includes levels,
+independent walls, rooms, openings, furniture, columns, shafts, ramps, stairs,
+site surfaces and electrical devices. `get-plan` reads without changing the document
+or history. `help` supplies the current command reference.
 
 ```
 add-level      --name "1. patro" [--height 2.7m] [--below]
@@ -107,11 +107,17 @@ get-plan       --room kitchen
 Several commands separated by newlines apply as one transaction — all of them land, or
 none do.
 
-**There is no command for a wall.** Every wall in a plan is the edge of a room, so
-asking for the rooms is asking for the walls: `add-room` draws the ones a room needs,
-and moving the wall between two rooms is making one of them bigger — `update-room
---side north --by 300`. One fewer thing to say, and no way to say it two ways that
-disagree.
+Independent walls can exist before any room has been named:
+
+```bash
+add-wall --from '{"x":0,"y":0}' --to '{"x":6000,"y":0}' --thickness 300
+update-wall --id w1 --length 6500
+remove-wall --id w1
+```
+
+Close the wall graph, then use `add-room --at '{"x":2000,"y":2000}'
+--name kitchen --material natural-oak` to name an existing space. Drawing an entire
+room through `add-room --shape` is also supported.
 
 A room is cut out of a room: a strip off a side, a box out of a corner, any shape by
 its corners (`--points`, from the south-west corner of the floor) or by a walk of legs
@@ -122,7 +128,7 @@ wall facing that way, so an L has two north walls, told apart by number and by i
 the wall (0 at its west or south end) or a length from that end: `0.3`, `2.4m`, `-1m`
 for a metre short of the far end.
 
-**There is no command for looking, either.** Every command answers the same way, whether
+Every command answers the same way, whether
 it changed everything or nothing:
 
 ```json
@@ -215,12 +221,10 @@ the exact `--along` the click meant. Shift keeps it armed for the next click; Es
 go. Draw wall is the pencil: a click puts a corner down, the line to the next follows the
 pointer square to the last one — north, south, east or west, never in between — snapping
 to the corners and walls it comes near, the rooms it would make showing as it goes. A click
-on the last corner, or on the first, or Enter finishes; Escape throws it away. The drawing
-is one `draw-wall`: a walk of legs from where it started, on a side of a room or on the
-paper, every leg a wall joined to whatever it crosses or reaches.
+on the last corner, or on the first, or Enter finishes; Escape throws it away. Drawing compiles into typed `add-wall` commands, joining each leg to the topology it crosses or reaches.
 
-Walls move too. Pick one and drag it across itself and it becomes one `update-room --side
-… --by …`: the whole line of it moves, the walls meeting it stretch or shorten, the doors
+Walls move too. Pick an independent wall and drag it: `update-wall` moves the element.
+A room boundary handle uses `update-room --wall` for its segment. Connected walls move, the walls meeting it stretch or shorten, the doors
 in them keep their distance from the end that stayed, and the rooms either side grow and
 shrink — refused where a wall would shorten to nothing, a window would be pushed off its
 wall, or something would be left standing in masonry. A room's panel knocks it through
@@ -231,20 +235,18 @@ cuts it and says what it is with `--kind`.
 Shapes are made the way a builder makes them. The floor starts as a rectangle, an L, a U,
 a T, or a walk round any outline — `add-room --shape`, with nothing to come out of, from
 the panel while the plan is empty. A room is cut off a side or out of a corner of another
-— a stepped side too, and what comes off a stepped side is L-shaped. The pencil and the
-wall stubs are the editor's own: an alcove or the arm of a T is drawn by hand, since a
-wall that closes no room is not a room to ask for.
+— a stepped side too, and what comes off a stepped side is L-shaped. The pencil uses the same independent wall commands, including open partitions.
 
 Each command is declared once, with a Zod schema for its arguments. That single
-declaration produces the CLI parser, the MCP tool description the agent reads, the
-`--help` text, and the runtime validation. Adding a command means adding one file.
+declaration drives parsing, validation and generated command help. The MCP tool title,
+description and input schema stay stable; help is returned as data.
 
 ## Floors
 
 Each room can take a floor material:
 
 ```
-set-floor --room kuchyň --material natural-oak
+update-room --room kuchyň --material natural-oak
 ```
 
 Materials, photographed and brought in from the reference: `white-oak`, `natural-oak`,
@@ -255,8 +257,10 @@ Materials, photographed and brought in from the reference: `white-oak`, `natural
 `brick-red`. All of them tile seamlessly and are laid at their real size, so a
 300 mm tile is 300 mm in any room and boards run on across a doorway.
 
-The plan is saved in the browser as you go, so a reload picks up where you left
-off.
+Projects live in IndexedDB and autosave after a 250 ms pause. A failed save shows
+**Changes not saved** at the top right with **Retry save**; success updates the same
+toast. Closing waits for persistence and keeps the project open on failure. The
+latest unsaved revision stays in the tab, so retry before leaving or reloading.
 
 ## Furniture
 
@@ -271,7 +275,7 @@ that wall; leave the side out and a free-standing thing goes to the middle of
 the room, a wall-standing one to the roomiest wall. `--along` says where along
 the wall (or across the room) from 0 to 1, `--across` how far up a free-standing
 thing stands, and both are checked like any other place — the command refuses a
-spot where something already is. `--turn` turns it about its own middle.
+spot where something already is. `--rotation` turns it about its own middle.
 
 The catalogue — 94 types, from `queen-bed` and `nightstand` through `kitchen-l`,
 `island-4`, `refrigerator`, `bathtub`, `office-desk-l`, `washer-dryer`, `sedan` to
@@ -344,32 +348,31 @@ bun scripts/run-plan.ts apps/editor/public/plans/sample-house.txt
 It stops at the first line that fails, says why, and lists every room with its
 size and everything standing in it.
 
-## Scope
+## Scope and layout
 
-**v1** draws architecture in plan view: walls, openings, derived rooms, room labels,
-dimensions, grid snapping, undo/redo, save and load.
+Implemented: 2D plans, 3D walkthrough/inspection, independent walls, openings,
+furniture, multi-storey structures/site, native tools, local projects and native
+undo/redo. Electrical device commands and host relationships exist; full electrical,
+plumbing and HVAC design workflows remain extension work. See the
+[extension contracts](docs/maintenance/discipline-extensions.md) and
+[performance measurements](docs/maintenance/performance.md).
 
-**Later** turns the camera and adds disciplines: 3D view, electrical devices and
-circuits, plumbing, furniture, PDF underlay, export.
+| Location | Responsibility |
+| --- | --- |
+| `packages/core` | Document schemas, migrations, hosts and catalogue data |
+| `packages/geometry` | Topology-derived rooms, dimensions, placement and building geometry rules |
+| `packages/commands` | Typed commands, CLI parser, validation and structured readback |
+| `packages/scene` | Renderer-independent piece/material descriptions |
+| `packages/bridge` | Public browser/driver contract |
+| `apps/editor/src/engine` | That Open authoring, generation, display and native tools |
+| `apps/editor/src/store/projects` | Project lifecycle, native snapshot persistence and save state |
+| `apps/editor/src/edit` | UI gestures translated into typed commands |
+| `apps/editor/src/ui` | Navigation, panels and notices |
+| `apps/mcp` | Node CLI/MCP driver using Playwright/CDP |
 
-The v1 document schema already carries levels, hosts, disciplines and schema
-migrations, even though v1 uses almost none of it. Those cannot be retrofitted — the
-rest can.
-
-## Layout
-
-```
-packages/core       Zod document schema, versioning and migrations, host system
-packages/geometry   wall graph, face detection, snapping, hit-testing — no three.js
-packages/commands   command registry and CLI parser — depends only on core
-apps/editor         Vite + React + react-three-fiber
-apps/mcp            MCP server and CLI binary
-```
-
-`core`, `geometry` and `commands` are pure TypeScript with no DOM and no renderer. They
-hold most of the logic and all of the interesting tests.
-
-See [TECHNOLOGY.md](TECHNOLOGY.md) for what each layer is built with and why.
+Library packages have no React, Three.js or Node runtime dependencies. Build-time
+rules enforce those boundaries. UI inspectors are split by element; furniture
+presentation, dragging and rotation have separate modules.
 
 ## Driving it from an agent
 
@@ -403,8 +406,8 @@ args = ["/absolute/path/to/houseit/apps/mcp/dist/server.js"]
 ```
 
 Then just say what you want — *"udělej dispozici 12 na 9 metrů, kuchyň na západ"* —
-and watch the tab. The agent gets the full command reference in the tool
-description, so it needs no other instructions.
+and watch the tab. The agent reads the command reference through `floorplan("help")`. The tool
+description remains stable as the command registry grows.
 
 **Without an agent**, the same commands work from a terminal against the same tab:
 
