@@ -425,6 +425,7 @@ plan, making one under that name if there is none.
 
 Run `bun run test:regression` for selection, dragging, wall junctions, openings, undo and
 archive reload. Add `--all` for the native display specimens, or `--only plan,tools` for
-selected cases. The runner starts missing local editor/headed Chrome services, isolates
+selected cases. Chrome runs headless by default; add `--headed` to watch. The runner starts its own
+browser and any missing local editor, isolates
 each test project and writes logs, screenshots and failure traces to `test-results/`.
 See [the regression guide](docs/regression-tests.md) for scenario IDs and debugging.

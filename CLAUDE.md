@@ -575,9 +575,11 @@ bun run typecheck && bun run lint && bun run depcruise && bun run knip
 
 Run `bun run test:regression` for the 13 interaction/archive scenarios, or add `--all`
 for all 32 UI/display cases and variants. `--only <id,id>` selects cases; `--all --list`
-prints the registry. The runner starts missing local editor/headed Chrome services and
-reuses existing ones. It only shuts down processes it started. Keep cases sequential
-because real keyboard/mouse focus is shared.
+prints the registry. Chrome runs headless by default; `--headed` opens a visible window.
+The runner owns a dedicated browser on a free CDP port and reuses an existing editor
+or starts its own. It only shuts down processes it started. Keep cases sequential;
+headed runs also share system keyboard/mouse input. An explicit `HOUSEIT_CDP_PORT`
+must be unused; standalone proof scripts still attach to existing CDP services.
 
 Use `scripts/proof-session.mjs` for new UI regressions: one isolated browser context and
 project per case, CLI commands, read-only state, native readiness and a settled camera.
