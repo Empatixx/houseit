@@ -420,3 +420,11 @@ node apps/mcp/dist/cli.js --picture /tmp/kuchyň.jpg get-plan --room kuchyň
 With no Chrome on the debugging port, the CLI starts one headless on the same profile —
 so an agent on its own needs nothing but the dev server, and `--project` puts it in a
 plan, making one under that name if there is none.
+
+## Editor regression tests
+
+Run `bun run test:regression` for selection, dragging, wall junctions, openings, undo and
+archive reload. Add `--all` for the native display specimens, or `--only plan,tools` for
+selected cases. The runner starts missing local editor/headed Chrome services, isolates
+each test project and writes logs, screenshots and failure traces to `test-results/`.
+See [the regression guide](docs/regression-tests.md) for scenario IDs and debugging.

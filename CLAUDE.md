@@ -571,6 +571,23 @@ bun run test        # vitest through turbo; `bun test` at the root is not it
 bun run typecheck && bun run lint && bun run depcruise && bun run knip
 ```
 
+## Browser regressions
+
+Run `bun run test:regression` for the 13 interaction/archive scenarios, or add `--all`
+for all 32 UI/display cases and variants. `--only <id,id>` selects cases; `--all --list`
+prints the registry. The runner starts missing local editor/headed Chrome services and
+reuses existing ones. It only shuts down processes it started. Keep cases sequential
+because real keyboard/mouse focus is shared.
+
+Use `scripts/proof-session.mjs` for new UI regressions: one isolated browser context and
+project per case, CLI commands, read-only state, native readiness and a settled camera.
+Keep scenario-specific gestures/assertions in the script. `proof.run` saves failure
+screenshots, state and Playwright traces before cleanup. Add cases/variants to
+`scripts/regression-cases.mjs`; do not silently retry failed assertions. Successful traces
+are discarded; logs/screenshots and `report.json` go to an ignored per-run directory under
+`test-results/regression/`. Full usage and the separate MCP integration check are in
+[docs/regression-tests.md](docs/regression-tests.md). CLI/MCP metadata is unchanged.
+
 ## Building vocabulary
 
 `add-room --boundary` accepts a measured wall-centre chain as JSON, each corner
