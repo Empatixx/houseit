@@ -1,7 +1,7 @@
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
 import { expect, test } from 'vitest'
-import { createWriter, WRITE_DELAY } from './autosave'
+import { createWriter, type SaveState, WRITE_DELAY } from './autosave'
 import { openProjects, type ProjectMeta, type ProjectsDb } from './db'
 
 const fresh = () => openProjects(new FakeIndexedDb())
@@ -124,6 +124,7 @@ test('slow encoding cannot overwrite a newer revision or mix its outline', async
 
 test('flush also writes an edit arriving while the previous encoding is running', async () => {
   const db = await fresh()
+  await db.put(meta)
   const first = createEmptyDocument(),
     last = withWall()
   let release!: () => void
@@ -155,6 +156,7 @@ test('flush also writes an edit arriving while the previous encoding is running'
 
 test('a failed revision is retryable and cannot reappear after a newer save', async () => {
   const db = await fresh()
+  await db.put(meta)
   const first = createEmptyDocument(),
     last = withWall()
   let fail = true
@@ -179,5 +181,43 @@ test('a failed revision is retryable and cannot reappear after a newer save', as
   fail = false
   await newer.catch(() => {})
   await writer.flush()
+  expect(await db.read(meta.id)).toEqual(last)
+})
+
+test('save status remains unsaved until the newest queued revision is durable', async () => {
+  const db = await fresh()
+  await db.put(meta)
+  const states: SaveState[] = []
+  let release!: () => void
+  let began!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const started = new Promise<void>((resolve) => {
+    began = resolve
+  })
+  const first = createEmptyDocument(),
+    last = withWall()
+  const writer = createWriter(
+    async () => db,
+    async (_id, doc) => {
+      if (doc === first) {
+        began()
+        await gate
+      }
+      return doc
+    },
+    (state) => states.push(state),
+  )
+  writer.schedule(meta.id, first, levelOf(first))
+  const saving = writer.flush()
+  await started
+  writer.schedule(meta.id, last, levelOf(last))
+  const queued = writer.flush()
+  expect(states.some((state) => state.status === 'saved')).toBe(false)
+  release()
+  await Promise.all([saving, queued])
+  expect(states.filter((state) => state.status === 'saved')).toHaveLength(1)
+  expect(states.at(-1)).toEqual({ status: 'saved' })
   expect(await db.read(meta.id)).toEqual(last)
 })

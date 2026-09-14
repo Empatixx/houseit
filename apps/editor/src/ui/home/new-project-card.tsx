@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Input } from '@/components/ui/input'
 import { projectsStore } from '@/store/projects/projects'
+import { runProjectAction } from '../project-notices'
 
 export function NewProjectCard() {
   const [naming, setNaming] = useState(false)
@@ -26,8 +27,10 @@ export function NewProjectCard() {
   }
 
   const make = async () => {
-    const meta = await projectsStore.getState().create(name)
-    navigate(`/p/${meta.id}`)
+    await runProjectAction('Could not create project', async () => {
+      const meta = await projectsStore.getState().create(name)
+      navigate(`/p/${meta.id}`)
+    })
   }
 
   return (

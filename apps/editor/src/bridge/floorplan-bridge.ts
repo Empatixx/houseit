@@ -41,8 +41,7 @@ export function installFloorplanBridge(
   }
 
   const noProject = (): string => {
-    const { list, refresh } = projects.getState()
-    if (!list) void refresh()
+    const { list } = projects.getState()
     const ids = list?.map((project) => project.id) ?? []
     const where =
       ids.length > 0

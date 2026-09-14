@@ -26,25 +26,19 @@ export type ProjectsDb = {
 export async function openProjects(
   factory: IDBFactory | undefined = globalThis.indexedDB,
 ): Promise<ProjectsDb> {
-  const db = await open(factory).catch(() => undefined)
+  const db = await open(factory)
 
   const asking = async <T>(
     store: string,
     ask: (shelf: IDBObjectStore) => IDBRequest<T>,
   ): Promise<T | undefined> => {
-    if (!db) return undefined
-    try {
-      return await answered(ask(db.transaction(store, 'readonly').objectStore(store)))
-    } catch {
-      return undefined
-    }
+    return answered(ask(db.transaction(store, 'readonly').objectStore(store)))
   }
 
   const changing = async (
     stores: string[],
     change: (transaction: IDBTransaction) => void,
   ): Promise<void> => {
-    if (!db) throw new Error('Project storage is unavailable')
     const transaction = db.transaction(stores, 'readwrite')
     change(transaction)
     await finished(transaction)

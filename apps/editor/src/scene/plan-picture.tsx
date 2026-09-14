@@ -6,6 +6,7 @@ import { useFragmentDisplay } from '../engine/fragment-display-layer'
 import { useGeometryEngine } from '../engine/provider'
 import { projectsStore } from '../store/projects/projects'
 import { documentStore } from '../store/store'
+import { runProjectAction } from '../ui/project-notices'
 import { picture } from './picture'
 
 const OPENED = 1500
@@ -35,7 +36,12 @@ export function PlanPicture() {
       } catch {
         return
       }
-      if (image) void projectsStore.getState().picture(open.id, image)
+      if (image) {
+        const captured = image
+        void runProjectAction('Project preview could not be saved', () =>
+          projectsStore.getState().picture(open.id, captured),
+        )
+      }
     }
     let timer = setTimeout(take, OPENED)
     const stop = documentStore.subscribe((state, previous) => {

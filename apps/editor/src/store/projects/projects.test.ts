@@ -1,10 +1,10 @@
 import { createEmptyDocument } from '@houseit/core/document'
 import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { createDocumentStore } from '../document-store'
 import { WRITE_DELAY } from './autosave'
 import { openProjects, type ProjectsDb } from './db'
-import { createProjectsStore } from './projects'
+import { createProjectsStore } from './project-store'
 
 function fresh() {
   const docs = createDocumentStore()
@@ -202,4 +202,65 @@ test('a picture of the plan is kept with the project and shown in the list', asy
   expect(store.getState().list?.[0]?.picture).toBe('data:image/jpeg;base64,AAAA')
   await at().refresh()
   expect(store.getState().list?.[0]?.picture).toBe('data:image/jpeg;base64,AAAA')
+})
+
+test('a failed document read does not open or overwrite the existing project', async () => {
+  const db = await openProjects(new FakeIndexedDb())
+  const meta = { id: 'byt', name: 'Byt', createdAt: 1, updatedAt: 1 }
+  await db.put(meta)
+  const doc = createEmptyDocument()
+  await db.write(meta.id, doc)
+  const read = vi.spyOn(db, 'read').mockRejectedValueOnce(new Error('read failed'))
+  const { at } = over(db)
+  await expect(at().openProject(meta.id)).rejects.toThrow('read failed')
+  expect(at().open).toBeNull()
+  expect(await db.read(meta.id)).toEqual(doc)
+  read.mockRestore()
+  await expect(at().openProject(meta.id)).resolves.toEqual(meta)
+  await at().closeProject()
+})
+
+test('a failed save keeps the open document and can be retried before closing', async () => {
+  const db = await openProjects(new FakeIndexedDb())
+  const write = vi.fn(db.write)
+  const { docs, at } = over({ ...db, write })
+  const project = await at().create('Byt')
+  await at().openProject(project.id)
+  docs.getState().exec(ROOM)
+  const edited = docs.getState()
+  write.mockRejectedValueOnce(new Error('Storage is full'))
+
+  await expect(at().closeProject()).rejects.toThrow('Storage is full')
+
+  expect(at().open?.id).toBe(project.id)
+  expect(docs.getState()).toBe(edited)
+  expect(at().saveState).toEqual({ status: 'error', message: 'Storage is full' })
+  await at().save()
+  expect(at().saveState).toEqual({ status: 'saved' })
+  expect(await db.read(project.id)).toEqual(edited.doc)
+  await at().closeProject()
+  expect(at().open).toBeNull()
+})
+
+test('a failed database connection is reopened on retry', async () => {
+  const db = await openProjects(new FakeIndexedDb())
+  const open = vi.fn(async () => db).mockRejectedValueOnce(new Error('Storage unavailable'))
+  const store = createProjectsStore(open, createDocumentStore())
+
+  await expect(store.getState().refresh()).rejects.toThrow('Storage unavailable')
+  await store.getState().refresh()
+
+  expect(open).toHaveBeenCalledTimes(2)
+  expect(store.getState().list).toEqual([])
+})
+
+test('a failed initial document write does not publish an empty project', async () => {
+  const db = await openProjects(new FakeIndexedDb())
+  const write = vi.fn(db.write).mockRejectedValueOnce(new Error('Storage is full'))
+  const { at } = over({ ...db, write })
+
+  await expect(at().create('Byt')).rejects.toThrow('Storage is full')
+  expect(await db.list()).toEqual([])
+  await at().create('Byt')
+  expect((await db.list()).map((project) => project.id)).toEqual(['byt'])
 })
