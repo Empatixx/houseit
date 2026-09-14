@@ -29,8 +29,8 @@ export async function importLocalPlan(
 
   const now = Date.now()
   const level = Object.keys(doc.levels)[0] ?? ''
-  await db.put({ ...FIRST, createdAt: now, updatedAt: now, outline: outlineOf(doc, level) })
   await db.write(FIRST.id, doc)
+  await db.put({ ...FIRST, createdAt: now, updatedAt: now, outline: outlineOf(doc, level) })
 
   try {
     store?.removeItem(LEGACY_KEY)

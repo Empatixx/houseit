@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { projectsStore, useProjects } from '@/store/projects/projects'
 import { Logo } from '../logo'
+import { runProjectAction } from '../project-notices'
 import { NewProjectCard } from './new-project-card'
 import { ProjectCard } from './project-card'
 
@@ -8,7 +9,7 @@ export function Home() {
   const list = useProjects((state) => state.list)
 
   useEffect(() => {
-    void projectsStore.getState().refresh()
+    void runProjectAction('Could not load projects', () => projectsStore.getState().refresh())
   }, [])
 
   return (
