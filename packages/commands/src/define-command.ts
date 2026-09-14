@@ -34,6 +34,7 @@ export type ArgsOf<C extends TypedCommand> = C extends Command<infer Args> ? z.i
 type Definition<Args extends z.ZodObject> = {
   name: string
   summary: string
+  readOnly?: boolean
   args: Args
   // biome-ignore lint/suspicious/noConfusingVoidType: a command may touch nothing nameable
   run: (draft: Draft<HouseDocument>, args: z.infer<Args>, open?: string) => Change | void
@@ -81,7 +82,7 @@ export function defineCommand<Args extends z.ZodObject>(
       throw new CommandError(`${definition.name}: ${detail}`)
     }
     const change = definition.run(draft, result.data as z.infer<Args>, open) as Change | undefined
-    rebindAll(draft)
+    if (!definition.readOnly) rebindAll(draft)
     return change
   }
 

@@ -76,6 +76,22 @@ test('every exec answers with the rooms it touched and what is wrong with the pl
   expect(result.ok && result.answer.problems.map((it) => it.code)).toContain('house.no-entrance')
 })
 
+test('reading through the bridge leaves an undone edit available to redo', async () => {
+  const store = createDocumentStore()
+  const bridge = await bridgeOn(store)
+  bridge.exec(floor)
+  bridge.exec('update-room --room dům --name house')
+  store.getState().undo()
+  const before = store.getState()
+
+  const result = bridge.exec('get-plan --room dům')
+
+  expect(result).toMatchObject({ ok: true, answer: { changed: [], rooms: [{ name: 'dům' }] } })
+  expect(store.getState()).toBe(before)
+  store.getState().redo()
+  expect(bridge.getPlan().rooms[0]?.name).toBe('house')
+})
+
 test('a change answers the same way, and names what it changed', async () => {
   const bridge = await bridgeOn()
   bridge.exec(floor)
