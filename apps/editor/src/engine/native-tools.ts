@@ -289,7 +289,7 @@ export class NativeTools {
     const projected = new Vector3(point.x / 1000, 0, -point.y / 1000).project(
       this.world.camera.three,
     )
-    const hit = await (this.display.gestures.size
+    const hit = await (this.display.previewing
       ? this.snapPreview(projected, exclude)
       : this.components
           .get(OBC.Raycasters)
@@ -351,6 +351,7 @@ export class NativeTools {
     return (
       hits
         .filter((hit) => {
+          if (this.display.transient.has(hit.localId)) return false
           const owner = this.ownerOf(hit)
           return !exclude || !owner || owner.kind !== exclude.kind || owner.id !== exclude.id
         })

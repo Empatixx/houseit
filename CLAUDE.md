@@ -140,7 +140,8 @@ The wall authoring model on `that-open-engine`:
   Fragments tiles throughout the gesture. Do not restore source-mesh portals or hide native roots.
   Keep the public worker pool resident (one default worker, a lazy reserved background slot),
   and use zero update delay only while interacting; idle loaded models use 32 ms. Serialize native
-  snapping with edits/tile preparation, query both the base and delta, and exclude the carried owner.
+  snapping with edits/tile preparation, query both the base and delta, and exclude the carried owner. Items whose geometry/transform changes during the gesture are
+  also excluded: a moving floor or connected wall must not attract its own drag.
   Native selection aliases also cover both models. Appearance groups must preserve the native
   visibility ranges, including a matching drawRange when using a single material for transparency.
   After 250 ms without edits or pointer-down, compact only the derived display. Fragments 3.4.7

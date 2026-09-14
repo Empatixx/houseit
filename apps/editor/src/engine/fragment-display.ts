@@ -44,6 +44,7 @@ export class FragmentDisplay {
   revision = 0
   toolsDisposal: Promise<void> | undefined
   readonly gestures = new Set<string>()
+  readonly transient = new Set<number>()
   private transparentMaterials = new Map<string, number>()
   private representations = new Map<string, { id: number; geometry: BufferGeometry }>()
   private entries = new Map<string, Entry>()
@@ -113,6 +114,9 @@ export class FragmentDisplay {
       this.queries--
     }
   }
+  get previewing() {
+    return this.preview
+  }
   get canSnap() {
     return (
       this.loaded &&
@@ -156,6 +160,7 @@ export class FragmentDisplay {
   }
   frame(preview = false) {
     if (this.preview && !preview) this.compactAfter = performance.now() + 250
+    if (this.preview !== preview) this.transient.clear()
     this.preview = preview
     this.fragments.core.settings.threadUpdaterDelay = preview ? 0 : 32
     if (this.dead) return
@@ -243,6 +248,11 @@ export class FragmentDisplay {
           },
         })
       }
+      if (
+        this.preview &&
+        (!old || old.geometry !== surface.geometry || !old.transform.equals(surface.transform))
+      )
+        this.transient.add(entry.item)
       entry.surface = surface
       if (!old?.transform.equals(surface.transform)) {
         const e = surface.transform.elements
