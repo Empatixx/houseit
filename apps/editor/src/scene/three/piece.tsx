@@ -1,7 +1,6 @@
 import type { Body, Finish, Piece } from '@houseit/scene/pieces'
 import type { ThreeEvent } from '@react-three/fiber'
-import { type ComponentProps, useEffect, useMemo } from 'react'
-import { BufferGeometry, Float32BufferAttribute } from 'three'
+import type { ComponentProps } from 'react'
 import { useNativeGeometry } from '../../engine/use-wall-geometry'
 import { MM } from '../plan-coordinates'
 import { Brought } from './brought'
@@ -56,12 +55,6 @@ export function StandingPiece({ piece, tint, onPick, native: display }: PiecePro
         rotation={[tilt - QUARTER, turn, roll + Math.PI]}
         onPick={onPick}
       />
-    )
-  }
-
-  if (body.kind === 'box' && body.faces) {
-    return (
-      <BoxSkin native={native} piece={piece} faces={body.faces} paint={paint} onPick={onPick} />
     )
   }
 
@@ -150,57 +143,6 @@ function Flat({ body, at, rotation, material, shadows, onPick, native }: FlatPro
       at={at}
       rotation={rotation}
       shadows={shadows}
-      onPick={onPick}
-    />
-  )
-}
-
-function BoxSkin({
-  piece,
-  faces,
-  paint,
-  onPick,
-  native,
-}: PieceProps & { faces: number[]; paint: Finish }) {
-  const geometry = useMemo(() => {
-    const geometry = new BufferGeometry()
-    geometry.setAttribute(
-      'position',
-      new Float32BufferAttribute(
-        faces.map((n) => n * MM),
-        3,
-      ),
-    )
-    geometry.computeVertexNormals()
-    const normals = geometry.getAttribute('normal')
-    const body = piece.body
-    if (body.kind !== 'box') return geometry
-    const uv = []
-    for (let i = 0; i < faces.length / 3; i++) {
-      const x = faces[i * 3]! / body.width,
-        y = faces[i * 3 + 1]! / body.height,
-        z = faces[i * 3 + 2]! / body.depth
-      const nx = normals.getX(i),
-        ny = normals.getY(i),
-        nz = normals.getZ(i)
-      uv.push(
-        (Math.abs(nx) > 0.5 ? -nx * z : Math.abs(nz) > 0.5 ? nz * x : x) + 0.5,
-        (Math.abs(ny) > 0.5 ? -ny * z : y) + 0.5,
-      )
-    }
-    geometry.setAttribute('uv', new Float32BufferAttribute(uv, 2))
-    return geometry
-  }, [faces, piece.body])
-  useEffect(() => () => geometry.dispose(), [geometry])
-  return (
-    <PieceMesh
-      native={{ ...native, owner: piece.of }}
-      geometry={geometry}
-      geometryKey={JSON.stringify(piece.body)}
-      material={materialOf(paint, false)}
-      at={[piece.at.x * MM, piece.at.y * MM, piece.at.z * MM]}
-      rotation={[0, piece.turn ?? 0, 0, 'YXZ']}
-      shadows={piece.casts !== false}
       onPick={onPick}
     />
   )

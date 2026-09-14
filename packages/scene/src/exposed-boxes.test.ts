@@ -5,16 +5,12 @@ import { type Piece, slab } from './pieces'
 function skinArea(pieces: Piece[]) {
   return pieces.reduce((sum, piece) => {
     if (piece.body.kind !== 'box') throw Error('box expected')
-    const points = piece.body.faces!
-    for (let i = 0; i < points.length; i += 9) {
-      const u = [0, 1, 2].map((j) => points[i + 3 + j]! - points[i + j]!)
-      const v = [0, 1, 2].map((j) => points[i + 6 + j]! - points[i + j]!)
-      sum +=
-        Math.hypot(
-          u[1]! * v[2]! - u[2]! * v[1]!,
-          u[2]! * v[0]! - u[0]! * v[2]!,
-          u[0]! * v[1]! - u[1]! * v[0]!,
-        ) / 2
+    for (const { u, v } of piece.body.patches!) {
+      sum += Math.hypot(
+        u[1]! * v[2]! - u[2]! * v[1]!,
+        u[2]! * v[0]! - u[0]! * v[2]!,
+        u[0]! * v[1]! - u[1]! * v[0]!,
+      )
     }
     return sum
   }, 0)
@@ -41,5 +37,5 @@ test('coincident surfaces keep the first finish, including embedded columns', ()
   const first = slab({ w: 2, h: 2, d: 2, paint })
   const pieces = exposedBoxes([first, { ...first, paint: { colour: '#ff0000' } }])
   expect(skinArea(pieces)).toBeCloseTo(24)
-  expect(pieces[1]!.body.kind === 'box' && pieces[1]!.body.faces).toEqual([])
+  expect(pieces[1]!.body.kind === 'box' && pieces[1]!.body.patches).toEqual([])
 })

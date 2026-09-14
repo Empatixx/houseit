@@ -1,4 +1,4 @@
-import type { Piece } from './pieces'
+import type { BoxPatch, Piece } from './pieces'
 
 type Bounds = { min: number[]; max: number[] }
 type Rectangle = { u0: number; u1: number; v0: number; v1: number }
@@ -19,7 +19,7 @@ export function exposedBoxes(pieces: Piece[]): Piece[] {
         : [],
     )
     if (!neighbours.length) return piece
-    const faces: number[] = []
+    const patches: BoxPatch[] = []
     for (let axis = 0; axis < 3; axis++) {
       const u = (axis + 1) % 3,
         v = (axis + 2) % 3
@@ -52,7 +52,7 @@ export function exposedBoxes(pieces: Piece[]): Piece[] {
             [r.u1, r.v1],
             [r.u0, r.v1],
           ]
-          for (const at of sign > 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2]) {
+          const points = (sign > 0 ? [0, 1, 3] : [0, 3, 1]).map((at) => {
             const point = [0, 0, 0]
             point[axis] = plane
             point[u] = corners[at]![0]!
@@ -61,12 +61,21 @@ export function exposedBoxes(pieces: Piece[]): Piece[] {
               z = point[2]! - piece.at.z
             const c = Math.cos(piece.turn ?? 0),
               s = Math.sin(piece.turn ?? 0)
-            faces.push(x * c - z * s, point[1]! - piece.at.y, x * s + z * c)
-          }
+            return [x * c - z * s, point[1]! - piece.at.y, x * s + z * c] as [
+              number,
+              number,
+              number,
+            ]
+          })
+          patches.push({
+            origin: points[0]!,
+            u: points[1]!.map((n, i) => n - points[0]![i]!) as [number, number, number],
+            v: points[2]!.map((n, i) => n - points[0]![i]!) as [number, number, number],
+          })
         }
       }
     }
-    return { ...piece, body: { ...piece.body, faces } }
+    return { ...piece, body: { ...piece.body, patches } }
   })
 }
 

@@ -1,4 +1,7 @@
 // @vitest-environment node
+
+import { exposedBoxes } from '@houseit/scene/exposed-boxes'
+import { slab } from '@houseit/scene/pieces'
 import { GeometryEngine } from '@thatopen/fragments'
 import {
   BoxGeometry,
@@ -130,3 +133,37 @@ test.each(bodies)(
     material.dispose()
   },
 )
+
+test('native face profiles preserve a joined and rotated box skin without internal faces', () => {
+  const pieces = exposedBoxes([
+    slab({ w: 4000, h: 3000, d: 1000, paint: { colour: '#ffffff' } }),
+    slab({ w: 4000, h: 3000, d: 1000, turn: Math.PI / 2, paint: { colour: '#ffffff' } }),
+  ])
+  let area = 0,
+    totalVolume = 0
+  for (const piece of pieces) {
+    if (piece.body.kind !== 'box') throw Error('Expected a box')
+    const geometry = primitiveGeometry(engine, piece.body)
+    geometry.rotateY(piece.turn ?? 0).translate(5, 2, 7)
+    totalVolume += volume(geometry)
+    const p = geometry.getAttribute('position')
+    for (let i = 0; i < p.count; i += 3) {
+      const a = new Vector3().fromBufferAttribute(p, i)
+      const b = new Vector3().fromBufferAttribute(p, i + 1)
+      const c = new Vector3().fromBufferAttribute(p, i + 2)
+      area += b.sub(a).cross(c.sub(a)).length() / 2
+    }
+    geometry.dispose()
+  }
+  expect(area).toBeCloseTo(62)
+  expect(totalVolume).toBeCloseTo(21)
+})
+
+test('a completely covered native box contributes no geometry', () => {
+  const first = slab({ w: 2000, h: 2000, d: 2000, paint: { colour: '#ffffff' } })
+  const hidden = exposedBoxes([first, first])[1]!
+  if (hidden.body.kind !== 'box') throw Error('Expected a box')
+  const geometry = primitiveGeometry(engine, hidden.body)
+  expect(geometry.getAttribute('position').count).toBe(0)
+  geometry.dispose()
+})

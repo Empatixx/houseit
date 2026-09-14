@@ -8,9 +8,14 @@ export type Finish = {
 }
 
 export type Corner = { x: number; z: number }
+export type BoxPatch = {
+  origin: [number, number, number]
+  u: [number, number, number]
+  v: [number, number, number]
+}
 
 export type Body =
-  | { kind: 'box'; width: number; height: number; depth: number; faces?: number[] }
+  | { kind: 'box'; width: number; height: number; depth: number; patches?: BoxPatch[] }
   | { kind: 'drum'; radius: number; top: number; height: number; open: boolean; stretch: number }
   | { kind: 'ball'; radius: number }
   | {

@@ -1,6 +1,8 @@
-import type { Body } from '@houseit/scene/pieces'
+import type { Body, BoxPatch } from '@houseit/scene/pieces'
 import type { GeometryEngine } from '@thatopen/fragments'
 import { BufferGeometry, Float32BufferAttribute, Matrix4, Vector3 } from 'three'
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
+import { profileGeometry } from './profile-geometry'
 
 export type PrimitiveBody = Extract<Body, { kind: 'box' | 'drum' | 'ball' }>
 const MM = 0.001
@@ -8,10 +10,13 @@ const turn = Math.PI * 2
 const swapYZ = new Matrix4().set(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1)
 
 export function primitiveGeometry(engine: GeometryEngine, body: PrimitiveBody) {
-  const made = new BufferGeometry()
+  const made =
+    body.kind === 'box' && body.patches ? boxPatches(engine, body.patches) : new BufferGeometry()
   if (body.kind === 'box') {
-    const half = new Vector3(body.width, body.height, body.depth).multiplyScalar(MM / 2)
-    engine.getBbox(made, { min: half.clone().negate(), max: half })
+    if (!body.patches) {
+      const half = new Vector3(body.width, body.height, body.depth).multiplyScalar(MM / 2)
+      engine.getBbox(made, { min: half.clone().negate(), max: half })
+    }
   } else {
     const profile: number[] = []
     if (body.kind === 'drum') {
@@ -37,9 +42,9 @@ export function primitiveGeometry(engine: GeometryEngine, body: PrimitiveBody) {
     if (body.kind === 'drum') made.scale(1, 1, body.stretch)
   }
   if (body.kind !== 'drum') {
-    const index = made.getIndex()!
+    const index = made.getIndex()
     const p = made.getAttribute('position')
-    for (let i = 0; i < index.count; i += 3) {
+    for (let i = 0; index && i < index.count; i += 3) {
       if (body.kind === 'box') {
         const a = new Vector3().fromBufferAttribute(p, index.getX(i))
         const b = new Vector3().fromBufferAttribute(p, index.getX(i + 1))
@@ -51,8 +56,8 @@ export function primitiveGeometry(engine: GeometryEngine, body: PrimitiveBody) {
       index.setX(i + 2, a)
     }
   }
-  const geometry = made.toNonIndexed()
-  made.dispose()
+  const geometry = made.index ? made.toNonIndexed() : made
+  if (geometry !== made) made.dispose()
   geometry.computeVertexNormals()
   const p = geometry.getAttribute('position'),
     n = geometry.getAttribute('normal')
@@ -130,4 +135,44 @@ export function primitiveGeometry(engine: GeometryEngine, body: PrimitiveBody) {
   }
   geometry.setAttribute('uv', new Float32BufferAttribute(uv, 2))
   return geometry
+}
+
+function boxPatches(engine: GeometryEngine, patches: BoxPatch[]) {
+  const face = profileGeometry(engine, {
+    kind: 'sheet',
+    outline: [
+      { x: 0, z: 0 },
+      { x: 1000, z: 0 },
+      { x: 1000, z: -1000 },
+      { x: 0, z: -1000 },
+    ],
+    holes: [],
+  })
+  const parts: BufferGeometry[] = []
+  try {
+    for (const patch of patches) {
+      const u = new Vector3(...patch.u).multiplyScalar(MM)
+      const v = new Vector3(...patch.v).multiplyScalar(MM)
+      const normal = u.clone().cross(v).normalize()
+      const matrix = new Matrix4().makeBasis(u, v, normal)
+      matrix.setPosition(new Vector3(...patch.origin).multiplyScalar(MM))
+      parts.push(face.clone().applyMatrix4(matrix))
+    }
+    if (parts.length) {
+      const result = mergeGeometries(parts)
+      if (!result) throw new Error('Cannot combine native box patches')
+      return result
+    }
+    const empty = new BufferGeometry()
+    for (const [name, size] of [
+      ['position', 3],
+      ['normal', 3],
+      ['uv', 2],
+    ] as const)
+      empty.setAttribute(name, new Float32BufferAttribute([], size))
+    return empty
+  } finally {
+    face.dispose()
+    for (const part of parts) part.dispose()
+  }
 }
