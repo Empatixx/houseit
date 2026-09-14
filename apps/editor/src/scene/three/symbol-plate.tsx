@@ -1,9 +1,10 @@
 import type { Body, Finish } from '@houseit/scene/pieces'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useState } from 'react'
-import { MeshBasicMaterial, PlaneGeometry, type Texture } from 'three'
+import { MeshBasicMaterial, type Texture } from 'three'
+import { rectangleSheet } from '../../engine/sheet-geometry'
+import { useNativeGeometry } from '../../engine/use-wall-geometry'
 import { symbolTexture } from '../furniture/symbol-texture'
-import { MM } from '../plan-coordinates'
 import { type NativePiece, PieceMesh } from './piece-mesh'
 
 type SymbolPlateProps = {
@@ -35,7 +36,7 @@ export function SymbolPlate({ body, paint, tint, at, rotation, onPick, native }:
     }
   }, [file, fill, width, depth])
 
-  const geometry = useMemo(() => new PlaneGeometry(width * MM, depth * MM), [width, depth])
+  const { geometry, key } = useNativeGeometry(rectangleSheet({ width, depth }))
   const material = useMemo(
     () =>
       new MeshBasicMaterial({
@@ -47,14 +48,13 @@ export function SymbolPlate({ body, paint, tint, at, rotation, onPick, native }:
       }),
     [texture, tint],
   )
-  useEffect(() => () => geometry.dispose(), [geometry])
   useEffect(() => () => material.dispose(), [material])
-  if (!texture) return null
+  if (!texture || !geometry) return null
   return (
     <PieceMesh
       native={native}
       geometry={geometry}
-      geometryKey={`symbol:${width}:${depth}`}
+      geometryKey={key}
       material={material}
       at={at}
       rotation={[...rotation, 'YXZ']}

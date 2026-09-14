@@ -4,6 +4,7 @@ import type { SheetInput } from './sheet-geometry'
 import type { WallBody } from './wall-body'
 
 export type GeometryInput =
+  | GroundInput
   | SheetInput
   | { kind: 'wall'; body: WallBody }
   | { kind: 'profile'; body: ProfileBody }
@@ -16,3 +17,5 @@ export type GeometryData = {
   groups: { start: number; count: number; materialIndex?: number }[]
 }
 export type GeometryResponse = { id: number; data: GeometryData } | { id: number; error: string }
+
+import type { GroundInput } from './ground-geometry'

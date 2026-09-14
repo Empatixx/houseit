@@ -4,11 +4,14 @@ import { surfaceOf } from '@houseit/core/surfaces'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { standingAt } from '@houseit/geometry/standing'
 import { useMemo } from 'react'
+import { Euler, Matrix4 } from 'three'
 import { pick } from '../edit/pick'
+import { rectangleSheet } from '../engine/sheet-geometry'
 import { useDocument, usePlanDoc } from '../store/store'
 import { dragged } from './drag'
 import { useSymbol } from './furniture/use-symbol'
-import { MM, toWorld } from './plan-coordinates'
+import { PlanBody } from './plan-body'
+import { toWorld } from './plan-coordinates'
 
 export function StairsBelow() {
   const doc = usePlanDoc()
@@ -74,17 +77,21 @@ function Flight({
   if (!texture) return null
 
   return (
-    <mesh
-      position={toWorld(spot.at.x, spot.at.y, UNDERFOOT)}
-      rotation={[-Math.PI / 2, 0, spot.turn + Math.PI]}
+    <PlanBody
+      id={`below:object:${id}`}
+      category="IFCFURNISHINGELEMENT"
+      owner={{ kind: 'object', id }}
+      input={rectangleSheet(size)}
+      texture={texture}
+      colour="#ffffff"
+      transform={new Matrix4()
+        .makeRotationFromEuler(new Euler(-Math.PI / 2, 0, spot.turn + Math.PI))
+        .setPosition(...toWorld(spot.at.x, spot.at.y, UNDERFOOT))}
       onClick={(event) => {
         if (dragged(event)) return
         event.stopPropagation()
         pick({ kind: 'object', id })
       }}
-    >
-      <planeGeometry args={[size.width * MM, size.depth * MM]} />
-      <meshBasicMaterial map={texture} transparent />
-    </mesh>
+    />
   )
 }

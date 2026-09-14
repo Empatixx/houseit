@@ -9,12 +9,13 @@ export function useWallGeometry(body: WallBody) {
   return useNativeGeometry({ kind: 'wall', body }).geometry
 }
 
-export function useNativeGeometry(input: GeometryInput) {
+export function useNativeGeometry(input: GeometryInput | null) {
   const engine = useGeometryEngine()
   const [result, setResult] = useState<{ geometry: BufferGeometry; key: string } | null>(null)
   const key = JSON.stringify(input)
   useEffect(() => () => result?.geometry.dispose(), [result])
   useEffect(() => {
+    if (!input) return
     let live = true
     let made: BufferGeometry | undefined
     void engine
@@ -39,5 +40,5 @@ export function useNativeGeometry(input: GeometryInput) {
       live = false
     }
   }, [engine, key])
-  return result ?? { geometry: null, key }
+  return (input && result) || { geometry: null, key }
 }

@@ -30,12 +30,15 @@ test('an asynchronous resize keeps the geometry and sharing key together and ign
     groups: [],
   })
   let current: ReturnType<typeof useNativeGeometry> | undefined
-  function Probe({ size }: { size: number }) {
-    current = useNativeGeometry(input(size))
+  function Probe({ size }: { size: number | null }) {
+    current = useNativeGeometry(size === null ? null : input(size))
     return null
   }
   const root = createRoot(document.createElement('div'))
   try {
+    await act(() => root.render(createElement(Probe, { size: null })))
+    expect(pending).toHaveLength(0)
+    expect(current!.geometry).toBeNull()
     await act(() => root.render(createElement(Probe, { size: 1 })))
     await act(() => pending[0]!(data(1)))
     const first = current!.geometry!
@@ -52,6 +55,10 @@ test('an asynchronous resize keeps the geometry and sharing key together and ign
     expect(current!.geometry!.getAttribute('position').getX(1)).toBe(3)
     expect(dispose).toHaveBeenCalledOnce()
     const lastDispose = vi.spyOn(current!.geometry!, 'dispose')
+    await act(() => root.render(createElement(Probe, { size: 4 })))
+    await act(() => root.render(createElement(Probe, { size: null })))
+    await act(() => pending[3]!(data(4)))
+    expect(current!.geometry).toBeNull()
     await act(() => root.unmount())
     expect(lastDispose).toHaveBeenCalledOnce()
   } finally {
