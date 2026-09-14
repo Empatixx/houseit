@@ -35,6 +35,7 @@ const face = (normal: number) => {
     new Float32BufferAttribute([0, 0, normal, 0, 0, normal, 0, 0, normal], 3),
   )
   geometry.setIndex([0, 1, 2])
+  geometry.addGroup(0, Infinity, 0)
   return geometry
 }
 
@@ -80,6 +81,7 @@ describe('Native wall tile appearance', () => {
         ),
       )
     geometry.setIndex([0, 1, 2, 3, 4, 5])
+    geometry.addGroup(0, Infinity, 0)
     mapFragmentTile(geometry, new Matrix4(), [left, left, left, right, right, right])
     const mesh = new Mesh(geometry)
     styleFragmentTile(mesh)
@@ -185,6 +187,7 @@ describe('Native floor and slab tile appearance', () => {
       new Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0], 3),
     )
     geometry.setIndex([0, 1, 2, 3, 4, 5])
+    geometry.addGroup(0, Infinity, 0)
     mapFragmentTile(geometry, new Matrix4(), Array(6).fill(entry))
     expect([...geometry.getAttribute('uv').array]).toEqual([
       1, 2, 4, 2, 4, 5, 2, 1, 2, 0.75, 5, 0.75,
@@ -193,6 +196,38 @@ describe('Native floor and slab tile appearance', () => {
     styleFragmentTile(mesh)
     expect([mesh.material].flat()).toEqual(entry.surface.materials)
     expect(geometry.groups.map((g) => g.materialIndex)).toEqual([0, 1])
+    geometry.dispose()
+  })
+})
+
+describe('Native tile visibility during editing', () => {
+  it('retains native hidden index ranges when restoring one surface material', () => {
+    const geometry = face(1)
+    geometry.setIndex([0, 1, 2, 0, 1, 2, 0, 1, 2])
+    geometry.clearGroups()
+    geometry.addGroup(0, 3, 0)
+    geometry.addGroup(6, 3, 0)
+    const entry = wall('w1')
+    const mesh = new Mesh(geometry)
+    mapFragmentTile(geometry, new Matrix4(), [entry, entry, entry])
+    styleFragmentTile(mesh)
+    expect(geometry.groups).toEqual([
+      { start: 0, count: 3, materialIndex: 0 },
+      { start: 6, count: 3, materialIndex: 0 },
+    ])
+    expect(Array.isArray(mesh.material)).toBe(true)
+    styleFragmentTile(mesh)
+    expect(geometry.groups.map((g) => [g.start, g.count])).toEqual([
+      [0, 3],
+      [6, 3],
+    ])
+    geometry.clearGroups()
+    styleFragmentTile(mesh)
+    expect(geometry.drawRange.count).toBe(0)
+    geometry.addGroup(3, 3, 0)
+    styleFragmentTile(mesh)
+    expect(mesh.material).toBe(entry.surface.materials[1])
+    expect(geometry.drawRange).toEqual({ start: 3, count: 3 })
     geometry.dispose()
   })
 })

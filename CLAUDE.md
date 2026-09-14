@@ -128,8 +128,7 @@ The wall authoring model on `that-open-engine`:
   `--ramp` covers basement/ramp excavation holes. Run the existing connection proof with
   `--fixture=site-ramp` for actual collision-enabled ramp traversal with the terrain visible.
   StandingPiece, PieceMesh, imported assets and symbol plates require a native identity; there is
-  no ordinary building-mesh fallback. Keep source buffers/materials for appearance and gesture
-  previews. Lights, sky, hit targets, handles and schematic plan annotations remain presentation.
+  no ordinary building-mesh fallback. Keep source buffers/materials for appearance mapping. Lights, sky, hit targets, handles and schematic plan annotations remain presentation.
   NativeTools refreshes on document/storey, native display revision or view-setting changes, not
   periodic scene scans. Keep a pending refresh until geometry and pointer gestures settle; do not
   drop a request just because a native update or drag is currently running. The display owns model
@@ -137,13 +136,21 @@ The wall authoring model on `that-open-engine`:
   Browser proofs assert that every loaded model belongs to the display (including native deltas),
   not merely that an invisible model contains no owned items. The presentation proof also checks
   idle tools perform no refresh while preserving measurement, snapping, cuts and camera switching.
-  During a wall, opening or furniture gesture, a temporary portal renders the registered source geometry/materials,
-  while the permanent native roots are hidden and native edit requests are coalesced. Keep this
-  preview until the final native update is ready; tools still query committed native geometry. It is gesture
-  presentation, not a second authoring model or a permanent parallel wall/floor renderer.
-  Local opening/furniture previews keep native snapping available through the public model's
-  raycastWithSnapping API against the committed geometry, excluding the carried object; native
-  edit/preparation work still blocks queries. GPU scene picking cannot see the hidden native roots.
+  Live construction previews, including drawn wall solids, use native Editor edits and visible
+  Fragments tiles throughout the gesture. Do not restore source-mesh portals or hide native roots.
+  Keep the public worker pool resident (one default worker, a lazy reserved background slot),
+  and use zero update delay only while interacting; idle loaded models use 32 ms. Serialize native
+  snapping with edits/tile preparation, query both the base and delta, and exclude the carried owner.
+  Native selection aliases also cover both models. Appearance groups must preserve the native
+  visibility ranges, including a matching drawRange when using a single material for transparency.
+  After 250 ms without edits or pointer-down, compact only the derived display. Fragments 3.4.7
+  corrupts shell offsets when deleting representations in deltas, or in a full save containing
+  both newly created and retired shells. Defer resource deletion and rebuild a fresh native buffer
+  from public EditUtils maps with CREATE-only requests, keeping IDs, materials and transforms.
+  Keep the previous native root visible until the new tiles are prepared, then dispose old deltas.
+  Never compact authoring history this way. The display-edits regression covers several replacements
+  in one gesture, resource cleanup and another gesture after compaction. Live proofs measure
+  actual rendered native triangle ranges, not preview metadata or source-buffer transforms.
   Publish pointer movement before awaiting asynchronous native snapping; stale snap results must
   not overwrite a newer pointer position. Check the
   installed That Open API and official documentation before adding custom tooling;

@@ -1,4 +1,8 @@
 import { Html, Line } from '@react-three/drei'
+import { useEffect, useMemo } from 'react'
+import { Matrix4, MeshBasicMaterial } from 'three'
+import { NativeSurface } from '../engine/fragment-display-layer'
+import { useNativeGeometry } from '../engine/use-wall-geometry'
 import { useDraw } from '../store/draw'
 import { EMPHASIS } from '../store/hover'
 import { ABOVE, metres } from './dimensions'
@@ -48,20 +52,20 @@ export function Drawing() {
           <meshBasicMaterial color={EMPHASIS.picked.line} />
         </mesh>
       ))}
-      {keyed.slice(1).map(({ corner: to, key }, offset) => {
-        const from = keyed[offset]!.corner
+      {keyed.slice(1).map(({ corner: to }, offset) => {
+        const { corner: from, key } = keyed[offset]!
         const length = Math.hypot(to.x - from.x, to.y - from.y)
         if (length < 1) return null
         const middle = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }
         return (
-          <group key={`${keyed[offset]!.key}>${key}`}>
-            <mesh
-              position={toWorld(middle.x, middle.y, HEIGHT / 2 + 20)}
-              rotation={[0, Math.atan2(to.y - from.y, to.x - from.x), 0]}
-            >
-              <boxGeometry args={[length * MM, HEIGHT * MM, THICKNESS * MM]} />
-              <meshBasicMaterial color={EMPHASIS.picked.line} transparent opacity={0.85} />
-            </mesh>
+          <group key={key}>
+            <DrawingWall
+              id={`drawing:${key}`}
+              length={length}
+              x={middle.x}
+              y={middle.y}
+              angle={Math.atan2(to.y - from.y, to.x - from.x)}
+            />
             <Html
               position={toWorld(middle.x, middle.y, ABOVE)}
               center
@@ -79,5 +83,47 @@ export function Drawing() {
         )
       })}
     </>
+  )
+}
+
+function DrawingWall({
+  id,
+  length,
+  x,
+  y,
+  angle,
+}: {
+  id: string
+  length: number
+  x: number
+  y: number
+  angle: number
+}) {
+  const { geometry, key } = useNativeGeometry({
+    kind: 'primitive',
+    body: { kind: 'box', width: length, height: HEIGHT, depth: THICKNESS },
+  })
+  const material = useMemo(
+    () => new MeshBasicMaterial({ color: EMPHASIS.picked.line, transparent: true, opacity: 0.85 }),
+    [],
+  )
+  useEffect(() => () => material.dispose(), [material])
+  if (!geometry) return null
+  return (
+    <NativeSurface
+      gesture
+      surface={{
+        id,
+        category: 'HOUSEITWALLPREVIEW',
+        geometry,
+        geometryKey: key,
+        materials: [material],
+        transform: new Matrix4()
+          .makeRotationY(angle)
+          .setPosition(x * MM, (HEIGHT / 2 + 20) * MM, -y * MM),
+        mapping: { kind: 'source', geometry },
+        casts: false,
+      }}
+    />
   )
 }
