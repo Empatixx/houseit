@@ -19,12 +19,22 @@ import { createProjectsStore } from '../store/projects/project-store'
 import { nativeKey } from './authoring-graph'
 import { FragmentAuthoring } from './fragment-authoring'
 import { writeFragment } from './fragment-project'
-import type { WallBody } from './wall-body'
-import { wallGeometry } from './wall-geometry'
+
+import { generateGeometry } from './generate-geometry'
+import type { GeometryInput } from './geometry-protocol'
+
+vi.mock('./archive-resources', () => ({
+  loadArchiveAsset: async (path: string) => {
+    if (path === 'houseit:ground')
+      return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZncAAAAASUVORK5CYII='
+    const bytes = readFileSync(new URL(`../../public${path}`, import.meta.url))
+    return `data:application/octet-stream;base64,${bytes.toString('base64')}`
+  },
+}))
 
 vi.mock('./geometry-session', () => ({
   acquireGeometry: () => ({
-    engine: { wall: (body: WallBody) => generate(body) },
+    engine: { geometry: (input: GeometryInput) => generate(input) },
     release: () => {},
   }),
 }))
@@ -37,8 +47,8 @@ beforeAll(async () => {
 })
 afterAll(() => api.Dispose())
 
-const generate = async (body: WallBody) => {
-  const geometry = wallGeometry(engine, body)
+const generate = async (input: GeometryInput) => {
+  const geometry = generateGeometry(engine, input)
   try {
     return {
       positions: new Float32Array(geometry.getAttribute('position').array),
@@ -77,11 +87,21 @@ test('the archive retains the live native graph and ids, with actual wall geomet
       expect(loaded.document).toEqual(authoring.document)
       expect(loaded.history.canUndo).toBe(false)
       const wall = [...first.items].find(([, item]) => nativeKey(item) === 'elements:w1')![0]
-      expect(model.getItemsIdsWithGeometry()).toEqual([wall])
+      expect(new Set(model.getItemsIdsWithGeometry())).toEqual(
+        new Set(
+          [...first.items]
+            .filter(([, item]) =>
+              ['elements:w1', 'openings:o1', 'terrain'].includes(nativeKey(item)!),
+            )
+            .map(([id]) => id),
+        ),
+      )
       expect(model.getItemsVolume([wall])).toBeCloseTo(5 * 2.55 * 0.3 - 1.2 * 1.5 * 0.3, 4)
-      expect(model.getMetadata()).toEqual({ houseit: { schema: 3 } })
+      expect(model.getMetadata()).toMatchObject({
+        houseit: { schema: 3, geometry: { version: 1 } },
+      })
       const material = [...model.getMaterials().values()][0]!
-      const colour = new Color('#f1f0ed')
+      const colour = new Color('#f1f0ed').convertLinearToSRGB()
       expect(material.a).toBe(255)
       for (const channel of ['r', 'g', 'b'] as const)
         expect(Math.abs(material[channel] - colour[channel] * 255)).toBeLessThan(1)
@@ -98,7 +118,9 @@ test('the archive retains the live native graph and ids, with actual wall geomet
       }
       const changedModel = savedModel(changed.buffer)
       try {
-        expect(changedModel.getItemsIdsWithGeometry()).toEqual([wall])
+        expect(new Set(changedModel.getItemsIdsWithGeometry())).toEqual(
+          new Set(model.getItemsIdsWithGeometry()),
+        )
       } finally {
         changedModel.dispose()
       }
@@ -181,8 +203,10 @@ test('loading an old native id counter reserves geometry ids and removes deleted
       const empty = await writeFragment(loaded.snapshot(), generate)
       const model = savedModel(empty.buffer)
       try {
-        expect(model.getItemsIdsWithGeometry()).toEqual([])
-        expect(model.getSamplesIds()).toEqual([])
+        expect(model.getItemsIdsWithGeometry()).toEqual([
+          [...loaded.graph.items].find(([, item]) => nativeKey(item) === 'terrain')![0],
+        ])
+        expect(model.getSamplesIds()).toHaveLength(1)
       } finally {
         model.dispose()
       }
@@ -335,7 +359,10 @@ test('schema-one archives upgrade their metadata into native relationships witho
       localId: 0,
       data: { houseit: { schema: 1, document: authoring.document, wallItems } },
     })
-    const legacy = EditUtils.edit(base, requests, { raw: false, delta: false }).model
+    const legacy = EditUtils.edit(base, [...requests, ...wallOnlyGeometry(base)], {
+      raw: false,
+      delta: false,
+    }).model
     const loaded = new FragmentAuthoring(legacy)
     try {
       expect(loaded.document).toEqual(authoring.document)
@@ -373,7 +400,43 @@ test.each(['columns', 'connections', 'three-flights', 'site'])(
       const graph = authoring.graph
       const archive = await writeFragment(authoring.snapshot(), generate)
       const loaded = new FragmentAuthoring(new Uint8Array(archive.buffer))
+      const native = savedModel(archive.buffer)
       try {
+        const visible = new Set(native.getItemsIdsWithGeometry())
+        for (const [id, item] of graph.items) {
+          if (
+            [
+              'IFCWALL',
+              'IFCSPACE',
+              'IFCCOLUMN',
+              'IFCROOF',
+              'IFCRAMP',
+              'IFCSTAIR',
+              'IFCBUILDINGELEMENTPROXY',
+              'IFCSITE',
+              'IFCGEOGRAPHICELEMENT',
+              'IFCSURFACEFEATURE',
+              'IFCRAILING',
+            ].includes(item.category)
+          )
+            expect(visible.has(id), nativeKey(item)).toBe(true)
+        }
+        for (const meshes of native.getItemsGeometry([...visible])) {
+          expect(meshes.length).toBeGreaterThan(0)
+          for (const mesh of meshes) expect(mesh.positions!.length).toBeGreaterThan(0)
+        }
+        const metadata = native.getMetadata() as {
+          houseit: { geometry: { parts: { samples: number[] }[] }; assets: Record<string, string> }
+        }
+        expect(new Set(metadata.houseit.geometry.parts.flatMap((part) => part.samples))).toEqual(
+          new Set(native.getSamplesIds()),
+        )
+        if (name === 'columns')
+          expect(
+            Object.values(metadata.houseit.assets).some(
+              (asset) => asset.startsWith('data:') && asset.length > 1000,
+            ),
+          ).toBe(true)
         expect(loaded.graph).toEqual(graph)
         expect(loaded.document).toEqual(authoring.document)
         loaded.exec('update-level --name Renamed', level)
@@ -390,6 +453,7 @@ test.each(['columns', 'connections', 'three-flights', 'site'])(
         }
       } finally {
         loaded.dispose()
+        native.dispose()
       }
     } finally {
       authoring.dispose()
@@ -441,7 +505,10 @@ test('schema-two nested archives upgrade to independent elements and retain exis
       requests.push({ type: Edit.UPDATE_RELATION, localId, data: relations })
     }
     requests.push({ type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 2 } } })
-    const legacy = EditUtils.edit(base, requests, { raw: false, delta: false }).model
+    const legacy = EditUtils.edit(base, [...requests, ...wallOnlyGeometry(base)], {
+      raw: false,
+      delta: false,
+    }).model
     const loaded = new FragmentAuthoring(legacy)
     try {
       expect(loaded.document).toEqual(authoring.document)
@@ -456,6 +523,63 @@ test('schema-two nested archives upgrade to independent elements and retain exis
       }
     } finally {
       loaded.dispose()
+    }
+  } finally {
+    authoring.dispose()
+  }
+})
+
+function wallOnlyGeometry(base: ReturnType<typeof EditUtils.getModelFromBuffer>): EditRequest[] {
+  const items = EditUtils.getItems(base)
+  const transforms = EditUtils.getGlobalTransforms(base)
+  const removed = new Set(
+    [...transforms]
+      .filter(
+        ([, transform]) =>
+          !nativeKey(items.get(Number(transform.itemId))!)?.startsWith('elements:'),
+      )
+      .map(([id]) => id),
+  )
+  return [
+    ...[...EditUtils.getSamples(base)]
+      .filter(([, sample]) => removed.has(Number(sample.item)))
+      .map(([localId]) => ({ type: Edit.DELETE_SAMPLE as const, localId })),
+    ...[...removed].map((localId) => ({ type: Edit.DELETE_GLOBAL_TRANSFORM as const, localId })),
+  ]
+}
+
+test('the full archive rejects missing non-wall samples and wrong geometry ownership', async () => {
+  const { authoring } = make()
+  try {
+    const archive = await writeFragment(authoring.snapshot(), generate)
+    const base = EditUtils.getModelFromBuffer(new Uint8Array(archive.buffer), false)
+    const model = savedModel(archive.buffer)
+    try {
+      const metadata = model.getMetadata() as {
+        houseit: { geometry: { parts: { id: string; item: number; samples: number[] }[] } }
+      }
+      const ground = metadata.houseit.geometry.parts.find((part) => part.id === 'terrain:ground')!
+      const missing = EditUtils.edit(
+        base,
+        [{ type: Edit.DELETE_SAMPLE, localId: ground.samples[0]! }],
+        { raw: false, delta: false },
+      ).model
+      expect(() => new FragmentAuthoring(missing)).toThrow(
+        /Incomplete Fragment geometry terrain:ground/,
+      )
+      ground.item = [...authoring.graph.items].find(
+        ([, item]) => nativeKey(item) === 'elements:w1',
+      )![0]
+      const wrong = EditUtils.edit(
+        base,
+        [{ type: Edit.UPDATE_METADATA, localId: 0, data: metadata }],
+        { raw: false, delta: false },
+      ).model
+      expect(() => new FragmentAuthoring(wrong)).toThrow(
+        /Invalid Fragment geometry owner terrain:ground/,
+      )
+    } finally {
+      model.dispose()
     }
   } finally {
     authoring.dispose()

@@ -8,6 +8,7 @@ import {
   SingleThreadedFragmentsModel,
 } from '@thatopen/fragments'
 import { produce } from 'immer'
+import { validateArchiveGeometry } from './archive-manifest'
 import {
   documentFromGraph,
   graphRequests,
@@ -15,7 +16,6 @@ import {
   nativeItems,
   nativeKey,
 } from './authoring-graph'
-
 import { normalizeAuthoringDocument } from './nested-authoring'
 
 export type DocumentSource = HouseDocument | Uint8Array
@@ -42,6 +42,7 @@ export class FragmentAuthoring {
       const graph = this.graph
       this.projection = documentFromGraph(graph)
       if (source instanceof Uint8Array) {
+        validateArchiveGeometry(this.model, graph)
         const transforms = this.model.getGlobalTransforms()
         const geometry = new Set(
           [...this.model.getSamples().values()].map(

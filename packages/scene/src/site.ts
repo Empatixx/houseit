@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import { floorMaterial } from '@houseit/core/floor-materials'
 import { siteHeight } from '@houseit/core/site'
 import { drum, type Piece, slab } from './pieces'
@@ -22,6 +23,7 @@ export function sitePieces(doc: HouseDocument): Piece[] {
     const material = s.material ? floorMaterial(s.material) : undefined
     return {
       name: `site-${s.id}`,
+      entity: nestedEntityKey('surfaces', 'terrain', s.id),
       role: 'site-surface',
       body: {
         kind: 'prism',
@@ -60,12 +62,14 @@ export function sitePieces(doc: HouseDocument): Piece[] {
           line.colour,
         ),
         name: `site-${line.id}-${i}`,
+        entity: nestedEntityKey('markings', 'terrain', line.id),
         role: 'site-marking',
         casts: false,
       })
     })
   }
   for (const rail of site.railings) {
+    const start = pieces.length
     rail.points.slice(1).forEach((b, segment) => {
       const a = rail.points[segment]!
       const run = Math.hypot(b.x - a.x, b.y - a.y)
@@ -145,6 +149,8 @@ export function sitePieces(doc: HouseDocument): Piece[] {
         )
       }
     })
+    for (let i = start; i < pieces.length; i++)
+      pieces[i]!.entity = nestedEntityKey('railings', 'terrain', rail.id)
   }
   return pieces.map((p, i) => ({
     ...p,

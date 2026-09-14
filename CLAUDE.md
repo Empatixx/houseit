@@ -24,9 +24,15 @@ The wall authoring model on `that-open-engine`:
   does not provide. Undo/redo selects native request boundaries, not Immer patches.
   Fragment archives serialize a captured revision of that same native model, retaining its
   local IDs and relationships. The writer compacts native item/relation requests against the
-  base buffer and derives wall shells with GeometryEngine; it owns no second editable model
-  or Fragment worker pool. Do not call native save on the live history: it appends a request.
-  Metadata contains only the authoring schema marker. Schema 3 stores columns, roofs, ramps, shafts, measured stairs and terrain parts as independent native items, with ordered HasParts collections, ContainedIn, ConnectsTo and MappedTo relations. Level/project parameters no longer duplicate those records. HouseDocument reconstructs their nested command projection from native relations. Roof IDs survive reorder/rename and are supplied in readback; legacy JSON replacements match an unambiguous prior roof or allocate a new ID. Schemas 1/2 upgrade without changing existing native IDs. Archives load directly into authoring
+  base buffer, then creates a fresh native archive with all active geometry. Never delete/recreate
+  native shells during archive compaction: Fragments 3.4.7 can corrupt geometry offsets.
+  Items/relations keep their native IDs. Archive/display share GeometryEngine inputs, placement,
+  GLB normalization and ground appearance; no second editable model or worker pool is introduced. Do not call native save on the live history: it appends a request.
+  Metadata contains the authoring schema marker, geometry ownership manifest and appearance/assets.
+  Native RGBA uses sRGB bytes (0–255); the installed native MaterialManager converts sRGB to linear.
+  Raw native materials do not store textures/UVs: preserve those and source normals/vertex colours
+  in archive appearance metadata. The standalone archive proof intentionally uses native colours.
+  Imported GLB geometry can lack UVs; preserve its original material/texture definitions. Schema 3 stores columns, roofs, ramps, shafts, measured stairs and terrain parts as independent native items, with ordered HasParts collections, ContainedIn, ConnectsTo and MappedTo relations. Level/project parameters no longer duplicate those records. HouseDocument reconstructs their nested command projection from native relations. Roof IDs survive reorder/rename and are supplied in readback; legacy JSON replacements match an unambiguous prior roof or allocate a new ID. Schemas 1/2 upgrade without changing existing native IDs. Archives load directly into authoring
   without rebuilding entities from a HouseDocument; schema-one metadata is upgraded on load. CLI/MCP waits for native persistence before
   returning success. Keep MCP tool title, description and schema stable. The React presentation adapter supplies the established
   plan symbols, finishes, gestures and walkthrough; the native viewport replacement

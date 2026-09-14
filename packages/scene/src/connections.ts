@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import { soffitOf } from '@houseit/core/levels'
 import { treadsOf } from '@houseit/core/stairs'
 import {
@@ -37,6 +38,7 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
         at: { x: 0, y: r.baseOffset - r.thickness / 2, z: 0 },
         paint: { colour: r.colour },
         name: `ramp-${r.id}`,
+        entity: nestedEntityKey('ramps', `levels:${level}`, r.id),
         role: 'ramp-solid',
       },
     ]
@@ -56,6 +58,7 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
         paint: { colour: '#6e7478' },
       }),
       name: `shaft-${s.id}-${side}`,
+      entity: nestedEntityKey('shafts', `levels:${level}`, s.id),
       role: 'shaft-solid' as const,
     }))
   })
@@ -66,6 +69,11 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
         ...slab({ x: p.x, z: -p.y, w: p.width, d: p.depth, h: height, base, paint: { colour } }),
         name: `shaft-${s.id}-enclosure-${level}-${index}-${base}`,
         role: 'shaft-solid',
+        entity: nestedEntityKey(
+          'shafts',
+          `levels:${Object.values(doc.levels).find((host) => host.shafts?.includes(s))!.id}`,
+          s.id,
+        ),
       })
       return p.door
         ? [
@@ -85,6 +93,7 @@ export function connectionPieces(doc: HouseDocument, level: string): Piece[] {
         paint: { colour: s.colour },
       }),
       name: `stair-${s.id}-${t.step}`,
+      entity: nestedEntityKey('stairs', `levels:${level}`, s.id),
       role: 'stair-solid' as const,
     }))
   })

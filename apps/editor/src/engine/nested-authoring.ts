@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import type { Roof } from '@houseit/core/roof'
 import { produce } from 'immer'
 
@@ -22,8 +23,6 @@ const siteParts = {
   railings: 'IFCRAILING',
 } as const
 
-const nestedKey = (collection: string, parent: string, id: string) =>
-  `${collection}:${JSON.stringify([parent, id])}`
 export const orderedRelation = (name: string) => name.startsWith('HasParts:')
 const relation = (collection: string) => `HasParts:${collection}`
 
@@ -76,7 +75,7 @@ export function extractNested(doc: HouseDocument, entities: Map<string, Authorin
       host.collections.push(collection)
       host.links[relation(collection)] = records.map((record) => {
         if (typeof record.id !== 'string') throw new Error(`Missing ${collection} identity`)
-        const key = nestedKey(collection, parent, record.id)
+        const key = nestedEntityKey(collection, parent, record.id)
         if (entities.has(key)) throw new Error(`Duplicate Fragment authoring key ${key}`)
         const entity: AuthoringEntity = {
           category,
@@ -88,7 +87,7 @@ export function extractNested(doc: HouseDocument, entities: Map<string, Authorin
           delete entity.parameters.to
         }
         if (collection === 'markings') {
-          entity.links.MappedTo = [nestedKey('surfaces', parent, String(record.surface))]
+          entity.links.MappedTo = [nestedEntityKey('surfaces', parent, String(record.surface))]
           delete entity.parameters.surface
         }
         entities.set(key, entity)

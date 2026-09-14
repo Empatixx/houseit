@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import { levelsOf } from '@houseit/core/levels'
 import { connectionPieces } from './connections'
 import { exposedBoxes } from './exposed-boxes'
@@ -55,6 +56,7 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
           paint: { colour: column.colour },
         }),
         name: `column-${column.id}`,
+        entity: nestedEntityKey('columns', `levels:${level}`, column.id),
         role: 'column-solid' as const,
       })),
       ...connectionPieces(doc, level),

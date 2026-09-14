@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import { floorMaterial } from '@houseit/core/floor-materials'
 import { connectionHoles } from '@houseit/geometry/connections'
 import { holesIn } from '@houseit/geometry/wells'
@@ -130,7 +131,12 @@ export function roofPieces(doc: HouseDocument, level: string): Piece[] {
         }),
       )
     }
-    return pieces.map((piece, i) => ({ ...piece, role: 'roof-solid', name: `roof-${index}-${i}` }))
+    return pieces.map((piece, i) => ({
+      ...piece,
+      role: 'roof-solid',
+      name: `roof-${index}-${i}`,
+      ...(roof.id ? { entity: nestedEntityKey('roofs', `levels:${level}`, roof.id) } : {}),
+    }))
   })
 }
 

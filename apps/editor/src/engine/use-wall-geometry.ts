@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { BufferGeometry, Float32BufferAttribute } from 'three'
+import type { BufferGeometry } from 'three'
+import { geometryBuffer } from './geometry-buffer'
 import type { GeometryInput } from './geometry-protocol'
 import { useGeometryEngine } from './provider'
 import type { WallBody } from './wall-body'
@@ -22,12 +23,7 @@ export function useNativeGeometry(input: GeometryInput | null) {
       .geometry(input)
       .then((data) => {
         if (!live) return
-        made = new BufferGeometry()
-        made.setAttribute('position', new Float32BufferAttribute(data.positions, 3))
-        made.setAttribute('normal', new Float32BufferAttribute(data.normals, 3))
-        made.setAttribute('uv', new Float32BufferAttribute(data.uv, 2))
-        for (const group of data.groups)
-          made.addGroup(group.start, group.count, group.materialIndex)
+        made = geometryBuffer(data)
         setResult({ geometry: made, key })
       })
       .catch((error: unknown) => {

@@ -33,6 +33,7 @@ export type Body =
 export type Owner = { kind: 'wall' | 'opening' | 'room' | 'object'; id: string }
 
 export type Piece = {
+  entity?: string
   role?:
     | 'wall-solid'
     | 'floor-surface'

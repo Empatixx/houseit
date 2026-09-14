@@ -1,14 +1,12 @@
 import type { Body, Finish, Piece } from '@houseit/scene/pieces'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { ComponentProps } from 'react'
+import { pieceInput, piecePlacement } from '../../engine/piece-geometry'
 import { useNativeGeometry } from '../../engine/use-wall-geometry'
-import { MM } from '../plan-coordinates'
 import { Brought } from './brought'
 import { materialOf, seeThrough } from './materials'
 import { PieceMesh } from './piece-mesh'
 import { SymbolPlate } from './symbol-plate'
-
-const QUARTER = Math.PI / 2
 
 const sided = (body: Body) => body.kind === 'sheet' && body.doubleSided !== false
 
@@ -21,14 +19,11 @@ type PieceProps = {
 
 export function StandingPiece({ piece, tint, onPick, native: display }: PieceProps) {
   const native = { ...display, owner: piece.of }
-  const { body, at } = piece
+  const { body } = piece
   const paint: Finish = tint
     ? { ...piece.paint, colour: tint, ...(piece.paint.opacity === 0 ? { opacity: 0.35 } : {}) }
     : piece.paint
-  const turn = piece.turn ?? 0
-  const tilt = piece.tilt ?? 0
-  const roll = piece.roll ?? 0
-  const place: [number, number, number] = [at.x * MM, at.y * MM, at.z * MM]
+  const { at: place, rotation } = piecePlacement(piece)
 
   if (body.kind === 'model') {
     return (
@@ -38,7 +33,7 @@ export function StandingPiece({ piece, tint, onPick, native: display }: PiecePro
         paint={paint}
         native={native}
         at={place}
-        rotation={[tilt, turn, roll, 'YXZ']}
+        rotation={rotation}
         onPick={onPick}
       />
     )
@@ -52,14 +47,13 @@ export function StandingPiece({ piece, tint, onPick, native: display }: PiecePro
         paint={piece.paint}
         tint={tint}
         at={place}
-        rotation={[tilt - QUARTER, turn, roll + Math.PI]}
+        rotation={[rotation[0], rotation[1], rotation[2]]}
         onPick={onPick}
       />
     )
   }
 
   if (body.kind === 'prism' || body.kind === 'sheet') {
-    const drop = body.kind === 'prism' ? (body.thickness / 2) * MM : 0
     return (
       <Flat
         body={body}
@@ -74,8 +68,8 @@ export function StandingPiece({ piece, tint, onPick, native: display }: PiecePro
                 : 'IFCSLAB'),
         }}
         shadows={piece.casts !== false && !seeThrough(paint)}
-        at={[place[0], place[1] - drop, place[2]]}
-        rotation={[tilt - QUARTER, turn, roll, 'YXZ']}
+        at={place}
+        rotation={rotation}
         material={
           piece.sidePaint && body.kind === 'prism'
             ? [
@@ -94,7 +88,7 @@ export function StandingPiece({ piece, tint, onPick, native: display }: PiecePro
       body={body}
       native={native}
       at={place}
-      rotation={[tilt, turn, roll, 'YXZ']}
+      rotation={rotation}
       material={materialOf(paint, sided(body))}
       shadows={piece.casts !== false && !seeThrough(paint)}
       onPick={onPick}
@@ -108,7 +102,7 @@ function Solid({
 }: Omit<ComponentProps<typeof PieceMesh>, 'geometry'> & {
   body: Extract<Body, { kind: 'box' | 'drum' | 'ball' }>
 }) {
-  const { geometry, key } = useNativeGeometry({ kind: 'primitive', body })
+  const { geometry, key } = useNativeGeometry(pieceInput(body))
   if (!geometry) return null
   return <PieceMesh {...props} geometry={geometry} geometryKey={key} />
 }
@@ -124,7 +118,7 @@ type FlatProps = {
 }
 
 function Flat({ body, at, rotation, material, shadows, onPick, native }: FlatProps) {
-  const { geometry, key } = useNativeGeometry({ kind: 'profile', body })
+  const { geometry, key } = useNativeGeometry(pieceInput(body))
   if (!geometry) return null
   return (
     <PieceMesh
