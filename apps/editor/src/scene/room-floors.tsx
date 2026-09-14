@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { geometryEntityKey } from '@houseit/core/entity-key'
 import { floorMaterial } from '@houseit/core/floor-materials'
 import { openingRecesses } from '@houseit/geometry/opening-recesses'
 import { roomsOf } from '@houseit/geometry/rooms'
@@ -73,6 +74,10 @@ function RoomFloor({
         surface={{
           id: `floor:${level}:${room.id ?? room.nodes.join('-')}`,
           owner: room.id ? { kind: 'room', id: room.id } : undefined,
+          entity: geometryEntityKey(
+            'IFCCOVERING',
+            room.id ? `rooms:${room.id}` : `levels:${level}`,
+          ),
           category: 'IFCCOVERING',
           geometry,
           geometryKey: key,

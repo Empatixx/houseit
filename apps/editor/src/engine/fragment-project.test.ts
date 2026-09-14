@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { createEmptyDocument } from '@houseit/core/document'
+import { geometryEntityKey } from '@houseit/core/entity-key'
 import {
   EditRequestType as Edit,
   type EditRequest,
@@ -9,7 +10,7 @@ import {
   SingleThreadedFragmentsModel,
 } from '@thatopen/fragments'
 import { IDBFactory } from 'fake-indexeddb'
-import { Color } from 'three'
+import { Color, Plane, Vector3 } from 'three'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import { IfcAPI } from 'web-ifc'
 import { createDocumentStore } from '../store/document-store'
@@ -91,14 +92,16 @@ test('the archive retains the live native graph and ids, with actual wall geomet
         new Set(
           [...first.items]
             .filter(([, item]) =>
-              ['elements:w1', 'openings:o1', 'terrain'].includes(nativeKey(item)!),
+              ['elements:w1', geometryEntityKey('IFCWINDOW', 'openings:o1'), 'terrain'].includes(
+                nativeKey(item)!,
+              ),
             )
             .map(([id]) => id),
         ),
       )
       expect(model.getItemsVolume([wall])).toBeCloseTo(5 * 2.55 * 0.3 - 1.2 * 1.5 * 0.3, 4)
       expect(model.getMetadata()).toMatchObject({
-        houseit: { schema: 3, geometry: { version: 1 } },
+        houseit: { schema: 4, geometry: { version: 1 } },
       })
       const material = [...model.getMaterials().values()][0]!
       const colour = new Color('#f1f0ed').convertLinearToSRGB()
@@ -404,10 +407,11 @@ test.each(['columns', 'connections', 'three-flights', 'site'])(
       try {
         const visible = new Set(native.getItemsIdsWithGeometry())
         for (const [id, item] of graph.items) {
+          if (item.category === 'IFCSPACE' || item.category === 'IFCOPENINGELEMENT')
+            expect(visible.has(id), nativeKey(item)).toBe(false)
           if (
             [
               'IFCWALL',
-              'IFCSPACE',
               'IFCCOLUMN',
               'IFCROOF',
               'IFCRAMP',
@@ -478,17 +482,22 @@ test('schema-two nested archives upgrade to independent elements and retain exis
     const retained = new Map<string, number>()
     for (const [localId, original] of authoring.graph.items) {
       const key = nativeKey(original)!
-      if (key === 'terrain' || key.startsWith('columns:') || key.startsWith('roofs:')) {
+      if (
+        key === 'terrain' ||
+        key.startsWith('columns:') ||
+        key.startsWith('roofs:') ||
+        key.startsWith('geometry:')
+      ) {
         requests.push({ type: Edit.DELETE_ITEM, localId }, { type: Edit.DELETE_RELATION, localId })
         continue
       }
       retained.set(key, localId)
-      if (key !== 'project' && !key.startsWith('levels:')) continue
       const item = structuredClone(original)
       delete item.data.NestedCollections
       const relations = structuredClone(authoring.graph.relations.get(localId) ?? { data: {} })
       for (const name of Object.keys(relations.data))
-        if (name === 'ContainsTerrain' || name.startsWith('HasParts:')) delete relations.data[name]
+        if (name === 'ContainsTerrain' || name === 'HasGeometry' || name.startsWith('HasParts:'))
+          delete relations.data[name]
       item.data.RelationCounts = {
         value: JSON.stringify(
           Object.fromEntries(
@@ -580,6 +589,113 @@ test('the full archive rejects missing non-wall samples and wrong geometry owner
       )
     } finally {
       model.dispose()
+    }
+  } finally {
+    authoring.dispose()
+  }
+})
+
+test('physical floor and slab items participate in native sections without turning rooms into solids', async () => {
+  const authoring = new FragmentAuthoring(createEmptyDocument())
+  try {
+    const level = Object.keys(authoring.document.levels)[0]!
+    authoring.exec('add-room --name Living --width 5000 --depth 4000 --material natural-oak', level)
+    const room = Object.keys(authoring.document.rooms)[0]!
+    const archive = await writeFragment(authoring.snapshot(), generate)
+    const model = savedModel(archive.buffer)
+    try {
+      const ids = new Map([...authoring.graph.items].map(([id, item]) => [nativeKey(item), id]))
+      const visible = new Set(model.getItemsIdsWithGeometry())
+      const parent = ids.get(`rooms:${room}`)!
+      expect(visible.has(parent)).toBe(false)
+      for (const category of ['IFCCOVERING', 'IFCSLAB']) {
+        const item = ids.get(geometryEntityKey(category, `rooms:${room}`))!
+        expect(visible.has(item)).toBe(true)
+        expect(authoring.graph.relations.get(item)!.data.PartOf).toEqual([parent])
+        const section = model.getSection(new Plane(new Vector3(1, 0, 0), -2.5), [item])
+        expect(section.index).toBeGreaterThan(0)
+      }
+    } finally {
+      model.dispose()
+    }
+  } finally {
+    authoring.dispose()
+  }
+})
+
+test('schema-three archives retain native geometry and existing identities during physical-category upgrade', async () => {
+  const { authoring, level } = make()
+  try {
+    const archive = await writeFragment(authoring.snapshot(), generate)
+    const base = EditUtils.getModelFromBuffer(new Uint8Array(archive.buffer), false)
+    const keys = new Map([...authoring.graph.items].map(([id, item]) => [nativeKey(item), id]))
+    const owners = new Map<number, { id: number; key: string }>()
+    const requests: EditRequest[] = []
+    for (const [id, original] of authoring.graph.items) {
+      const key = nativeKey(original)!
+      if (key.startsWith('geometry:')) {
+        const [, owner] = JSON.parse(key.slice('geometry:'.length)) as [string, string]
+        owners.set(id, { id: keys.get(owner)!, key: owner })
+        requests.push(
+          { type: Edit.DELETE_ITEM, localId: id },
+          { type: Edit.DELETE_RELATION, localId: id },
+        )
+      } else {
+        const relation = structuredClone(authoring.graph.relations.get(id) ?? { data: {} })
+        delete relation.data.HasGeometry
+        const item = structuredClone(original)
+        item.data.RelationCounts = {
+          value: JSON.stringify(
+            Object.fromEntries(
+              Object.entries(relation.data).map(([name, ids]) => [name, ids.length]),
+            ),
+          ),
+        }
+        requests.push(
+          { type: Edit.UPDATE_ITEM, localId: id, data: item },
+          { type: Edit.UPDATE_RELATION, localId: id, data: relation },
+        )
+      }
+    }
+    for (const [id, transform] of EditUtils.getGlobalTransforms(base)) {
+      const owner = owners.get(Number(transform.itemId))
+      if (owner)
+        requests.push({
+          type: Edit.UPDATE_GLOBAL_TRANSFORM,
+          localId: id,
+          data: { ...transform, itemId: owner.id },
+        })
+    }
+    const metadata = JSON.parse(base.metadata()!)
+    metadata.houseit.schema = 3
+    for (const part of metadata.houseit.geometry.parts) {
+      const owner = owners.get(part.item)
+      if (owner) {
+        part.entity = owner.key
+        part.item = owner.id
+      }
+    }
+    requests.push({ type: Edit.UPDATE_METADATA, localId: 0, data: metadata })
+    const legacy = EditUtils.edit(base, requests, { raw: false, delta: false }).model
+    const loaded = new FragmentAuthoring(legacy)
+    try {
+      expect(loaded.document).toEqual(authoring.document)
+      const upgraded = new Map([...loaded.graph.items].map(([id, item]) => [nativeKey(item), id]))
+      for (const [key, id] of keys) if (!owners.has(id)) expect(upgraded.get(key)).toBe(id)
+      loaded.exec('update-wall --id w1 --by 200', level)
+      loaded.undo()
+      const saved = await writeFragment(loaded.snapshot(), generate)
+      const model = savedModel(saved.buffer)
+      try {
+        expect(new Set(model.getItemsIdsWithGeometry())).toContain(
+          upgraded.get(geometryEntityKey('IFCWINDOW', 'openings:o1')),
+        )
+        expect(new Set(model.getItemsIdsWithGeometry())).not.toContain(upgraded.get('openings:o1'))
+      } finally {
+        model.dispose()
+      }
+    } finally {
+      loaded.dispose()
     }
   } finally {
     authoring.dispose()

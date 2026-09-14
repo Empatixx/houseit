@@ -1,3 +1,4 @@
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import { rampDirection, rampHeights } from '@houseit/geometry/connections'
 import { Html, Line } from '@react-three/drei'
 import { Matrix4 } from 'three'
@@ -24,6 +25,7 @@ export function Ramps() {
           <group key={r.id}>
             <PlanBody
               id={`ramp:${level}:${r.id}`}
+              entity={nestedEntityKey('ramps', `levels:${level}`, r.id)}
               category="IFCRAMP"
               input={{
                 kind: 'primitive',

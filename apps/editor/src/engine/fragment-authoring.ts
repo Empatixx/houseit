@@ -175,7 +175,7 @@ function initialModel(doc: HouseDocument) {
         { items: new Map(), relations: new Map() },
         1,
       ),
-      { type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 3 } } },
+      { type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 4 } } },
     ],
     { raw: true, delta: false },
   ).model
@@ -185,7 +185,7 @@ function readArchive(buffer: Uint8Array) {
   const base = EditUtils.getModelFromBuffer(buffer, false)
   const metadata = JSON.parse(base.metadata() ?? '{}')
   const authoring = metadata.houseit
-  if (![1, 2, 3].includes(authoring?.schema))
+  if (![1, 2, 3, 4].includes(authoring?.schema))
     throw new Error('This Fragment model has no Houseit authoring data')
   let nextId = base.maxLocalId()
   for (const ids of [
@@ -198,7 +198,7 @@ function readArchive(buffer: Uint8Array) {
   ])
     for (const id of ids) nextId = Math.max(nextId, id + 1)
   const requests: EditRequest[] = [{ type: Edit.UPDATE_MAX_LOCAL_ID, localId: nextId }]
-  if (authoring.schema < 3) {
+  if (authoring.schema < 4) {
     const model = new SingleThreadedFragmentsModel('houseit-upgrade', buffer, false)
     try {
       const items = nativeItems(base)
@@ -214,7 +214,11 @@ function readArchive(buffer: Uint8Array) {
           normalizeAuthoringDocument(
             authoring.schema === 1
               ? parseDocument(authoring.document)
-              : documentFromGraph({ items, relations: model.getRelations() }, false),
+              : documentFromGraph(
+                  { items, relations: model.getRelations() },
+                  authoring.schema >= 3,
+                  false,
+                ),
           ),
           {
             items,
@@ -222,7 +226,11 @@ function readArchive(buffer: Uint8Array) {
           },
           nextId,
         ),
-        { type: Edit.UPDATE_METADATA, localId: 0, data: { houseit: { schema: 3 } } },
+        {
+          type: Edit.UPDATE_METADATA,
+          localId: 0,
+          data: { houseit: { ...(authoring.schema === 3 ? authoring : {}), schema: 4 } },
+        },
       )
     } finally {
       model.dispose()

@@ -82,11 +82,19 @@ writer and save state. It imports neither React nor Sonner nor routing. The smal
 A dependency rule protects persistence from UI imports.
 
 `codec.ts` captures a native authoring revision. `fragment-project.ts` serializes
-that snapshot without appending a request to live history. At the maintenance
-baseline, archives contain authoring data for the project but native geometry only
-for walls; full geometry serialization is a separate migration requirement.
-Native authoring schema 3 upgrades schemas 1/2 while retaining native IDs; stored
-legacy documents also have loading paths and fixtures.
+that snapshot without appending a request to live history. Archives contain the
+whole house's native geometry, including imported furniture and contextual terrain.
+Shared representations retain independent transforms and authoring item ownership.
+CREATE-only serialization into a new buffer avoids native shell-deletion offset bugs.
+Appearance metadata embeds textures, symbols, imported PBR definitions and source
+UVs/normals/vertex colours; raw native materials provide colour/opacity only.
+Native authoring schema 4 upgrades schemas 1/2/3 while retaining existing native IDs.
+Physical floor/slab, facade, opening-fill and catalogue-stair children use PartOf /
+HasGeometry relations; IFCSPACE and IFCOPENINGELEMENT remain spatial/void records.
+Legacy schema-3 geometry remains readable and moves to physical owners on next save.
+Plan and 3D native items expose HouseitEntityKey linking to the authoring graph;
+HouseitKey remains their presentation ID and pointer handlers retain UI owners.
+Per-camera native IDs are presentation aliases, not separate editable documents.
 
 `autosave.ts` serializes encoding/writes, retains retryable failures and coalesces
 pending edits. It publishes pending/saving/error/saved state. Only the latest queued

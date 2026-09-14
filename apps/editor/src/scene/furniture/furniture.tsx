@@ -1,8 +1,9 @@
 import type { HouseObject } from '@houseit/core/document'
+import { geometryEntityKey } from '@houseit/core/entity-key'
 import { partsOf } from '@houseit/core/footprint'
 import { importedType, outlineSymbol } from '@houseit/core/imported'
 import { type Layer, layerOf, symbolOf } from '@houseit/core/object-types'
-import { stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
+import { isStaircase, stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
 import { type Surface, surfaceOf } from '@houseit/core/surfaces'
 import { containsPoint, roomsOf } from '@houseit/geometry/rooms'
 import { piecesOf, type Spot, standingAt } from '@houseit/geometry/standing'
@@ -169,6 +170,9 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
       <NativeSurface
         surface={{
           id: `object:${object.id}`,
+          entity: isStaircase(object.type)
+            ? geometryEntityKey('IFCSTAIR', `objects:${object.id}`)
+            : `objects:${object.id}`,
           owner: { kind: 'object', id: object.id },
           category: 'IFCFURNISHINGELEMENT',
           geometry: nativeFootprint,

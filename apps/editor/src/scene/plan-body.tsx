@@ -7,6 +7,7 @@ import { useNativeGeometry } from '../engine/use-wall-geometry'
 
 export function PlanBody({
   id,
+  entity,
   category,
   input,
   colour,
@@ -17,6 +18,7 @@ export function PlanBody({
   ...events
 }: {
   id: string
+  entity?: string
   category: string
   input: GeometryInput
   colour: string
@@ -43,6 +45,7 @@ export function PlanBody({
     <NativeSurface
       surface={{
         id,
+        entity,
         category,
         owner,
         geometry,

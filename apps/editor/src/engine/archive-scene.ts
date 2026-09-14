@@ -3,6 +3,7 @@ import { excavations } from '@houseit/geometry/excavation'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { elementId } from '@houseit/geometry/wall-elements'
 import { besideWall, paintFor } from '@houseit/scene/dressing'
+import { pieceIdentity } from '@houseit/scene/piece-identity'
 import type { Finish, Piece } from '@houseit/scene/pieces'
 import { worldOf } from '@houseit/scene/world'
 import { type BufferGeometry, Euler, type Material, Matrix4, MeshStandardMaterial } from 'three'
@@ -72,13 +73,7 @@ export async function* archiveScene(
   for (const storey of [...world.storeys, { level: undefined, elevation: 0, pieces: world.site }]) {
     for (const piece of storey.pieces) {
       if (piece.role === 'wall-solid' || piece.paint.opacity === 0) continue
-      const entity =
-        piece.entity ??
-        (piece.of
-          ? `${{ room: 'rooms', wall: 'walls', object: 'objects', opening: 'openings' }[piece.of.kind]}:${piece.of.id}`
-          : storey.level
-            ? `levels:${storey.level}`
-            : 'terrain')
+      const { entity } = pieceIdentity(piece, doc, storey.level)
       if (piece.role === 'roof-solid' && !piece.entity)
         throw new Error('Roof geometry has no authoring identity')
       const placement = piecePlacement(piece)

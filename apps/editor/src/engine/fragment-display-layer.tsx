@@ -151,6 +151,7 @@ export function NativeSurface({ surface, gesture = false, ...events }: Props) {
 
 export function NativeWallSurface({
   id,
+  entity,
   geometry,
   materials,
   position,
@@ -160,6 +161,7 @@ export function NativeWallSurface({
   ...events
 }: Events & {
   id: string
+  entity: string
   geometry: BufferGeometry
   materials: Material[]
   position: [number, number, number]
@@ -172,6 +174,7 @@ export function NativeWallSurface({
     <NativeSurface
       surface={{
         id: `wall:${id}`,
+        entity,
         owner: { kind: 'wall', id },
         category: 'HOUSEITWALLSEGMENT',
         geometry,

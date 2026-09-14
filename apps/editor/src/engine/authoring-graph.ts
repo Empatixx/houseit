@@ -8,13 +8,13 @@ import {
   type RawItemData,
   type RawRelationData,
 } from '@thatopen/fragments'
-
 import {
   type AuthoringEntity as Entity,
   extractNested,
   orderedRelation,
   restoreNested,
 } from './nested-authoring'
+import { extractPhysical } from './physical-authoring'
 
 export type NativeGraph = {
   items: Map<number, RawItemData>
@@ -51,7 +51,7 @@ const keyOf = (collection: string, id: string) => `${collection}:${id}`
 export const nativeKey = (item: RawItemData) => item.data.HouseitKey?.value as string | undefined
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
-function entitiesOf(doc: HouseDocument, nested = true): Map<string, Entity> {
+function entitiesOf(doc: HouseDocument, nested = true, physical = true): Map<string, Entity> {
   const entities = new Map<string, Entity>()
   entities.set('project', {
     category: 'IFCPROJECT',
@@ -146,6 +146,7 @@ function entitiesOf(doc: HouseDocument, nested = true): Map<string, Entity> {
     )
   }
   if (nested) extractNested(doc, entities)
+  if (physical) extractPhysical(doc, entities)
   for (const entity of entities.values()) {
     for (const [name, targets] of Object.entries(entity.links)) {
       if (targets.length === 0) delete entity.links[name]
@@ -227,7 +228,11 @@ export function graphRequests(
   return requests
 }
 
-export function documentFromGraph(graph: NativeGraph, nested = true): HouseDocument {
+export function documentFromGraph(
+  graph: NativeGraph,
+  nested = true,
+  physical = true,
+): HouseDocument {
   const entities = new Map<string, Entity>()
   const keys = new Map<number, string>()
   for (const [id, item] of graph.items) {
@@ -315,7 +320,7 @@ export function documentFromGraph(graph: NativeGraph, nested = true): HouseDocum
     }
   }
   const result = parseDocument(doc)
-  const expected = entitiesOf(result, nested)
+  const expected = entitiesOf(result, nested, physical)
   if (entities.size !== expected.size) throw new Error('Fragment authoring elements disagree')
   for (const [key, entity] of expected) {
     const actual = entities.get(key)

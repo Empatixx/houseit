@@ -4,7 +4,13 @@ import { type BufferGeometry, Euler, type Material, Matrix4 } from 'three'
 import { NativeSurface } from '../../engine/fragment-display-layer'
 import { MM } from '../plan-coordinates'
 
-export type NativePiece = { id: string; elevation: number; owner?: Owner; category?: string }
+export type NativePiece = {
+  id: string
+  elevation: number
+  owner?: Owner
+  category?: string
+  entity?: string
+}
 
 type Props = {
   native: NativePiece
@@ -35,6 +41,7 @@ export function PieceMesh({
     <NativeSurface
       surface={{
         id: native.id,
+        entity: native.entity,
         owner: native.owner,
         category: native.category ?? 'IFCFURNISHINGELEMENT',
         geometry,

@@ -1,4 +1,5 @@
 import { levelBelow } from '@houseit/core/levels'
+import { elementId } from '@houseit/geometry/wall-elements'
 import { useMemo } from 'react'
 import { Matrix4 } from 'three'
 import { useDocument, usePlanDoc } from '../store/store'
@@ -21,6 +22,7 @@ export function StoreyBelow() {
         return [
           {
             id: wall.id,
+            entity: `elements:${elementId(wall)}`,
             middle: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
             length: Math.hypot(b.x - a.x, b.y - a.y),
             thickness: wall.thickness,
@@ -36,6 +38,7 @@ export function StoreyBelow() {
         <PlanBody
           key={wall.id}
           id={`below:wall:${wall.id}`}
+          entity={wall.entity}
           category="HOUSEITREFERENCE"
           input={{
             kind: 'primitive',

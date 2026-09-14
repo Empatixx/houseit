@@ -1,3 +1,4 @@
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import { Matrix4 } from 'three'
 import { useDocument, usePlanDoc } from '../store/store'
 import { PlanBody } from './plan-body'
@@ -12,6 +13,7 @@ export function Columns() {
         <PlanBody
           key={c.id}
           id={`column:${level}:${c.id}`}
+          entity={nestedEntityKey('columns', `levels:${level}`, c.id)}
           category="IFCCOLUMN"
           input={{
             kind: 'primitive',

@@ -1,3 +1,4 @@
+import { pieceIdentity } from '@houseit/scene/piece-identity'
 import type { Owner, Piece } from '@houseit/scene/pieces'
 import { worldOf } from '@houseit/scene/world'
 import { useMemo } from 'react'
@@ -12,20 +13,6 @@ import { MM } from '../plan-coordinates'
 import { StandingPiece } from './piece'
 
 const FLOOR_PICKED = '#9db9ff'
-const CATEGORIES: Record<NonNullable<Piece['role']>, string> = {
-  'wall-solid': 'IFCWALL',
-  'floor-surface': 'IFCCOVERING',
-  'slab-solid': 'IFCSLAB',
-  'stair-solid': 'IFCSTAIR',
-  'ramp-solid': 'IFCRAMP',
-  'shaft-solid': 'IFCBUILDINGELEMENTPROXY',
-  'roof-solid': 'IFCROOF',
-  'column-solid': 'IFCCOLUMN',
-  'facade-covering': 'IFCCOVERING',
-  'site-surface': 'IFCGEOGRAPHICELEMENT',
-  'site-marking': 'IFCSURFACEFEATURE',
-  'site-railing': 'IFCRAILING',
-}
 
 export function House({ picking = true }: { picking?: boolean }) {
   const doc = usePlanDoc()
@@ -40,7 +27,7 @@ export function House({ picking = true }: { picking?: boolean }) {
           <StandingPiece
             key={piece.name}
             piece={piece}
-            native={{ id: `site:${piece.name}`, elevation: 0, category: CATEGORIES[piece.role!] }}
+            native={{ id: `site:${piece.name}`, elevation: 0, ...pieceIdentity(piece, doc) }}
           />
         ))}
       {world.storeys.map((storey) => (
@@ -68,15 +55,7 @@ export function House({ picking = true }: { picking?: boolean }) {
                 native={{
                   id: `${storey.level}:${piece.name}`,
                   elevation: storey.elevation,
-                  category: piece.role
-                    ? CATEGORIES[piece.role]
-                    : piece.of?.kind === 'opening'
-                      ? doc.openings[piece.of.id]?.kind === 'door'
-                        ? 'IFCDOOR'
-                        : doc.openings[piece.of.id]?.kind === 'window'
-                          ? 'IFCWINDOW'
-                          : 'IFCBUILDINGELEMENTPROXY'
-                      : undefined,
+                  ...pieceIdentity(piece, doc, storey.level),
                 }}
                 tint={picking ? tintOf(piece, selected) : undefined}
                 onPick={picking ? picker(piece.of) : undefined}

@@ -172,7 +172,7 @@ async function encode(
   requests.push({
     type: Edit.UPDATE_METADATA,
     localId: 0,
-    data: { houseit: { schema: 3, geometry: { version: 1, parts }, appearance, assets } },
+    data: { houseit: { schema: 4, geometry: { version: 1, parts }, appearance, assets } },
   })
   requests.push({ type: Edit.UPDATE_MAX_LOCAL_ID, localId: next })
   const empty = EditUtils.getModelFromBuffer(EditUtils.newModel({ raw: true }), true)

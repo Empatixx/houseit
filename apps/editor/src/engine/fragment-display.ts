@@ -238,16 +238,21 @@ export class FragmentDisplay {
           material: -1,
         }
         this.entries.set(surface.id, entry)
-        if (surface.owner) this.owners.set(entry.item, surface.owner)
+      }
+      if (surface.owner) this.owners.set(entry.item, surface.owner)
+      else this.owners.delete(entry.item)
+      if (!old || old.entity !== surface.entity || old.category !== surface.category)
         requests.push({
-          type: Edit.CREATE_ITEM,
+          type: old ? Edit.UPDATE_ITEM : Edit.CREATE_ITEM,
           localId: entry.item,
           data: {
             category: surface.category,
-            data: { HouseitKey: { value: surface.id } },
+            data: {
+              HouseitKey: { value: surface.id },
+              HouseitEntityKey: { value: surface.entity ?? '' },
+            },
           },
         })
-      }
       if (
         this.preview &&
         (!old || old.geometry !== surface.geometry || !old.transform.equals(surface.transform))

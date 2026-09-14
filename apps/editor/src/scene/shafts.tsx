@@ -1,3 +1,4 @@
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import { shaftsOn, shaftWallParts } from '@houseit/geometry/connections'
 import { Matrix4 } from 'three'
 import { useDocument, usePlanDoc } from '../store/store'
@@ -14,6 +15,11 @@ export function Shafts() {
           <PlanBody
             key={`${s.id}-${p.x}-${p.y}`}
             id={`shaft:${s.id}:${p.x}:${p.y}`}
+            entity={nestedEntityKey(
+              'shafts',
+              `levels:${Object.values(doc.levels).find((host) => host.shafts?.includes(s))!.id}`,
+              s.id,
+            )}
             category={p.door ? 'IFCDOOR' : 'IFCWALL'}
             input={{
               kind: 'primitive',

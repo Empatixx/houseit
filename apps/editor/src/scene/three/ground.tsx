@@ -37,7 +37,12 @@ export function Ground() {
   if (!site || !geometry) return null
   return (
     <PieceMesh
-      native={{ id: 'terrain:ground', elevation: 0, category: 'IFCGEOGRAPHICELEMENT' }}
+      native={{
+        id: 'terrain:ground',
+        entity: 'terrain',
+        elevation: 0,
+        category: 'IFCGEOGRAPHICELEMENT',
+      }}
       geometry={geometry}
       geometryKey={native.key}
       material={material}

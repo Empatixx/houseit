@@ -1,3 +1,4 @@
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import type { StairRun } from '@houseit/core/stair-flight'
 import { treadsOf } from '@houseit/core/stairs'
 import { Line } from '@react-three/drei'
@@ -15,12 +16,14 @@ export function StairRuns() {
       {Object.values(doc.levels).flatMap((base) =>
         (base.stairs ?? [])
           .filter((s) => base.id === level || s.to === level)
-          .map((s) => <Run key={s.id} stair={s} below={base.id !== level} />),
+          .map((s) => (
+            <Run key={`${base.id}:${s.id}`} stair={s} host={base.id} below={base.id !== level} />
+          )),
       )}
     </>
   )
 }
-function Run({ stair, below }: { stair: StairRun; below: boolean }) {
+function Run({ stair, below, host }: { stair: StairRun; below: boolean; host: string }) {
   const parts = useMemo(
     () =>
       treadsOf(stair).map((t) => {
@@ -40,6 +43,7 @@ function Run({ stair, below }: { stair: StairRun; below: boolean }) {
         <group key={p.step}>
           <PlanBody
             id={`stair:${stair.id}:${p.step}`}
+            entity={nestedEntityKey('stairs', `levels:${host}`, stair.id)}
             category="IFCSTAIRFLIGHT"
             input={{ kind: 'profile', body: { kind: 'sheet', outline: p.outline, holes: [] } }}
             colour={below ? '#d4d4d4' : '#f7f6f1'}

@@ -148,6 +148,7 @@ test.each(['columns', 'connections', 'three-flights', 'site'])(
   '%s CLI elements have independent native identities and ordered parent relationships',
   (name) => {
     const { authoring, level } = make()
+    const initial = authoring.graph
     try {
       authoring.exec(
         readFileSync(
@@ -195,7 +196,7 @@ test.each(['columns', 'connections', 'three-flights', 'site'])(
       }
       expect(documentFromGraph(graph)).toEqual(authoring.document)
       authoring.undo()
-      expect(authoring.graph.items.size).toBe(3)
+      expect(authoring.graph).toEqual(initial)
       authoring.redo()
       expect(authoring.graph).toEqual(graph)
       const broken = authoring.graph

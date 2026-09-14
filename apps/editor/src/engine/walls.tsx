@@ -1,5 +1,6 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 import { roomsOf } from '@houseit/geometry/rooms'
+import { elementId } from '@houseit/geometry/wall-elements'
 import { besideWall, type Dressed, paintFor } from '@houseit/scene/dressing'
 import { useMemo } from 'react'
 import { pick } from '../edit/pick'
@@ -64,6 +65,7 @@ function EngineWall({
   return (
     <NativeWallSurface
       id={wall.id}
+      entity={`elements:${elementId(wall)}`}
       length={body.length}
       height={body.height}
       geometry={geometry}

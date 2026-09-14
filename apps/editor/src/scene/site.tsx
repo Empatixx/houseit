@@ -1,3 +1,4 @@
+import { nestedEntityKey } from '@houseit/core/entity-key'
 import { floorMaterial } from '@houseit/core/floor-materials'
 import { Html, Line } from '@react-three/drei'
 import { Matrix4 } from 'three'
@@ -16,6 +17,7 @@ export function Site() {
         <PlanBody
           key={s.id}
           id={`site:surface:${s.id}`}
+          entity={nestedEntityKey('surfaces', 'terrain', s.id)}
           category="IFCGEOGRAPHICELEMENT"
           input={{
             kind: 'profile',

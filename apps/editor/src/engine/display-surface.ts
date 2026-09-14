@@ -3,6 +3,7 @@ import type { Selection } from '../store/selection'
 
 export type DisplaySurface = {
   id: string
+  entity?: string
   geometry: BufferGeometry
   geometryKey?: string
   materials: Material[]

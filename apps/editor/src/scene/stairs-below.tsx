@@ -1,3 +1,4 @@
+import { geometryEntityKey } from '@houseit/core/entity-key'
 import { levelBelow } from '@houseit/core/levels'
 import { stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
 import { surfaceOf } from '@houseit/core/surfaces'
@@ -79,6 +80,7 @@ function Flight({
   return (
     <PlanBody
       id={`below:object:${id}`}
+      entity={geometryEntityKey('IFCSTAIR', `objects:${id}`)}
       category="IFCFURNISHINGELEMENT"
       owner={{ kind: 'object', id }}
       input={rectangleSheet(size)}

@@ -1,4 +1,5 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
+import { geometryEntityKey, openingCategory } from '@houseit/core/entity-key'
 import type { Point } from '@houseit/geometry/outlines'
 import { wallCaps } from '@houseit/geometry/wall-caps'
 import { elementId, wallElement } from '@houseit/geometry/wall-elements'
@@ -140,6 +141,7 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
             key={piece.key}
             native={native}
             wallId={wall.id}
+            entity={`elements:${elementId(wall)}`}
             length={body.length}
             height={body.height}
             colour={tinted(piece, emphasis)}
@@ -398,6 +400,7 @@ function useCarry() {
 function WallPart({
   native,
   wallId,
+  entity,
   length,
   height,
   colour,
@@ -409,6 +412,7 @@ function WallPart({
 }: ThreeElements['mesh'] & {
   native: boolean
   wallId: string
+  entity: string
   length: number
   height: number
   colour: string
@@ -462,6 +466,11 @@ function WallPart({
         id: native
           ? `wall:${wallId}`
           : `${opening ? 'opening' : 'wall-part'}:${wallId}:${piece.key}`,
+        entity: native
+          ? entity
+          : opening
+            ? geometryEntityKey(openingCategory(opening.kind), `openings:${opening.id}`)
+            : geometryEntityKey('IFCCOVERING', `walls:${wallId}`),
         owner:
           native || !opening ? { kind: 'wall', id: wallId } : { kind: 'opening', id: opening.id },
         category: native

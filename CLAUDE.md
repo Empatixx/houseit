@@ -32,7 +32,7 @@ The wall authoring model on `that-open-engine`:
   Native RGBA uses sRGB bytes (0–255); the installed native MaterialManager converts sRGB to linear.
   Raw native materials do not store textures/UVs: preserve those and source normals/vertex colours
   in archive appearance metadata. The standalone archive proof intentionally uses native colours.
-  Imported GLB geometry can lack UVs; preserve its original material/texture definitions. Schema 3 stores columns, roofs, ramps, shafts, measured stairs and terrain parts as independent native items, with ordered HasParts collections, ContainedIn, ConnectsTo and MappedTo relations. Level/project parameters no longer duplicate those records. HouseDocument reconstructs their nested command projection from native relations. Roof IDs survive reorder/rename and are supplied in readback; legacy JSON replacements match an unambiguous prior roof or allocate a new ID. Schemas 1/2 upgrade without changing existing native IDs. Archives load directly into authoring
+  Imported GLB geometry can lack UVs; preserve its original material/texture definitions. Schema 4 stores columns, roofs, ramps, shafts, measured stairs and terrain parts as independent native items, with ordered HasParts collections, ContainedIn, ConnectsTo and MappedTo relations. Level/project parameters no longer duplicate those records. HouseDocument reconstructs their nested command projection from native relations. Roof IDs survive reorder/rename and are supplied in readback; legacy JSON replacements match an unambiguous prior roof or allocate a new ID. Schemas 1/2/3 upgrade without changing existing native IDs. Physical floor/slab, facade, opening-product and catalogue-stair children have PartOf/HasGeometry relations. Keep IFCSPACE and IFCOPENINGELEMENT free of newly archived physical samples: native section helpers omit IFCSPACE. Legacy schema-3 samples move to physical children on their next save. Archives load directly into authoring
   without rebuilding entities from a HouseDocument; schema-one metadata is upgraded on load. CLI/MCP waits for native persistence before
   returning success. Keep MCP tool title, description and schema stable. The React presentation adapter supplies the established
   plan symbols, finishes, gestures and walkthrough; the native viewport replacement
@@ -41,7 +41,7 @@ The wall authoring model on `that-open-engine`:
   World adapter over the shared presentation scene/camera/renderer. Tools query the displayed
   Fragments directly; there is no separate interaction model or scene-to-geometry copying. Walls, floors, slabs, furniture, opening fills, 3D stairs, ramps, shaft parts, roofs, columns, facades and exterior site geometry render as native Fragments shells in each viewport's
   `FragmentDisplay`, using the same FragmentsManager as its tools. The native editor owns
-  batching and delta models; HouseitKey maps display items to their domain owners; a room can own several floor/slab items.
+  batching and delta models; HouseitKey is the surface/event identity and HouseitEntityKey links each native display item to its authoring key. UI owners remain separate: a room can own several floor/slab items. Update native entity attributes when a presentation slot is reused, for example after roof reorder.
   These per-camera models are derived presentation, never a second authoring/history authority.
   Do not create invisible interaction copies. Tile IDs go through the public native
   local-ID mapper; the wall appearance adapter retains the established per-side materials,
@@ -587,8 +587,8 @@ bun run typecheck && bun run lint && bun run depcruise && bun run knip
 
 ## Browser regressions
 
-Run `bun run test:regression` for the 14 interaction/archive scenarios, or add `--all`
-for all 33 UI/display cases and variants. `--only <id,id>` selects cases; `--all --list`
+Run `bun run test:regression` for the 15 interaction/archive scenarios, or add `--all`
+for all 34 UI/display cases and variants. `--only <id,id>` selects cases; `--all --list`
 prints the registry. Chrome runs headless by default; `--headed` opens a visible window.
 The runner owns a dedicated browser on a free CDP port and reuses an existing editor
 or starts its own. It only shuts down processes it started. Keep cases sequential;
