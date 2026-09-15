@@ -8,6 +8,7 @@ import { applyScript } from './apply-script'
 import { checkStorey, type Problem } from './checks'
 import type { Touched } from './define-command'
 import { roomOfOpening } from './openings'
+import { assertHouseFitsSite } from './site-invariant'
 import { type RoomReport, surveyRoom } from './survey'
 
 export type StoreyReport = {
@@ -86,6 +87,7 @@ function surveyWalls(doc: HouseDocument, level: string): WallReport[] {
 
 export type Answer = {
   site?: HouseDocument['site']
+  parcelSite?: HouseDocument['parcelSite']
   level: string
   levels: StoreyReport[]
   width?: number
@@ -137,6 +139,7 @@ export function answerFor(
   return {
     level,
     ...(doc.site ? { site: doc.site } : {}),
+    ...(doc.parcelSite ? { parcelSite: doc.parcelSite } : {}),
     levels: levelsOf(doc).map((storey, index) => ({
       id: storey.id,
       name: storey.name,
@@ -214,6 +217,7 @@ export function askPlan(doc: HouseDocument, source: string, open?: string): Answ
   let touched: Touched = { changed: [], shown: [] }
   const next = produce(doc, (draft) => {
     touched = applyScript(draft, source, open)
+    assertHouseFitsSite(draft)
   })
   return answerFor(
     next,

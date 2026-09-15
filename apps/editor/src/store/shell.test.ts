@@ -27,6 +27,12 @@ test('asking for another tab keeps the panel open and changes what is in it', ()
   expect(shellStore.getState().tab).toBe('plan')
 })
 
+test('the parcel has its own site tab', () => {
+  shellStore.getState().showTab('site')
+
+  expect(shellStore.getState().tab).toBe('site')
+})
+
 test('folding the panel away and asking again opens the same tab', () => {
   shellStore.getState().showTab('plan')
   shellStore.getState().showTab('plan')

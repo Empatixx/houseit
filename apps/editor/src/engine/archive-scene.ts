@@ -1,4 +1,5 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { enclosureOf, enclosuresOf } from '@houseit/geometry/enclosure'
 import { excavations } from '@houseit/geometry/excavation'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { elementId } from '@houseit/geometry/wall-elements'
@@ -48,8 +49,16 @@ export async function* archiveScene(
       })),
     ]),
   )
+  const enclosures = new Map(
+    Object.keys(doc.levels).flatMap((level) => [...enclosuresOf(doc, level)]),
+  )
   for (const wall of Object.values(doc.walls)) {
-    const input: GeometryInput = { kind: 'wall', body: wallBody(doc, wall) }
+    const enclosure = enclosureOf(enclosures, wall.id)
+    if (enclosure === 'glass') continue
+    const input: GeometryInput = {
+      kind: 'wall',
+      body: wallBody(doc, enclosure === 'edge' ? { ...wall, height: 1, thickness: 12 } : wall),
+    }
     const a = doc.nodes[wall.a]!,
       b = doc.nodes[wall.b]!
     const transform = new Matrix4().makeRotationY(Math.atan2(b.y - a.y, b.x - a.x))

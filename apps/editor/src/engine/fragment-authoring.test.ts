@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
+import { updateSite } from '@houseit/commands/update-site'
 import { updateWall } from '@houseit/commands/wall'
 import { createEmptyDocument } from '@houseit/core/document'
 import { SingleThreadedFragmentsModel } from '@thatopen/fragments'
@@ -257,6 +258,96 @@ test('roof identity survives replacing legacy roof JSON, renaming, reordering an
     )
     authoring.undo()
     expect(authoring.graph).toEqual(before)
+  } finally {
+    authoring.dispose()
+  }
+})
+
+test('native edits preserve terrain and parcel together, enforce setbacks and undo parcel changes', () => {
+  const { authoring, level } = make()
+  const parcel = {
+    parcel: {
+      id: 'p1',
+      nationalReference: '1-1',
+      number: '1',
+      cadastralAreaCode: '1',
+      cadastralAreaName: 'Test',
+      areaM2: 400,
+      polygons: [
+        {
+          outer: [
+            { x: 0, y: 0 },
+            { x: 20000, y: 0 },
+            { x: 20000, y: 20000 },
+            { x: 0, y: 20000 },
+          ],
+          holes: [],
+        },
+      ],
+    },
+    source: {
+      provider: 'cuzk-inspire-cp',
+      fetchedAt: '2026-09-15T12:00:00.000Z',
+      crs: 'EPSG:5514',
+      originXmm: 0,
+      originYmm: 0,
+      attributionYear: 2026,
+    },
+    housePlacement: { xMm: 5000, yMm: 5000, rotationMilliDegrees: 0 },
+    setbacks: { defaultMm: 2000, byEdge: {} },
+  }
+  const terrain = {
+    groundCutout: { x0: 0, x1: 10000, y0: 0, y1: 10000 },
+    surfaces: [],
+    markings: [],
+    railings: [],
+  }
+  try {
+    authoring.exec(
+      `add-site --json '${JSON.stringify(parcel)}'
+update-site --site '${JSON.stringify(terrain)}'
+add-room --name House --material natural-oak --width 6m --depth 6m --shape rectangle`,
+      level,
+    )
+    expect(authoring.document.parcelSite).toEqual(parcel)
+    expect(authoring.document.site).toEqual(terrain)
+    const before = authoring.document
+    const history = authoring.history
+    expect(() => authoring.apply(updateSite, { x: 19000 }, level)).toThrow(/outside/)
+    expect(() => authoring.exec('update-site --x 19m', level)).toThrow(/outside/)
+    expect(authoring.document).toEqual(before)
+    expect(authoring.history).toEqual(history)
+    authoring.apply(updateSite, { x: 6000 }, level)
+    expect(authoring.document.parcelSite?.housePlacement.xMm).toBe(6000)
+    authoring.undo()
+    expect(authoring.document).toEqual(before)
+    authoring.redo()
+    expect(authoring.document.parcelSite?.housePlacement.xMm).toBe(6000)
+    authoring.exec('remove-site', level)
+    expect(authoring.document.parcelSite).toBeUndefined()
+    expect(authoring.document.site).toEqual(terrain)
+    authoring.undo()
+    expect(documentFromGraph(authoring.graph)).toEqual(authoring.document)
+  } finally {
+    authoring.dispose()
+  }
+})
+
+test('version-five native project metadata loads with terrain retained', () => {
+  const { authoring, level } = make()
+  try {
+    authoring.exec(
+      readFileSync(
+        new URL('../../../../fixtures/building-proof/site.txt', import.meta.url),
+        'utf8',
+      ),
+      level,
+    )
+    const graph = authoring.graph
+    const project = [...graph.items.values()].find((item) => nativeKey(item) === 'project')!
+    const parameters = JSON.parse(String(project.data.Parameters!.value))
+    project.data.Parameters!.value = JSON.stringify({ ...parameters, version: 5 })
+    expect(documentFromGraph(graph)).toEqual(authoring.document)
   } finally {
     authoring.dispose()
   }

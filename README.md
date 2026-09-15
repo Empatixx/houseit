@@ -6,7 +6,7 @@ You describe the house in plain language. Claude Code or Codex translates that i
 commands, sends them through an MCP server to the browser tab, and the plan redraws in
 front of you. Then you grab a wall and drag it, because some things are faster by hand.
 
-Everything runs on your machine. No backend, no account, no network.
+The editor runs locally without an account or backend. The optional cadastral map uses online map, address search and ČÚZK parcel services.
 
 ## How it works
 
@@ -43,15 +43,14 @@ node scripts/reset-plan.mjs        # empties the plan in the tab, for starting o
 
 ## The model and architecture
 
-The active migration branch is **`that-open-engine`**. Its native display and
-regression branches are already included in its history. See [TECHNOLOGY.md](TECHNOLOGY.md)
+`main` includes the **`that-open-engine`** migration, cadastral parcels and outdoor room types. See [TECHNOLOGY.md](TECHNOLOGY.md)
 for module boundaries, [goal.md](goal.md) for remaining engine migration, and
 [maintenance progress](docs/maintenance/progress.md) for the separate maintenance work.
 
 **Native authoring owns the project.** `FragmentAuthoring` commits typed commands
 and CLI scripts into a That Open `SingleThreadedFragmentsModel`. Native items,
 relationships and request boundaries own editing and undo/redo. `HouseDocument`
-(version 5) is the read projection consumed by domain rules and UI. Immer supplies
+(version 6) is the read projection consumed by domain rules and UI. Immer supplies
 transaction drafts; the editor's undo history uses native requests.
 
 **Walls are independent elements.** `add-wall`, `update-wall` and `remove-wall`
@@ -432,3 +431,20 @@ selected cases. Chrome runs headless by default; add `--headed` to watch. The ru
 browser and any missing local editor, isolates
 each test project and writes logs, screenshots and failure traces to `test-results/`.
 See [the regression guide](docs/regression-tests.md) for scenario IDs and debugging.
+
+
+## Parcels and outdoor spaces
+
+Choose a cadastral parcel when creating a project, or attach one in the **Site** panel.
+The panel shows parcel boundaries, house placement and per-edge setbacks. Parcel snapshots
+are saved with the native project archive; geometry edits enforce the parcel and setbacks.
+
+`add-site --json` attaches a parcel; `update-site --x/--y/--rotation` positions the house,
+and `--setback` or `--edge/--edge-setback` sets boundary offsets. `remove-site` detaches
+only the parcel. Existing `update-site --site` and `--surface` options still edit terrain.
+Document version 6 stores cadastral data in `parcelSite` and terrain in `site`; projects
+from either version-5 branch migrate automatically.
+
+Use `add-room --kind terrace|paving|path|lawn|winter-garden` for outdoor spaces.
+Outdoor surfaces have open edges and no ceiling; a winter garden has glazed walls and roof.
+The `grass` floor material and `?plan=showcase` example are included.

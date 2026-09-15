@@ -1,0 +1,5 @@
+add-room --name Paving --kind paving --shape rectangle --width 12m --depth 10m --material brick-grey --thickness 100
+add-room --name Path --kind path --from Paving --points "0,0; 12m,0; 12m,2m; 0,2m" --thickness 100 --material limestone
+add-room --name House --from Paving --points "2m,2m; 6m,2m; 6m,8m; 2m,8m" --thickness 300 --material natural-oak
+add-room --name Garden --kind winter-garden --from Paving --points "6m,2m; 9m,2m; 9m,8m; 6m,8m" --thickness 100 --material tile-terracotta
+add-site --json '{"parcel":{"id":"p1","nationalReference":"1-1","number":"1","cadastralAreaCode":"1","cadastralAreaName":"Test","areaM2":120,"polygons":[{"outer":[{"x":0,"y":0},{"x":12000,"y":0},{"x":12000,"y":10000},{"x":0,"y":10000}],"holes":[]}]},"source":{"provider":"cuzk-inspire-cp","fetchedAt":"2026-09-15T12:00:00.000Z","crs":"EPSG:5514","originXmm":0,"originYmm":0,"attributionYear":2026},"housePlacement":{"xMm":0,"yMm":0,"rotationMilliDegrees":0},"setbacks":{"defaultMm":1500,"byEdge":{}}}'

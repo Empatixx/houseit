@@ -1,9 +1,10 @@
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 
-export type Layer = 'grid' | 'below' | 'floors' | 'furniture' | 'labels'
+export type Layer = 'site' | 'grid' | 'below' | 'floors' | 'furniture' | 'labels'
 
 export const LAYERS: { id: Layer; label: string; note: string }[] = [
+  { id: 'site', label: 'Parcel', note: 'The cadastral boundary and its setbacks' },
   { id: 'floors', label: 'Floors', note: 'The material laid in each room' },
   { id: 'furniture', label: 'Furniture', note: 'Everything standing in the rooms' },
   { id: 'labels', label: 'Room names', note: 'The name and area written on each floor' },

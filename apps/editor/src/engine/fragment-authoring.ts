@@ -1,6 +1,8 @@
 import { applyScript } from '@houseit/commands/apply-script'
 import type { ArgsOf, Touched, TypedCommand } from '@houseit/commands/define-command'
-import { type HouseDocument, parseDocument } from '@houseit/core/document'
+import { assertHouseFitsSite } from '@houseit/commands/site-invariant'
+import type { HouseDocument } from '@houseit/core/document'
+import { migrateDocument } from '@houseit/core/migrate'
 import {
   EditRequestType as Edit,
   type EditRequest,
@@ -114,6 +116,7 @@ export class FragmentAuthoring {
 
   private commit(doc: HouseDocument) {
     if (doc === this.projection) return
+    assertHouseFitsSite(doc)
     const requests = graphRequests(
       normalizeAuthoringDocument(doc, this.projection),
       this.graph,
@@ -213,7 +216,7 @@ function readArchive(buffer: Uint8Array) {
         ...graphRequests(
           normalizeAuthoringDocument(
             authoring.schema === 1
-              ? parseDocument(authoring.document)
+              ? migrateDocument(authoring.document)
               : documentFromGraph(
                   { items, relations: model.getRelations() },
                   authoring.schema >= 3,

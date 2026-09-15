@@ -159,3 +159,12 @@ test('an upper overhang gets only the missing slab, including the floor buildup 
   for (const node of Object.values(doc.nodes).filter((n) => n.id.startsWith('up-'))) node.x -= 2000
   expect(underfloorPieces(doc, 'up')).toEqual([])
 })
+
+test('a terrace is open to the sky, and a winter garden is roofed in glass', () => {
+  const { doc, level } = room()
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'Terasa', loop: [] }
+  expect(ceilingPieces(doc, level)).toEqual([])
+
+  doc.rooms.r1 = { id: 'r1', level, x: 2000, y: 1500, name: 'Zimní zahrada', loop: [] }
+  expect(ceilingPieces(doc, level)[0]?.paint.opacity).toBeLessThan(1)
+})

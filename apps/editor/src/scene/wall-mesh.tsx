@@ -1,5 +1,6 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 import { geometryEntityKey, openingCategory } from '@houseit/core/entity-key'
+import type { Enclosure } from '@houseit/geometry/enclosure'
 import type { Point } from '@houseit/geometry/outlines'
 import { wallCaps } from '@houseit/geometry/wall-caps'
 import { elementId, wallElement } from '@houseit/geometry/wall-elements'
@@ -31,11 +32,19 @@ type WallMeshProps = {
   wall: Wall
   outside?: 1 | -1 | undefined
   doc: HouseDocument
+  enclosure: Enclosure
   ofPickedRoom: boolean
   pickedRoom?: string
 }
 
-export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallMeshProps) {
+export function WallMesh({
+  wall,
+  doc,
+  ofPickedRoom,
+  pickedRoom,
+  outside,
+  enclosure,
+}: WallMeshProps) {
   const body = useMemo(() => wallBody(doc, wall, true), [doc, wall])
   const geometry = useWallGeometry(body)
   const plainly = usePlain()
@@ -76,20 +85,23 @@ export function WallMesh({ wall, doc, ofPickedRoom, pickedRoom, outside }: WallM
   const length = span + growA + growB
 
   const openings = Object.values(doc.openings).filter((opening) => opening.wall === wall.id)
-  const pieces: WallPiece[] = [
-    {
-      key: 'native-wall',
-      colour: INK.wall,
-      at: growA,
-      length: span,
-      thickness: wall.thickness,
-      base: 0,
-      height: 0,
-    },
-    ...planPieces(wall, openings, length, growA, span, outside).filter(
-      (p) => !p.key.startsWith('outline-') && !p.key.startsWith('fill-'),
-    ),
-  ]
+  const pieces: WallPiece[] =
+    enclosure !== 'wall'
+      ? planPieces(wall, openings, length, growA, span, outside, enclosure)
+      : [
+          {
+            key: 'native-wall',
+            colour: INK.wall,
+            at: growA,
+            length: span,
+            thickness: wall.thickness,
+            base: 0,
+            height: 0,
+          },
+          ...planPieces(wall, openings, length, growA, span, outside, enclosure).filter(
+            (p) => !p.key.startsWith('outline-') && !p.key.startsWith('fill-'),
+          ),
+        ]
   const angle = Math.atan2(dy, dx)
 
   const wallEmphasis: Emphasis | undefined =

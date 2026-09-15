@@ -1,4 +1,5 @@
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
+import { enclosureOf, enclosuresOf } from '@houseit/geometry/enclosure'
 import { exteriorSides } from '@houseit/geometry/exterior'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { useMemo } from 'react'
@@ -18,6 +19,7 @@ export function Walls() {
   const walls = Object.values(doc.walls).filter((wall) => wall.level === level)
 
   const outside = exteriorSides(doc, level)
+  const enclosures = useMemo(() => enclosuresOf(doc, level), [doc, level])
   const roomWalls = useMemo(() => {
     if (selected?.kind !== 'room') return new Set<string>()
     const room = roomsOf(doc, level).find((candidate) => candidate.id === selected.id)
@@ -32,6 +34,7 @@ export function Walls() {
           wall={wall}
           outside={outside.get(wall.id)}
           doc={doc}
+          enclosure={enclosureOf(enclosures, wall.id)}
           ofPickedRoom={roomWalls.has(wall.id)}
           pickedRoom={selected?.kind === 'room' ? selected.id : undefined}
         />

@@ -1,3 +1,9 @@
+import { addSite } from '@houseit/commands/add-site'
+import { quoted } from '@houseit/commands/command-line'
+import { applyCommand } from '@houseit/commands/run'
+import { createEmptyDocument } from '@houseit/core/document'
+import type { Site } from '@houseit/core/parcel-site'
+import { centeredSiteForHouse } from '@houseit/geometry/site'
 import { useEffect, useState } from 'react'
 import {
   BrowserRouter,
@@ -10,6 +16,8 @@ import {
 } from 'react-router'
 import { App } from './app'
 import { Toaster } from './components/ui/sonner'
+import { ParcelPicker } from './site/parcel-picker'
+import type { SiteDialogRequest } from './site/site-dialog-store'
 import { projectsStore, useProjects } from './store/projects/projects'
 import { documentStore } from './store/store'
 import { Home } from './ui/home/home'
@@ -24,10 +32,37 @@ export function Screens() {
         <Route path="/p/:id" element={<Project />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ParcelWorkflow />
       <SaveNotice />
       <Toaster position="top-right" offset={72} mobileOffset={64} richColors closeButton />
     </BrowserRouter>
   )
+}
+
+function ParcelWorkflow() {
+  const navigate = useNavigate()
+
+  const confirm = async (site: Site, request: SiteDialogRequest) => {
+    if (request.kind === 'create') {
+      const initial = applyCommand(createEmptyDocument(), addSite, { json: JSON.stringify(site) })
+      const meta = await projectsStore.getState().create(request.name, initial)
+      navigate(`/p/${meta.id}`)
+      return
+    }
+
+    const doc = documentStore.getState().doc
+    const hasSite = doc.parcelSite !== undefined
+    const placed = centeredSiteForHouse(doc, site)
+    const source = [
+      hasSite ? 'remove-site' : undefined,
+      `add-site --json ${quoted(JSON.stringify(placed))}`,
+    ]
+      .filter((line) => line !== undefined)
+      .join('\n')
+    documentStore.getState().exec(source)
+  }
+
+  return <ParcelPicker onConfirm={confirm} />
 }
 
 function Landing() {

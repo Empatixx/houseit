@@ -1,5 +1,6 @@
 import type { Opening, Wall } from '@houseit/core/document'
 import { doorLeafSize, frameOffset, openingParts, pocketShift } from '@houseit/core/opening-parts'
+import type { Enclosure } from '@houseit/geometry/enclosure'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 
 export const INK = {
@@ -35,6 +36,7 @@ export function planPieces(
   growA: number,
   span: number,
   outside?: 1 | -1,
+  enclosure: Enclosure = 'wall',
 ): WallPiece[] {
   const parts = openings.flatMap((o) =>
     openingParts(o, span)
@@ -43,6 +45,20 @@ export function planPieces(
   )
   const line = lineWeight(wall.thickness)
   const inner = wall.thickness - 2 * line
+  if (enclosure === 'edge') {
+    return [
+      {
+        key: 'edge',
+        colour: INK.outline,
+        at: length / 2,
+        length,
+        thickness: line,
+        base: 0,
+        height: wall.height,
+      },
+    ]
+  }
+  const glazed = enclosure === 'glass'
   const holes = parts.map((opening) => spanAround(growA + opening.t * span, opening.width))
   const doorways = parts.flatMap((opening, index) =>
     opening.kind === 'door' || (opening.frame?.inset !== undefined && opening.sillHeight === 0)
@@ -63,13 +79,24 @@ export function planPieces(
   for (const solid of freeSpans(length, holes)) {
     pieces.push({
       key: `fill-${solid.from}`,
-      colour: INK.wall,
+      colour: glazed ? INK.glass : INK.wall,
       at: middleOf(solid),
       length: solid.to - solid.from,
       thickness: inner,
       base: 2,
       height: wall.height,
     })
+    if (glazed) {
+      pieces.push({
+        key: `pane-${solid.from}`,
+        colour: INK.outline,
+        at: middleOf(solid),
+        length: solid.to - solid.from,
+        thickness: line,
+        base: 4,
+        height: wall.height,
+      })
+    }
   }
 
   if (wall.exterior && outside !== undefined) {

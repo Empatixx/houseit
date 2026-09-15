@@ -140,7 +140,13 @@ export function linkPoints(
   for (let i = 0; i + 1 < stops.length; i += 1) {
     const start = nodeAtOrNew(draft, level, stops[i]!)
     const end = nodeAtOrNew(draft, level, stops[i + 1]!)
-    if (start === end || wallBetween(draft, level, start, end)) continue
+    if (start === end) continue
+    const existing = wallBetween(draft, level, start, end)
+    if (existing) {
+      const wall = draft.walls[existing.id]!
+      if (wall.thickness < thickness) wall.thickness = thickness
+      continue
+    }
     const middle = {
       x: (stops[i]!.x + stops[i + 1]!.x) / 2,
       y: (stops[i]!.y + stops[i + 1]!.y) / 2,

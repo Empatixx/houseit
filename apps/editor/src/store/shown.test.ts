@@ -7,6 +7,10 @@ test('a plan is drawn whole until something is turned off', () => {
   for (const layer of LAYERS) expect(shownStore.getState().shown[layer.id]).toBe(true)
 })
 
+test('a parcel site is visible with the rest of a complete plan', () => {
+  expect(shownStore.getState().shown.site).toBe(true)
+})
+
 test('turning a layer off leaves the rest alone', () => {
   shownStore.getState().show('furniture', false)
 

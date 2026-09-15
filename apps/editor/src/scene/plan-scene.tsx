@@ -18,6 +18,7 @@ import { RoomAnnotations } from './room-annotations'
 import { RoomFloors } from './room-floors'
 import { Shafts } from './shafts'
 import { Site } from './site'
+import { SiteLayer } from './site-layer'
 import { Spinning } from './spinning'
 import { StairRuns } from './stair-runs'
 import { StairsBelow } from './stairs-below'
@@ -66,6 +67,7 @@ export function PlanScene() {
           <>
             {shown.grid ? <DotGrid /> : null}
             <Site />
+            <SiteLayer />
 
             {shown.below ? <StoreyBelow /> : null}
             {shown.below ? <StairsBelow /> : null}

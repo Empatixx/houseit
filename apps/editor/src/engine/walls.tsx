@@ -1,4 +1,5 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
+import { enclosureOf, enclosuresOf } from '@houseit/geometry/enclosure'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { elementId } from '@houseit/geometry/wall-elements'
 import { besideWall, type Dressed, paintFor } from '@houseit/scene/dressing'
@@ -29,8 +30,9 @@ export function EngineWalls({
       })),
     [doc, level],
   )
+  const enclosures = useMemo(() => enclosuresOf(doc, level), [doc, level])
   return Object.values(doc.walls)
-    .filter((wall) => wall.level === level)
+    .filter((wall) => wall.level === level && enclosureOf(enclosures, wall.id) === 'wall')
     .map((wall) => (
       <EngineWall key={wall.id} doc={doc} wall={wall} dressed={dressed} picking={picking} />
     ))

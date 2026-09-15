@@ -6,6 +6,8 @@ export type RoomKind = {
   needsWindow: boolean
   public: boolean
   passage: boolean
+  outdoor: boolean
+  glazed: boolean
   words: string[]
 }
 
@@ -13,7 +15,9 @@ const kind = (
   id: string,
   label: string,
   minArea: number,
-  flags: Partial<Pick<RoomKind, 'needsWindow' | 'public' | 'passage' | 'minWidth'>>,
+  flags: Partial<
+    Pick<RoomKind, 'needsWindow' | 'public' | 'passage' | 'minWidth' | 'outdoor' | 'glazed'>
+  >,
   words: string[],
 ): RoomKind => ({
   id,
@@ -23,6 +27,8 @@ const kind = (
   needsWindow: flags.needsWindow ?? false,
   public: flags.public ?? false,
   passage: flags.passage ?? false,
+  outdoor: flags.outdoor ?? false,
+  glazed: flags.glazed ?? false,
   words,
 })
 
@@ -122,7 +128,43 @@ export const ROOM_KINDS: RoomKind[] = [
   ]),
   kind('storage', 'Storage', 1, {}, ['storage', 'store', 'sklad', 'komora']),
   kind('gym', 'Gym', 6, {}, ['gym', 'fitness', 'posilovna']),
-  kind('terrace', 'Terrace', 4, {}, ['terrace', 'patio', 'balcony', 'deck', 'terasa', 'balkon']),
+  kind('winter-garden', 'Winter garden', 6, { public: true, glazed: true }, [
+    'winter garden',
+    'conservatory',
+    'zimní zahrada',
+    'zimni zahrada',
+  ]),
+  kind('terrace', 'Terrace', 4, { outdoor: true }, [
+    'terrace',
+    'patio',
+    'balcony',
+    'deck',
+    'terasa',
+    'balkon',
+  ]),
+  kind('paving', 'Paving', 1, { outdoor: true, passage: true }, [
+    'paving',
+    'driveway',
+    'dlažba',
+    'dlazba',
+    'příjezd',
+    'prijezd',
+  ]),
+  kind('path', 'Path', 1, { outdoor: true, passage: true }, [
+    'path',
+    'sidewalk',
+    'walkway',
+    'chodník',
+    'chodnik',
+  ]),
+  kind('lawn', 'Lawn', 1, { outdoor: true, passage: true }, [
+    'lawn',
+    'greenery',
+    'zeleň',
+    'zelen',
+    'trávník',
+    'travnik',
+  ]),
 ]
 
 export const ROOM_KIND_IDS = ROOM_KINDS.map((kind) => kind.id)

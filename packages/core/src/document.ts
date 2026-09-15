@@ -6,12 +6,13 @@ import { ExteriorSchema } from './exterior'
 import { FINISH_IDS, isColour, STYLE_IDS } from './finishes'
 import { HostSchema } from './host'
 import { FrameSchema, PanelsSchema } from './opening-assembly'
+import { SiteSchema as ParcelSiteSchema } from './parcel-site'
 import { RoofSchema } from './roof'
 import { ROOM_KIND_IDS } from './room-kinds'
 import { SiteSchema } from './site'
 import { StairRunSchema } from './stair-flight'
 
-export const DOCUMENT_VERSION = 5
+export const DOCUMENT_VERSION = 6
 
 const mm = z.number().int()
 const id = z.string().min(1)
@@ -166,7 +167,7 @@ const byId = <T extends z.ZodTypeAny>(entry: T) => z.record(z.string(), entry).d
 
 const DocumentShape = z.object({
   version: z.literal(DOCUMENT_VERSION),
-  site: SiteSchema.optional(),
+  parcelSite: ParcelSiteSchema.optional(),
   levels: byId(LevelSchema),
   nodes: byId(NodeSchema),
   walls: byId(WallSchema),
@@ -175,6 +176,7 @@ const DocumentShape = z.object({
   objects: byId(ObjectSchema),
   devices: byId(DeviceSchema),
   circuits: byId(CircuitSchema),
+  site: SiteSchema.optional(),
 })
 
 type Ctx = z.core.$RefinementCtx

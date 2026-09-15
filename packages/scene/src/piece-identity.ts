@@ -20,9 +20,11 @@ const categories: Record<NonNullable<Piece['role']>, string> = {
 export function pieceIdentity(piece: Piece, doc: HouseDocument, level?: string) {
   const category = piece.role
     ? categories[piece.role]
-    : piece.of?.kind === 'opening'
-      ? openingCategory(doc.openings[piece.of.id]!.kind)
-      : 'IFCFURNISHINGELEMENT'
+    : piece.entity?.startsWith('elements:')
+      ? 'IFCWALL'
+      : piece.of?.kind === 'opening'
+        ? openingCategory(doc.openings[piece.of.id]!.kind)
+        : 'IFCFURNISHINGELEMENT'
   const owner = piece.of
     ? `${{ room: 'rooms', wall: 'walls', object: 'objects', opening: 'openings' }[piece.of.kind]}:${piece.of.id}`
     : level

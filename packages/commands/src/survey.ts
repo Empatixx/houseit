@@ -2,6 +2,7 @@ import type { HouseDocument, HouseObject, Opening, Side, Wall } from '@houseit/c
 import { PARTS, type Part } from '@houseit/core/finishes'
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
 import { interiorSize, objectClearances, planExtent } from '@houseit/geometry/dimensions'
+import { type Enclosure, enclosureOf, enclosuresOf } from '@houseit/geometry/enclosure'
 import { openingRecesses } from '@houseit/geometry/opening-recesses'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
@@ -30,6 +31,7 @@ export type WallReport = {
   length: number
   thickness: number
   exterior?: Wall['exterior']
+  enclosure?: Exclude<Enclosure, 'wall'>
 }
 
 export type OpeningReport = {
@@ -151,6 +153,7 @@ export function surveyRoom(
   const xs = corners.map((corner) => corner.x)
   const ys = corners.map((corner) => corner.y)
   const walls = boundaryWallsOf(doc, level, room)
+  const enclosures = enclosuresOf(doc, level, rooms)
   const walled = new Set(walls.map((wall) => wall.id))
   const found = Object.values(doc.openings)
     .filter((opening) => walled.has(opening.wall))
@@ -234,6 +237,7 @@ export function surveyRoom(
       const a = doc.nodes[wall.a]
       const b = doc.nodes[wall.b]
       if (!place || !a || !b) return []
+      const enclosure = enclosureOf(enclosures, wall.id)
       return [
         {
           id: wall.id,
@@ -242,6 +246,7 @@ export function surveyRoom(
           length: Math.round(Math.hypot(b.x - a.x, b.y - a.y)),
           thickness: wall.thickness,
           ...(wall.exterior ? { exterior: wall.exterior } : {}),
+          ...(enclosure === 'wall' ? {} : { enclosure }),
         },
       ]
     }),

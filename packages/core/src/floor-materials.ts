@@ -10,6 +10,13 @@ export type FloorMaterial = {
 
 export const FLOOR_MATERIALS: readonly FloorMaterial[] = [
   ...CATALOG_FLOOR_MATERIALS,
+  {
+    id: 'grass',
+    label: 'Lawn',
+    unit: { width: 1600, depth: 1600 },
+    texture: 'grass.png',
+    colour: '#6f9a4a',
+  },
   ...[
     ['asphalt', 'Asphalt', '#414449', 1000],
     ['concrete', 'Concrete', '#b9b8b2', 1000],

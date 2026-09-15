@@ -2,12 +2,14 @@ import { addLevel, removeLevel, updateLevel } from './add-level'
 import { addObject } from './add-object'
 import { addOpening } from './add-opening'
 import { addRoom } from './add-room'
+import { addSite } from './add-site'
 import { addColumn, removeColumn, updateColumn } from './column'
 import type { CommandModule } from './command-module'
 import { addRamp, addShaft, removeRamp, removeShaft } from './connections'
 import { addDevice, removeDevice, updateDevice } from './device'
 import { removeObject, removeOpening } from './remove'
 import { removeRoom } from './remove-room'
+import { removeSite } from './remove-site'
 import { addStair, removeStair } from './stair-run'
 import { updateObject } from './update-object'
 import { updateOpening } from './update-opening'
@@ -23,7 +25,9 @@ export const COMMAND_MODULES: readonly CommandModule[] = [
       addWall,
       updateWall,
       removeWall,
+      addSite,
       updateSite,
+      removeSite,
       addStair,
       removeStair,
       addShaft,

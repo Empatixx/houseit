@@ -1,5 +1,6 @@
-import { type HouseDocument, parseDocument } from '@houseit/core/document'
+import type { HouseDocument } from '@houseit/core/document'
 import { findFaces } from '@houseit/core/faces'
+import { migrateDocument } from '@houseit/core/migrate'
 import { elementId } from '@houseit/geometry/wall-elements'
 import {
   EditRequestType as Edit,
@@ -55,7 +56,11 @@ function entitiesOf(doc: HouseDocument, nested = true, physical = true): Map<str
   const entities = new Map<string, Entity>()
   entities.set('project', {
     category: 'IFCPROJECT',
-    parameters: { version: doc.version, ...(doc.site ? { site: doc.site } : {}) },
+    parameters: {
+      ...(doc.parcelSite ? { parcelSite: doc.parcelSite } : {}),
+      version: doc.version,
+      ...(doc.site ? { site: doc.site } : {}),
+    },
     links: { Contains: Object.keys(doc.levels).map((id) => keyOf('levels', id)) },
   })
   for (const collection of Object.keys(categories) as Collection[]) {
@@ -319,7 +324,7 @@ export function documentFromGraph(
       doc.site = site
     }
   }
-  const result = parseDocument(doc)
+  const result = migrateDocument(doc)
   const expected = entitiesOf(result, nested, physical)
   if (entities.size !== expected.size) throw new Error('Fragment authoring elements disagree')
   for (const [key, entity] of expected) {

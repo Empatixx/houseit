@@ -1,9 +1,11 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
 import { soffitOf } from '@houseit/core/levels'
 import { frameOffset, openingParts } from '@houseit/core/opening-parts'
+import { type Enclosure, enclosureOf, enclosuresOf } from '@houseit/geometry/enclosure'
 import { exteriorSides } from '@houseit/geometry/exterior'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { wallCaps } from '@houseit/geometry/wall-caps'
+import { elementId } from '@houseit/geometry/wall-elements'
 import { doorPieces } from './doors'
 import { besideWall, type Dressed, paintFor } from './dressing'
 import { owned, type Piece } from './pieces'
@@ -12,8 +14,10 @@ import { solidPieces } from './wall-pieces'
 const PAINT = {
   wall: '#f1f0ed',
   glass: '#a7c8e6',
+  frame: '#3d4246',
 } as const
 
+const RAIL = 60
 const PANE = 40
 
 export function wallPieces(doc: HouseDocument, level: string): Piece[] {
@@ -23,7 +27,10 @@ export function wallPieces(doc: HouseDocument, level: string): Piece[] {
     worn: room.id === undefined ? undefined : doc.rooms[room.id],
   }))
   const outside = exteriorSides(doc, level)
-  const built = walls.flatMap((wall) => standingWall(doc, wall, dressed, outside.get(wall.id)))
+  const enclosures = enclosuresOf(doc, level)
+  const built = walls.flatMap((wall) =>
+    standingWall(doc, wall, dressed, outside.get(wall.id), enclosureOf(enclosures, wall.id)),
+  )
   const outward = (piece: Piece) => {
     if (piece.of?.kind !== 'wall') return false
     const wall = doc.walls[piece.of.id]!,
@@ -41,10 +48,11 @@ function standingWall(
   wall: Wall,
   dressed: Dressed[],
   outside: 1 | -1 | undefined,
+  enclosure: Enclosure,
 ): Piece[] {
   const a = doc.nodes[wall.a]
   const b = doc.nodes[wall.b]
-  if (!a || !b) return []
+  if (!a || !b || enclosure === 'edge') return []
   const dx = b.x - a.x
   const dy = b.y - a.y
   const span = Math.hypot(dx, dy)
@@ -69,6 +77,26 @@ function standingWall(
   const height = level ? Math.min(wall.height, soffitOf(level) - wall.baseOffset) : wall.height
   const built = height > 0 ? solidPieces({ ...wall, height }, openings, length, growA, span) : []
   const worn = besideWall(dressed, a, b, wall.thickness)
+
+  const glazing = owned(
+    { kind: 'wall', id: wall.id },
+    built.flatMap((piece) => [
+      {
+        entity: `elements:${elementId(wall)}`,
+        body: { kind: 'box' as const, width: piece.length, height: piece.height, depth: PANE },
+        at: standing(piece.at, 0, wall.baseOffset + piece.base + piece.height / 2),
+        turn: angle,
+        paint: { colour: PAINT.glass, opacity: 0.35 },
+      },
+      {
+        entity: `elements:${elementId(wall)}`,
+        body: { kind: 'box' as const, width: piece.length, height: RAIL, depth: piece.thickness },
+        at: standing(piece.at, 0, wall.baseOffset + piece.base + piece.height - RAIL / 2),
+        turn: angle,
+        paint: { colour: PAINT.frame },
+      },
+    ]),
+  )
 
   const solids = owned(
     { kind: 'wall', id: wall.id },
@@ -116,14 +144,17 @@ function standingWall(
           wall.baseOffset + piece.base + piece.height / 2,
         ),
         turn: angle + piece.turn,
-        paint: opening.frame
-          ? {
-              colour: piece.takesFinish ? PAINT.glass : piece.colour,
-              ...(piece.takesFinish ? { opacity: 0.45 } : {}),
-            }
-          : piece.takesFinish
-            ? paintFor(into?.doors, piece.colour, { width: piece.length, height: piece.height })
-            : { colour: piece.colour },
+        paint:
+          enclosure === 'glass' && piece.takesFinish
+            ? { colour: PAINT.glass, opacity: 0.35 }
+            : opening.frame
+              ? {
+                  colour: piece.takesFinish ? PAINT.glass : piece.colour,
+                  ...(piece.takesFinish ? { opacity: 0.45 } : {}),
+                }
+              : piece.takesFinish
+                ? paintFor(into?.doors, piece.colour, { width: piece.length, height: piece.height })
+                : { colour: piece.colour },
       })),
     )
   })
@@ -279,7 +310,7 @@ function standingWall(
     )
   })
   return [
-    ...solids,
+    ...(enclosure === 'glass' ? glazing : solids),
     ...leaves,
     ...panes,
     ...frames,

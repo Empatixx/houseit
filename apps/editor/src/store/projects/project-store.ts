@@ -1,4 +1,4 @@
-import { createEmptyDocument } from '@houseit/core/document'
+import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import type { DocumentState } from '../document-store'
 import { createWriter, type SaveState } from './autosave'
@@ -15,7 +15,7 @@ export type ProjectsState = {
   open: ProjectMeta | null
   saveState: SaveState
   refresh: () => Promise<void>
-  create: (name: string) => Promise<ProjectMeta>
+  create: (name: string, initial?: HouseDocument) => Promise<ProjectMeta>
   openProject: (id: string) => Promise<ProjectMeta | undefined>
   closeProject: () => Promise<void>
   save: () => Promise<void>
@@ -62,7 +62,7 @@ export function createProjectsStore(
       set({ list: await (await db()).list() })
     },
 
-    create: async (name) => {
+    create: async (name, initial = createEmptyDocument()) => {
       const database = await db()
       const list = await database.list()
       const called = name.trim() || UNTITLED
@@ -76,7 +76,7 @@ export function createProjectsStore(
         createdAt: now,
         updatedAt: now,
       }
-      await database.write(meta.id, await codec.encode(meta.id, createEmptyDocument()))
+      await database.write(meta.id, await codec.encode(meta.id, initial))
       await database.put(meta)
       set({ list: [meta, ...list] })
       return meta

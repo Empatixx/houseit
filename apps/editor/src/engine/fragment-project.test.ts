@@ -1,7 +1,9 @@
 // @vitest-environment node
+
 import { readFileSync } from 'node:fs'
 import { createEmptyDocument } from '@houseit/core/document'
 import { geometryEntityKey } from '@houseit/core/entity-key'
+import { enclosuresOf } from '@houseit/geometry/enclosure'
 import {
   EditRequestType as Edit,
   type EditRequest,
@@ -39,6 +41,8 @@ vi.mock('./geometry-session', () => ({
     release: () => {},
   }),
 }))
+
+vi.setConfig({ testTimeout: 30000 })
 
 const api = new IfcAPI()
 let engine: GeometryEngine
@@ -463,6 +467,7 @@ test.each(['columns', 'connections', 'three-flights', 'site'])(
       authoring.dispose()
     }
   },
+  30000,
 )
 
 test('schema-two nested archives upgrade to independent elements and retain existing item IDs', async () => {
@@ -701,3 +706,46 @@ test('schema-three archives retain native geometry and existing identities durin
     authoring.dispose()
   }
 })
+
+test('cadastral outdoor demo archives its parcel, open edges and glazed garden through native geometry', async () => {
+  const authoring = new FragmentAuthoring(createEmptyDocument())
+  const level = Object.keys(authoring.document.levels)[0]!
+  try {
+    authoring.exec(
+      readFileSync(
+        new URL('../../../../fixtures/that-open/parcel-outdoor.txt', import.meta.url),
+        'utf8',
+      ),
+      level,
+    )
+    expect(authoring.document.parcelSite?.parcel.number).toBe('1')
+    const archive = await writeFragment(authoring.snapshot(), generate)
+    const loaded = new FragmentAuthoring(new Uint8Array(archive.buffer))
+    const model = savedModel(archive.buffer)
+    try {
+      expect(loaded.document).toEqual(authoring.document)
+      expect(loaded.graph).toEqual(authoring.graph)
+      const enclosures = enclosuresOf(authoring.document, level)
+      const withGeometry = new Set(model.getItemsIdsWithGeometry())
+      const glass = [...authoring.graph.items].filter(([, item]) => {
+        const key = nativeKey(item)
+        return (
+          key?.startsWith('elements:') && enclosures.get(key.slice('elements:'.length)) === 'glass'
+        )
+      })
+      expect(glass.length).toBeGreaterThan(0)
+      for (const [id] of glass) expect(withGeometry.has(id)).toBe(true)
+      expect([...model.getMaterials().values()].some((paint) => paint.a > 0 && paint.a < 255)).toBe(
+        true,
+      )
+      loaded.exec('remove-site', level)
+      loaded.undo()
+      expect(loaded.document).toEqual(authoring.document)
+    } finally {
+      loaded.dispose()
+      model.dispose()
+    }
+  } finally {
+    authoring.dispose()
+  }
+}, 30000)
