@@ -23,5 +23,5 @@ export const staircase =
       ...(kind === 'spiral'
         ? [drum({ r: Math.max(60, (shape.flight / 2) * 0.16), h, paint: frame })]
         : []),
-    ]
+    ].map((piece) => ({ ...piece, role: 'stair-solid' as const }))
   }

@@ -30,7 +30,7 @@ export function rebind(draft: Draft<HouseDocument>, level: string): void {
   )
   const orphans = pass(andStill, (room) => closest(room, faces, free))
 
-  for (const room of orphans) room.loop = []
+  for (const room of orphans) if (room.loop.length > 0) room.loop = []
 
   function pass(rooms: Record[], pick: (room: Record) => number | undefined): Record[] {
     const missed: Record[] = []
@@ -62,7 +62,8 @@ const same = (loop: readonly string[], walls: readonly string[]) =>
   loop.length === walls.length && new Set(walls).size === new Set([...loop, ...walls]).size
 
 function bind(draft: Draft<HouseDocument>, room: Record, face: Face): void {
-  room.loop = [...face.walls]
+  if (room.loop.length !== face.walls.length || room.loop.some((wall, i) => wall !== face.walls[i]))
+    room.loop = [...face.walls]
   const anchor = anchorInside(polygonOf(draft, face), face.area)
   room.x = anchor.x
   room.y = anchor.y

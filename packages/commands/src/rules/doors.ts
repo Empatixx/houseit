@@ -1,5 +1,6 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { layerOf } from '@houseit/core/object-types'
+import { openingsIn } from '@houseit/core/opening-parts'
 import { type Box, boxOf, clashes, clashesAny } from '@houseit/geometry/boxes'
 import type { Point } from '@houseit/geometry/outlines'
 import type { Room } from '@houseit/geometry/rooms'
@@ -17,7 +18,7 @@ export const doors: Rule = ({ doc, level, rooms }) => {
       const spot = room && standingAt(doc, level, room, object)
       return spot ? [{ object, room, boxes: piecesOf(spot, object).map(boxOf) }] : []
     })
-  const swings = Object.values(doc.openings)
+  const swings = openingsIn(doc)
     .filter((opening) => opening.kind === 'door' && doc.walls[opening.wall]?.level === level)
     .flatMap((opening) => {
       const box = swingOf(doc, opening)

@@ -1,3 +1,4 @@
+import { getPlan } from '@houseit/commands/get-plan'
 import { updateObject } from '@houseit/commands/update-object'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { expect, test } from 'vitest'
@@ -61,6 +62,34 @@ test('a new command after undo drops what could have been redone', () => {
   expect(roomCount(store)).toBe(2)
 })
 
+test.each(['whole plan', 'one room', 'typed query'])(
+  'reading %s preserves the document and undo/redo history',
+  (query) => {
+    const store = createDocumentStore()
+    store.getState().exec(floor)
+    store.getState().exec(kitchen)
+    const partitioned = store.getState().doc
+    store.getState().undo()
+    const before = store.getState()
+
+    const touched =
+      query === 'typed query'
+        ? store.getState().apply(getPlan, { room: 'dům' })
+        : store.getState().exec(query === 'one room' ? 'get-plan --room dům' : 'get-plan')
+
+    expect(touched.shown).toEqual(Object.keys(before.doc.rooms))
+    expect(store.getState()).toBe(before)
+    expect(store.getState().canRedo).toBe(true)
+
+    store.getState().redo()
+    expect(store.getState().doc).toEqual(partitioned)
+    store.getState().undo()
+    expect(store.getState().doc).toEqual(before.doc)
+    store.getState().undo()
+    expect(roomCount(store)).toBe(0)
+  },
+)
+
 test('undo on a fresh document is a no-op rather than an error', () => {
   const store = createDocumentStore()
 
@@ -107,4 +136,31 @@ test('apply is checked by the same schema as the words are', () => {
   )
   expect(store.getState().canUndo).toBe(true)
   expect(store.getState().past).toHaveLength(1)
+})
+
+test('reading a furnished plan preserves wall edit undo and redo history', () => {
+  const store = createDocumentStore()
+  store
+    .getState()
+    .exec(`${floor}\nadd-object --room dům --type coffee-table --along 0.5 --across 0.5`)
+  const wall = store
+    .getState()
+    .exec('add-wall --from \'{"x":14000,"y":2000}\' --to \'{"x":16000,"y":2000}\'').changed[0]!
+  const before = store.getState().doc
+  store.getState().exec(`update-wall --id ${wall} --length 2500`)
+  const edited = store.getState().doc
+  const history = store.getState().past
+
+  store.getState().exec('get-plan')
+  expect(store.getState().doc).toBe(edited)
+  expect(store.getState().past).toBe(history)
+  store.getState().undo()
+  expect(store.getState().doc).toEqual(before)
+
+  const future = store.getState().future
+  store.getState().exec('get-plan --room dům')
+  expect(store.getState().future).toBe(future)
+  expect(store.getState().canRedo).toBe(true)
+  store.getState().redo()
+  expect(store.getState().doc).toEqual(edited)
 })

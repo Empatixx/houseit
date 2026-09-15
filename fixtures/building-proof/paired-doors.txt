@@ -1,0 +1,5 @@
+update-level --name Main --height 3300
+add-room --name Hall --shape rectangle --width 12m --depth 6m --material ceramic-tile
+add-room --name Store --from Hall --side east --width 6m --material ceramic-tile
+add-opening --room Hall --kind door --side east --width 1600 --leaf-width 900 --height 2050 --hinge right
+add-opening --room Store --kind door --side south --width 1600 --leaf-width 900 --height 2050 --hinge left --opens-into outside

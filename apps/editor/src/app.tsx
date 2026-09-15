@@ -1,6 +1,7 @@
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useEditKeys } from './edit/use-edit-keys'
+import { EngineProvider } from './engine/provider'
 import { PlanScene } from './scene/plan-scene'
 import { WalkScene } from './scene/walk/walk-scene'
 import { useMode } from './store/mode'
@@ -22,24 +23,26 @@ export function App() {
   const panel = usePanelShown()
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <SidebarProvider
-        open={panel}
-        onOpenChange={(open) => shellStore.getState().showPanel(open)}
-        className="h-dvh min-h-0 bg-muted p-3"
-      >
-        <SidebarInset className="relative min-h-0 overflow-hidden rounded-2xl border bg-background shadow-sm">
-          {mode === '2d' ? <PlanScene /> : <WalkScene />}
-          <TopOverlay />
-          <ModeTabs />
-          {mode === '2d' ? <BottomBar /> : <WalkHint />}
-          <Inspector />
-          <Rail />
-          <RailPanel />
-          <ProjectChip />
-          <StoreyStack />
-        </SidebarInset>
-      </SidebarProvider>
-    </TooltipProvider>
+    <EngineProvider>
+      <TooltipProvider delayDuration={0}>
+        <SidebarProvider
+          open={panel}
+          onOpenChange={(open) => shellStore.getState().showPanel(open)}
+          className="h-dvh min-h-0 bg-muted p-3"
+        >
+          <SidebarInset className="relative min-h-0 overflow-hidden rounded-2xl border bg-background shadow-sm">
+            {mode === '2d' ? <PlanScene /> : <WalkScene />}
+            <TopOverlay />
+            <ModeTabs />
+            {mode === '2d' ? <BottomBar /> : <WalkHint />}
+            <Inspector />
+            <Rail />
+            <RailPanel />
+            <ProjectChip />
+            <StoreyStack />
+          </SidebarInset>
+        </SidebarProvider>
+      </TooltipProvider>
+    </EngineProvider>
   )
 }

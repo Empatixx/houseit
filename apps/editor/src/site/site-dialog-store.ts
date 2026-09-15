@@ -1,4 +1,4 @@
-import type { Site } from '@houseit/core/document'
+import type { Site } from '@houseit/core/parcel-site'
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
 

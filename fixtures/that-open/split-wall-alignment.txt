@@ -1,0 +1,14 @@
+add-wall --from '{"x":0,"y":0}' --to '{"x":12000,"y":0}' --thickness 300
+add-wall --from '{"x":12000,"y":0}' --to '{"x":12000,"y":8151}' --thickness 300
+add-wall --from '{"x":12000,"y":8151}' --to '{"x":6500,"y":8151}' --thickness 300
+add-wall --from '{"x":6500,"y":8000}' --to '{"x":5000,"y":8000}' --thickness 300
+add-wall --from '{"x":5000,"y":8151}' --to '{"x":0,"y":8151}' --thickness 300
+add-wall --from '{"x":0,"y":8151}' --to '{"x":0,"y":0}' --thickness 300
+add-wall --from '{"x":5000,"y":0}' --to '{"x":5000,"y":8151}' --thickness 150
+add-wall --from '{"x":6500,"y":0}' --to '{"x":6500,"y":8151}' --thickness 150
+add-room --at '{"x":2500,"y":4000}' --name Living --material natural-oak
+add-room --at '{"x":5750,"y":4000}' --name Hall --material natural-oak
+add-room --at '{"x":9000,"y":4000}' --name Study --material natural-oak
+add-opening --room Living --side east --kind door --width 900 --along 0.25
+add-opening --room Living --side north --kind window --width 1200
+add-object --room Living --type coffee-table --along 0.4 --across 0.4

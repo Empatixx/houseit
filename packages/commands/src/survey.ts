@@ -2,6 +2,8 @@ import type { HouseDocument, HouseObject, Opening, Side, Wall } from '@houseit/c
 import { PARTS, type Part } from '@houseit/core/finishes'
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
 import { interiorSize, objectClearances, planExtent } from '@houseit/geometry/dimensions'
+import { type Enclosure, enclosureOf, enclosuresOf } from '@houseit/geometry/enclosure'
+import { openingRecesses } from '@houseit/geometry/opening-recesses'
 import type { Point } from '@houseit/geometry/outlines'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import {
@@ -17,6 +19,9 @@ import {
 import { freeSpans } from '@houseit/geometry/spans'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { wellsInRoom } from '@houseit/geometry/wells'
+import { hasDoor, opensIntoOf } from './opening-direction'
+import { handOf } from './opening-hinge'
+import { pocketDirection } from './pocket-door'
 import { order } from './resolve'
 
 export type WallReport = {
@@ -24,6 +29,9 @@ export type WallReport = {
   side: Side
   nth?: number
   length: number
+  thickness: number
+  exterior?: Wall['exterior']
+  enclosure?: Exclude<Enclosure, 'wall'>
 }
 
 export type OpeningReport = {
@@ -34,7 +42,13 @@ export type OpeningReport = {
   along: number
   width: number
   height: number
+  panels?: Opening['panels']
+  leafWidth?: number
+  slideTowards?: Side
+  frame?: Opening['frame']
   variant?: Opening['variant']
+  hinge?: 'left' | 'right'
+  opensInto?: string
   sill?: number
   to?: string
 }
@@ -90,6 +104,7 @@ export type RoomReport = {
   name?: string
   kind?: string
   areaM2: number
+  recesses?: { opening: string; areaM2: number; outline: Point[] }[]
   width: number
   depth: number
   box: { x0: number; y0: number; x1: number; y1: number }
@@ -98,6 +113,7 @@ export type RoomReport = {
   finishes?: Partial<Record<Part, string>>
   neighbours: string[]
   walls: WallReport[]
+  partitions?: { id: string; from: Point; to: Point; thickness: number; height: number }[]
   sides: SideReport[]
   wells?: {
     object: string
@@ -137,6 +153,7 @@ export function surveyRoom(
   const xs = corners.map((corner) => corner.x)
   const ys = corners.map((corner) => corner.y)
   const walls = boundaryWallsOf(doc, level, room)
+  const enclosures = enclosuresOf(doc, level, rooms)
   const walled = new Set(walls.map((wall) => wall.id))
   const found = Object.values(doc.openings)
     .filter((opening) => walled.has(opening.wall))
@@ -156,7 +173,17 @@ export function surveyRoom(
       along: alongSide(doc, level, room, side, wall, opening.t),
       width: opening.width,
       height: opening.height,
-      ...(opening.kind === 'door'
+      ...(opening.panels ? { panels: opening.panels } : {}),
+      ...(opening.leafWidth !== undefined ? { leafWidth: opening.leafWidth } : {}),
+      ...(opening.variant === 'pocket' ? { slideTowards: pocketDirection(doc, opening) } : {}),
+      ...(opening.frame ? { frame: opening.frame } : {}),
+      ...(hasDoor(opening) && opening.variant === 'hinged'
+        ? {
+            hinge: handOf(opening),
+            opensInto: opensIntoOf(doc, rooms, opening),
+          }
+        : {}),
+      ...(opening.kind === 'door' || opening.panels?.some((p) => p.kind === 'door')
         ? { variant: opening.variant, to: across ? (across.name ?? '(unnamed)') : 'outside' }
         : { sill: opening.sillHeight }),
     })
@@ -168,28 +195,58 @@ export function surveyRoom(
     .filter((name) => name !== undefined)
 
   const objects = objectsIn(doc, level, room)
+  const recesses = openingRecesses(doc, level).filter((r) => walled.has(r.wall))
 
   return {
     ...(room.id === undefined ? {} : { id: room.id }),
     ...(room.name === undefined ? {} : { name: room.name }),
     ...(room.kind === undefined ? {} : { kind: room.kind }),
     areaM2: Math.round(room.clear / 10_000) / 100,
+    ...(recesses.length
+      ? {
+          recesses: recesses.map((r) => ({
+            opening: r.opening,
+            areaM2: r.area / 1_000_000,
+            outline: r.outline,
+          })),
+        }
+      : {}),
     ...interiorSize(doc, level, room),
     box: { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) },
     ...(room.floor === undefined ? {} : { floor: room.floor }),
     ...dressingOf(room.id === undefined ? undefined : doc.rooms[room.id]),
     neighbours,
+    ...(room.partitions.length
+      ? {
+          partitions: room.partitions.map((id) => {
+            const wall = doc.walls[id]!,
+              a = doc.nodes[wall.a]!,
+              b = doc.nodes[wall.b]!
+            return {
+              id,
+              from: { x: a.x, y: a.y },
+              to: { x: b.x, y: b.y },
+              thickness: wall.thickness,
+              height: wall.height,
+            }
+          }),
+        }
+      : {}),
     walls: walls.flatMap((wall) => {
       const place = runOfWall(doc, level, room, wall.id)
       const a = doc.nodes[wall.a]
       const b = doc.nodes[wall.b]
       if (!place || !a || !b) return []
+      const enclosure = enclosureOf(enclosures, wall.id)
       return [
         {
           id: wall.id,
           side: place.side,
           ...(place.of > 1 ? { nth: place.nth } : {}),
           length: Math.round(Math.hypot(b.x - a.x, b.y - a.y)),
+          thickness: wall.thickness,
+          ...(wall.exterior ? { exterior: wall.exterior } : {}),
+          ...(enclosure === 'wall' ? {} : { enclosure }),
         },
       ]
     }),

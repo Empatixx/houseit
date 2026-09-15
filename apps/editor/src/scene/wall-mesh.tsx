@@ -1,23 +1,28 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
+import { geometryEntityKey, openingCategory } from '@houseit/core/entity-key'
+import type { Enclosure } from '@houseit/geometry/enclosure'
 import type { Point } from '@houseit/geometry/outlines'
+import { wallCaps } from '@houseit/geometry/wall-caps'
+import { elementId, wallElement } from '@houseit/geometry/wall-elements'
 import { INK, planPieces, type WallPiece } from '@houseit/scene/wall-pieces'
-import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
-import { useMemo, useRef, useState } from 'react'
-import type { Group, OrthographicCamera } from 'three'
+import { type ThreeElements, type ThreeEvent, useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { BoxGeometry, type Group, Matrix4, MeshBasicMaterial, type OrthographicCamera } from 'three'
 import { aimAt, putDown } from '../edit/draw-commands'
 import { moveOpeningTo } from '../edit/opening-commands'
 import { pick } from '../edit/pick'
 import { endPreview } from '../edit/preview'
-import {
-  moveWallBy,
-  previewStubResize,
-  previewWallMove,
-  resizeStub,
-  stubOf,
-} from '../edit/wall-commands'
+import { moveWallBy, previewWallMove, previewWallResize, resizeWall } from '../edit/wall-commands'
+import { alignWallShift } from '../edit/wall-move'
+import { NativeSurface } from '../engine/fragment-display-layer'
+import { activeTools } from '../engine/native-tools'
+import { useNativeGeometry, useWallGeometry } from '../engine/use-wall-geometry'
+import { wallBody } from '../engine/wall-body'
+import { engineViewStore } from '../store/engine-view'
 import { EMPHASIS, type Emphasis, hoverStore, useHover } from '../store/hover'
 import { usePreview } from '../store/preview'
 import { useSelection } from '../store/selection'
+import { documentStore } from '../store/store'
 import { toolStore, useTool } from '../store/tool'
 import { dragged, pointOnPlan, pointUnder } from './drag'
 import { usePlain } from './plain'
@@ -25,27 +30,38 @@ import { MM, toWorld } from './plan-coordinates'
 
 type WallMeshProps = {
   wall: Wall
+  outside?: 1 | -1 | undefined
   doc: HouseDocument
-  degrees: Map<string, number>
+  enclosure: Enclosure
   ofPickedRoom: boolean
   pickedRoom?: string
 }
 
-export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallMeshProps) {
+export function WallMesh({
+  wall,
+  doc,
+  ofPickedRoom,
+  pickedRoom,
+  outside,
+  enclosure,
+}: WallMeshProps) {
+  const body = useMemo(() => wallBody(doc, wall, true), [doc, wall])
+  const geometry = useWallGeometry(body)
   const plainly = usePlain()
   const chosen = useSelection((state) => state.selected)
   const noticed = useHover((state) => state.hovered)
   const selected = plainly ? null : chosen
   const hovered = plainly ? null : noticed
   const carry = useCarry()
-  const [pull, setPull] = useState(0)
   const previewing = usePreview((state) => state.doc !== null)
   const drawing = useTool((state) => state.armed?.kind === 'wall')
   const a0 = doc.nodes[wall.a]
   const b0 = doc.nodes[wall.b]
 
-  const picked = selected?.kind === 'wall' && selected.id === wall.id
-  const stub = useMemo(() => (picked ? stubOf(wall) : undefined), [picked, wall])
+  const selectedWall = selected?.kind === 'wall' ? doc.walls[selected.id] : undefined
+  const picked =
+    selectedWall !== undefined &&
+    (selectedWall.element ?? selectedWall.id) === (wall.element ?? wall.id)
   if (!a0 || !b0) return null
 
   const span0 = Math.hypot(b0.x - a0.x, b0.y - a0.y)
@@ -59,22 +75,33 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallM
     const shift = held.shift.x * across.x + held.shift.y * across.y
     offset = { x: across.x * shift, y: across.y * shift }
   }
-  let a = { x: a0.x + offset.x, y: a0.y + offset.y }
-  let b = { x: b0.x + offset.x, y: b0.y + offset.y }
-  if (pull !== 0 && stub && !previewing) {
-    if (stub.stub.tip === wall.b) b = { x: b.x + unit.x * pull, y: b.y + unit.y * pull }
-    else a = { x: a.x - unit.x * pull, y: a.y - unit.y * pull }
-  }
+  const a = { x: a0.x + offset.x, y: a0.y + offset.y }
+  const b = { x: b0.x + offset.x, y: b0.y + offset.y }
 
   const dx = b.x - a.x
   const dy = b.y - a.y
   const span = Math.hypot(dx, dy)
-  const growA = (degrees.get(wall.a) ?? 0) > 1 ? wall.thickness / 2 : 0
-  const growB = (degrees.get(wall.b) ?? 0) > 1 ? wall.thickness / 2 : 0
+  const { growA, growB } = wallCaps(doc, wall)
   const length = span + growA + growB
 
   const openings = Object.values(doc.openings).filter((opening) => opening.wall === wall.id)
-  const pieces = planPieces(wall, openings, length, growA, span)
+  const pieces: WallPiece[] =
+    enclosure !== 'wall'
+      ? planPieces(wall, openings, length, growA, span, outside, enclosure)
+      : [
+          {
+            key: 'native-wall',
+            colour: INK.wall,
+            at: growA,
+            length: span,
+            thickness: wall.thickness,
+            base: 0,
+            height: 0,
+          },
+          ...planPieces(wall, openings, length, growA, span, outside, enclosure).filter(
+            (p) => !p.key.startsWith('outline-') && !p.key.startsWith('fill-'),
+          ),
+        ]
   const angle = Math.atan2(dy, dx)
 
   const wallEmphasis: Emphasis | undefined =
@@ -90,12 +117,24 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallM
     return wallEmphasis
   }
 
-  const tip = stub ? doc.nodes[stub.stub.tip] : undefined
-  const tipDirection = stub && stub.stub.tip === wall.b ? unit : { x: -unit.x, y: -unit.y }
+  const element = picked ? wallElement(doc, wall.id) : undefined
+  const freeEnds =
+    element && selectedWall?.id === wall.id
+      ? (['from', 'to'] as const).filter(
+          (end) =>
+            !Object.values(doc.walls).some(
+              (other) =>
+                elementId(other) !== element.id &&
+                (other.a === element[end].id || other.b === element[end].id),
+            ),
+        )
+      : []
 
   return (
     <>
       {pieces.map((piece) => {
+        const native = piece.key === 'native-wall'
+        if (native && !geometry) return null
         const heldOpening = piece.opening !== undefined && held?.id === piece.opening
         const slide = heldOpening ? held!.shift.x * unit.x + held!.shift.y * unit.y : 0
         const travelled = piece.at - growA + slide
@@ -110,8 +149,25 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallM
         const emphasis = emphasisOf(piece.opening)
 
         return (
-          <mesh
+          <WallPart
             key={piece.key}
+            native={native}
+            wallId={wall.id}
+            entity={`elements:${elementId(wall)}`}
+            length={body.length}
+            height={body.height}
+            colour={tinted(piece, emphasis)}
+            hidden={piece.hidden}
+            opening={opening ? { id: opening.id, kind: opening.kind } : undefined}
+            piece={piece}
+            gesture={heldOpening && (held!.shift.x !== 0 || held!.shift.y !== 0)}
+            userData={{
+              houseit: opening
+                ? { kind: 'opening', id: opening.id }
+                : { kind: 'wall', id: wall.id },
+              houseitHelper: !!piece.hidden,
+            }}
+            geometry={native ? geometry! : undefined}
             position={toWorld(x, y, base + piece.height / 2)}
             rotation={[0, angle + (piece.turn ?? 0), 0]}
             onPointerOver={(event) => {
@@ -133,7 +189,26 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallM
               pick(opening ? { kind: 'opening', id: opening.id } : { kind: 'wall', id: wall.id })
             }}
             onPointerDown={(event) => {
-              if (toolStore.getState().armed?.kind === 'wall' || !opening) return
+              if (
+                engineViewStore.getState().measure !== 'none' ||
+                toolStore.getState().armed ||
+                event.button !== 0
+              )
+                return
+              if (!opening) {
+                pick({ kind: 'wall', id: wall.id })
+                carry.down(
+                  event,
+                  wall.id,
+                  (carried) => {
+                    endPreview()
+                    if (carried) moveWallBy(wall, carried.shift)
+                  },
+                  (carried) => previewWallMove(wall, carried.shift),
+                )
+                return
+              }
+              pick({ kind: 'opening', id: opening.id })
               carry.down(event, opening.id, (carried) => {
                 if (!carried || !centre) return
                 moveOpeningTo(opening, {
@@ -147,80 +222,56 @@ export function WallMesh({ wall, doc, degrees, ofPickedRoom, pickedRoom }: WallM
                 aimAt({ x: event.point.x / MM, y: -event.point.z / MM })
               }
             }}
-          >
-            <boxGeometry args={[piece.length * MM, piece.height * MM, piece.thickness * MM]} />
-            <meshBasicMaterial
-              color={tinted(piece, emphasis)}
-              transparent={piece.hidden}
-              opacity={piece.hidden ? 0 : 1}
-              depthWrite={!piece.hidden}
-            />
-          </mesh>
+          />
         )
       })}
 
-      {ofPickedRoom && !drawing ? (
+      {((picked && selectedWall?.id === wall.id) || ofPickedRoom) && !drawing ? (
         <Knob
           at={{ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }}
-          height={wall.height + 60}
+          height={wall.baseOffset + wall.height + 60}
           onDown={(event) =>
             carry.down(
               event,
               wall.id,
               (carried) => {
                 endPreview()
-                if (carried) moveWallBy(wall, carried.shift, pickedRoom)
+                if (carried) moveWallBy(wall, carried.shift, ofPickedRoom ? pickedRoom : undefined)
               },
-              (carried) => previewWallMove(wall, carried.shift, pickedRoom),
+              (carried) =>
+                previewWallMove(wall, carried.shift, ofPickedRoom ? pickedRoom : undefined),
             )
           }
         />
       ) : null}
 
-      {picked && stub && tip ? (
-        <mesh
-          position={toWorld(
-            tip.x + tipDirection.x * pull,
-            tip.y + tipDirection.y * pull,
-            wall.height + 60,
-          )}
-          onPointerDown={(event) => {
-            if (event.button !== 0) return
-            event.stopPropagation()
-            ;(event.target as Element).setPointerCapture(event.pointerId)
-            carry.hold()
-            const from = pointOnPlan(event.ray)
-            if (from) pullStart.current = from
-          }}
-          onPointerMove={(event) => {
-            const from = pullStart.current
-            if (!from) return
-            const now = pointOnPlan(event.ray)
-            if (!now) return
-            const pulled = (now.x - from.x) * tipDirection.x + (now.y - from.y) * tipDirection.y
-            setPull(pulled)
-            previewStubResize(wall, stub.stub.length + pulled)
-          }}
-          onPointerUp={(event) => {
-            if (!pullStart.current) return
-            ;(event.target as Element).releasePointerCapture(event.pointerId)
-            pullStart.current = null
-            carry.release()
-            const change = pull
-            setPull(0)
-            endPreview()
-            if (Math.abs(change) >= 30) resizeStub(wall, stub.stub.length + change)
-          }}
-        >
-          <boxGeometry args={[0.22, 0.05, 0.22]} />
-          <meshBasicMaterial color={EMPHASIS.picked.line} />
-        </mesh>
-      ) : null}
+      {element && !drawing
+        ? freeEnds.map((end) => (
+            <Knob
+              key={end}
+              at={element[end]}
+              height={wall.baseOffset + wall.height + 60}
+              square
+              onDown={(event) => {
+                const direction = end === 'to' ? 1 : -1
+                const lengthAt = (shift: Point) =>
+                  element.length + direction * (shift.x * element.unit.x + shift.y * element.unit.y)
+                carry.down(
+                  event,
+                  wall.id,
+                  (carried) => {
+                    endPreview()
+                    if (carried) resizeWall(wall, end, lengthAt(carried.shift))
+                  },
+                  (carried) => previewWallResize(wall, end, lengthAt(carried.shift)),
+                )
+              }}
+            />
+          ))
+        : null}
     </>
   )
 }
-
-const pullStart: { current: Point | null } = { current: null }
 
 const KNOB = 7
 
@@ -228,9 +279,10 @@ type KnobProps = {
   at: Point
   height: number
   onDown: (event: ThreeEvent<PointerEvent>) => void
+  square?: boolean
 }
 
-function Knob({ at, height, onDown }: KnobProps) {
+function Knob({ at, height, onDown, square = false }: KnobProps) {
   const group = useRef<Group>(null)
   useFrame(({ camera }) => {
     group.current?.scale.setScalar(KNOB / (camera as OrthographicCamera).zoom)
@@ -244,12 +296,12 @@ function Knob({ at, height, onDown }: KnobProps) {
       onClick={(event) => event.stopPropagation()}
     >
       <mesh>
-        <circleGeometry args={[1, 24]} />
-        <meshBasicMaterial color={INK.outline} />
+        {square ? <planeGeometry args={[1.6, 1.6]} /> : <circleGeometry args={[1, 24]} />}
+        <meshBasicMaterial color={INK.outline} depthTest={false} />
       </mesh>
       <mesh position={[0, 0, 0.1]}>
-        <circleGeometry args={[0.72, 24]} />
-        <meshBasicMaterial color="#ffffff" />
+        {square ? <planeGeometry args={[1.1, 1.1]} /> : <circleGeometry args={[0.72, 24]} />}
+        <meshBasicMaterial color="#ffffff" depthTest={false} />
       </mesh>
     </group>
   )
@@ -274,13 +326,15 @@ function useCarry() {
 
   const letGo = useRef<(() => void) | null>(null)
 
+  useEffect(() => () => letGo.current?.(), [])
+
   const down = (
     event: ThreeEvent<PointerEvent>,
     id: string,
     end?: (carried: { from: Point; shift: Point } | undefined) => void,
     onward?: (carried: Held) => void,
   ) => {
-    if (event.button !== 0) return
+    if (event.button !== 0 || engineViewStore.getState().measure !== 'none') return
     const from = pointOnPlan(event.ray)
     if (!from) return
     event.stopPropagation()
@@ -289,26 +343,54 @@ function useCarry() {
     setHeld(live.current)
     if (controls) controls.enabled = false
 
+    let pending = Promise.resolve()
+    let sequence = 0
     const follow = (native: PointerEvent) => {
+      const request = ++sequence
       const carried = live.current
       if (!carried) return
       const now = pointUnder(native, canvas, camera)
       if (!now) return
-      live.current = { ...carried, shift: { x: now.x - carried.from.x, y: now.y - carried.from.y } }
-      setHeld(live.current)
-      onward?.(live.current)
+      const publish = (point: Point) => {
+        let shift = { x: point.x - carried.from.x, y: point.y - carried.from.y }
+        const doc = documentStore.getState().doc,
+          wall = doc.walls[id]
+        if (wall && engineViewStore.getState().snap && 'isOrthographicCamera' in camera) {
+          const ortho = camera as OrthographicCamera
+          const tolerance =
+            (6 * (ortho.top - ortho.bottom)) / (ortho.zoom * canvas.clientHeight * MM)
+          shift = alignWallShift(doc, wall, shift, tolerance)
+        }
+        live.current = {
+          ...carried,
+          shift,
+        }
+        setHeld(live.current)
+        onward?.(live.current)
+      }
+      publish(now)
+      pending = (async () => {
+        const snap = await activeTools?.snapPoint(now, {
+          kind: documentStore.getState().doc.openings[id] ? 'opening' : 'wall',
+          id,
+        })
+        if (snap && request === sequence && live.current) publish(snap)
+      })()
     }
-    const done = () => {
+    const done = async (native: PointerEvent) => {
       forget()
+      await pending
       const carried = live.current
       if (!carried) return
-      end?.(dropped(carried))
+      const moved = dropped(carried)
+      end?.(native.type === 'pointercancel' ? undefined : moved)
     }
     const forget = () => {
       window.removeEventListener('pointermove', follow)
       window.removeEventListener('pointerup', done)
       window.removeEventListener('pointercancel', done)
       letGo.current = null
+      if (controls) controls.enabled = true
     }
     letGo.current = forget
     window.addEventListener('pointermove', follow)
@@ -324,12 +406,105 @@ function useCarry() {
     return { from: carried.from, shift: carried.shift }
   }
 
-  const hold = () => {
-    if (controls) controls.enabled = false
-  }
-  const release = () => {
-    if (controls) controls.enabled = true
-  }
+  return { held, down }
+}
 
-  return { held, down, hold, release }
+function WallPart({
+  native,
+  wallId,
+  entity,
+  length,
+  height,
+  colour,
+  hidden,
+  opening,
+  piece,
+  gesture,
+  ...props
+}: ThreeElements['mesh'] & {
+  native: boolean
+  wallId: string
+  entity: string
+  length: number
+  height: number
+  colour: string
+  hidden?: boolean
+  opening?: { id: string; kind: 'door' | 'window' | 'assembly' }
+  piece: WallPiece
+  gesture: boolean
+}) {
+  const materials = useMemo(
+    () => [
+      new MeshBasicMaterial({
+        color: colour,
+        transparent: !!hidden,
+        opacity: hidden ? 0 : 1,
+        depthWrite: !hidden,
+      }),
+    ],
+    [colour, hidden],
+  )
+  const generated = useNativeGeometry(
+    !native && !hidden
+      ? {
+          kind: 'primitive',
+          body: { kind: 'box', width: piece.length, height: piece.height, depth: piece.thickness },
+        }
+      : null,
+  )
+  const box = useMemo(
+    () =>
+      native || !hidden
+        ? undefined
+        : new BoxGeometry(piece.length * MM, piece.height * MM, piece.thickness * MM),
+    [native, hidden, piece.length, piece.height, piece.thickness],
+  )
+  useEffect(() => () => box?.dispose(), [box])
+  useEffect(
+    () => () => {
+      for (const material of materials) material.dispose()
+    },
+    [materials],
+  )
+  if (!native && hidden) return <mesh {...props} geometry={box} material={materials[0]} />
+  const geometry = native ? props.geometry : generated.geometry
+  if (!geometry) return null
+  const position = props.position as [number, number, number]
+  const angle = (props.rotation as [number, number, number])[1]
+  return (
+    <NativeSurface
+      gesture={gesture}
+      surface={{
+        id: native
+          ? `wall:${wallId}`
+          : `${opening ? 'opening' : 'wall-part'}:${wallId}:${piece.key}`,
+        entity: native
+          ? entity
+          : opening
+            ? geometryEntityKey(openingCategory(opening.kind), `openings:${opening.id}`)
+            : geometryEntityKey('IFCCOVERING', `walls:${wallId}`),
+        owner:
+          native || !opening ? { kind: 'wall', id: wallId } : { kind: 'opening', id: opening.id },
+        category: native
+          ? 'HOUSEITWALLSEGMENT'
+          : opening
+            ? { door: 'IFCDOOR', window: 'IFCWINDOW', assembly: 'IFCBUILDINGELEMENTPROXY' }[
+                opening.kind
+              ]
+            : 'IFCCOVERING',
+        geometry,
+        geometryKey: native ? undefined : generated.key,
+        materials,
+        transform: new Matrix4().makeRotationY(angle).setPosition(...position),
+        mapping: native ? { kind: 'wall', length, height } : { kind: 'source', geometry },
+        casts: native,
+        receives: native,
+      }}
+      onClick={props.onClick}
+      onPointerDown={props.onPointerDown}
+      onPointerMove={props.onPointerMove}
+      onPointerOver={props.onPointerOver}
+      onPointerOut={props.onPointerOut}
+    />
+  )
 }

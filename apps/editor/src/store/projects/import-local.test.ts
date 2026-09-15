@@ -1,6 +1,6 @@
 import { createEmptyDocument } from '@houseit/core/document'
 import { IDBFactory as FakeIndexedDb } from 'fake-indexeddb'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { openProjects } from './db'
 import { importLocalPlan, LEGACY_KEY } from './import-local'
 
@@ -101,4 +101,20 @@ test('storage the browser will not let us touch is not an error', async () => {
 
   await expect(importLocalPlan(db, sealed())).resolves.toBeUndefined()
   await expect(importLocalPlan(db, undefined)).resolves.toBeUndefined()
+})
+
+test('a failed import keeps the legacy document and succeeds on retry', async () => {
+  const db = await fresh()
+  const store = fake()
+  const doc = createEmptyDocument()
+  store.setItem(LEGACY_KEY, JSON.stringify(doc))
+  const write = vi.fn(db.write).mockRejectedValueOnce(new Error('Storage is full'))
+
+  await expect(importLocalPlan({ ...db, write }, store)).rejects.toThrow('Storage is full')
+
+  expect(store.getItem(LEGACY_KEY)).not.toBeNull()
+  expect(await db.list()).toEqual([])
+  await importLocalPlan({ ...db, write }, store)
+  expect(await db.read('my-plan')).toEqual(doc)
+  expect(store.getItem(LEGACY_KEY)).toBeNull()
 })

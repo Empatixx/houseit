@@ -1,4 +1,5 @@
-import { createEmptyDocument, type Site } from '@houseit/core/document'
+import { createEmptyDocument } from '@houseit/core/document'
+import type { Site } from '@houseit/core/parcel-site'
 import { expect, test } from 'vitest'
 import { createSiteDialogStore } from './site-dialog-store'
 
@@ -25,5 +26,5 @@ test('closing the picker drops pending state without touching a document', () =>
 
   expect(store.getState().request).toBeNull()
   expect(store.getState().pending).toBeNull()
-  expect(doc.site).toBeUndefined()
+  expect(doc.parcelSite).toBeUndefined()
 })

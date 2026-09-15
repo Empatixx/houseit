@@ -1,7 +1,7 @@
 import { HomeIcon, XIcon } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useProjects } from '../store/projects/projects'
+import { projectsStore, useProjects } from '../store/projects/projects'
 import { GAP, useLeftEdge } from './edges'
 import { useCover } from './use-cover'
 
@@ -24,7 +24,13 @@ export function ProjectChip() {
           <button
             type="button"
             aria-label={`Close ${open.name}`}
-            onClick={() => navigate('/')}
+            onClick={() => {
+              void projectsStore
+                .getState()
+                .closeProject()
+                .then(() => navigate('/'))
+                .catch(() => undefined)
+            }}
             className="group/chip flex h-10 max-w-64 items-center gap-2 rounded-xl px-3 text-sm font-medium focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             <HomeIcon className="size-4 shrink-0 text-muted-foreground group-hover/chip:hidden group-focus-visible/chip:hidden" />

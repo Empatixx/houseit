@@ -1,6 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { layerOf, objectType } from '@houseit/core/object-types'
 import { boxOf, clashesAny, INSIDE_A_WALL, wallBox } from '@houseit/geometry/boxes'
+import { shaftOutside, shaftsOn } from '@houseit/geometry/connections'
 import { fitsInside } from '@houseit/geometry/fits'
 import type { Room } from '@houseit/geometry/rooms'
 import { footprintOf, piecesOf, reachOf, standingAt, turnOf } from '@houseit/geometry/standing'
@@ -71,6 +72,21 @@ export function standingProblem(
       )
     })
   if (buried) return 'it would stand in a wall'
+  const column = (doc.levels[level]?.columns ?? []).find((c) =>
+    clashesAny(boxes, [
+      {
+        x0: c.x - c.width / 2,
+        y0: c.y - c.depth / 2,
+        x1: c.x + c.width / 2,
+        y1: c.y + c.depth / 2,
+      },
+    ]),
+  )
+  if (column) return `it would stand in structural column ${column.id}`
+  const shaft = shaftsOn(doc, level).find(
+    (s) => s.enclosure && clashesAny(boxes, [boxOf(shaftOutside(s))]),
+  )
+  if (shaft) return `it would stand in lift shaft ${shaft.id}`
 
   const layer = layerOf(shape.type)
   const inTheWay = Object.values(doc.objects)

@@ -29,5 +29,7 @@ export function flightOf(height: number): { risers: number; riser: number; going
 }
 
 export const SLAB = 250
+export const soffitOf = (level: Level): number =>
+  level.clearHeight ?? level.height - (level.slabThickness ?? SLAB)
 
 export const HEADROOM = 2100

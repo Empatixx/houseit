@@ -1,10 +1,13 @@
+import { pieceIdentity } from '@houseit/scene/piece-identity'
 import type { Owner, Piece } from '@houseit/scene/pieces'
 import { worldOf } from '@houseit/scene/world'
 import { useMemo } from 'react'
 import { pick } from '../../edit/pick'
+import { EngineWalls } from '../../engine/walls'
 import { EMPHASIS } from '../../store/hover'
 import { type Selection, useSelection } from '../../store/selection'
 import { usePlanDoc } from '../../store/store'
+import { useWalk } from '../../store/walk'
 import { dragged } from '../drag'
 import { MM } from '../plan-coordinates'
 import { StandingPiece } from './piece'
@@ -13,11 +16,20 @@ const FLOOR_PICKED = '#9db9ff'
 
 export function House({ picking = true }: { picking?: boolean }) {
   const doc = usePlanDoc()
+  const site = useWalk((s) => s.inspection?.site !== false)
   const selected = useSelection((state) => state.selected)
   const world = useMemo(() => worldOf(doc), [doc])
 
   return (
     <>
+      {site &&
+        world.site.map((piece) => (
+          <StandingPiece
+            key={piece.name}
+            piece={piece}
+            native={{ id: `site:${piece.name}`, elevation: 0, ...pieceIdentity(piece, doc) }}
+          />
+        ))}
       {world.storeys.map((storey) => (
         <group key={storey.level} position={[0, storey.elevation * MM, 0]}>
           {storey.lights.map((light) => (
@@ -33,14 +45,22 @@ export function House({ picking = true }: { picking?: boolean }) {
               shadow-bias={-0.002}
             />
           ))}
-          {storey.pieces.map((piece) => (
-            <StandingPiece
-              key={piece.name}
-              piece={piece}
-              tint={picking ? tintOf(piece, selected) : undefined}
-              onPick={picking ? picker(piece.of) : undefined}
-            />
-          ))}
+          <EngineWalls doc={doc} level={storey.level} picking={picking} />
+          {storey.pieces
+            .filter((piece) => piece.role !== 'wall-solid')
+            .map((piece) => (
+              <StandingPiece
+                key={piece.name}
+                piece={piece}
+                native={{
+                  id: `${storey.level}:${piece.name}`,
+                  elevation: storey.elevation,
+                  ...pieceIdentity(piece, doc, storey.level),
+                }}
+                tint={picking ? tintOf(piece, selected) : undefined}
+                onPick={picking ? picker(piece.of) : undefined}
+              />
+            ))}
         </group>
       ))}
     </>

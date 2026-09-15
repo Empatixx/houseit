@@ -5,7 +5,7 @@ import { boundaryWallsOf } from '@houseit/geometry/boundary'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { SIDES } from '@houseit/geometry/sides'
 import { expect, test } from 'vitest'
-import { wallMoveArgsOf, wallNamedBy } from './wall-move'
+import { alignWallShift, wallMoveArgsOf, wallNamedBy } from './wall-move'
 
 const SHAPES: Record<string, string> = {
   rectangle: [
@@ -41,6 +41,19 @@ const everyWall = (doc: HouseDocument) => {
     .filter((room) => room.name)
     .flatMap((room) => boundaryWallsOf(doc, level, room).map((wall) => ({ room, wall, level })))
 }
+
+test('wall alignment preserves an exact millimetre target through the room command adapter', () => {
+  const initial = runScript(createEmptyDocument(), SHAPES.rectangle!)
+  const { room, wall, level } = everyWall(initial).find(({ wall }) =>
+    [initial.nodes[wall.a]!, initial.nodes[wall.b]!].every((p) => p.y === 8000),
+  )!
+  const doc = runScript(initial, `update-room --room ${room.id} --wall ${wall.id} --by -1263`)
+  const moved = doc.walls[wall.id]!
+  const shift = alignWallShift(doc, moved, { x: 0, y: -6732 }, 10)
+  expect(shift).toEqual({ x: 0, y: -6737 })
+  expect(Math.abs(wallMoveArgsOf(doc, level, moved, shift, room.id)!.by)).toBe(6737)
+  expect(alignWallShift(doc, moved, { x: 0, y: -6700 }, 10)).toEqual({ x: 0, y: -6700 })
+})
 
 test.each(Object.keys(SHAPES))(
   'in a %s plan every wall names the room whose handle was grabbed',

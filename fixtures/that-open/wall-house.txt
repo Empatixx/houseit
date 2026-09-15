@@ -1,0 +1,13 @@
+add-wall --from '{"x":0,"y":0}' --to '{"x":8000,"y":0}' --thickness 300
+add-wall --from '{"x":8000,"y":0}' --to '{"x":8000,"y":6000}' --thickness 300
+add-wall --from '{"x":8000,"y":6000}' --to '{"x":0,"y":6000}' --thickness 300
+add-wall --from '{"x":0,"y":6000}' --to '{"x":0,"y":0}' --thickness 300
+add-opening --wall w1 --kind door --along 1500 --width 1000 --towards left
+add-opening --wall w3 --kind window --along 1800 --width 1800
+add-opening --wall w2 --kind window --along 3000 --width 1800
+add-wall --from '{"x":3500,"y":0}' --to '{"x":3500,"y":6000}' --thickness 150
+add-opening --wall w7 --kind door --along 2500 --width 900
+update-wall --id w3 --by -400
+add-room --at '{"x":1500,"y":1500}' --name Vstup --material natural-oak
+add-room --at '{"x":5500,"y":3500}' --name Obyvak --material beech
+get-plan

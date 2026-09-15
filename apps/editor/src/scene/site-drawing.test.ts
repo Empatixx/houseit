@@ -1,4 +1,4 @@
-import type { Site } from '@houseit/core/document'
+import type { Site } from '@houseit/core/parcel-site'
 import { expect, test } from 'vitest'
 import { drawingOfSite } from './site-drawing'
 

@@ -1,3 +1,4 @@
+import { ExteriorSchema } from '@houseit/core/exterior'
 import {
   BATHROOM_KINDS,
   PARTS,
@@ -8,13 +9,20 @@ import {
 } from '@houseit/core/finishes'
 import { FLOOR_MATERIAL_IDS } from '@houseit/core/floor-materials'
 import { ROOM_KIND_IDS, roomKindOf } from '@houseit/core/room-kinds'
+import { boundaryWallsOf } from '@houseit/geometry/boundary'
+import { exteriorSides } from '@houseit/geometry/exterior'
 import { roomsOf } from '@houseit/geometry/rooms'
+import { wallsOnSide } from '@houseit/geometry/sides'
 import { z } from 'zod'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
+import { json } from './json-schema'
 import { length } from './length-schema'
+import { moveRoomBoundary } from './move-room-boundary'
 import { moveWall } from './move-wall'
-import { SIDE_NAMES, whereRoom } from './resolve'
+import { SIDE_NAMES, sideNamed, whereRoom } from './resolve'
+import { PartitionSchema, roomPartition } from './room-partition'
+import { ReturnSchema, roomReturn } from './room-return'
 
 const wearing = (part: Part) =>
   z
@@ -31,11 +39,14 @@ const wearing = (part: Part) =>
 
 export const updateRoom = defineCommand({
   name: 'update-room',
-  summary: `Change a room: its name, its kind (${ROOM_KIND_IDS.join(', ')}), its floor, its style (${STYLE_IDS.join(', ')}) or what its walls, ceiling, doors and windows are finished in (a named finish or a colour of your own as #rrggbb), or how big it is`,
+  summary: `Change a room: its name, its kind (${ROOM_KIND_IDS.join(', ')}), its floor, its style (${STYLE_IDS.join(', ')}) or what its walls, ceiling, doors and windows are finished in (a named finish or a colour of your own as #rrggbb), or how big it is. --exterior takes JSON {layers:[{name,thickness}],colour,base?:negative mm,bands:[{from,to,colour,along?:{from,to}}]} in mm above this storey; along is mm from the wall’s first node; --side or --wall limits it to that exterior boundary. --return takes JSON {points:[{x,y},...],thickness,height}: an open partition or low lining starting on this room’s wall centre line. --partition takes the same fields with two points for a straight partition with both ends free inside the room`,
   args: z.object({
     room: z.string().min(1),
     name: z.string().trim().min(1).optional(),
     kind: z.enum(ROOM_KIND_IDS as [string, ...string[]]).optional(),
+    exterior: json(ExteriorSchema).optional(),
+    return: json(ReturnSchema).optional(),
+    partition: json(PartitionSchema).optional(),
     material: z.enum(FLOOR_MATERIAL_IDS as [string, ...string[]]).optional(),
     style: z.enum(STYLE_IDS as [string, ...string[]]).optional(),
     walls: wearing('walls'),
@@ -54,6 +65,9 @@ export const updateRoom = defineCommand({
     if (
       args.name === undefined &&
       args.kind === undefined &&
+      args.exterior === undefined &&
+      args.return === undefined &&
+      args.partition === undefined &&
       args.material === undefined &&
       args.by === undefined &&
       !dressed
@@ -62,7 +76,11 @@ export const updateRoom = defineCommand({
         'update-room: say what to change — --name, --kind, --material, --style, --walls, --ceiling, --doors, --windows, or --side with --by',
       )
     }
-    if (args.by === undefined && (args.side !== undefined || args.wall !== undefined)) {
+    if (
+      args.by === undefined &&
+      args.exterior === undefined &&
+      (args.side !== undefined || args.wall !== undefined)
+    ) {
       throw new CommandError('update-room: say how far that side moves, with --by')
     }
     if (args.name !== undefined) {
@@ -75,15 +93,44 @@ export const updateRoom = defineCommand({
     const changed =
       args.by === undefined
         ? [room.id]
-        : (moveWall.apply(draft, {
-            room: args.room,
-            ...(args.side === undefined ? {} : { side: args.side }),
-            ...(args.wall === undefined ? {} : { wall: args.wall }),
-            by: args.by,
-            level,
-          })?.changed ?? [room.id])
+        : args.wall !== undefined
+          ? moveRoomBoundary(draft, room.id, args.wall, args.by).changed
+          : (moveWall.apply(draft, {
+              room: args.room,
+              ...(args.side === undefined ? {} : { side: args.side }),
+              ...(args.wall === undefined ? {} : { wall: args.wall }),
+              by: args.by,
+              level,
+            })?.changed ?? [room.id])
 
+    if (args.exterior !== undefined) {
+      const outside = exteriorSides(draft, level)
+      let boundary = boundaryWallsOf(draft, level, room)
+      if (args.side !== undefined || args.wall !== undefined) {
+        const selected = sideNamed(draft, level, room, args, 'update-room')
+        const ids = new Set(
+          selected.wall
+            ? [selected.wall]
+            : wallsOnSide(draft, level, room, selected.side, selected.nth).map((w) => w.wall),
+        )
+        boundary = boundary.filter((w) => ids.has(w.id))
+      }
+      const walls = boundary.filter((wall) => outside.has(wall.id))
+      if (walls.length === 0) throw new CommandError('update-room: this room has no exterior walls')
+      for (const wall of walls) {
+        if (
+          args.exterior.bands.some(
+            (band) => band.to > draft.levels[level]!.height - wall.baseOffset,
+          )
+        ) {
+          throw new CommandError('update-room: a façade band reaches above its wall')
+        }
+        draft.walls[wall.id]!.exterior = args.exterior
+      }
+    }
     const record = draft.rooms[room.id]!
+    if (args.return !== undefined) roomReturn(draft, level, room, args.return)
+    if (args.partition !== undefined) roomPartition(draft, level, room, args.partition)
     if (args.name !== undefined) record.name = args.name
     if (args.kind !== undefined) record.kind = args.kind
     const style = styleOf(args.style)

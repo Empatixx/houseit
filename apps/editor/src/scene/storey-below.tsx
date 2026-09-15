@@ -1,6 +1,9 @@
 import { levelBelow } from '@houseit/core/levels'
+import { elementId } from '@houseit/geometry/wall-elements'
 import { useMemo } from 'react'
+import { Matrix4 } from 'three'
 import { useDocument, usePlanDoc } from '../store/store'
+import { PlanBody } from './plan-body'
 import { MM } from './plan-coordinates'
 
 export function StoreyBelow() {
@@ -19,6 +22,7 @@ export function StoreyBelow() {
         return [
           {
             id: wall.id,
+            entity: `elements:${elementId(wall)}`,
             middle: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
             length: Math.hypot(b.x - a.x, b.y - a.y),
             thickness: wall.thickness,
@@ -31,14 +35,21 @@ export function StoreyBelow() {
   return (
     <>
       {walls.map((wall) => (
-        <mesh
+        <PlanBody
           key={wall.id}
-          position={[wall.middle.x * MM, 0.004, -wall.middle.y * MM]}
-          rotation={[0, wall.turn, 0]}
-        >
-          <boxGeometry args={[wall.thickness * MM, 0.001, wall.length * MM]} />
-          <meshBasicMaterial color="#0f172a" transparent opacity={0.12} depthWrite={false} />
-        </mesh>
+          id={`below:wall:${wall.id}`}
+          entity={wall.entity}
+          category="HOUSEITREFERENCE"
+          input={{
+            kind: 'primitive',
+            body: { kind: 'box', width: wall.thickness, height: 1, depth: wall.length },
+          }}
+          transform={new Matrix4()
+            .makeRotationY(wall.turn)
+            .setPosition(wall.middle.x * MM, 0.004, -wall.middle.y * MM)}
+          colour="#0f172a"
+          opacity={0.12}
+        />
       ))}
     </>
   )

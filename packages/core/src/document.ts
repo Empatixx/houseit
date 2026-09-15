@@ -1,10 +1,18 @@
 import { z } from 'zod'
 import { closes } from './closes'
+import { ColumnSchema } from './column'
+import { RampSchema, ShaftSchema } from './connections'
+import { ExteriorSchema } from './exterior'
 import { FINISH_IDS, isColour, STYLE_IDS } from './finishes'
 import { HostSchema } from './host'
+import { FrameSchema, PanelsSchema } from './opening-assembly'
+import { SiteSchema as ParcelSiteSchema } from './parcel-site'
+import { RoofSchema } from './roof'
 import { ROOM_KIND_IDS } from './room-kinds'
+import { SiteSchema } from './site'
+import { StairRunSchema } from './stair-flight'
 
-export const DOCUMENT_VERSION = 5
+export const DOCUMENT_VERSION = 6
 
 const mm = z.number().int()
 const id = z.string().min(1)
@@ -17,6 +25,13 @@ export const LevelSchema = z.object({
   id,
   name: z.string(),
   elevation: mm,
+  slabThickness: mm.positive().optional(),
+  clearHeight: mm.positive().optional(),
+  columns: z.array(ColumnSchema).optional(),
+  shafts: z.array(ShaftSchema).optional(),
+  ramps: z.array(RampSchema).optional(),
+  stairs: z.array(StairRunSchema).optional(),
+  roofs: z.array(RoofSchema).optional(),
   height: mm.positive(),
 })
 
@@ -24,26 +39,72 @@ export const NodeSchema = z.object({ id, x: mm, y: mm })
 
 export const WallSchema = z.object({
   id,
+  element: id.optional(),
   level: id,
   a: id,
   b: id,
   thickness: mm.positive(),
+  exterior: ExteriorSchema.optional(),
   baseOffset: mm,
   height: mm.positive(),
 })
 
-export const OpeningSchema = z.object({
-  id,
-  wall: id,
-  t: z.number().min(0).max(1),
-  kind: z.enum(['door', 'window']),
-  variant: z.enum(DOOR_VARIANTS).default('hinged'),
-  width: mm.positive(),
-  height: mm.positive(),
-  sillHeight: mm.nonnegative(),
-  hinge: z.enum(['a', 'b']).default('a'),
-  swing: z.union([z.literal(-1), z.literal(1)]).default(1),
-})
+export const OpeningSchema = z
+  .object({
+    id,
+    wall: id,
+    t: z.number().min(0).max(1),
+    kind: z.enum(['door', 'window', 'assembly']),
+    infill: z.enum(['glass', 'frosted', 'opaque']).optional(),
+    panels: PanelsSchema.optional(),
+    frame: FrameSchema.optional(),
+    variant: z.enum(DOOR_VARIANTS).default('hinged'),
+    width: mm.positive(),
+    height: mm.positive(),
+    sillHeight: mm.nonnegative(),
+    leafWidth: mm.positive().optional(),
+    slide: z.enum(['a', 'b']).optional(),
+    hinge: z.enum(['a', 'b']).default('a'),
+    swing: z.union([z.literal(-1), z.literal(1)]).default(1),
+  })
+  .superRefine((opening, ctx) => {
+    const fail = (message: string) => ctx.addIssue({ code: 'custom', message })
+    if (opening.slide !== undefined && (opening.kind !== 'door' || opening.variant !== 'pocket'))
+      fail('a slide direction belongs to a pocket door')
+    if (opening.leafWidth !== undefined) {
+      if (opening.kind !== 'door' || opening.variant !== 'hinged' || opening.frame)
+        fail('a paired leaf width belongs to a plain hinged door')
+      if (opening.leafWidth >= opening.width)
+        fail('the main leaf must leave positive width for the second leaf')
+    }
+    const checkLeaf = (width: number, height: number) => {
+      if (opening.frame && (width <= 4 * opening.frame.face || height <= 3 * opening.frame.face))
+        fail('the frame must leave positive glazing inside the door leaf')
+    }
+    if (opening.kind === 'door') checkLeaf(opening.width, opening.height)
+    if (opening.kind === 'assembly' && (!opening.panels || !opening.frame))
+      fail('an assembly needs panels and a frame')
+    if (opening.kind !== 'assembly' && opening.panels) fail('panels belong to an assembly')
+    if (!opening.panels) return
+    let area = 0
+    for (const [i, p] of opening.panels.entries()) {
+      if (p.kind === 'door') checkLeaf(p.width, p.height)
+      if (p.x + p.width > opening.width || p.z + p.height > opening.height)
+        fail('panel extends outside the opening')
+      if (p.kind === 'door' && p.z + opening.sillHeight !== 0)
+        fail('an assembly door must start at the floor')
+      area += p.width * p.height
+      for (const q of opening.panels.slice(i + 1))
+        if (
+          p.x < q.x + q.width &&
+          q.x < p.x + p.width &&
+          p.z < q.z + q.height &&
+          q.z < p.z + p.height
+        )
+          fail('assembly panels overlap')
+    }
+    if (area !== opening.width * opening.height) fail('panels must cover the opening exactly')
+  })
 
 const worn = z
   .string()
@@ -102,46 +163,11 @@ export const CircuitSchema = z.object({
   route: z.array(HostSchema).optional(),
 })
 
-export const PointMmSchema = z.object({ x: mm, y: mm })
-
-export const ParcelPolygonSchema = z.object({
-  outer: z.array(PointMmSchema).min(3),
-  holes: z.array(z.array(PointMmSchema).min(3)),
-})
-
-export const SiteSchema = z.object({
-  parcel: z.object({
-    id,
-    nationalReference: z.string().min(1),
-    number: z.string().min(1),
-    cadastralAreaCode: z.string().min(1),
-    cadastralAreaName: z.string().min(1),
-    areaM2: z.number().positive(),
-    polygons: z.array(ParcelPolygonSchema).min(1),
-  }),
-  source: z.object({
-    provider: z.literal('cuzk-inspire-cp'),
-    fetchedAt: z.iso.datetime(),
-    crs: z.literal('EPSG:5514'),
-    originXmm: mm,
-    originYmm: mm,
-    attributionYear: z.number().int().positive(),
-  }),
-  housePlacement: z.object({
-    xMm: mm,
-    yMm: mm,
-    rotationMilliDegrees: mm,
-  }),
-  setbacks: z.object({
-    defaultMm: mm.nonnegative(),
-    byEdge: z.record(z.string(), mm.nonnegative()),
-  }),
-})
-
 const byId = <T extends z.ZodTypeAny>(entry: T) => z.record(z.string(), entry).default({})
 
 const DocumentShape = z.object({
   version: z.literal(DOCUMENT_VERSION),
+  parcelSite: ParcelSiteSchema.optional(),
   levels: byId(LevelSchema),
   nodes: byId(NodeSchema),
   walls: byId(WallSchema),
@@ -181,6 +207,22 @@ function checkReference(
 
 export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   checkKeysMatchIds(doc.levels, 'levels', ctx)
+  for (const level of Object.values(doc.levels)) {
+    for (const connection of [
+      ...(level.shafts ?? []),
+      ...(level.ramps ?? []),
+      ...(level.stairs ?? []),
+    ]) {
+      if (connection.to === undefined) continue
+      checkReference(
+        doc.levels,
+        connection.to,
+        ['levels', level.id, connection.id],
+        'vertical connection',
+        ctx,
+      )
+    }
+  }
   checkKeysMatchIds(doc.nodes, 'nodes', ctx)
   checkKeysMatchIds(doc.walls, 'walls', ctx)
   checkKeysMatchIds(doc.openings, 'openings', ctx)
@@ -252,9 +294,6 @@ export type Side = z.infer<typeof SideSchema>
 export type HouseObject = z.infer<typeof ObjectSchema>
 export type Device = z.infer<typeof DeviceSchema>
 export type Circuit = z.infer<typeof CircuitSchema>
-export type PointMm = z.infer<typeof PointMmSchema>
-export type ParcelPolygon = z.infer<typeof ParcelPolygonSchema>
-export type Site = z.infer<typeof SiteSchema>
 export type HouseDocument = z.infer<typeof DocumentSchema>
 
 export function parseDocument(input: unknown): HouseDocument {

@@ -1,5 +1,5 @@
 import { updateSite } from '@houseit/commands/update-site'
-import type { Site } from '@houseit/core/document'
+import type { Site } from '@houseit/core/parcel-site'
 import { LocateFixedIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'

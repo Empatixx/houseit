@@ -2,6 +2,16 @@
 module.exports = {
   forbidden: [
     {
+      name: 'project-lifecycle-has-no-ui',
+      severity: 'error',
+      from: {
+        path: '^apps/editor/src/store/projects/(project-store|autosave|db|codec|import-local)\\.ts$',
+      },
+      to: {
+        path: '(node_modules/(react|react-dom|sonner)(/|$)|apps/editor/src/(ui/|routes\\.tsx|store/projects/projects\\.ts))',
+      },
+    },
+    {
       name: 'logic-runs-in-the-browser',
       comment:
         'core, geometry, scene and commands all execute inside the browser tab, so they must not ' +

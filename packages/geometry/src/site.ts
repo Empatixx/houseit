@@ -1,5 +1,5 @@
-import type { HouseDocument, PointMm, Site } from '@houseit/core/document'
-import { findFaces } from '@houseit/core/faces'
+import type { HouseDocument } from '@houseit/core/document'
+import type { PointMm, Site } from '@houseit/core/parcel-site'
 import {
   areaPaths,
   difference,
@@ -13,6 +13,8 @@ import {
   pointInPolygon,
   union,
 } from 'clipper2-ts'
+import { enclosureOf, enclosuresOf, isOutdoor } from './enclosure'
+import { roomsOf } from './rooms'
 
 export type SiteArea = PointMm[][]
 
@@ -208,31 +210,61 @@ export function buildingEnvelopeOf(doc: HouseDocument): SiteArea {
   const paths: Paths64 = []
 
   for (const level of Object.keys(doc.levels)) {
-    for (const face of findFaces(doc, level)) {
-      paths.push(face.nodes.map((node) => doc.nodes[node]!).filter(Boolean))
+    const rooms = roomsOf(doc, level)
+    const enclosures = enclosuresOf(doc, level, rooms)
+    for (const room of rooms) {
+      if (isOutdoor(room)) continue
+      paths.push(room.nodes.map((node) => doc.nodes[node]!).filter(Boolean))
     }
-  }
 
-  for (const wall of Object.values(doc.walls)) {
-    const a = doc.nodes[wall.a]
-    const b = doc.nodes[wall.b]
-    if (!a || !b || (a.x === b.x && a.y === b.y)) continue
-    paths.push(...inflatePaths([[a, b]], wall.thickness / 2, JoinType.Square, EndType.Square))
+    for (const wall of Object.values(doc.walls)) {
+      if (wall.level !== level || enclosureOf(enclosures, wall.id) === 'edge') continue
+      const a = doc.nodes[wall.a]
+      const b = doc.nodes[wall.b]
+      if (!a || !b || (a.x === b.x && a.y === b.y)) continue
+      paths.push(...inflatePaths([[a, b]], wall.thickness / 2, JoinType.Square, EndType.Square))
+    }
   }
 
   return paths.length === 0 ? [] : union(paths, FillRule.NonZero)
 }
 
+export function outdoorSurfacesOf(doc: HouseDocument): SiteArea {
+  const paths: Paths64 = []
+  for (const level of Object.keys(doc.levels)) {
+    for (const room of roomsOf(doc, level)) {
+      if (!isOutdoor(room)) continue
+      paths.push(room.nodes.map((node) => doc.nodes[node]!).filter(Boolean))
+    }
+  }
+  return paths.length === 0 ? [] : union(paths, FillRule.NonZero)
+}
+
+const SLIVER = 50_000
+
+export function surfacesFitParcel(doc: HouseDocument): boolean {
+  if (!doc.parcelSite) return true
+  const placement = doc.parcelSite.housePlacement
+  const surfaces = outdoorSurfacesOf(doc).map((path) =>
+    path.map((point) => placedPoint(point, placement)),
+  )
+  if (surfaces.length === 0) return true
+  const outside = difference(surfaces, parcelAreaOf(doc.parcelSite), FillRule.EvenOdd)
+  return Math.abs(areaPaths(outside)) < SLIVER
+}
+
 export function placedEnvelopeOf(doc: HouseDocument): SiteArea {
   const envelope = buildingEnvelopeOf(doc)
-  if (!doc.site) return envelope
-  return envelope.map((path) => path.map((point) => placedPoint(point, doc.site!.housePlacement)))
+  if (!doc.parcelSite) return envelope
+  return envelope.map((path) =>
+    path.map((point) => placedPoint(point, doc.parcelSite!.housePlacement)),
+  )
 }
 
 export function houseFitsSite(doc: HouseDocument): boolean {
-  if (!doc.site) return true
+  if (!doc.parcelSite) return true
   const house = placedEnvelopeOf(doc)
   if (house.length === 0) return true
-  const outside = difference(house, buildableAreaOf(doc.site), FillRule.EvenOdd)
+  const outside = difference(house, buildableAreaOf(doc.parcelSite), FillRule.EvenOdd)
   return Math.abs(areaPaths(outside)) < 0.5
 }

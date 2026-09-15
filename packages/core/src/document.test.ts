@@ -52,7 +52,7 @@ describe('parseDocument', () => {
       setbacks: { defaultMm: 0, byEdge: {} },
     }
 
-    expect(parseDocument({ ...doc, site }).site).toEqual(site)
+    expect(parseDocument({ ...doc, parcelSite: site }).parcelSite).toEqual(site)
   })
 
   test('rejects fractional millimetres in a parcel', () => {
@@ -88,7 +88,7 @@ describe('parseDocument', () => {
       setbacks: { defaultMm: 0, byEdge: {} },
     }
 
-    expect(() => parseDocument({ ...doc, site })).toThrow()
+    expect(() => parseDocument({ ...doc, parcelSite: site })).toThrow()
   })
 
   test('rejects a wall whose endpoint node is missing', () => {

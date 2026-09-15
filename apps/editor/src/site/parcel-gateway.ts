@@ -1,4 +1,4 @@
-import type { Site } from '@houseit/core/document'
+import type { Site } from '@houseit/core/parcel-site'
 import { CuzkResponseError, parseParcelGml, parseZoningCode, siteFromParcel } from './gml'
 import { type LngLat, toSjtsk } from './projection'
 

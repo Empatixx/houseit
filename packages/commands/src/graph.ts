@@ -1,5 +1,7 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
+import { wallHosts } from '@houseit/core/wall-hosts'
 import type { Draft } from 'immer'
+import { CommandError } from './command-error'
 
 export function wallsAt(
   doc: HouseDocument | Draft<HouseDocument>,
@@ -28,6 +30,8 @@ export function collinear(
 export function deleteWall(draft: Draft<HouseDocument>, level: string, wallId: string): void {
   const wall = draft.walls[wallId]
   if (!wall) return
+  if (wallHosts(draft).some(({ host }) => host.wall === wallId))
+    throw new CommandError(`Wall ${wallId} still has electrical hosts`)
   for (const opening of Object.values(draft.openings)) {
     if (opening.wall === wallId) delete draft.openings[opening.id]
   }
@@ -40,6 +44,9 @@ export function deleteWall(draft: Draft<HouseDocument>, level: string, wallId: s
 export function straighten(draft: Draft<HouseDocument>, level: string, node: string): void {
   const [one, other, third] = wallsAt(draft, level, node)
   if (!one || !other || third || one.thickness !== other.thickness) return
+  if (one.element !== other.element) return
+  if (one.element && one.a === node) return
+  if (one.height !== other.height || one.baseOffset !== other.baseOffset) return
   if (!collinear(draft, one, other)) return
 
   const farOfOne = one.a === node ? one.b : one.a
@@ -57,7 +64,10 @@ export function straighten(draft: Draft<HouseDocument>, level: string, node: str
     const at = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
     return Math.hypot(at.x - p.x, at.y - p.y)
   }
-  for (const opening of Object.values(draft.openings)) {
+  for (const opening of [
+    ...Object.values(draft.openings),
+    ...wallHosts(draft).map((h) => h.host),
+  ]) {
     if (opening.wall === one.id) opening.t = distance(one, opening.t) / length
     if (opening.wall === other.id) {
       opening.t = distance(other, opening.t) / length

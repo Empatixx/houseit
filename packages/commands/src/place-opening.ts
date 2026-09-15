@@ -1,4 +1,5 @@
-import type { HouseDocument, Side } from '@houseit/core/document'
+import type { HouseDocument, Opening, Side } from '@houseit/core/document'
+import { openingParts } from '@houseit/core/opening-parts'
 import { type Box, boxOf, clashes } from '@houseit/geometry/boxes'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { wallsFacing as facing, sideRun } from '@houseit/geometry/sides'
@@ -6,6 +7,7 @@ import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 import { footprintOf, standingAt } from '@houseit/geometry/standing'
 import { sweptBy, swingOf } from '@houseit/geometry/swing'
 import { CommandError } from './command-error'
+import { directionAt, opensIntoOf } from './opening-direction'
 
 export type { Side }
 
@@ -26,6 +28,7 @@ export function placeOpening(
   except?: string,
   nth?: number,
   wall?: string,
+  into?: string,
 ): Placement {
   const walls = wallsFacing(doc, level, room, side, what, nth)
     .filter((candidate) => wall === undefined || candidate.wall.id === wall)
@@ -57,7 +60,7 @@ export function placeOpening(
     if (gaps.length === 0) continue
     roomToStand = true
 
-    const swing = sideSign(chosen.a, chosen.b, room.centre)
+    const swing = directionAt(doc, level, chosen.wall.id, room, into, what)
     const tries = gaps.flatMap((free) => [
       (free.from + free.to) / 2,
       free.from + width / 2,
@@ -89,6 +92,7 @@ export function placeOpeningAt(
   swings = false,
   except?: string,
   nth?: number,
+  into?: string,
 ): Placement {
   const run = sideRun(doc, level, room, side, nth)
   if (!run) throw new CommandError(`${what}: ${room.name} has no wall facing ${side}`)
@@ -114,7 +118,18 @@ export function placeOpeningAt(
     )
   }
   const { wall: chosen, span, at } = found
-  const swing = checkOpeningAt(doc, level, room, chosen.wall.id, at, width, what, swings, except)
+  const swing = checkOpeningAt(
+    doc,
+    level,
+    room,
+    chosen.wall.id,
+    at,
+    width,
+    what,
+    swings,
+    except,
+    into,
+  )
   return { wall: chosen.wall.id, t: at / span, swing }
 }
 
@@ -128,6 +143,7 @@ export function checkOpeningAt(
   what: string,
   swings = false,
   except?: string,
+  into?: string,
 ): -1 | 1 {
   const wall = doc.walls[wallId]
   const a = wall && doc.nodes[wall.a]
@@ -152,7 +168,7 @@ export function checkOpeningAt(
     )
   }
 
-  const swing = sideSign(a, b, room.centre)
+  const swing = directionAt(doc, level, wallId, room, into, what)
   if (swings && !swingIsClear(doc, level, chosen, span, at, width, swing, except)) {
     throw new CommandError(
       `${what}: a door there could not open — something is standing in its swing`,
@@ -173,8 +189,18 @@ function swingIsClear(
 ): boolean {
   const box = sweptBy(chosen.a, chosen.b, span, at, width, swing)
 
+  return swingBoxIsClear(doc, level, box, except)
+}
+
+function swingBoxIsClear(doc: HouseDocument, level: string, box: Box, except?: string): boolean {
   const doors = Object.values(doc.openings)
     .filter((opening) => opening.id !== except && doc.walls[opening.wall]?.level === level)
+    .flatMap((opening) => {
+      const wall = doc.walls[opening.wall]!
+      const a = doc.nodes[wall.a]!,
+        b = doc.nodes[wall.b]!
+      return openingParts(opening, Math.hypot(b.x - a.x, b.y - a.y))
+    })
     .map((opening) => swingOf(doc, opening))
     .filter((other): other is Box => other !== undefined)
   if (doors.some((other) => clashes(box, other))) return false
@@ -247,11 +273,37 @@ type Facing = { wall: { id: string }; a: { x: number; y: number }; b: { x: numbe
 const spanOf = ({ a, b }: { a: { x: number; y: number }; b: { x: number; y: number } }) =>
   Math.round(Math.hypot(b.x - a.x, b.y - a.y))
 
-export function sideSign(
-  a: { x: number; y: number },
-  b: { x: number; y: number },
-  point: { x: number; y: number },
-): -1 | 1 {
-  const cross = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x)
-  return cross < 0 ? -1 : 1
+export function checkDoorLeaves(
+  doc: HouseDocument,
+  level: string,
+  room: Room,
+  opening: Opening,
+  what: string,
+) {
+  if (!opening.panels && opening.leafWidth === undefined && opening.frame?.inset === undefined)
+    return
+  const wall = doc.walls[opening.wall]!
+  const a = doc.nodes[wall.a]!,
+    b = doc.nodes[wall.b]!
+  const span = Math.hypot(b.x - a.x, b.y - a.y)
+  const into = opensIntoOf(doc, roomsOf(doc, level), opening)
+  for (const part of openingParts(opening, span).filter((p) => p.kind === 'door')) {
+    checkOpeningAt(
+      doc,
+      level,
+      room,
+      opening.wall,
+      part.t * span,
+      part.width,
+      what,
+      false,
+      opening.id,
+      into,
+    )
+    const box = swingOf(doc, part)
+    if (box && !swingBoxIsClear(doc, level, box, opening.id))
+      throw new CommandError(
+        `${what}: a door there could not open — something is standing in its swing`,
+      )
+  }
 }

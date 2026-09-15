@@ -7,7 +7,9 @@ export const privacy: Rule = ({ reports }) => {
   for (const room of reports) {
     const kind = kinds.get(room.name)
     if (!kind || !['bedroom', 'bathroom', 'half-bath'].includes(kind.id)) continue
-    const interior = doorsOf(room).filter((door) => door.to !== 'outside')
+    const interior = doorsOf(room).filter(
+      (door) => door.to !== 'outside' && !kinds.get(door.to)?.outdoor,
+    )
     if (interior.length === 0) continue
     const onlyPublic = interior.every((door) => kinds.get(door.to ?? '')?.public)
     if (onlyPublic) {

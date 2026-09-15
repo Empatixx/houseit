@@ -31,6 +31,7 @@ import { LAYERS, shownStore, useShown } from '../store/shown'
 import { documentStore, useDocument } from '../store/store'
 import { KindIcon } from './avatars'
 import { GAP, RAIL_OPEN_WIDTH, RAIL_PANEL_WIDTH, RAIL_WIDTH } from './edges'
+import { EngineSettings } from './engine-settings'
 import { useCover } from './use-cover'
 
 const TITLES = { plan: 'Plan', site: 'Site', issues: 'Issues', view: 'View' } as const
@@ -69,7 +70,7 @@ export function RailPanel() {
 }
 
 function Site() {
-  const site = useDocument((state) => state.doc.site)
+  const site = useDocument((state) => state.doc.parcelSite)
 
   if (!site) {
     return (
@@ -273,6 +274,7 @@ function View() {
           </SelectContent>
         </Select>
       </div>
+      <EngineSettings />
     </>
   )
 }

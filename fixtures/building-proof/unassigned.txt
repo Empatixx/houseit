@@ -1,0 +1,5 @@
+add-room --name West --material carpet --boundary '[{"x":0,"y":0,"thickness":150},{"x":1000,"y":0,"thickness":150},{"x":1000,"y":4000,"thickness":150},{"x":0,"y":4000,"thickness":150}]'
+add-room --name North --material carpet --boundary '[{"x":1000,"y":3000,"thickness":150},{"x":4000,"y":3000,"thickness":150},{"x":4000,"y":4000,"thickness":150},{"x":1000,"y":4000,"thickness":150}]'
+add-room --name East --material carpet --boundary '[{"x":3000,"y":0,"thickness":150},{"x":4000,"y":0,"thickness":150},{"x":4000,"y":3000,"thickness":150},{"x":3000,"y":3000,"thickness":150}]'
+add-room --name South --material carpet --boundary '[{"x":1000,"y":0,"thickness":150},{"x":3000,"y":0,"thickness":150},{"x":3000,"y":1000,"thickness":150},{"x":1000,"y":1000,"thickness":150}]'
+get-plan

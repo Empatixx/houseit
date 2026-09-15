@@ -1,4 +1,4 @@
-import type { PointMm, Site } from '@houseit/core/document'
+import type { PointMm, Site } from '@houseit/core/parcel-site'
 import { buildableAreaOf, edgeId, sitePointInHouse } from '@houseit/geometry/site'
 
 export type SiteDrawing = {

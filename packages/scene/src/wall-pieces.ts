@@ -1,4 +1,6 @@
 import type { Opening, Wall } from '@houseit/core/document'
+import { doorLeafSize, frameOffset, openingParts, pocketShift } from '@houseit/core/opening-parts'
+import type { Enclosure } from '@houseit/geometry/enclosure'
 import { freeSpans, type Span, spanAround } from '@houseit/geometry/spans'
 
 export const INK = {
@@ -33,12 +35,35 @@ export function planPieces(
   length: number,
   growA: number,
   span: number,
+  outside?: 1 | -1,
+  enclosure: Enclosure = 'wall',
 ): WallPiece[] {
+  const parts = openings.flatMap((o) =>
+    openingParts(o, span)
+      .filter((p) => !o.panels || p.sillHeight < 1500)
+      .map((p) => ({ ...p, opening: o.id })),
+  )
   const line = lineWeight(wall.thickness)
   const inner = wall.thickness - 2 * line
-  const holes = openings.map((opening) => spanAround(growA + opening.t * span, opening.width))
-  const doorways = openings.flatMap((opening, index) =>
-    opening.kind === 'door' ? [holes[index]!] : [],
+  if (enclosure === 'edge') {
+    return [
+      {
+        key: 'edge',
+        colour: INK.outline,
+        at: length / 2,
+        length,
+        thickness: line,
+        base: 0,
+        height: wall.height,
+      },
+    ]
+  }
+  const glazed = enclosure === 'glass'
+  const holes = parts.map((opening) => spanAround(growA + opening.t * span, opening.width))
+  const doorways = parts.flatMap((opening, index) =>
+    opening.kind === 'door' || (opening.frame?.inset !== undefined && opening.sillHeight === 0)
+      ? [holes[index]!]
+      : [],
   )
 
   const pieces: WallPiece[] = freeSpans(length, doorways).map((solid) => ({
@@ -54,20 +79,56 @@ export function planPieces(
   for (const solid of freeSpans(length, holes)) {
     pieces.push({
       key: `fill-${solid.from}`,
-      colour: INK.wall,
+      colour: glazed ? INK.glass : INK.wall,
       at: middleOf(solid),
       length: solid.to - solid.from,
       thickness: inner,
       base: 2,
       height: wall.height,
     })
+    if (glazed) {
+      pieces.push({
+        key: `pane-${solid.from}`,
+        colour: INK.outline,
+        at: middleOf(solid),
+        length: solid.to - solid.from,
+        thickness: line,
+        base: 4,
+        height: wall.height,
+      })
+    }
   }
 
-  openings.forEach((opening, index) => {
+  if (wall.exterior && outside !== undefined) {
+    const thickness = wall.exterior.layers.reduce((sum, layer) => sum + layer.thickness, 0)
+    for (const solid of freeSpans(length, holes)) {
+      const extendA = solid.from === 0 ? thickness : 0
+      const extendB = solid.to === length ? thickness : 0
+      pieces.push({
+        key: `exterior-${solid.from}`,
+        colour: '#aeb3ac',
+        at: middleOf(solid) + (extendB - extendA) / 2,
+        length: solid.to - solid.from + extendA + extendB,
+        thickness,
+        aside: (outside * (wall.thickness + thickness)) / 2,
+        base: 0,
+        height: wall.height,
+      })
+    }
+  }
+  parts.forEach((opening, index) => {
     const hole = holes[index]!
     const before = pieces.length
     drawOpening(opening, hole, line, inner, wall, pieces)
-    for (const piece of pieces.slice(before)) piece.opening = opening.id
+    if (opening.frame?.inset !== undefined && opening.sillHeight === 0) {
+      const glass = pieces.findIndex((p, i) => i >= before && p.key === `${opening.id}-glass`)
+      if (glass !== -1) pieces.splice(glass, 1)
+    }
+    for (const piece of pieces.slice(before)) {
+      piece.opening = opening.opening
+      if (piece.key.endsWith('-glass')) continue
+      piece.aside = (piece.aside ?? 0) + frameOffset(opening, wall, outside)
+    }
   })
 
   return pieces
@@ -82,6 +143,17 @@ function drawOpening(
   pieces: WallPiece[],
 ): void {
   if (opening.kind === 'window') {
+    if (opening.frame)
+      for (const at of [hole.from + opening.frame.face / 2, hole.to - opening.frame.face / 2])
+        pieces.push({
+          key: `${opening.id}-stile-${at}`,
+          colour: INK.outline,
+          at,
+          length: opening.frame.face,
+          thickness: opening.frame.depth,
+          base: 6,
+          height: wall.height,
+        })
     pieces.push(
       {
         key: `${opening.id}-glass`,
@@ -155,8 +227,7 @@ function slidingOf(opening: Opening, hole: Span, line: number, wall: Wall): Wall
   const leaf = Math.max(line * 2, wall.thickness / 3)
   const pocket = opening.variant === 'pocket'
   const panel = pocket ? width : width / 2 + line
-  const towards = opening.hinge === 'a' ? 1 : -1
-  const first = pocket ? hole.from + width * 0.5 : hole.from + panel / 2
+  const first = pocket ? middleOf(hole) + pocketShift(opening) : hole.from + panel / 2
   const second = pocket ? hole.from - width * 0.5 : hole.to - panel / 2
 
   const panels: WallPiece[] = [
@@ -166,7 +237,7 @@ function slidingOf(opening: Opening, hole: Span, line: number, wall: Wall): Wall
     {
       key: `${opening.id}-${key}`,
       colour: INK.outline,
-      at: at * 1 + 0 * towards,
+      at,
       aside,
       length: panel,
       thickness: leaf,
@@ -185,19 +256,34 @@ function slidingOf(opening: Opening, hole: Span, line: number, wall: Wall): Wall
     },
   ])
 
-  return pocket ? panels.slice(0, 2) : panels
+  return pocket
+    ? [
+        ...panels.slice(0, 2),
+        {
+          key: `${opening.id}-pick`,
+          colour: INK.glass,
+          at: middleOf(hole),
+          length: width,
+          thickness: wall.thickness,
+          base: 0,
+          height: wall.height,
+          hidden: true,
+        },
+      ]
+    : panels
 }
 
 function swingOf(opening: Opening, hole: Span, line: number, wall: Wall): WallPiece[] {
-  const width = opening.width
+  const { width, inset } = doorLeafSize(opening)
+  if (opening.frame) line = Math.min(line, opening.frame.depth / 3)
   const swing = opening.swing
   const height = wall.height
-  const face = wall.thickness / 2
-  const hinge = opening.hinge === 'a' ? hole.from : hole.to
+  const face = opening.frame ? 0 : wall.thickness / 2
+  const hinge = opening.hinge === 'a' ? hole.from + inset : hole.to - inset
   const towards = opening.hinge === 'a' ? 1 : -1
-  const leaf = wall.thickness / 2
+  const leaf = opening.frame?.depth ?? wall.thickness / 2
   const stile = hinge + (towards * leaf) / 2
-  const reach = width + wall.thickness
+  const reach = width + 2 * face
   const stands = swing * (reach / 2 - face)
 
   const pieces: WallPiece[] = [

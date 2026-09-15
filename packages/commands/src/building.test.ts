@@ -1,0 +1,355 @@
+import { readFileSync } from 'node:fs'
+import { createEmptyDocument, parseDocument } from '@houseit/core/document'
+import { openingsIn } from '@houseit/core/opening-parts'
+import { treadsOf } from '@houseit/core/stairs'
+import { roomsOf } from '@houseit/geometry/rooms'
+import { walkClear, walkSurface } from '@houseit/geometry/walking'
+import { wallCaps } from '@houseit/geometry/wall-caps'
+import { wellsIn } from '@houseit/geometry/wells'
+import { expect, test } from 'vitest'
+import { askPlan } from './answer'
+import { runScript } from './run'
+
+const measured = `add-room --name Cafe --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":300},{"x":9000,"y":0,"thickness":150},{"x":9000,"y":8000,"thickness":300},{"x":0,"y":8000,"thickness":300}]'
+add-room --name Prep --material vinyl --boundary '[{"x":9000,"y":0,"thickness":300},{"x":12000,"y":0,"thickness":300},{"x":12000,"y":5000,"thickness":150},{"x":9000,"y":5000,"thickness":150}]'`
+
+test('an explicit service enclosure wraps a column without counting occupied floor twice', () => {
+  const source = readFileSync(
+    new URL('../../../fixtures/building-proof/shaft-around-column.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), source)
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(doc, level).map((r) => r.clear)).toEqual([13_240_000, 13_240_000])
+  expect(doc.levels[level]!.columns).toHaveLength(2)
+  expect(walkClear(doc, level, { x: 1000, y: 3500 })).toBe(false)
+  expect(() =>
+    runScript(createEmptyDocument(), source.replaceAll(' --around-columns', '')),
+  ).toThrow('structural column')
+  expect(() =>
+    runScript(
+      doc,
+      `add-level --name Upper
+add-shaft --level Main --to Upper --kind lift --x 3000 --y 2000 --width 1000 --depth 800 --around-columns --enclosure '{"thickness":100,"colour":"#e5e2da"}'`,
+    ),
+  ).toThrow('only an enclosed services shaft')
+  parseDocument(doc)
+})
+
+test('measured adjacent rooms share their wall and preserve the L-shaped notch', () => {
+  const doc = runScript(createEmptyDocument(), measured)
+  const level = Object.keys(doc.levels)[0]!
+  const rooms = roomsOf(doc, level)
+  expect(rooms).toHaveLength(2)
+  expect(rooms.every((r) => !!r.id)).toBe(true)
+  expect(rooms.reduce((sum, r) => sum + r.area, 0)).toBe(87_000_000)
+  expect(rooms[0]!.walls.filter((id) => rooms[1]!.walls.includes(id))).toHaveLength(1)
+  expect(rooms[0]!.clear).toBe(67_567_500)
+  expect(() => runScript(doc, measured.split('\n')[0]!)).toThrow('already a room')
+  parseDocument(doc)
+})
+
+test('a lower storey corner neither splits an upper wall nor prevents its window', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `update-level --name Low
+add-room --name Lower --width 4000 --depth 2000 --material carpet
+add-level --name Upper
+add-room --level Upper --name UpperRoom --width 4000 --depth 4000 --material laminate
+add-opening --room UpperRoom --kind window --side east --width 2000 --along 2000`,
+  )
+  const upper = Object.values(doc.levels).find((level) => level.name === 'Upper')!
+  const walls = Object.values(doc.walls).filter((wall) => wall.level === upper.id)
+  expect(walls).toHaveLength(4)
+  expect(Object.values(doc.openings)).toHaveLength(1)
+  expect(roomsOf(doc, upper.id)).toHaveLength(1)
+})
+
+test('a structural column keeps its grid position and blocks placement and walking', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `${measured}\nadd-column --x 3000 --y 4000 --width 400 --depth 400 --colour "#b0b0b0"\nupdate-level --height 3550`,
+  )
+  const level = Object.keys(doc.levels)[0]!
+  expect(doc.levels[level]!.columns?.[0]?.x).toBe(3000)
+  expect(walkClear(doc, level, { x: 3000, y: 3900 })).toBe(false)
+  expect(walkClear(doc, level, { x: 3400, y: 3900 })).toBe(true)
+  expect(() =>
+    runScript(doc, 'add-column --x 3000 --y 4000 --width 400 --depth 400 --colour "#b0b0b0"'),
+  ).toThrow('another column')
+  expect(() =>
+    runScript(
+      doc,
+      'add-object --room Cafe --type box --width 400 --depth 400 --along 0.333333 --across 0.5',
+    ),
+  ).toThrow('column')
+})
+
+test('an assembly is one product, with a door only in its door panel', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `${measured}\nadd-opening --room Cafe --kind assembly --side south --width 2000 --height 2800 --frame '{"depth":74,"face":60,"outside":"#383e42","inside":"#ffffff"}' --panels '[{"kind":"door","x":0,"z":0,"width":1000,"height":2100},{"kind":"fixed","x":0,"z":2100,"width":1000,"height":700},{"kind":"fixed","x":1000,"z":0,"width":1000,"height":2800}]'`,
+  )
+  const parent = Object.values(doc.openings)[0]!
+  expect(Object.keys(doc.openings)).toHaveLength(1)
+  expect(openingsIn(doc)).toHaveLength(3)
+  expect(openingsIn(doc).filter((o) => o.kind === 'door')).toHaveLength(1)
+  expect(() => runScript(doc, `update-opening --id ${parent.id} --width 2100`)).toThrow(
+    'cover the opening',
+  )
+  expect(doc.openings[parent.id]!.width).toBe(2000)
+  parseDocument(doc)
+})
+
+test('a shaft pierces each storey in its declared span', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `update-level --name Low --height 3295
+add-room --name LowRoom --width 10000 --depth 8000 --material epoxy
+add-level --name High --height 3550
+add-room --level High --name HighRoom --width 10000 --depth 8000 --material ceramic-tile
+add-shaft --level Low --to High --x 8000 --y 6000 --width 1200 --depth 1500`,
+  )
+  const high = Object.values(doc.levels).find((l) => l.name === 'High')!
+  expect(wellsIn(doc, high.id).map((w) => w.type)).toContain('lift-shaft')
+  expect(walkSurface(doc, { x: 8000, y: 6000 }, high.elevation)).toBeUndefined()
+  expect(() => runScript(doc, 'remove-level --level High')).toThrow('remove its shafts')
+})
+
+test('walking the ramp follows its actual rise in both directions', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `update-level --name Low --height 3295
+add-room --name LowRoom --width 20000 --depth 8000 --material epoxy
+add-level --name High --height 3550
+add-room --level High --name HighRoom --width 20000 --depth 8000 --material ceramic-tile
+add-ramp --level Low --to High --x 1000 --y 4000 --width 2500 --length 16000 --direction east --thickness 250 --colour "#b0b0b0"`,
+  )
+  for (const forward of [true, false]) {
+    let height = forward ? 0 : 3295
+    for (let i = 0; i <= 100; i++) {
+      const t = forward ? i / 100 : 1 - i / 100
+      const surface = walkSurface(doc, { x: 1000 + 16000 * t, y: 4000 }, height)
+      expect(surface?.height).toBeCloseTo(3295 * t)
+      height = surface!.height
+    }
+  }
+})
+
+test('the measured three-flight stair wraps one enclosed shaft and reaches the next floor', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/three-flights.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  const low = Object.values(doc.levels).find((l) => l.name === '1.PP')!
+  const high = Object.values(doc.levels).find((l) => l.name === '1.NP')!
+  expect(roomsOf(doc, low.id)).toHaveLength(1)
+  expect(roomsOf(doc, low.id)[0]!.clear).toBe(27_900_000)
+  expect(roomsOf(doc, high.id)[0]!.clear).toBe(27_900_000)
+  const stair = low.stairs![0]!
+  expect(treadsOf(stair).map((t) => t.step)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1))
+  expect(walkSurface(doc, { x: 875, y: 5380 }, -2186.67)?.height).toBeCloseTo(-2186.67, 1)
+  expect(walkSurface(doc, { x: 5380, y: 5380 }, -1093.33)?.height).toBeCloseTo(-1093.33, 1)
+  expect(walkSurface(doc, { x: 5380, y: 1000 }, -156)?.height).toBe(0)
+  expect(walkClear(doc, high.id, { x: 3125, y: 2855 })).toBe(false)
+  expect(wellsIn(doc, high.id).some((w) => w.object === stair.id)).toBe(true)
+  const shaftLine = script.split('\n').find((line) => line.startsWith('add-shaft'))!
+  expect(() => runScript(doc, shaftLine)).toThrow('overlap another shaft')
+  expect(() =>
+    runScript(
+      doc,
+      'add-column --level "1.NP" --x 3125 --y 2855 --width 400 --depth 400 --colour "#aaaaaa"',
+    ),
+  ).toThrow('lift shaft')
+  parseDocument(doc)
+})
+
+test('a section can state the soffit independently from the next finished floor', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    'update-level --height 3670 --slab-thickness 250 --clear-height 3300',
+  )
+  const level = Object.values(doc.levels)[0]!
+  expect(level.clearHeight).toBe(3300)
+  expect(() => runScript(doc, 'update-level --clear-height 3500')).toThrow(
+    'must fit between finished floors',
+  )
+})
+
+test('embedded columns remove only their intersection with a room floor', () => {
+  const room =
+    'add-room --name Grid --material epoxy --boundary \'[{"x":-125,"y":-125,"thickness":250},{"x":6125,"y":-125,"thickness":250},{"x":6125,"y":6125,"thickness":250},{"x":-125,"y":6125,"thickness":250}]\''
+  const doc = runScript(
+    createEmptyDocument(),
+    `${room}
+add-column --x 0 --y 0 --width 500 --depth 500 --embedded --colour "#aaaaaa"
+add-column --x 3000 --y 0 --width 500 --depth 500 --embedded --colour "#aaaaaa"
+add-column --x 3000 --y 3000 --width 500 --depth 500 --colour "#aaaaaa"`,
+  )
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(doc, level)[0]!.clear).toBe(36_000_000 - 250 * 250 - 500 * 250 - 500 * 500)
+  expect(() =>
+    runScript(doc, 'add-column --x 6000 --y 6000 --width 500 --depth 500 --colour "#aaaaaa"'),
+  ).toThrow()
+  expect(() =>
+    runScript(
+      doc,
+      'add-column --x 12000 --y 12000 --width 500 --depth 500 --embedded --colour "#aaaaaa"',
+    ),
+  ).toThrow()
+})
+
+test('a site ramp follows stated endpoint elevations without inventing a storey', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/site-ramp.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  expect(Object.values(doc.levels)).toHaveLength(2)
+  let previous = -3298
+  for (let i = 0; i <= 100; i++) {
+    const surface = walkSurface(doc, { x: 9000 + 160 * i, y: 4000 }, previous)
+    expect(surface?.height).toBeCloseTo(-3298 + 16 * i)
+    previous = surface!.height
+  }
+  const line = script.split('\n').find((s) => s.startsWith('add-ramp'))!
+  expect(() => runScript(doc, `${line} --to "1.NP"`)).toThrow('exactly one')
+  expect(() => runScript(doc, line.replace('-1698', '-4000'))).toThrow('must rise')
+  parseDocument(doc)
+})
+
+test('a service shaft occupies floor area without a lift door, and a 1970 mm door is walkable', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/services.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  const level = Object.keys(doc.levels)[0]!
+  const room = roomsOf(doc, level).find((r) => r.name === '140 ŠATNA')!
+  expect(room.clear / 1e6).toBeCloseTo(10, 2)
+  expect(walkClear(doc, level, { x: 4163, y: 10975 })).toBe(true)
+  expect(walkClear(doc, level, { x: 364, y: 11486 })).toBe(false)
+  expect(() =>
+    runScript(
+      doc,
+      `add-shaft --level "1.NP" --to "1.NP" --kind services --x 2000 --y 10000 --width 500 --depth 500 --enclosure '{"thickness":125,"colour":"#eeeeee","doorWidth":300}'`,
+    ),
+  ).toThrow('together')
+  parseDocument(doc)
+})
+
+test('a divided window keeps its sill and glazing when expanded into renderable panels', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `${measured}
+add-opening --room Cafe --kind assembly --side south --width 2000 --height 1500 --sill 1050 --frame '{"depth":74,"face":60,"outside":"#383e42","inside":"#f1f0ea"}' --panels '[{"kind":"opaque","x":0,"z":0,"width":1000,"height":400},{"kind":"fixed","x":0,"z":400,"width":1000,"height":1100},{"kind":"tilt-turn","glazing":"frosted","x":1000,"z":0,"width":1000,"height":1500}]'`,
+  )
+  const parts = openingsIn(doc)
+  expect(parts.map((p) => p.sillHeight)).toEqual([1050, 1450, 1050])
+  expect(parts.map((p) => p.infill)).toEqual(['opaque', 'glass', 'frosted'])
+  expect(parts.every((p) => p.kind === 'window')).toBe(true)
+  parseDocument(doc)
+})
+
+test('a low return belongs to one room, occupies floor and blocks walking without closing a fragment', () => {
+  const base = runScript(
+    createEmptyDocument(),
+    'add-room --name Bath --width 6000 --depth 4000 --material ceramic-tile',
+  )
+  const level = Object.keys(base.levels)[0]!
+  const line = `update-room --room Bath --return '{"points":[{"x":0,"y":2000},{"x":1600,"y":2000}],"thickness":125,"height":1200}'`
+  const doc = runScript(base, line)
+  expect(roomsOf(doc, level)).toHaveLength(1)
+  expect(roomsOf(base, level)[0]!.clear - roomsOf(doc, level)[0]!.clear).toBeCloseTo(1450 * 125)
+  expect(walkClear(doc, level, { x: 900, y: 2000 })).toBe(false)
+  expect(walkClear(doc, level, { x: 2000, y: 2000 })).toBe(true)
+  expect(Object.values(doc.walls).filter((w) => w.height === 1200)).toHaveLength(1)
+  expect(() => runScript(base, line.replace('1600', '7000'))).toThrow('inside this room')
+  expect(() => runScript(base, line.replace('1200', '8000'))).toThrow('above the soffit')
+  parseDocument(doc)
+})
+
+test('a shaft casing can share a room wall without subtracting that wall twice', () => {
+  const base = runScript(
+    createEmptyDocument(),
+    'update-level --name Test\nadd-room --name Office --width 6000 --depth 4000 --material carpet',
+  )
+  const doc = runScript(
+    base,
+    `add-shaft --kind services --to Test --x 600 --y 3600 --width 500 --depth 500 --enclosure '{"thickness":200,"colour":"#eeeeee"}'`,
+  )
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(base, level)[0]!.clear - roomsOf(doc, level)[0]!.clear).toBe(900 * 700)
+  expect(() =>
+    runScript(
+      base,
+      `add-shaft --kind services --to Test --x 600 --y 3700 --width 500 --depth 500 --enclosure '{"thickness":200,"colour":"#eeeeee"}'`,
+    ),
+  ).toThrow('void intersects wall')
+  parseDocument(doc)
+})
+
+test('back-to-back shaft casings may overlap only inside existing walls', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/shared-casing.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(doc, level).map((r) => r.clear)).toEqual([
+    3780 ** 2 - 1240 * 420,
+    3780 ** 2 - 1240 * 420,
+  ])
+  expect(() => runScript(doc, script.split('\n').find((l) => l.startsWith('add-shaft'))!)).toThrow(
+    'overlap another shaft',
+  )
+})
+
+test('a thick pier ends at a thin partition face and keeps its free end square', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `add-room --name Pier --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":125},{"x":4000,"y":0,"thickness":125},{"x":4000,"y":4000,"thickness":125},{"x":0,"y":4000,"thickness":125}]'
+update-room --room Pier --return '{"points":[{"x":2000,"y":0},{"x":2000,"y":2000}],"thickness":800,"height":1200}'`,
+  )
+  const pier = Object.values(doc.walls).find((w) => w.thickness === 800)!
+  const caps = wallCaps(doc, pier)
+  const attached = doc.nodes[pier.a]!.y === 0 ? caps.growA : caps.growB
+  const free = doc.nodes[pier.a]!.y === 0 ? caps.growB : caps.growA
+  expect(attached).toBe(62.5)
+  expect(free).toBe(0)
+  const level = Object.keys(doc.levels)[0]!
+  expect(roomsOf(doc, level)).toHaveLength(1)
+  expect(roomsOf(doc, level)[0]!.clear).toBe(3875 ** 2 - 800 * (2000 - 62.5))
+})
+
+test('get-plan exposes every unassigned face as well as the named rooms', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/unassigned.txt', import.meta.url),
+    'utf8',
+  )
+  const doc = runScript(createEmptyDocument(), script)
+  const answer = askPlan(doc, 'get-plan')
+  expect(answer.rooms).toHaveLength(4)
+  expect(answer.unassigned).toHaveLength(1)
+  expect(answer.unassigned![0]!.areaM2).toBeCloseTo(3.42, 2)
+  expect(answer.levels[0]!.rooms).toBe(answer.rooms.length + answer.unassigned!.length)
+})
+
+test('a declared shaft enclosed by existing room walls is a void, while unrelated unnamed faces remain reported', () => {
+  const script = readFileSync(
+    new URL('../../../fixtures/building-proof/unassigned.txt', import.meta.url),
+    'utf8',
+  )
+  const base = runScript(createEmptyDocument(), script)
+  expect(askPlan(base, 'get-plan').unassigned).toHaveLength(1)
+  const doc = runScript(
+    base,
+    `update-level --name Test\nadd-shaft --kind services --to Test --x 2000 --y 2000 --width 1850 --depth 1850 --enclosure '{"thickness":150,"colour":"#eeeeee"}'`,
+  )
+  const read = askPlan(doc, 'get-plan')
+  expect(read.rooms).toHaveLength(4)
+  expect(read.unassigned).toBeUndefined()
+  expect(read.levels[0]!.rooms).toBe(4)
+  parseDocument(doc)
+})

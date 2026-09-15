@@ -1,8 +1,11 @@
 import { levelsOf } from '@houseit/core/levels'
+import { RoofSchema } from '@houseit/core/roof'
+import { roofMeshIssue } from '@houseit/core/roof-mesh'
 import { z } from 'zod'
 import { allocateId } from './allocate-id'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
+import { json } from './json-schema'
 import { length } from './length-schema'
 import { levelOf } from './resolve'
 
@@ -44,26 +47,74 @@ export const addLevel = defineCommand({
 
 export const updateLevel = defineCommand({
   name: 'update-level',
-  summary: 'Change a storey: its name, or the height it is built at',
+  summary:
+    'Change a storey: name, height, slab thickness, or --roofs JSON [{name,outline:[{x,y}],finish:membrane|planted|gravel,depth,parapet:{height,thickness,colour},fall:{percent,towards},drains:[{x,y,diameter}]}]. Heights and outline coordinates are millimetres. baseOffset offsets the roof base from the storey top, down to its structural slab. Optional material and colour select the surface. facets:[{points:[{x,y,height},...],material?}] tile it with triangles; vertex height is above that roof base. Parapet edges:[{from:{x,y},to:{x,y},colour}] limit its runs; coping is the cap thickness',
   args: z.object({
     level: z.string().optional(),
     name: z.string().trim().min(1).optional(),
     height: length().optional(),
+    slabThickness: length().optional(),
+    clearHeight: length().optional(),
+    roofs: json(z.array(RoofSchema)).optional(),
     storey: z.coerce.number().int().positive().optional(),
   }),
   run: (draft, args, open) => {
     const level = levelOf(draft, args.level ?? open, 'update-level')
-    if (args.name === undefined && args.height === undefined && args.storey === undefined) {
+    if (
+      args.name === undefined &&
+      args.height === undefined &&
+      args.storey === undefined &&
+      args.roofs === undefined &&
+      args.slabThickness === undefined &&
+      args.clearHeight === undefined
+    ) {
       throw new CommandError('update-level: say what to change — --name, --height or --storey')
     }
     const taken = levelsOf(draft).some((other) => other.id !== level && other.name === args.name)
     if (taken) throw new CommandError(`update-level: there is already a storey called ${args.name}`)
 
     const record = draft.levels[level]!
+    const clear = args.clearHeight ?? record.clearHeight
+    if (
+      clear !== undefined &&
+      (clear <= 0 ||
+        clear + (args.slabThickness ?? record.slabThickness ?? 250) >
+          (args.height ?? record.height))
+    )
+      throw new CommandError('clear height plus structural slab must fit between finished floors')
+    if (args.clearHeight !== undefined) record.clearHeight = args.clearHeight
+    if (args.slabThickness !== undefined) {
+      if (args.slabThickness <= 0 || args.slabThickness >= (args.height ?? record.height))
+        throw new CommandError(
+          'update-level: slab thickness must be between zero and the storey height',
+        )
+      record.slabThickness = args.slabThickness
+    }
+    if (args.roofs !== undefined) {
+      for (const roof of args.roofs)
+        if (roof.facets) {
+          const issue = roofMeshIssue(roof.outline, roof.facets, roof.drains)
+          if (issue) throw new CommandError(`update-level: ${issue}`)
+        }
+      const slab = args.slabThickness ?? record.slabThickness ?? 250
+      const top =
+        (args.clearHeight ?? record.clearHeight ?? (args.height ?? record.height) - slab) + slab
+      if (args.roofs.some((r) => (args.height ?? record.height) + r.baseOffset < top))
+        throw new CommandError(
+          'update-level: the roof buildup cannot start below the structural slab top',
+        )
+      record.roofs = args.roofs
+    }
     if (args.name !== undefined) record.name = args.name
     if (args.height !== undefined) {
       const lifted = args.height - record.height
+      if (args.height <= (record.slabThickness ?? 250))
+        throw new CommandError('update-level: storey height must exceed the slab thickness')
+      const previousHeight = record.height
       record.height = args.height
+      for (const wall of Object.values(draft.walls)) {
+        if (wall.level === level && wall.height === previousHeight) wall.height = args.height
+      }
       for (const other of levelsOf(draft)) {
         if (other.elevation > record.elevation) draft.levels[other.id]!.elevation += lifted
       }
@@ -104,6 +155,16 @@ export const removeLevel = defineCommand({
     if (levelsOf(draft).length === 1) {
       throw new CommandError('remove-level: a house stands on at least one storey')
     }
+    if (
+      Object.values(draft.levels).some((l) =>
+        [...(l.shafts ?? []), ...(l.ramps ?? []), ...(l.stairs ?? [])].some(
+          (c) => l.id === level || c.to === level,
+        ),
+      )
+    )
+      throw new CommandError('remove-level: remove its shafts, ramps and stairs first')
+    if (record.columns?.length)
+      throw new CommandError('remove-level: remove the structural columns first')
     const walls = Object.values(draft.walls).filter((wall) => wall.level === level).length
     if (walls > 0) {
       throw new CommandError(

@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import type { ProjectMeta } from '@/store/projects/db'
 import { projectsStore } from '@/store/projects/projects'
+import { runProjectAction } from '../project-notices'
 import { PlanOutline } from './plan-outline'
 import { when } from './when'
 
@@ -11,10 +12,18 @@ export function ProjectCard({ project }: { project: ProjectMeta }) {
   const navigate = useNavigate()
 
   const forget = async () => {
-    const removed = await projectsStore.getState().remove(project.id)
-    if (!removed) return
-    toast(`${removed.meta.name} deleted`, {
-      action: { label: 'Undo', onClick: () => void projectsStore.getState().restore(removed) },
+    await runProjectAction('Could not delete project', async () => {
+      const removed = await projectsStore.getState().remove(project.id)
+      if (!removed) return
+      toast(`${removed.meta.name} deleted`, {
+        action: {
+          label: 'Undo',
+          onClick: () =>
+            void runProjectAction('Could not restore project', () =>
+              projectsStore.getState().restore(removed),
+            ),
+        },
+      })
     })
   }
 

@@ -112,7 +112,7 @@ export function linkPoints(
   const along = new Map<number, Point>()
   along.set(0, from)
   along.set(length, to)
-  for (const node of Object.values(draft.nodes)) {
+  for (const node of nodesOn(draft, level)) {
     const t = (node.x - from.x) * unit.x + (node.y - from.y) * unit.y
     const off = Math.abs((node.x - from.x) * unit.y - (node.y - from.y) * unit.x)
     if (t > 0.5 && t < length - 0.5 && off < 0.5) along.set(Math.round(t), { x: node.x, y: node.y })
@@ -140,7 +140,13 @@ export function linkPoints(
   for (let i = 0; i + 1 < stops.length; i += 1) {
     const start = nodeAtOrNew(draft, level, stops[i]!)
     const end = nodeAtOrNew(draft, level, stops[i + 1]!)
-    if (start === end || wallBetween(draft, level, start, end)) continue
+    if (start === end) continue
+    const existing = wallBetween(draft, level, start, end)
+    if (existing) {
+      const wall = draft.walls[existing.id]!
+      if (wall.thickness < thickness) wall.thickness = thickness
+      continue
+    }
     const middle = {
       x: (stops[i]!.x + stops[i + 1]!.x) / 2,
       y: (stops[i]!.y + stops[i + 1]!.y) / 2,
@@ -207,7 +213,7 @@ export function nearWall(
   level: string,
   point: Point,
 ): Point | undefined {
-  for (const node of Object.values(draft.nodes)) {
+  for (const node of nodesOn(draft, level)) {
     if (Math.hypot(node.x - point.x, node.y - point.y) <= SNAP) return { x: node.x, y: node.y }
   }
   let best: { point: Point; distance: number } | undefined
@@ -225,6 +231,15 @@ export function nearWall(
     if (distance <= SNAP && (!best || distance < best.distance)) best = { point: foot, distance }
   }
   return best?.point
+}
+
+function nodesOn(draft: Draft<HouseDocument>, level: string) {
+  const ids = new Set(
+    Object.values(draft.walls)
+      .filter((wall) => wall.level === level)
+      .flatMap((wall) => [wall.a, wall.b]),
+  )
+  return Object.values(draft.nodes).filter((node) => ids.has(node.id))
 }
 
 function firstWallAlong(

@@ -1,133 +1,42 @@
-import { createEmptyDocument, type Site } from '@houseit/core/document'
+import { readFileSync } from 'node:fs'
+import { createEmptyDocument, parseDocument } from '@houseit/core/document'
+import { siteHeight } from '@houseit/core/site'
 import { expect, test } from 'vitest'
-import { addSite } from './add-site'
-import { quoted } from './command-line'
-import { applyWithPatches } from './patches'
-import { removeSite } from './remove-site'
+import { askPlan } from './answer'
 import { runScript } from './run'
-import { updateSite } from './update-site'
 
-const site = (): Site => ({
-  parcel: {
-    id: 'parcel-1',
-    nationalReference: '1-1',
-    number: '1',
-    cadastralAreaCode: '1',
-    cadastralAreaName: 'Test',
-    areaM2: 400,
-    polygons: [
-      {
-        outer: [
-          { x: 0, y: 0 },
-          { x: 20_000, y: 0 },
-          { x: 20_000, y: 20_000 },
-          { x: 0, y: 20_000 },
-        ],
-        holes: [],
-      },
-    ],
-  },
-  source: {
-    provider: 'cuzk-inspire-cp',
-    fetchedAt: '2026-09-13T12:00:00.000Z',
-    crs: 'EPSG:5514',
-    originXmm: 0,
-    originYmm: 0,
-    attributionYear: 2026,
-  },
-  housePlacement: { xMm: 1000, yMm: 1000, rotationMilliDegrees: 0 },
-  setbacks: { defaultMm: 0, byEdge: {} },
-})
-
-const room = (width: string, depth = '8m') =>
-  `add-room --material natural-oak --shape rectangle --width ${width} --depth ${depth} --name house`
-
-test('adds and removes a site through typed commands and patches', () => {
-  const before = createEmptyDocument()
-  const added = applyWithPatches(before, addSite, { json: JSON.stringify(site()) })
-
-  expect(added.doc.site?.parcel.id).toBe('parcel-1')
-  expect(added.patches.length).toBeGreaterThan(0)
-
-  const removed = applyWithPatches(added.doc, removeSite, {})
-  expect(removed.doc.site).toBeUndefined()
-})
-
-test('adds a site through the same textual command surface', () => {
-  const command = `add-site --json ${quoted(JSON.stringify(site()))}`
-
-  expect(runScript(createEmptyDocument(), command).site?.parcel.number).toBe('1')
-})
-
-test('updates placement, the default setback and one edge', () => {
-  const withSite = applyWithPatches(createEmptyDocument(), addSite, {
-    json: JSON.stringify(site()),
-  }).doc
-
-  const moved = applyWithPatches(withSite, updateSite, {
-    x: 2500,
-    y: 3000,
-    rotation: 12.5,
-    setback: 1000,
-    edge: 'p0:r0:e0',
-    edgeSetback: 2000,
-  }).doc
-
-  expect(moved.site?.housePlacement).toEqual({
-    xMm: 2500,
-    yMm: 3000,
-    rotationMilliDegrees: 12_500,
-  })
-  expect(moved.site?.setbacks).toEqual({
-    defaultMm: 1000,
-    byEdge: { 'p0:r0:e0': 2000 },
-  })
-})
-
-test('rejects a setback override for an edge that is not in the parcel', () => {
-  const withSite = applyWithPatches(createEmptyDocument(), addSite, {
-    json: JSON.stringify(site()),
-  }).doc
-
+const source = readFileSync(
+  new URL('../../../fixtures/building-proof/site.txt', import.meta.url),
+  'utf8',
+)
+test('site and external supports survive the CLI and document roundtrip without creating rooms', () => {
+  const doc = parseDocument(JSON.parse(JSON.stringify(runScript(createEmptyDocument(), source))))
+  const answer = askPlan(doc, 'get-plan --level Ground')
+  expect(answer.rooms).toHaveLength(1)
+  expect(answer.site?.surfaces).toHaveLength(2)
+  const [walk, bay] = doc.site!.surfaces
+  expect(siteHeight(walk!, 0, 6000)).toBe(siteHeight(bay!, 0, 6000))
+  expect(siteHeight(bay!, 0, 10000)).toBe(-180)
+  expect(answer.levels[0]!.columns?.[0]).toMatchObject({ outside: true, height: 2900 })
   expect(() =>
-    applyWithPatches(withSite, updateSite, {
-      edge: 'p0:r0:e99',
-      edgeSetback: 7000,
-    }),
-  ).toThrow(/unknown parcel edge/i)
-  expect(withSite.site?.setbacks.byEdge).toEqual({})
+    runScript(
+      doc,
+      'add-column --level Ground --x 7000 --y 4000 --width 500 --depth 500 --colour "#ffffff"',
+    ),
+  ).toThrow('inside the storey footprint')
 })
 
-test('allows a house inside the selected parcel', () => {
-  const add = `add-site --json ${quoted(JSON.stringify(site()))}`
-
-  expect(() => runScript(createEmptyDocument(), [add, room('8m')].join('\n'))).not.toThrow()
-})
-
-test('rejects a house outside the selected parcel', () => {
-  const add = `add-site --json ${quoted(JSON.stringify(site()))}`
-
-  expect(() => runScript(createEmptyDocument(), [add, room('25m')].join('\n'))).toThrow(
-    /outside the parcel/i,
+test('changing a site finish by id retains its geometry and refuses an unknown surface atomically', () => {
+  const doc = runScript(createEmptyDocument(), source)
+  const id = doc.site!.surfaces[0]!.id
+  const before = doc.site!.surfaces[0]!
+  const changed = runScript(
+    doc,
+    `update-site --surface ${id} --material asphalt --colour "#eeeeee"`,
   )
-})
-
-test('rejects a wall movement that crosses the parcel limit', () => {
-  const add = `add-site --json ${quoted(JSON.stringify(site()))}`
-  const doc = runScript(createEmptyDocument(), [add, room('8m')].join('\n'))
-
-  expect(() => runScript(doc, 'update-room --room house --side east --by 20m')).toThrow(
-    /outside the parcel/i,
+  expect(changed.site!.surfaces[0]).toEqual({ ...before, material: 'asphalt', colour: '#eeeeee' })
+  expect(doc.site!.surfaces[0]).toEqual(before)
+  expect(() => runScript(doc, 'update-site --surface missing --material concrete')).toThrow(
+    'unknown surface',
   )
-  expect(Object.values(doc.nodes).some((node) => node.x > 8000)).toBe(false)
-})
-
-test('rolls an invalid multi-command script back as one transaction', () => {
-  const add = `add-site --json ${quoted(JSON.stringify(site()))}`
-  const before = runScript(createEmptyDocument(), add)
-
-  expect(() =>
-    runScript(before, [room('8m'), 'update-room --room house --side east --by 20m'].join('\n')),
-  ).toThrow(/outside the parcel/i)
-  expect(before.walls).toEqual({})
 })

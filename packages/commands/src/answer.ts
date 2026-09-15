@@ -1,10 +1,11 @@
-import type { HouseDocument } from '@houseit/core/document'
+import type { HouseDocument, Level } from '@houseit/core/document'
 import { flightOf, levelsOf } from '@houseit/core/levels'
 import { planExtent } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { elementId, wallElement } from '@houseit/geometry/wall-elements'
 import { produce } from 'immer'
 import { applyScript } from './apply-script'
-import { checkLevel, type Problem } from './checks'
+import { checkStorey, type Problem } from './checks'
 import type { Touched } from './define-command'
 import { roomOfOpening } from './openings'
 import { assertHouseFitsSite } from './site-invariant'
@@ -16,18 +17,85 @@ export type StoreyReport = {
   storey: number
   height: number
   elevation: number
+  slabThickness?: number
+  roofs?: Level['roofs']
+  shafts?: Level['shafts']
+  ramps?: Level['ramps']
+  clearHeight?: number
+  stairs?: Level['stairs']
+  columns?: (NonNullable<Level['columns']>[number] & { height: number })[]
   risers: number
   rooms: number
   open?: true
 }
 
+export type WallReport = {
+  id: string
+  level: string
+  from: { x: number; y: number }
+  to: { x: number; y: number }
+  length: number
+  segments: {
+    id: string
+    from: number
+    to: number
+    thickness: number
+    height: number
+    base: number
+  }[]
+  openings: (HouseDocument['openings'][string] & { at: number })[]
+  devices: (HouseDocument['devices'][string] & { at: number })[]
+}
+
+function surveyWalls(doc: HouseDocument, level: string): WallReport[] {
+  const ids = new Set(
+    Object.values(doc.walls)
+      .filter((w) => w.level === level)
+      .map(elementId),
+  )
+  return [...ids].map((id) => {
+    const e = wallElement(doc, id)
+    return {
+      id,
+      level,
+      from: { x: e.from.x, y: e.from.y },
+      to: { x: e.to.x, y: e.to.y },
+      length: e.length,
+      segments: e.segments.map(({ wall, from, to }) => ({
+        id: wall.id,
+        from,
+        to,
+        thickness: wall.thickness,
+        height: wall.height,
+        base: wall.baseOffset,
+      })),
+      devices: e.segments.flatMap(({ wall, from, to }) =>
+        Object.values(doc.devices).flatMap((d) =>
+          d.host.kind === 'wall' && d.host.wall === wall.id
+            ? [{ ...d, at: from + (to - from) * d.host.t }]
+            : [],
+        ),
+      ),
+      openings: e.segments.flatMap(({ wall, from, to }) =>
+        Object.values(doc.openings)
+          .filter((o) => o.wall === wall.id)
+          .map((o) => ({ ...o, at: from + (to - from) * o.t })),
+      ),
+    }
+  })
+}
+
 export type Answer = {
+  site?: HouseDocument['site']
+  parcelSite?: HouseDocument['parcelSite']
   level: string
   levels: StoreyReport[]
   width?: number
   depth?: number
   changed: string[]
+  walls: WallReport[]
   rooms: RoomReport[]
+  unassigned?: RoomReport[]
   problems: Problem[]
   notes?: string[]
 }
@@ -40,32 +108,79 @@ export function answerFor(
   about?: string,
   notes?: string[],
 ): Answer {
+  const roomCache = new Map<string, Room[]>()
+  const roomsAt = (level: string) => {
+    let rooms = roomCache.get(level)
+    if (!rooms) {
+      rooms = roomsOf(doc, level)
+      roomCache.set(level, rooms)
+    }
+    return rooms
+  }
+  const reportCache = new Map<Room, RoomReport>()
+  const reportFor = (room: Room, level: string) => {
+    let report = reportCache.get(room)
+    if (!report) {
+      report = surveyRoom(doc, level, room, roomsAt(level))
+      reportCache.set(room, report)
+    }
+    return report
+  }
   const touched: { room: Room; level: string }[] = []
   for (const id of [...changed, ...shown]) {
-    const found = roomBehind(doc, open, id)
+    const found = roomBehind(doc, open, id, roomsAt)
     if (found && !touched.some((seen) => seen.room.id === found.room.id)) touched.push(found)
   }
 
   const level = about ?? touched[0]?.level ?? open
   const extent = planExtent(doc, level)
+  const levelRooms = roomsAt(level)
+  const unassigned = levelRooms.filter((room) => room.id === undefined)
   return {
     level,
+    ...(doc.site ? { site: doc.site } : {}),
+    ...(doc.parcelSite ? { parcelSite: doc.parcelSite } : {}),
     levels: levelsOf(doc).map((storey, index) => ({
       id: storey.id,
       name: storey.name,
       storey: index + 1,
       height: storey.height,
+      ...(storey.shafts ? { shafts: storey.shafts } : {}),
+      ...(storey.ramps ? { ramps: storey.ramps } : {}),
+      ...(storey.clearHeight === undefined ? {} : { clearHeight: storey.clearHeight }),
+      ...(storey.stairs ? { stairs: storey.stairs } : {}),
+      ...(storey.columns
+        ? {
+            columns: storey.columns.map((c) => ({
+              ...c,
+              height: soffitOf(storey),
+            })),
+          }
+        : {}),
+      ...(storey.slabThickness === undefined ? {} : { slabThickness: storey.slabThickness }),
+      ...(storey.roofs === undefined ? {} : { roofs: storey.roofs }),
       elevation: storey.elevation,
       risers: flightOf(storey.height).risers,
-      rooms: roomsOf(doc, storey.id).length,
+      rooms: roomsAt(storey.id).length,
       ...(storey.id === level ? { open: true as const } : {}),
     })),
     ...(extent
       ? { width: Math.round(extent.x1 - extent.x0), depth: Math.round(extent.y1 - extent.y0) }
       : {}),
     changed,
-    rooms: touched.map((it) => surveyRoom(doc, it.level, it.room, roomsOf(doc, it.level))),
-    problems: checkLevel(doc, level),
+    walls: surveyWalls(doc, level),
+    rooms: touched.map((it) => reportFor(it.room, it.level)),
+    ...(unassigned.length
+      ? {
+          unassigned: unassigned.map((room) => reportFor(room, level)),
+        }
+      : {}),
+    problems: checkStorey({
+      doc,
+      level,
+      rooms: levelRooms,
+      reports: levelRooms.map((room) => reportFor(room, level)),
+    }),
     ...(notes === undefined || notes.length === 0 ? {} : { notes }),
   }
 }
@@ -74,6 +189,7 @@ function roomBehind(
   doc: HouseDocument,
   open: string,
   id: string,
+  roomsAt: (level: string) => Room[],
 ): { room: Room; level: string } | undefined {
   const stored = doc.rooms[id]
   const object = doc.objects[id]
@@ -81,7 +197,7 @@ function roomBehind(
   const level =
     stored?.level ?? object?.level ?? (opening ? doc.walls[opening.wall]?.level : undefined) ?? open
 
-  const rooms = roomsOf(doc, level)
+  const rooms = roomsAt(level)
   if (stored) {
     const room = rooms.find((candidate) => candidate.id === id)
     return room ? { room, level } : undefined
@@ -112,3 +228,5 @@ export function askPlan(doc: HouseDocument, source: string, open?: string): Answ
     touched.notes,
   )
 }
+
+import { soffitOf } from '@houseit/core/levels'

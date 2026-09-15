@@ -26,3 +26,20 @@ test('nobody is moved before the walk has started', () => {
   walkStore.getState().step({ x: 5, y: 5 })
   expect(walkStore.getState().walker).toBeNull()
 })
+
+test('exploring an overview preserves its camera position and height above the building', () => {
+  walkStore.getState().inspect({
+    at: [30, 20, 40],
+    target: [10, 5, -10],
+    span: 50,
+    orthographic: false,
+  })
+  walkStore.getState().explore()
+  const state = walkStore.getState()
+  expect(state.inspection).toBeNull()
+  expect(state.movement).toBe('free')
+  expect(state.walker?.at).toEqual({ x: 30000, y: -40000 })
+  expect(state.walker?.height).toBe(18400)
+  expect(state.walker?.yaw).toBeCloseTo(Math.atan2(-20, 50))
+  expect(state.walker?.pitch).toBeCloseTo(Math.atan2(-15, Math.hypot(20, 50)))
+})

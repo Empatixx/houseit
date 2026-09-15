@@ -1,10 +1,19 @@
-import type { HouseDocument } from '@houseit/core/document'
+import type { HouseDocument, Wall } from '@houseit/core/document'
 
 import type { Point } from './outlines'
 
 const PARALLEL = 1e-9
 
 export function clearOutline(doc: HouseDocument, level: string, nodes: string[]): Point[] {
+  return offsetOutline(doc, level, nodes, (wall) => (wall?.thickness ?? 0) / 2)
+}
+
+export function offsetOutline(
+  doc: HouseDocument,
+  level: string,
+  nodes: string[],
+  inset: (wall: Wall | undefined) => number,
+): Point[] {
   const corners = nodes.map((id) => doc.nodes[id]).filter((node) => node !== undefined)
   if (corners.length !== nodes.length || corners.length < 3) return []
 
@@ -27,14 +36,26 @@ export function clearOutline(doc: HouseDocument, level: string, nodes: string[])
         (candidate.a === from && candidate.b === to) ||
         (candidate.a === to && candidate.b === from),
     )
-    const back = (wall?.thickness ?? 0) / 2
-    return { at: { x: a.x + inward.x * back, y: a.y + inward.y * back }, way }
+    const back = inset(wall)
+    return {
+      at: { x: a.x + inward.x * back, y: a.y + inward.y * back },
+      end: { x: b.x + inward.x * back, y: b.y + inward.y * back },
+      way,
+    }
   })
 
   if (edges.some((edge) => edge === undefined)) return []
 
-  return edges.map((edge, index) => {
+  return edges.flatMap((edge, index) => {
     const before = edges[(index + edges.length - 1) % edges.length]!
+    if (before!.way.x * edge!.way.x + before!.way.y * edge!.way.y < -1 + PARALLEL)
+      return [before!.end, edge!.at]
+    if (before!.way.x * edge!.way.x + before!.way.y * edge!.way.y > 1 - PARALLEL) {
+      const distance = Math.abs(
+        (before!.end.x - edge!.at.x) * edge!.way.y - (before!.end.y - edge!.at.y) * edge!.way.x,
+      )
+      return distance < PARALLEL ? [] : [before!.end, edge!.at]
+    }
     return meeting(before!, edge!) ?? edge!.at
   })
 }

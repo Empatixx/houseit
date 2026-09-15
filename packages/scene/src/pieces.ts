@@ -8,25 +8,52 @@ export type Finish = {
 }
 
 export type Corner = { x: number; z: number }
+export type BoxPatch = {
+  origin: [number, number, number]
+  u: [number, number, number]
+  v: [number, number, number]
+}
 
 export type Body =
-  | { kind: 'box'; width: number; height: number; depth: number }
+  | { kind: 'box'; width: number; height: number; depth: number; patches?: BoxPatch[] }
   | { kind: 'drum'; radius: number; top: number; height: number; open: boolean; stretch: number }
   | { kind: 'ball'; radius: number }
-  | { kind: 'prism'; outline: Corner[]; holes: Corner[][]; thickness: number }
-  | { kind: 'sheet'; outline: Corner[]; holes: Corner[][] }
+  | {
+      kind: 'prism'
+      outline: Corner[]
+      holes: Corner[][]
+      thickness: number
+      top?: Corner[][]
+      slope?: { x: number; z: number; offset: number; both?: boolean }
+    }
+  | { kind: 'sheet'; outline: Corner[]; holes: Corner[][]; doubleSided?: boolean }
   | { kind: 'symbol'; file: string; width: number; depth: number }
   | { kind: 'model'; file: string; width: number; height: number; depth: number }
 
 export type Owner = { kind: 'wall' | 'opening' | 'room' | 'object'; id: string }
 
 export type Piece = {
+  entity?: string
+  role?:
+    | 'wall-solid'
+    | 'floor-surface'
+    | 'slab-solid'
+    | 'stair-solid'
+    | 'ramp-solid'
+    | 'shaft-solid'
+    | 'roof-solid'
+    | 'column-solid'
+    | 'facade-covering'
+    | 'site-surface'
+    | 'site-marking'
+    | 'site-railing'
   body: Body
   at: { x: number; y: number; z: number }
   turn?: number
   tilt?: number
   roll?: number
   paint: Finish
+  sidePaint?: Finish
   of?: Owner
   name?: string
   casts?: boolean
@@ -222,12 +249,17 @@ export function model({ file, w, h, d, paint }: ModelProps): Piece {
 }
 
 export type SheetProps = {
+  doubleSided?: boolean
   base?: number
   outline: Corner[]
   holes?: Corner[][]
   paint: Finish
 }
 
-export function sheet({ base = 0, outline, holes = [], paint }: SheetProps): Piece {
-  return { body: { kind: 'sheet', outline, holes }, at: { x: 0, y: base, z: 0 }, paint }
+export function sheet({ base = 0, outline, holes = [], paint, doubleSided }: SheetProps): Piece {
+  return {
+    body: { kind: 'sheet', outline, holes, doubleSided },
+    at: { x: 0, y: base, z: 0 },
+    paint,
+  }
 }

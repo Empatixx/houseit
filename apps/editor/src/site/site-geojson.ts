@@ -1,4 +1,4 @@
-import type { Site } from '@houseit/core/document'
+import type { Site } from '@houseit/core/parcel-site'
 import { toLngLat } from './projection'
 
 export type SiteGeoJson = {

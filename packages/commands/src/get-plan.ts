@@ -5,6 +5,7 @@ import { levelOf, whereRoom } from './resolve'
 
 export const getPlan = defineCommand({
   name: 'get-plan',
+  readOnly: true,
   summary:
     'Read the plan back: every room, or one of them, with what stands there and what is free',
   args: z.object({

@@ -1,4 +1,4 @@
-import type { Site } from '@houseit/core/document'
+import type { Site } from '@houseit/core/parcel-site'
 import type { MapRef } from '@vis.gl/react-maplibre'
 import { LoaderCircleIcon, MapPinIcon, SearchIcon, XIcon } from 'lucide-react'
 import { type FormEvent, useMemo, useRef, useState } from 'react'

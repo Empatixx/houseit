@@ -7,8 +7,8 @@ export const removeSite = defineCommand({
   summary: 'Detach the cadastral parcel without changing the house',
   args: z.object({}),
   run: (draft) => {
-    if (!draft.site) throw new CommandError('remove-site: this project has no parcel')
-    delete draft.site
+    if (!draft.parcelSite) throw new CommandError('remove-site: this project has no parcel')
+    delete draft.parcelSite
     return { changed: ['site'] }
   },
 })

@@ -1,0 +1,9 @@
+update-level --name "1.NP" --height 3670 --clear-height 3300
+add-room --name Hall --width 18000 --depth 6000 --material ceramic-tile
+add-room --from Hall --side east --width 12000 --name Staff --material vinyl
+add-room --from Staff --side east --width 6000 --name Store --material vinyl
+add-opening --room Hall --side east --kind door --variant pocket --width 800 --height 1970 --along 2000 --slide-towards north
+add-opening --room Staff --side east --kind door --variant pocket --width 800 --height 1970 --along 4000 --slide-towards south
+add-opening --room Hall --side south --kind door --width 900 --height 2100 --along 2000
+add-opening --room Staff --side south --kind window --width 2000 --height 1500 --sill 1050
+add-opening --room Store --side south --kind window --width 2000 --height 1500 --sill 1050

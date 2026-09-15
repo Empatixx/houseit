@@ -1,4 +1,4 @@
-import type { ParcelPolygon, Site } from '@houseit/core/document'
+import type { ParcelPolygon, Site } from '@houseit/core/parcel-site'
 
 type MetricPoint = { x: number; y: number }
 

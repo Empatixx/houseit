@@ -11,7 +11,7 @@ const PLAN = [
   'add-room --material tile-slate --from dům --name wc --side south --depth 2m',
 ].join('\n')
 
-const SHORTEST = 300
+const SHORTEST = 10
 
 const house = () => runScript(createEmptyDocument(), PLAN)
 const level = (doc: HouseDocument) => Object.keys(doc.levels)[0]!
@@ -95,7 +95,7 @@ test('the side the plan reads off a wall is the side the command moves', () => {
   expect(disagreed).toEqual([])
 })
 
-test('a nudge too small to build a step out of is refused rather than built', () => {
+test('a small room-boundary nudge inserts a local return', () => {
   const start = house()
   const wall = Object.values(start.rooms)
     .find((room) => room.name === 'kuchyň')!
@@ -106,9 +106,9 @@ test('a nudge too small to build a step out of is refused rather than built', ()
       return a.y === 4500 && b.y === 4500 && Math.min(a.x, b.x) === 2000
     })!
 
-  expect(() => runScript(start, `update-room --room kuchyň --wall ${wall} --by 100`)).toThrow(
-    /less than the 300 mm a wall has to be/,
-  )
+  const next = runScript(start, `update-room --room kuchyň --wall ${wall} --by 100`)
+  expect(Object.keys(next.walls)).toHaveLength(Object.keys(start.walls).length + 1)
+  expect(next.nodes[next.walls[wall]!.a]!.y).toBe(start.nodes[start.walls[wall]!.a]!.y - 100)
 })
 
 test('a move that would flatten the room beyond it is refused', () => {
@@ -121,6 +121,6 @@ test('a move that would flatten the room beyond it is refused', () => {
     })!
 
   expect(() => runScript(start, `update-room --room wc --wall ${between} --by -2000`)).toThrow(
-    /squash the room beyond it flat/,
+    /continuous|collapse|reverse|overlap/,
   )
 })

@@ -1,0 +1,12 @@
+update-level --name "1.NP" --height 3550
+add-level --name "1.PP" --height 3295 --below
+add-room --level "1.PP" --name Garáž --kind garage --width 20000 --depth 8000 --material epoxy
+add-column --level "1.PP" --x 6000 --y 6500 --width 400 --depth 400 --colour "#b9b9b5"
+add-room --level "1.NP" --name Hala --kind hall --width 20000 --depth 8000 --material ceramic-tile
+add-room --from Hala --side east --width 2000 --name Výtahy --kind hall --material ceramic-tile
+add-shaft --level "1.PP" --to "1.NP" --x 19000 --y 2000 --width 1200 --depth 1500
+add-shaft --level "1.PP" --to "1.NP" --x 19000 --y 6000 --width 1200 --depth 1500
+add-ramp --level "1.PP" --to "1.NP" --x 1000 --y 4000 --width 2500 --length 16000 --direction east --thickness 250 --colour "#b2b4b4"
+add-opening --room Hala --kind door --side south --width 1000 --height 2100
+add-opening --room Hala --kind door --side east --width 1000 --height 2100
+get-plan --level "1.NP"

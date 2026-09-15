@@ -3,6 +3,7 @@ import { OrthographicCamera } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import { Shape } from 'three'
+import { FragmentDisplayLayer } from '../engine/fragment-display-layer'
 import { Furniture } from '../scene/furniture/furniture'
 import { Plain } from '../scene/plain'
 import { MM, toWorld } from '../scene/plan-coordinates'
@@ -63,21 +64,23 @@ export function Minimap() {
         }}
       >
         <Canvas flat dpr={[1, 2]} style={{ pointerEvents: 'none' }}>
-          <OrthographicCamera
-            makeDefault
-            position={[fit.x, 40, fit.z]}
-            up={UP}
-            near={0.1}
-            far={200}
-          />
-          <Overhead fit={fit} />
-          <color attach="background" args={['#f4f4f5']} />
-          <Plain value={true}>
-            <RoomFloors />
-            <Furniture />
-            <Walls />
-          </Plain>
-          <Standing />
+          <FragmentDisplayLayer>
+            <OrthographicCamera
+              makeDefault
+              position={[fit.x, 40, fit.z]}
+              up={UP}
+              near={0.1}
+              far={200}
+            />
+            <Overhead fit={fit} />
+            <color attach="background" args={['#f4f4f5']} />
+            <Plain value={true}>
+              <RoomFloors />
+              <Furniture />
+              <Walls />
+            </Plain>
+            <Standing />
+          </FragmentDisplayLayer>
         </Canvas>
       </div>
     </div>

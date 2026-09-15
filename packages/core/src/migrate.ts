@@ -11,6 +11,10 @@ export class MigrationError extends Error {
 type Migration = (doc: Record<string, unknown>) => Record<string, unknown>
 
 const MIGRATIONS: Record<number, Migration> = {
+  5: ({ site, ...doc }) => {
+    if (site && typeof site === 'object' && 'parcel' in site) return { ...doc, parcelSite: site }
+    return { ...doc, ...(site === undefined ? {} : { site }) }
+  },
   1: ({ roomLabels, ...doc }) => ({ ...doc, rooms: roomLabels ?? {} }),
   2: (doc) => ({
     ...doc,

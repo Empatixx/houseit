@@ -84,6 +84,22 @@ test('a door that cannot open for what stands in its swing', () => {
   expect(ok(script)).toBe(false)
 })
 
+test('a divided glazed window satisfies the window warning, but opaque infill does not', () => {
+  const room =
+    'add-room --name office --kind office --material carpet --shape rectangle --width 6m --depth 5m'
+  const frame = JSON.stringify({ depth: 74, face: 60, outside: '#383e42', inside: '#ffffff' })
+  for (const kind of ['fixed', 'casement', 'tilt-turn', 'opaque']) {
+    const panels = JSON.stringify([{ kind, x: 0, z: 0, width: 2000, height: 1500 }])
+    const report = check(
+      `${room}\nadd-opening --room office --kind assembly --side north --width 2000 --height 1500 --sill 1050 --frame '${frame}' --panels '${panels}'`,
+    )
+    const warning = report.problems.find((p) => p.code === 'window.missing')
+    if (kind === 'opaque') expect(warning?.severity).toBe('warning')
+    else expect(warning).toBeUndefined()
+  }
+  expect(check(room).problems.find((p) => p.code === 'window.missing')?.severity).toBe('warning')
+})
+
 test('a kitchen with nothing to cook on', () => {
   const script = [
     HOUSE,

@@ -132,7 +132,19 @@ export async function openProject(page: Page, name: string): Promise<string> {
 }
 
 export function execOnPage(page: Page, source: string): Promise<ExecResult> {
-  return page.evaluate((script) => window.floorplan.exec(script), source)
+  return page.evaluate(async (script) => {
+    const result = window.floorplan.exec(script)
+    if (!result.ok) return result
+    try {
+      await window.floorplan.save()
+      return result
+    } catch (error) {
+      return {
+        ok: false as const,
+        error: `The edit was applied, but saving the native model failed: ${error instanceof Error ? error.message : String(error)}`,
+      }
+    }
+  }, source)
 }
 
 export function showOnPage(page: Page, view: ViewRequest): Promise<ShowResult> {
@@ -151,6 +163,11 @@ export async function pictureOf(page: Page): Promise<Buffer> {
   await page.bringToFront().catch(() => undefined)
   await waitForCanvas(page).catch(() => undefined)
   await page.waitForTimeout(SETTLE_MS)
+  await page.waitForFunction(() => {
+    const state = document.querySelector('canvas')?.dataset.houseitRender
+    if (state === 'error') throw new Error('The native wall renderer failed')
+    return state !== 'pending'
+  })
   const canvas = page.locator('canvas').first()
   const clear = await clearOnPage(page).catch(() => undefined)
   const box = clear ? await canvas.boundingBox() : null

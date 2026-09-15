@@ -1,4 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
+import { openingParts } from '@houseit/core/opening-parts'
 import { expect, test } from 'vitest'
 import { doorPieces } from './doors'
 
@@ -67,6 +68,9 @@ test('a sliding door is two panels in the wall, a pocket door one', () => {
   expect(sliding.map((piece) => piece.length)).toEqual([800, 800])
   expect(pocket).toHaveLength(1)
   expect(pocket[0]!.length).toBe(door.width)
+  expect(pocket[0]!.at).toBe(3000 - door.width)
+  const opposite = panels(doorPieces({ ...door, variant: 'pocket', slide: 'b' }, wall, 3000))
+  expect(opposite[0]!.at).toBe(3000 + door.width)
 })
 
 test('the reveal is lined: a jamb each side and a soffit over', () => {
@@ -95,4 +99,61 @@ test('what stands in the wall stops under the soffit', () => {
 
 test('a window grows no door', () => {
   expect(doorPieces({ ...door, kind: 'window' }, wall, 3000)).toEqual([])
+})
+
+test('a glazed door leaf carries its own frame with separate inside and outside faces', () => {
+  const glazed = {
+    ...door,
+    width: 1100,
+    height: 2100,
+    frame: { depth: 74, face: 50, outside: '#383e42', inside: '#f1f0ea' },
+  }
+  const pieces = doorPieces(glazed, wall, 3000, -1)
+  const glass = pieces.find((p) => p.key === 'd1-leaf')!
+  const frame = pieces.filter((p) => p.key.includes('leaf-frame'))
+  expect(frame).toHaveLength(8)
+  expect(frame.filter((p) => p.colour === glazed.frame.inside)).toHaveLength(4)
+  expect(frame.filter((p) => p.colour === glazed.frame.outside)).toHaveLength(4)
+  expect(
+    Math.max(...frame.map((p) => p.at + p.thickness / 2)) -
+      Math.min(...frame.map((p) => p.at - p.thickness / 2)),
+  ).toBe(74)
+  expect(glass.length).toBeLessThan(1000)
+  expect(glass.height).toBeLessThan(2100)
+  expect(glass.thickness).toBeLessThan(10)
+  expect(pieces.some((p) => p.key.includes('jamb'))).toBe(false)
+})
+
+test('a framed solid leaf has two opaque faces instead of a transparent infill', () => {
+  const solid = {
+    ...door,
+    infill: 'opaque' as const,
+    width: 1250,
+    height: 2100,
+    frame: { depth: 74, face: 60, outside: '#383e42', inside: '#f1f0ea' },
+  }
+  const pieces = doorPieces(solid, wall, 3000, -1)
+  const faces = pieces.filter((p) => p.key === 'd1-leaf-1' || p.key === 'd1-leaf--1')
+  expect(faces).toHaveLength(2)
+  expect(new Set(faces.map((p) => p.colour))).toEqual(new Set(['#383e42', '#f1f0ea']))
+  expect(faces.reduce((sum, p) => sum + p.thickness, 0)).toBe(40)
+  expect(pieces.some((p) => p.takesFinish)).toBe(false)
+})
+
+test('paired wooden leaves have outer jambs and no fixed meeting post', () => {
+  const paired = { ...door, width: 1600, leafWidth: 900 }
+  const parts = openingParts(paired, 6000)
+  const pieces = parts.flatMap((part) => doorPieces(part, wall, part.t * 6000))
+  expect(pieces.filter((p) => p.key.includes('-jamb-'))).toHaveLength(2)
+  expect(
+    pieces
+      .filter((p) => p.key.endsWith('-leaf'))
+      .map((p) => p.length)
+      .sort(),
+  ).toEqual([700, 900])
+  const jambs = pieces
+    .filter((p) => p.key.includes('-jamb-'))
+    .map((p) => p.at)
+    .sort((a, b) => a - b)
+  expect(jambs[1]! - jambs[0]!).toBeCloseTo(1560, 6)
 })

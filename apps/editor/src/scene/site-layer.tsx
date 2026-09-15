@@ -1,4 +1,4 @@
-import type { PointMm } from '@houseit/core/document'
+import type { PointMm } from '@houseit/core/parcel-site'
 import { Html } from '@react-three/drei'
 import { useMemo } from 'react'
 import { BufferGeometry, Path, Shape, ShapeGeometry, ShapePath, Vector3 } from 'three'
@@ -10,7 +10,10 @@ import { drawingOfSite } from './site-drawing'
 export function SiteLayer() {
   const doc = usePlanDoc()
   const visible = useShown((state) => state.shown.site)
-  const drawing = useMemo(() => (doc.site ? drawingOfSite(doc.site) : null), [doc.site])
+  const drawing = useMemo(
+    () => (doc.parcelSite ? drawingOfSite(doc.parcelSite) : null),
+    [doc.parcelSite],
+  )
   const geometry = useMemo(() => {
     if (!drawing) return null
     const parcels = drawing.parcels.map((polygon) => new ShapeGeometry(shapeOf(polygon)))

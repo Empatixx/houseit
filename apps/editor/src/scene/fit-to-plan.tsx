@@ -88,21 +88,21 @@ export function FitToPlan() {
   return null
 }
 
-function planBox(
-  doc: {
-    walls: Record<string, { level: string; a: string; b: string }>
-    nodes: Record<string, { x: number; y: number } | undefined>
-  },
-  level: string,
-): ViewBox | undefined {
+function planBox(doc: HouseDocument, level: string): ViewBox | undefined {
   const nodes = Object.values(doc.walls)
     .filter((wall) => wall.level === level)
     .flatMap((wall) => [doc.nodes[wall.a], doc.nodes[wall.b]])
     .filter((node) => node !== undefined)
-  if (nodes.length === 0) return undefined
+  const points = [...nodes, ...(doc.levels[level]?.ramps ?? []).flatMap((r) => rampOutline(r))]
+  if (doc.levels[level]?.elevation === 0)
+    points.push(
+      ...(doc.site?.surfaces.filter((s) => s.name.startsWith('Stání ')).flatMap((s) => s.outline) ??
+        []),
+    )
+  if (points.length === 0) return undefined
 
-  const xs = nodes.map((node) => node.x)
-  const ys = nodes.map((node) => node.y)
+  const xs = points.map((node) => node.x)
+  const ys = points.map((node) => node.y)
   return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) }
 }
 
@@ -117,3 +117,6 @@ function frame(
   camera.zoom = to.zoom
   camera.updateProjectionMatrix()
 }
+
+import type { HouseDocument } from '@houseit/core/document'
+import { rampOutline } from '@houseit/geometry/connections'

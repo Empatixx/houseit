@@ -1,4 +1,5 @@
 import type { Opening, Wall } from '@houseit/core/document'
+import { doorLeafSize, type OpeningPart, pocketShift } from '@houseit/core/opening-parts'
 
 const DOOR_PAINT = {
   leaf: '#cdb894',
@@ -25,8 +26,14 @@ export type StandingPiece = {
   takesFinish?: boolean
 }
 
-export function doorPieces(opening: Opening, wall: Wall, centre: number): StandingPiece[] {
+export function doorPieces(
+  opening: OpeningPart,
+  wall: Wall,
+  centre: number,
+  outside?: -1 | 1,
+): StandingPiece[] {
   if (opening.kind !== 'door') return []
+  if (opening.frame && opening.variant === 'hinged') return framedLeaf(opening, centre, outside)
   const width = opening.width
   const height = opening.height
   const face = wall.thickness / 2
@@ -54,7 +61,7 @@ export function doorPieces(opening: Opening, wall: Wall, centre: number): Standi
     const panel = opening.variant === 'pocket' ? width : width / 2
     const spots =
       opening.variant === 'pocket'
-        ? [{ key: 'near', at: centre, aside: 0 }]
+        ? [{ key: 'near', at: centre + pocketShift(opening), aside: 0 }]
         : [
             { key: 'near', at: centre - width / 4, aside: -LEAF / 2 },
             { key: 'far', at: centre + width / 4, aside: LEAF / 2 },
@@ -109,7 +116,76 @@ export function doorPieces(opening: Opening, wall: Wall, centre: number): Standi
   ]
 }
 
-function liningOf(opening: Opening, wall: Wall, centre: number): StandingPiece[] {
+function framedLeaf(opening: Opening, centre: number, outside?: -1 | 1): StandingPiece[] {
+  const frame = opening.frame!
+  const { width, height } = doorLeafSize(opening)
+  const towards = opening.hinge === 'a' ? 1 : -1
+  const swing = opening.swing
+  const hinge = centre - (towards * width) / 2
+  const at = hinge + (towards * frame.depth) / 2
+  const exterior = -(outside ?? -swing) * swing * towards
+  const strips = [
+    { along: frame.face / 2, length: frame.face, base: 0, height },
+    { along: width - frame.face / 2, length: frame.face, base: 0, height },
+    { along: width / 2, length: width - 2 * frame.face, base: 0, height: frame.face },
+    {
+      along: width / 2,
+      length: width - 2 * frame.face,
+      base: height - frame.face,
+      height: frame.face,
+    },
+  ]
+  const infill: StandingPiece = {
+    key: `${opening.id}-leaf`,
+    at,
+    aside: (swing * width) / 2,
+    turn: QUARTER,
+    length: width - 2 * frame.face,
+    height: height - 2 * frame.face,
+    thickness: 8,
+    base: frame.face,
+    colour: '#b9d4e0',
+    takesFinish: true,
+  }
+  return [
+    ...(opening.infill === 'opaque'
+      ? ([1, -1] as const).map((side) => ({
+          ...infill,
+          key: `${opening.id}-leaf-${side}`,
+          at: at + (side * LEAF) / 4,
+          thickness: LEAF / 2,
+          colour: side === exterior ? frame.outside : frame.inside,
+          takesFinish: false,
+        }))
+      : [infill]),
+    ...strips.flatMap((strip, i) =>
+      ([1, -1] as const).map((side) => ({
+        key: `${opening.id}-leaf-frame-${i}-${side}`,
+        at: at + (side * frame.depth) / 4,
+        aside: swing * strip.along,
+        turn: QUARTER,
+        length: strip.length,
+        height: strip.height,
+        thickness: frame.depth / 2,
+        base: strip.base,
+        colour: side === exterior ? frame.outside : frame.inside,
+      })),
+    ),
+    {
+      key: `${opening.id}-handle`,
+      at: at + (towards * (frame.depth + HANDLE.reach)) / 2,
+      aside: swing * (width - HANDLE.length / 2 - frame.face),
+      turn: QUARTER,
+      length: HANDLE.length,
+      height: HANDLE.thick,
+      thickness: HANDLE.reach,
+      base: HANDLE.height,
+      colour: DOOR_PAINT.handle,
+    },
+  ]
+}
+
+function liningOf(opening: OpeningPart, wall: Wall, centre: number): StandingPiece[] {
   const width = opening.width
   const height = opening.height
   const jamb = (side: -1 | 1) => ({
@@ -124,8 +200,8 @@ function liningOf(opening: Opening, wall: Wall, centre: number): StandingPiece[]
     colour: DOOR_PAINT.lining,
   })
   return [
-    jamb(-1),
-    jamb(1),
+    ...(opening.liningSide !== 'b' ? [jamb(-1)] : []),
+    ...(opening.liningSide !== 'a' ? [jamb(1)] : []),
     {
       key: `${opening.id}-soffit`,
       at: centre,

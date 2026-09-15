@@ -6,6 +6,8 @@ export type RoomKind = {
   needsWindow: boolean
   public: boolean
   passage: boolean
+  outdoor: boolean
+  glazed: boolean
   words: string[]
 }
 
@@ -13,7 +15,9 @@ const kind = (
   id: string,
   label: string,
   minArea: number,
-  flags: Partial<Pick<RoomKind, 'needsWindow' | 'public' | 'passage' | 'minWidth'>>,
+  flags: Partial<
+    Pick<RoomKind, 'needsWindow' | 'public' | 'passage' | 'minWidth' | 'outdoor' | 'glazed'>
+  >,
   words: string[],
 ): RoomKind => ({
   id,
@@ -23,10 +27,34 @@ const kind = (
   needsWindow: flags.needsWindow ?? false,
   public: flags.public ?? false,
   passage: flags.passage ?? false,
+  outdoor: flags.outdoor ?? false,
+  glazed: flags.glazed ?? false,
   words,
 })
 
 export const ROOM_KINDS: RoomKind[] = [
+  kind('reception', 'Reception', 0, { passage: true }, ['reception', 'recepce']),
+  kind('plant-room', 'Plant room', 0, {}, ['plant room', 'strojovna', 'technická místnost']),
+  kind('living-kitchen', 'Living room with kitchenette', 0, {}, ['living kitchen', 'pokoj s kk']),
+  kind('cafe', 'Café', 0, {}, ['café', 'cafe', 'kavárna']),
+  kind('preparation-kitchen', 'Preparation kitchen', 0, {}, ['preparation kitchen', 'přípravna']),
+  kind('barber', 'Barber', 0, {}, ['barber', 'holičství', 'kadeřnictví']),
+  kind('treatment', 'Treatment room', 0, {}, ['treatment', 'kosmetika', 'ošetřovna']),
+  kind('waiting', 'Waiting room', 0, { passage: true }, ['waiting', 'čekárna']),
+  kind('staff-room', 'Staff day room', 0, {}, ['staff room', 'denní místnost']),
+  kind('cleaner-store', 'Cleaner’s store', 0, {}, ['cleaner', 'úklid']),
+  kind('archive', 'Archive', 0, {}, ['archive', 'archiv']),
+  kind('server-room', 'Server room', 0, {}, ['server', 'serverovna']),
+  kind('telephone-room', 'Telephone room', 0, {}, ['telephone', 'telefonní']),
+  kind('meeting', 'Meeting room', 0, {}, ['meeting', 'zasedací']),
+  kind('stairwell', 'Stairwell', 0, { passage: true }, ['stairwell', 'schodiště']),
+  kind('electrical-intake', 'Electrical intake', 0, {}, [
+    'electrical intake',
+    'elektrorozvodna',
+    'rozvodna',
+  ]),
+  kind('pram-store', 'Pram store', 0, {}, ['pram', 'kočárkárna']),
+  kind('parking-bay', 'Parking bay', 0, {}, ['parking bay', 'parkovací stání']),
   kind('half-bath', 'Half bath', 1.8, { minWidth: 900 }, [
     'half bath',
     'powder',
@@ -100,7 +128,43 @@ export const ROOM_KINDS: RoomKind[] = [
   ]),
   kind('storage', 'Storage', 1, {}, ['storage', 'store', 'sklad', 'komora']),
   kind('gym', 'Gym', 6, {}, ['gym', 'fitness', 'posilovna']),
-  kind('terrace', 'Terrace', 4, {}, ['terrace', 'patio', 'balcony', 'deck', 'terasa', 'balkon']),
+  kind('winter-garden', 'Winter garden', 6, { public: true, glazed: true }, [
+    'winter garden',
+    'conservatory',
+    'zimní zahrada',
+    'zimni zahrada',
+  ]),
+  kind('terrace', 'Terrace', 4, { outdoor: true }, [
+    'terrace',
+    'patio',
+    'balcony',
+    'deck',
+    'terasa',
+    'balkon',
+  ]),
+  kind('paving', 'Paving', 1, { outdoor: true, passage: true }, [
+    'paving',
+    'driveway',
+    'dlažba',
+    'dlazba',
+    'příjezd',
+    'prijezd',
+  ]),
+  kind('path', 'Path', 1, { outdoor: true, passage: true }, [
+    'path',
+    'sidewalk',
+    'walkway',
+    'chodník',
+    'chodnik',
+  ]),
+  kind('lawn', 'Lawn', 1, { outdoor: true, passage: true }, [
+    'lawn',
+    'greenery',
+    'zeleň',
+    'zelen',
+    'trávník',
+    'travnik',
+  ]),
 ]
 
 export const ROOM_KIND_IDS = ROOM_KINDS.map((kind) => kind.id)

@@ -9,7 +9,7 @@ const MARGIN = 6000
 export function Lighting() {
   const doc = usePlanDoc()
   const sun = useMemo(() => {
-    const reach = reachOf(doc)
+    const reach = reachOf({ ...doc, site: undefined })
     const across = Math.max(reach.max.x - reach.min.x, reach.max.z - reach.min.z) + MARGIN
     const middle = {
       x: (reach.min.x + reach.max.x) / 2,
@@ -36,7 +36,7 @@ export function Lighting() {
         position={sun.at}
         target-position={sun.aim}
         intensity={3.2}
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[4096, 4096]}
         shadow-bias={-0.0006}
         shadow-normalBias={0.02}
         shadow-camera-near={1}

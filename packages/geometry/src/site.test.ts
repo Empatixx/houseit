@@ -1,5 +1,6 @@
-import type { HouseDocument, Site } from '@houseit/core/document'
+import type { HouseDocument } from '@houseit/core/document'
 import { createEmptyDocument } from '@houseit/core/document'
+import type { Site } from '@houseit/core/parcel-site'
 import { describe, expect, test } from 'vitest'
 import {
   buildableAreaOf,
@@ -135,7 +136,7 @@ describe('house fit', () => {
       yMm: 1000,
       rotationMilliDegrees: 0,
     })
-    doc.site = centered
+    doc.parcelSite = centered
     expect(houseFitsSite(doc)).toBe(true)
   })
 
@@ -151,7 +152,7 @@ describe('house fit', () => {
       { x: 0, y: 10_000 },
     ]
 
-    doc.site = centeredSiteForHouse(doc, site)
+    doc.parcelSite = centeredSiteForHouse(doc, site)
 
     expect(houseFitsSite(doc)).toBe(true)
   })
@@ -165,9 +166,9 @@ describe('house fit', () => {
 
   test('allows a wall face on the parcel boundary and refuses one millimetre outside', () => {
     const inside = rectangularHouse(100, 100, 9900, 9900)
-    inside.site = squareSite()
+    inside.parcelSite = squareSite()
     const outside = rectangularHouse(100, 100, 9901, 9900)
-    outside.site = squareSite()
+    outside.parcelSite = squareSite()
 
     expect(houseFitsSite(inside)).toBe(true)
     expect(houseFitsSite(outside)).toBe(false)
@@ -186,7 +187,7 @@ describe('house fit', () => {
       { x: 4000, y: 10_000 },
       { x: 0, y: 10_000 },
     ]
-    doc.site = site
+    doc.parcelSite = site
 
     expect(houseFitsSite(doc)).toBe(false)
   })
@@ -206,7 +207,7 @@ describe('house fit', () => {
       baseOffset: 0,
       height: 2600,
     }
-    doc.site = squareSite()
+    doc.parcelSite = squareSite()
 
     expect(houseFitsSite(doc as HouseDocument)).toBe(false)
   })

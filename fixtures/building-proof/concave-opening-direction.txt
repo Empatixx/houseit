@@ -1,0 +1,7 @@
+update-level --name Main --height 3300
+add-room --name Hall --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":125},{"x":8000,"y":0,"thickness":125},{"x":8000,"y":8000,"thickness":125},{"x":6000,"y":8000,"thickness":125},{"x":6000,"y":2000,"thickness":125},{"x":0,"y":2000,"thickness":125}]'
+add-room --name WC --material ceramic-tile --boundary '[{"x":4000,"y":3000,"thickness":125},{"x":6000,"y":3000,"thickness":125},{"x":6000,"y":5000,"thickness":125},{"x":4000,"y":5000,"thickness":125}]'
+add-room --name Store --material ceramic-tile --boundary '[{"x":4000,"y":5500,"thickness":125},{"x":6000,"y":5500,"thickness":125},{"x":6000,"y":7500,"thickness":125},{"x":4000,"y":7500,"thickness":125}]'
+add-opening --room WC --kind door --side east --width 900 --height 1970 --along 900 --hinge right --opens-into Hall
+add-opening --room Hall --kind door --side west --width 900 --height 1970 --along 4500 --hinge right
+add-opening --room Hall --kind door --side west --width 700 --height 1970 --along 450 --hinge left --opens-into outside

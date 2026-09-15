@@ -12,8 +12,10 @@ import { defineCommand } from './define-command'
 import { parseLength } from './length'
 import { length } from './length-schema'
 import { parseWalk } from './parse-walk'
-import { linkPoints, nearWall } from './partition'
+import { nearWall } from './partition'
 import { levelOf, roomNamed, SIDE_NAMES, sideNamed } from './resolve'
+
+import { addWall } from './wall'
 
 const PARTITION_THICKNESS = 150
 
@@ -34,37 +36,31 @@ export const drawWall = defineCommand({
     thickness: length().default(PARTITION_THICKNESS),
     level: z.string().optional(),
   }),
-  run: (draft, args) => {
-    const level = levelOf(draft, args.level, 'draw-wall')
+  run: (draft, args, open) => {
+    const level = levelOf(draft, args.level ?? open, 'draw-wall')
     const start = startOf(draft, level, args)
     const legs = parseWalk(args.walk)
 
-    const before = new Set(roomsOf(draft, level).map(keyOf))
-    const inRoom = roomsOf(draft, level).find((room) =>
-      containsPoint(
-        room.nodes.map((id) => draft.nodes[id]!),
-        start.x,
-        start.y,
-      ),
-    )
+    const before = roomsOf(draft, level).map((room) => ({
+      key: keyOf(room),
+      floor: room.floor,
+      outline: room.nodes.map((id) => ({ ...draft.nodes[id]! })),
+    }))
 
     let from = start
-    let drew = false
+    const changed: string[] = []
     for (const leg of legs) {
       const step = HEADINGS[leg.heading]
       let to = { x: from.x + step.x * leg.length, y: from.y + step.y * leg.length }
       to = nearWall(draft, level, to) ?? to
-      try {
-        linkPoints(draft, level, from, to, args.thickness, 'draw-wall')
-        drew = true
-      } catch (error) {
-        if (!(error instanceof CommandError)) throw error
-      }
+      const made = addWall.apply(draft, { from, to, thickness: args.thickness, level })
+      changed.push(...(made?.changed ?? []))
       from = to
     }
-    if (!drew) throw new CommandError('draw-wall: there are walls there already')
+    if (!changed.length) throw new CommandError('draw-wall: there are walls there already')
 
-    nameNewFaces(draft, level, before, args.name, args.material ?? inRoom?.floor)
+    changed.push(...nameNewFaces(draft, level, before, args.name, args.material))
+    return { changed, at: level }
   },
 })
 
@@ -99,21 +95,20 @@ const keyOf = (room: Room) => [...room.nodes].sort().join('-')
 function nameNewFaces(
   draft: Parameters<typeof roomsOf>[0],
   level: string,
-  before: Set<string>,
+  before: { key: string; floor?: string; outline: Point[] }[],
   name: string | undefined,
   material: string | undefined,
-): void {
-  const fresh = roomsOf(draft, level).filter((face) => !face.id && !before.has(keyOf(face)))
+): string[] {
+  const known = new Set(before.map((room) => room.key))
+  const fresh = roomsOf(draft, level).filter((face) => !face.id && !known.has(keyOf(face)))
   const taken = new Set(Object.values(draft.rooms).map((record) => record.name))
-  fresh.forEach((face, index) => {
+  return fresh.map((face) => {
     const base = name ?? 'room'
     let chosen = base
     let n = 2
-    while (taken.has(chosen) || index > 0) {
+    while (taken.has(chosen)) {
       chosen = `${base} ${n}`
       n += 1
-      if (!taken.has(chosen) && index === 0) break
-      if (!taken.has(chosen) && index > 0) break
     }
     taken.add(chosen)
     const id = allocateId(draft.rooms, 'r')
@@ -126,8 +121,12 @@ function nameNewFaces(
       level,
       ...anchor,
       name: chosen,
-      ...(material ? { floor: material } : {}),
+      floor:
+        material ??
+        before.find((room) => containsPoint(room.outline, anchor.x, anchor.y))?.floor ??
+        'natural-oak',
       loop: [],
     }
+    return id
   })
 }

@@ -1,0 +1,7 @@
+update-level --name "1.NP" --height 3670 --clear-height 3300 --slab-thickness 250
+add-room --name "140 ŠATNA" --kind walk-in --material ceramic-tile --boundary '[{"x":-100,"y":9125,"thickness":150},{"x":4163,"y":9125,"thickness":125},{"x":4163,"y":11875,"thickness":250},{"x":-100,"y":11875,"thickness":300}]'
+add-room --name "135 SCHODIŠŤOVÝ PROSTOR" --kind stairwell --material ceramic-tile --boundary '[{"x":-125,"y":11875,"thickness":250},{"x":6125,"y":11875,"thickness":250},{"x":6125,"y":18125,"thickness":250},{"x":-125,"y":18125,"thickness":250}]'
+add-shaft --level "1.NP" --to "1.NP" --kind services --x 364 --y 11486 --width 375 --depth 275 --enclosure '{"thickness":125,"colour":"#e5e2da"}'
+add-opening --room "140 ŠATNA" --kind door --side east --width 900 --height 1970 --along 1850
+add-opening --room "135 SCHODIŠŤOVÝ PROSTOR" --kind door --side east --width 900 --height 2050
+get-plan

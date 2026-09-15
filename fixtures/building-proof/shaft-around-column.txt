@@ -1,0 +1,7 @@
+update-level --name Main --height 3300
+add-room --name Before --material ceramic-tile --boundary '[{"x":0,"y":0,"thickness":200},{"x":4000,"y":0,"thickness":200},{"x":4000,"y":4000,"thickness":200},{"x":0,"y":4000,"thickness":200}]'
+add-room --name After --material ceramic-tile --boundary '[{"x":4000,"y":0,"thickness":200},{"x":8000,"y":0,"thickness":200},{"x":8000,"y":4000,"thickness":200},{"x":4000,"y":4000,"thickness":200}]'
+add-column --x 1000 --y 3500 --width 500 --depth 500 --colour "#b0b0b0"
+add-shaft --kind services --to Main --x 1200 --y 3300 --width 1000 --depth 800 --around-columns --enclosure '{"thickness":100,"colour":"#e5e2da"}'
+add-shaft --kind services --to Main --x 6000 --y 3300 --width 1000 --depth 800 --around-columns --enclosure '{"thickness":100,"colour":"#e5e2da"}'
+add-column --x 6000 --y 3500 --width 500 --depth 500 --colour "#b0b0b0"

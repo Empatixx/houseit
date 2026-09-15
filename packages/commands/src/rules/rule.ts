@@ -20,7 +20,9 @@ export type Storey = {
 export type Rule = (storey: Storey) => Problem[]
 
 export const doorsOf = (room: RoomReport): OpeningReport[] =>
-  room.openings.filter((opening) => opening.kind === 'door')
+  room.openings.filter(
+    (opening) => opening.kind === 'door' || opening.panels?.some((p) => p.kind === 'door'),
+  )
 
 export const label = (object: HouseObject): string =>
   objectType(object.type)?.label.toLowerCase() ?? object.type

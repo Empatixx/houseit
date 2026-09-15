@@ -1,11 +1,14 @@
 import type { Body, Finish } from '@houseit/scene/pieces'
 import type { ThreeEvent } from '@react-three/fiber'
-import { useEffect, useState } from 'react'
-import type { Texture } from 'three'
+import { useEffect, useMemo, useState } from 'react'
+import { MeshBasicMaterial, type Texture } from 'three'
+import { rectangleSheet } from '../../engine/sheet-geometry'
+import { useNativeGeometry } from '../../engine/use-wall-geometry'
 import { symbolTexture } from '../furniture/symbol-texture'
-import { MM } from '../plan-coordinates'
+import { type NativePiece, PieceMesh } from './piece-mesh'
 
 type SymbolPlateProps = {
+  native: NativePiece
   body: Extract<Body, { kind: 'symbol' }>
   paint: Finish
   tint?: string
@@ -14,7 +17,7 @@ type SymbolPlateProps = {
   onPick?: (event: ThreeEvent<MouseEvent>) => void
 }
 
-export function SymbolPlate({ body, paint, tint, at, rotation, onPick }: SymbolPlateProps) {
+export function SymbolPlate({ body, paint, tint, at, rotation, onPick, native }: SymbolPlateProps) {
   const [texture, setTexture] = useState<Texture | undefined>(undefined)
   const { file, width, depth } = body
   const fill = paint.colour
@@ -33,18 +36,30 @@ export function SymbolPlate({ body, paint, tint, at, rotation, onPick }: SymbolP
     }
   }, [file, fill, width, depth])
 
-  if (!texture) return null
-
+  const { geometry, key } = useNativeGeometry(rectangleSheet({ width, depth }))
+  const material = useMemo(
+    () =>
+      new MeshBasicMaterial({
+        map: texture ?? null,
+        color: tint ?? '#ffffff',
+        transparent: true,
+        alphaTest: 0.02,
+        depthWrite: false,
+      }),
+    [texture, tint],
+  )
+  useEffect(() => () => material.dispose(), [material])
+  if (!texture || !geometry) return null
   return (
-    <mesh position={at} rotation={[rotation[0], rotation[1], rotation[2], 'YXZ']} onClick={onPick}>
-      <planeGeometry args={[width * MM, depth * MM]} />
-      <meshBasicMaterial
-        map={texture}
-        color={tint ?? '#ffffff'}
-        transparent
-        alphaTest={0.02}
-        depthWrite={false}
-      />
-    </mesh>
+    <PieceMesh
+      native={native}
+      geometry={geometry}
+      geometryKey={key}
+      material={material}
+      at={at}
+      rotation={[...rotation, 'YXZ']}
+      shadows={false}
+      onPick={onPick}
+    />
   )
 }

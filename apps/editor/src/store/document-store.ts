@@ -1,107 +1,76 @@
 import type { ArgsOf, Touched, TypedCommand } from '@houseit/commands/define-command'
-import {
-  applyWithPatches,
-  runScriptWithPatches,
-  type ScriptResult,
-} from '@houseit/commands/patches'
 import { createEmptyDocument, type HouseDocument } from '@houseit/core/document'
 import { levelsOf } from '@houseit/core/levels'
-import { applyPatches, enablePatches, type Patch } from 'immer'
 import { createStore } from 'zustand/vanilla'
-
-enablePatches()
-
-type HistoryEntry = { patches: Patch[]; inversePatches: Patch[] }
+import { type DocumentSource, FragmentAuthoring } from '../engine/fragment-authoring'
 
 export type DocumentState = {
   doc: HouseDocument
+  authoring: FragmentAuthoring
   level: string
   setLevel: (level: string) => void
-  past: HistoryEntry[]
-  future: HistoryEntry[]
+  past: number[]
+  future: number[]
   canUndo: boolean
   canRedo: boolean
   exec: (source: string) => Touched
   apply: <C extends TypedCommand>(command: C, args: ArgsOf<C>) => Touched
   undo: () => void
   redo: () => void
-  load: (doc: HouseDocument) => void
+  load: (doc: DocumentSource) => void
   reset: () => void
 }
 
 export function createDocumentStore(initial: HouseDocument | undefined = undefined) {
   const start = initial ?? createEmptyDocument()
+  const authoring = new FragmentAuthoring(start)
   return createStore<DocumentState>()((set, get) => {
-    const commit = (result: ScriptResult): Touched => {
-      if (result.patches.length === 0) return result.touched
-      const { past } = get()
+    const publish = () => {
+      const { authoring, doc, level } = get()
+      if (doc === authoring.document) return
       set({
-        doc: result.doc,
-        past: [...past, { patches: result.patches, inversePatches: result.inversePatches }],
-        future: [],
-        canUndo: true,
-        canRedo: false,
+        doc: authoring.document,
+        ...authoring.history,
+        level: authoring.document.levels[level] ? level : levelsOf(authoring.document)[0]!.id,
       })
-      return result.touched
     }
-
     return {
-      doc: start,
+      doc: authoring.document,
+      authoring,
       level: levelsOf(start)[0]!.id,
-      past: [],
-      future: [],
-      canUndo: false,
-      canRedo: false,
-
-      exec: (source) => commit(runScriptWithPatches(get().doc, source, get().level)),
-
+      ...authoring.history,
       setLevel: (level) => {
         if (get().doc.levels[level]) set({ level })
       },
-
-      apply: (command, args) => commit(applyWithPatches(get().doc, command, args, get().level)),
-
+      exec: (source) => {
+        const touched = get().authoring.exec(source, get().level)
+        publish()
+        return touched
+      },
+      apply: (command, args) => {
+        const touched = get().authoring.apply(command, args, get().level)
+        publish()
+        return touched
+      },
       undo: () => {
-        const { doc, past, future } = get()
-        const entry = past.at(-1)
-        if (!entry) return
-
-        const nextPast = past.slice(0, -1)
-        set({
-          doc: applyPatches(doc, entry.inversePatches),
-          past: nextPast,
-          future: [...future, entry],
-          canUndo: nextPast.length > 0,
-          canRedo: true,
-        })
+        get().authoring.undo()
+        publish()
       },
-
-      load: (doc) =>
-        set({
-          doc,
-          level: levelsOf(doc)[0]!.id,
-          past: [],
-          future: [],
-          canUndo: false,
-          canRedo: false,
-        }),
-
-      reset: () => get().load(createEmptyDocument()),
-
       redo: () => {
-        const { doc, past, future } = get()
-        const entry = future.at(-1)
-        if (!entry) return
-
-        const nextFuture = future.slice(0, -1)
+        get().authoring.redo()
+        publish()
+      },
+      load: (doc) => {
+        const authoring = new FragmentAuthoring(doc)
+        get().authoring.dispose()
         set({
-          doc: applyPatches(doc, entry.patches),
-          past: [...past, entry],
-          future: nextFuture,
-          canUndo: true,
-          canRedo: nextFuture.length > 0,
+          authoring,
+          doc: authoring.document,
+          level: levelsOf(authoring.document)[0]!.id,
+          ...authoring.history,
         })
       },
+      reset: () => get().load(createEmptyDocument()),
     }
   })
 }

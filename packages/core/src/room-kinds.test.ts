@@ -19,9 +19,23 @@ test('a name that says nothing is nothing, not a guess', () => {
   expect(kindOf(undefined)).toBeUndefined()
 })
 
-test('every kind has a word to be found by and a floor to its size', () => {
+test('every kind has a word to be found by and a nonnegative size threshold', () => {
   for (const kind of ROOM_KINDS) {
     expect(kind.words.length).toBeGreaterThan(0)
-    expect(kind.minArea).toBeGreaterThan(0)
+    expect(kind.minArea).toBeGreaterThanOrEqual(0)
   }
+})
+
+test('what lies outside the walls says so, and a winter garden is glass', () => {
+  expect(kindOf('Zimní zahrada')?.glazed).toBe(true)
+  expect(kindOf('Terasa')?.outdoor).toBe(true)
+  expect(kindOf('Dlažba u vjezdu')?.id).toBe('paving')
+  expect(kindOf('Chodník')?.id).toBe('path')
+  expect(kindOf('Chodba')?.outdoor).toBe(false)
+})
+
+test('the greenery left over in a courtyard is a lawn, outside the house', () => {
+  expect(kindOf('Zeleň')?.id).toBe('lawn')
+  expect(kindOf('Zeleň')?.outdoor).toBe(true)
+  expect(kindOf('Zimní zahrada')?.id).toBe('winter-garden')
 })

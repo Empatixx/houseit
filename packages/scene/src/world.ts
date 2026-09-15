@@ -1,10 +1,10 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { levelsOf } from '@houseit/core/levels'
-import { ceilingPieces, floorPieces } from './floors'
-import { furniturePieces } from './furniture'
 import { type Light, lightsOn } from './lights'
 import type { Piece } from './pieces'
-import { wallPieces } from './walls'
+import { piecesForModules } from './scene-module'
+import { SCENE_MODULES } from './scene-modules'
+import { sitePieces } from './site'
 
 export type Storey = {
   level: string
@@ -17,6 +17,7 @@ export type Reach = { min: { x: number; z: number }; max: { x: number; z: number
 
 export type World = {
   storeys: Storey[]
+  site: Piece[]
   bounds: Reach
 }
 
@@ -24,6 +25,8 @@ const ALONE = 4000
 
 export function reachOf(doc: HouseDocument): Reach {
   const nodes = Object.values(doc.nodes)
+  if (doc.site?.surfaces.length)
+    nodes.push(...doc.site.surfaces.flatMap((s) => s.outline.map((p) => ({ ...p, id: '' }))))
   if (nodes.length === 0) {
     return { min: { x: -ALONE, z: -ALONE }, max: { x: ALONE, z: ALONE } }
   }
@@ -36,17 +39,13 @@ export function reachOf(doc: HouseDocument): Reach {
 }
 
 export function storeyOf(doc: HouseDocument, level: string): Piece[] {
-  return [
-    ...floorPieces(doc, level),
-    ...ceilingPieces(doc, level),
-    ...wallPieces(doc, level),
-    ...furniturePieces(doc, level),
-  ].map((piece, index) => (piece.name ? piece : { ...piece, name: `piece-${index}` }))
+  return piecesForModules(SCENE_MODULES, doc, level)
 }
 
 export function worldOf(doc: HouseDocument): World {
   return {
     bounds: reachOf(doc),
+    site: sitePieces(doc),
     storeys: levelsOf(doc).map((storey) => ({
       level: storey.id,
       elevation: storey.elevation,

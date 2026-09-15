@@ -1,0 +1,18 @@
+update-level --name Lower --height 3300 --clear-height 2900 --slab-thickness 250
+add-room --name West --material ceramic-tile --boundary '[{"x":-100,"y":-100,"thickness":300},{"x":4000,"y":-100,"thickness":150},{"x":4000,"y":4000,"thickness":300},{"x":-100,"y":4000,"thickness":300}]'
+add-room --name East --material ceramic-tile --boundary '[{"x":4000,"y":-100,"thickness":300},{"x":8000,"y":-100,"thickness":300},{"x":8000,"y":4000,"thickness":300},{"x":4000,"y":4000,"thickness":150}]'
+add-column --x 4000 --y 0 --width 500 --depth 500 --embedded --colour '#777777'
+add-opening --room West --kind window --side south --width 2000 --height 1500 --sill 900
+add-opening --room East --kind door --side south --width 1000 --height 2100
+update-room --room West --exterior '{"layers":[{"name":"Lepidlo","thickness":5},{"name":"EPS F","thickness":200},{"name":"Vyztužená stěrka","thickness":5},{"name":"Omítka","thickness":2}],"colour":"#f1f0ea"}'
+update-room --room East --exterior '{"layers":[{"name":"ETICS včetně omítky","thickness":212}],"colour":"#f1f0ea"}'
+update-room --room West --side south --exterior '{"layers":[{"name":"ETICS včetně omítky","thickness":212}],"colour":"#f1f0ea","bands":[{"from":0,"to":3300,"colour":"#7a7b7a"}]}'
+update-room --room East --side south --exterior '{"layers":[{"name":"ETICS včetně omítky","thickness":212}],"colour":"#f1f0ea","bands":[{"from":0,"to":3300,"colour":"#7a7b7a"}]}'
+add-level --name Upper --height 3000
+update-level --level Upper --clear-height 2600
+add-room --level Upper --name Above --material laminate --boundary '[{"x":-100,"y":-100,"thickness":300},{"x":8000,"y":-100,"thickness":300},{"x":8000,"y":4000,"thickness":300},{"x":-100,"y":4000,"thickness":300}]'
+add-column --level Upper --x 4000 --y 0 --width 500 --depth 500 --embedded --colour '#777777'
+add-opening --room Above --side south --kind window --width 2000 --height 1500 --sill 900
+update-room --room Above --exterior '{"layers":[{"name":"ETICS včetně omítky","thickness":212}],"colour":"#f1f0ea"}'
+update-room --room Above --side south --exterior '{"layers":[{"name":"ETICS včetně omítky","thickness":212}],"colour":"#f1f0ea","bands":[{"from":0,"to":2400,"colour":"#7a7b7a"}]}'
+get-plan --level Lower

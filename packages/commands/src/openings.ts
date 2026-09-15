@@ -3,7 +3,7 @@ import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { runOfWall } from '@houseit/geometry/sides'
 import type { Draft } from 'immer'
 import { CommandError } from './command-error'
-import { sideSign } from './place-opening'
+import { hasDoor, roomSide, touchesWall } from './opening-direction'
 
 export function roomOfOpening(
   doc: HouseDocument,
@@ -14,17 +14,9 @@ export function roomOfOpening(
   const a = wall && doc.nodes[wall.a]
   const b = wall && doc.nodes[wall.b]
   if (!wall || !a || !b) return undefined
-  const walking = rooms.filter((room) => {
-    const count = room.nodes.length
-    for (let i = 0; i < count; i += 1) {
-      const from = room.nodes[i]!
-      const to = room.nodes[(i + 1) % count]!
-      if ((wall.a === from && wall.b === to) || (wall.a === to && wall.b === from)) return true
-    }
-    return false
-  })
-  if (opening.kind === 'door') {
-    return walking.find((room) => sideSign(a, b, room.centre) === opening.swing) ?? walking[0]
+  const walking = rooms.filter((room) => touchesWall(room, wall))
+  if (hasDoor(opening)) {
+    return walking.find((room) => roomSide(room, wall) === opening.swing) ?? walking[0]
   }
   return walking[0]
 }

@@ -9,12 +9,14 @@ import { answerFor } from '@houseit/commands/answer'
 import { describeCommands } from '@houseit/commands/registry'
 import { levelsOf } from '@houseit/core/levels'
 import { roomsOf } from '@houseit/geometry/rooms'
+import { buildingView } from '../scene/building-view'
 import type { createDocumentStore } from '../store/document-store'
 import { modeStore } from '../store/mode'
 import { projectsStore as theProjects } from '../store/projects/projects'
 import { selectionStore } from '../store/selection'
 import { shellStore } from '../store/shell'
 import { clearOf, viewStore } from '../store/view'
+import { walkStore } from '../store/walk'
 
 declare global {
   interface Window {
@@ -39,8 +41,7 @@ export function installFloorplanBridge(
   }
 
   const noProject = (): string => {
-    const { list, refresh } = projects.getState()
-    if (!list) void refresh()
+    const { list } = projects.getState()
     const ids = list?.map((project) => project.id) ?? []
     const where =
       ids.length > 0
@@ -68,6 +69,14 @@ export function installFloorplanBridge(
 
   const show = (view: ViewRequest): ShowResult => {
     const selection = selectionStore.getState()
+    if (view.view && view.view !== 'plan') {
+      const doc = store.getState().doc
+      walkStore.getState().inspect({ ...buildingView(doc, view.view), site: view.site })
+      modeStore.getState().setMode('3d')
+      shellStore.getState().showPanel(false)
+      return { ok: true }
+    }
+    walkStore.getState().inspect(null)
     modeStore.getState().setMode('2d')
     shellStore.getState().showPanel(false)
 
