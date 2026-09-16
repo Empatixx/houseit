@@ -51,7 +51,7 @@ def back_bar():
     # Slim framed display rises directly from the countertop at the rear.
     rear=-depth/2;front=rear+.220;bottom=.900;height=.700
     for x in (-w/2+.014,w/2-.014):d.box('Bar display upright',(.028,.220,height),(x,(rear+front)/2,bottom+height/2),.004,s.wood)
-    d.box('Recessed display backing',(w-.056,.018,height-.03),(0,rear+.009,bottom+height/2-.015),.003,s.wood)
+    d.box('Recessed display backing',(w-.056,.018,height-.01),(0,rear+.009,bottom+height/2-.005),.003,s.wood)
     for z in (.913,1.242,1.5875):d.box('Bar bottle display shelf',(w-.025,.204,.025),(0,(rear+front)/2+.008,z),.003,s.wood)
     for x in (-.62,-.206,.206,.62):d.box('Bottle display bay divider',(.019,.193,height-.02),(x,(rear+front)/2+.009,bottom+height/2),.002,s.wood)
     for row,z in enumerate((.9255,1.2545)):
