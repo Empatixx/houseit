@@ -171,6 +171,9 @@ function importedPaint(material: Material, piece: Piece): ArchivePaint {
   const definition = material.toJSON(meta)
   return {
     ...(recolour ? piece.paint : { colour: `#${material.color.getHexString()}` }),
+    ...(material.userData.houseitTexture === 'tint'
+      ? { texture: undefined, repeat: undefined }
+      : {}),
     opacity: material.opacity,
     roughness: material.roughness,
     doubleSided: material.side === 2,

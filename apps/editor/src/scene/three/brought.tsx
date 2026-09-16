@@ -39,7 +39,8 @@ export function Brought({ file, size, paint, native, at, rotation, onPick }: Bro
             return worn
           const painted = worn.clone()
           painted.color.set(paint.colour)
-          if (paint.texture) painted.map = textureOf(paint.texture, paint.repeat)
+          if (paint.texture && worn.userData.houseitTexture !== 'tint')
+            painted.map = textureOf(paint.texture, paint.repeat)
           return painted
         }
         return Array.isArray(original) ? original.map(recolour) : recolour(original)

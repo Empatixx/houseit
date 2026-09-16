@@ -140,8 +140,8 @@ def piping(name, outline, z, transform, radius=.0013):
     mesh(name, verts, faces)
 
 
-def cushion(name, w, d, h, location, angle=0, seed=1, back=False, loose=False):
-    outline = rounded_rect(w, d, min(.045, w*.09))
+def cushion(name, w, d, h, location, angle=0, seed=1, back=False, loose=False, resolution=80):
+    outline = rounded_rect(w, d, min(.045, w*.09), resolution)
     if loose:
         outline = [(x*(1-.10*math.cos(y/d*math.pi)), y*(1-.10*math.cos(x/w*math.pi))) for x,y in outline]
     count = len(outline)
@@ -382,74 +382,79 @@ def office_chair():
     return list(parts)
 
 
-variants=[('dining-chair-classic',.44,.46,0,False),
-          ('office-chair-classic',.71,.66,-1,False),
-          ('sofa-classic-two',1.702,.95,2,False),
-          ('sofa-classic-chaise',2.8,1.63,3,True),
-          ('armchair-classic',.94,.84,1,False),
-          ('sofa-classic-three',2.388,.95,3,False)]
-for file,w,d,n,chaise in variants:
-    bpy.ops.object.select_all(action='SELECT')
-    bpy.ops.object.delete(use_global=False)
-    objects=(wooden_chair() if n==0 else office_chair() if n==-1 else barrel_chair() if n==1 else seating(w,d,n,chaise))
-    fabric.name='upholstery' if n==0 else 'body'
-    wood.name='body' if n==0 else 'wood'
-    if n!=0: fabric.name='body' 
-    # Keep separate named editable parts in the .blend, but merge by material for runtime.
-    SOURCE.mkdir(parents=True,exist_ok=True)
-    bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/(file+'.blend')),compress=True)
-    bpy.ops.object.select_all(action='DESELECT')
-    for obj in objects: obj.select_set(True)
-    bpy.context.view_layer.objects.active=objects[0]
-    bpy.ops.object.join()
-    joined=bpy.context.object
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    joined.name='Houseit sewn upholstery'
-    joined['author']='Houseit'
-    joined['reference']='Original Houseit geometry; visual reference only, no downloaded meshes or textures'
-    bpy.ops.export_scene.gltf(filepath=str(OUTPUT/(file+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_extras=True,export_materials='EXPORT')
-    print(file, 'vertices',len(joined.data.vertices),'bytes',(OUTPUT/(file+'.glb')).stat().st_size,flush=True)
+def main():
+    variants=[('dining-chair-classic',.44,.46,0,False),
+              ('office-chair-classic',.71,.66,-1,False),
+              ('sofa-classic-two',1.702,.95,2,False),
+              ('sofa-classic-chaise',2.8,1.63,3,True),
+              ('armchair-classic',.94,.84,1,False),
+              ('sofa-classic-three',2.388,.95,3,False)]
+    for file,w,d,n,chaise in variants:
+        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.object.delete(use_global=False)
+        objects=(wooden_chair() if n==0 else office_chair() if n==-1 else barrel_chair() if n==1 else seating(w,d,n,chaise))
+        fabric.name='upholstery' if n==0 else 'body'
+        wood.name='body' if n==0 else 'wood'
+        if n!=0: fabric.name='body'
+        # Keep separate named editable parts in the .blend, but merge by material for runtime.
+        SOURCE.mkdir(parents=True,exist_ok=True)
+        bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/(file+'.blend')),compress=True)
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in objects: obj.select_set(True)
+        bpy.context.view_layer.objects.active=objects[0]
+        bpy.ops.object.join()
+        joined=bpy.context.object
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        joined.name='Houseit sewn upholstery'
+        joined['author']='Houseit'
+        joined['reference']='Original Houseit geometry; visual reference only, no downloaded meshes or textures'
+        bpy.ops.export_scene.gltf(filepath=str(OUTPUT/(file+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_extras=True,export_materials='EXPORT')
+        print(file, 'vertices',len(joined.data.vertices),'bytes',(OUTPUT/(file+'.glb')).stat().st_size,flush=True)
 
-# A studio render of the actual exported geometry.
-# Colour is neutral in the GLB for app recolouring; use anthracite for the preview.
-multiply=nodes.new('ShaderNodeMixRGB')
-multiply.blend_type='MULTIPLY'
-multiply.inputs[0].default_value=1
-multiply.inputs[2].default_value=(.24,.27,.29,1)
-links.new(tex.outputs['Color'],multiply.inputs[1])
-links.new(multiply.outputs[0],bsdf.inputs['Base Color'])
-world=bpy.data.worlds.new('Soft studio')
-bpy.context.scene.world=world
-world.use_nodes=True
-world.node_tree.nodes.get('Background').inputs[0].default_value=(.8,.8,.8,1)
-world.node_tree.nodes.get('Background').inputs[1].default_value=.45
-bpy.ops.mesh.primitive_plane_add(size=200)
-ground=bpy.context.object
-ground.name='Studio ground'
-mat=bpy.data.materials.new('Studio white')
-mat.diffuse_color=(.82,.82,.82,1)
-ground.data.materials.append(mat)
-for loc,power,size in [((-3,4,6),650,5),((4,1,4),400,4),((0,-4,5),500,3)]:
-    bpy.ops.object.light_add(type='AREA',location=loc)
-    light=bpy.context.object
-    light.data.energy=power
-    light.data.shape='DISK'
-    light.data.size=size
-    light.rotation_euler=(Vector((0,0,.3))-light.location).to_track_quat('-Z','Y').to_euler()
-bpy.ops.object.camera_add(location=(-3.7,5.6,2.7))
-camera=bpy.context.object
-camera.rotation_euler=(Vector((0,.05,.39))-camera.location).to_track_quat('-Z','Y').to_euler()
-camera.data.type='ORTHO'
-camera.data.ortho_scale=3.9
-scene=bpy.context.scene
-scene.camera=camera
-scene.render.engine='CYCLES'
-scene.cycles.samples=32
-scene.cycles.use_denoising=True
-scene.render.resolution_x=1100
-scene.render.resolution_y=900
-scene.render.resolution_percentage=100
-scene.view_settings.view_transform='AgX'
-scene.render.image_settings.file_format='PNG'
-scene.render.filepath=str(SOURCE/'sofa-preview.png')
-bpy.ops.render.render(write_still=True)
+    # A studio render of the actual exported geometry.
+    # Colour is neutral in the GLB for app recolouring; use anthracite for the preview.
+    multiply=nodes.new('ShaderNodeMixRGB')
+    multiply.blend_type='MULTIPLY'
+    multiply.inputs[0].default_value=1
+    multiply.inputs[2].default_value=(.24,.27,.29,1)
+    links.new(tex.outputs['Color'],multiply.inputs[1])
+    links.new(multiply.outputs[0],bsdf.inputs['Base Color'])
+    world=bpy.data.worlds.new('Soft studio')
+    bpy.context.scene.world=world
+    world.use_nodes=True
+    world.node_tree.nodes.get('Background').inputs[0].default_value=(.8,.8,.8,1)
+    world.node_tree.nodes.get('Background').inputs[1].default_value=.45
+    bpy.ops.mesh.primitive_plane_add(size=200)
+    ground=bpy.context.object
+    ground.name='Studio ground'
+    mat=bpy.data.materials.new('Studio white')
+    mat.diffuse_color=(.82,.82,.82,1)
+    ground.data.materials.append(mat)
+    for loc,power,size in [((-3,4,6),650,5),((4,1,4),400,4),((0,-4,5),500,3)]:
+        bpy.ops.object.light_add(type='AREA',location=loc)
+        light=bpy.context.object
+        light.data.energy=power
+        light.data.shape='DISK'
+        light.data.size=size
+        light.rotation_euler=(Vector((0,0,.3))-light.location).to_track_quat('-Z','Y').to_euler()
+    bpy.ops.object.camera_add(location=(-3.7,5.6,2.7))
+    camera=bpy.context.object
+    camera.rotation_euler=(Vector((0,.05,.39))-camera.location).to_track_quat('-Z','Y').to_euler()
+    camera.data.type='ORTHO'
+    camera.data.ortho_scale=3.9
+    scene=bpy.context.scene
+    scene.camera=camera
+    scene.render.engine='CYCLES'
+    scene.cycles.samples=32
+    scene.cycles.use_denoising=True
+    scene.render.resolution_x=1100
+    scene.render.resolution_y=900
+    scene.render.resolution_percentage=100
+    scene.view_settings.view_transform='AgX'
+    scene.render.image_settings.file_format='PNG'
+    scene.render.filepath=str(SOURCE/'sofa-preview.png')
+    bpy.ops.render.render(write_still=True)
+
+
+if __name__ == '__main__':
+    main()

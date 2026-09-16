@@ -31,6 +31,36 @@ wood finishes. Catalog dimensions control placed objects, preserving existing pl
 none of those downloadable assets is bundled. Their licenses do not apply to
 these original meshes.
 
+## Original beds, dining tables and television
+
+Six more original Blender models are generated with
+`node apps/editor/scripts/make-bedroom-dining.mjs` (Blender 4.5):
+
+| File | User-approved visual reference |
+| --- | --- |
+| bed-upholstered.glb | [Low upholstered headboard](https://sketchfab.com/3d-models/upholstered-bed-ae5e1a7c8b6b4cc3888acf28598bc894) |
+| bed-channelled.glb | [Channelled headboard and footboard](https://sketchfab.com/3d-models/bed-with-upholstery-low-poly-dce5bc7bc4594e9aa1df1b379a54df4c) |
+| table-rectangular.glb | [Wood top and steel sled legs](https://sketchfab.com/3d-models/sleek-modern-dining-table-set-9135349108174c8285433b3695977158) |
+| table-round.glb | [Round wooden table](https://sketchfab.com/3d-models/wooden-dining-table-set-2095d18b9602473c8f717377fdffe017) |
+| television-flat.glb | [Flat-screen TV with pedestal](https://sketchfab.com/3d-models/flatscreen-tv-46-inch-94c7ccaea76f4093b484828419db25cb) |
+| tv-stand-wood.glb | [Wood and white TV cabinet](https://sketchfab.com/3d-models/tv-cabinets-andersen-a225d196dd7c4b50a140ecfc22bcb284) |
+
+These are newly constructed interpretations. No geometry, maps, logos or screen
+images from the reference assets are included. Editable `.blend` files and
+individual studio renders are in `assets/bedroom-dining/`.
+
+The shared cushion helpers are imported from `make-seating.py` without regenerating
+seating. Bed duvets are continuous draped meshes with actual folds and hems.
+Mattresses, ivory pillows, cabinet fronts, TV screens and metal legs retain their
+own materials when the editable body is recoloured. Wood contains an original
+neutral grain texture. Its `houseitTexture: "tint"` material property preserves
+that map when applying oak/walnut colours, both live and in saved archives.
+
+All six are individually available in the catalog. The standalone TV rests at
+580 mm, matching the new cabinet. Existing double-bed types use the low-headboard
+model, including its full 1120 mm height; existing dining sets and combined TV
+units use the new models while retaining their plan dimensions and symbols.
+
 ## Downloaded tables and dining chairs
 
 These models are by Poly Haven contributors and distributed under

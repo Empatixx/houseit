@@ -1,5 +1,5 @@
 import { lighter } from '../finishes'
-import { along, drum, type Finish, lean, legs, model, type Piece, put, slab } from '../pieces'
+import { along, type Finish, lean, legs, model, type Piece, put, slab } from '../pieces'
 import type { Builder, Part } from './builder'
 
 export const sofa: Builder = ({ w, d, body, frame }) => {
@@ -100,7 +100,7 @@ function table({ w, d, h, body, frame }: Part, inset = 0): Piece[] {
 export const plainTable: Builder = (part) => table(part)
 
 const chair = (body: Finish): Piece[] => [
-  model({ file: 'dining-chair.glb', w: 420, d: 460, h: 920, paint: body }),
+  model({ file: 'dining-chair-classic.glb', w: 440, d: 460, h: 940, paint: body }),
 ]
 
 function seats(w: number, d: number, long: number, ends: number): [number, number, number][] {
@@ -119,14 +119,20 @@ function seats(w: number, d: number, long: number, ends: number): [number, numbe
 
 export function dining(long: number, ends: number, round = false): Builder {
   return (part) => {
-    const { w, d, h, body, frame } = part
+    const { w, d, h, body } = part
     const top = round
       ? [
-          drum({ base: h - 40, r: Math.min(w, d) / 2 - 350, h: 40, paint: body }),
-          drum({ r: 70, h: h - 40, paint: frame }),
-          drum({ r: 260, h: 30, paint: frame }),
+          model({
+            file: 'table-round.glb',
+            w: Math.min(w, d) - 700,
+            d: Math.min(w, d) - 700,
+            h,
+            paint: body,
+          }),
         ]
-      : [model({ file: 'dining-table.glb', w: w - 700, d: d - 700, h, paint: body })]
+      : put({ turn: Math.PI / 2 }, [
+          model({ file: 'table-rectangular.glb', w: d - 700, d: w - 700, h, paint: body }),
+        ])
     return [
       ...top,
       ...seats(w, d, long, ends).flatMap(([x, z, turn]) =>

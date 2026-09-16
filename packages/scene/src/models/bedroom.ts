@@ -1,5 +1,5 @@
 import { lighter, PAINT } from '../finishes'
-import { along, drum, type Finish, legs, slab } from '../pieces'
+import { along, drum, type Finish, legs, model, put, slab } from '../pieces'
 import { type Builder, cabinet } from './builder'
 
 export const bed: Builder = ({ w, d, body, frame }) => {
@@ -71,9 +71,16 @@ export const mediaUnit: Builder = (part) => {
   const { w, d, h } = part
   const screen = Math.min(1300, w * 0.8)
   return [
-    ...cabinet(part, 2, 1),
-    slab({ base: h, h: 60, w: 300, d: 200, z: d / 2 - 120, paint: PAINT.dark }),
-    slab({ base: h + 60, h: screen * 0.56, w: screen, d: 30, z: d / 2 - 120, paint: PAINT.black }),
+    model({ file: 'tv-stand-wood.glb', w, d, h, paint: part.body }),
+    ...put({ y: h, z: d / 2 - 120 }, [
+      model({
+        file: 'television-flat.glb',
+        w: screen,
+        h: (screen * 746) / 1120,
+        d: 225,
+        paint: PAINT.black,
+      }),
+    ]),
   ]
 }
 

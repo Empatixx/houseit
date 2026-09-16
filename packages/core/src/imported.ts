@@ -7,12 +7,82 @@ export type ImportedType = {
   layer?: 'under' | 'floor' | 'over'
   rooms?: readonly string[]
   parts?: readonly Box[]
+  symbolShape?: 'bed' | 'round' | 'screen'
   model: string
 }
 
 const WOODS = ['walnut', 'oak', 'white', 'black', 'marble', 'steel'] as const
+const UPHOLSTERY = [
+  'linen',
+  'grey',
+  'blue',
+  'green',
+  'fabric',
+  'rust',
+  'white',
+  'graphite',
+] as const
 
 export const IMPORTED_TYPES: readonly ImportedType[] = [
+  {
+    id: 'bed-upholstered',
+    label: 'Upholstered Bed — Low Headboard',
+    size: { width: 1940, depth: 2180, height: 1120 },
+    surfaces: UPHOLSTERY,
+    stands: 'wall',
+    rooms: ['bedroom'],
+    symbolShape: 'bed',
+    model: 'bed-upholstered.glb',
+  },
+  {
+    id: 'bed-channelled',
+    label: 'Upholstered Bed — Channelled Headboard',
+    size: { width: 1940, depth: 2240, height: 1270 },
+    surfaces: UPHOLSTERY,
+    stands: 'wall',
+    rooms: ['bedroom'],
+    symbolShape: 'bed',
+    model: 'bed-channelled.glb',
+  },
+  {
+    id: 'table-rectangular',
+    label: 'Dining Table — Wood and Steel',
+    size: { width: 1800, depth: 900, height: 760 },
+    surfaces: ['oak', 'walnut', 'white', 'black'],
+    stands: 'free',
+    rooms: ['dining', 'kitchen', 'living_room', 'any'],
+    model: 'table-rectangular.glb',
+  },
+  {
+    id: 'table-round',
+    label: 'Dining Table — Round Wood',
+    size: { width: 1220, depth: 1220, height: 750 },
+    surfaces: ['oak', 'walnut', 'white', 'black'],
+    stands: 'free',
+    rooms: ['dining', 'kitchen', 'living_room', 'any'],
+    symbolShape: 'round',
+    model: 'table-round.glb',
+  },
+  {
+    id: 'television-flat',
+    label: 'Flat-screen TV — on Cabinet',
+    size: { width: 1120, depth: 225, height: 746 },
+    surfaces: ['black', 'graphite', 'white'],
+    stands: 'free',
+    layer: 'over',
+    rooms: ['living_room', 'bedroom', 'any'],
+    symbolShape: 'screen',
+    model: 'television-flat.glb',
+  },
+  {
+    id: 'tv-stand-wood',
+    label: 'TV Cabinet — Wood and White',
+    size: { width: 1800, depth: 442, height: 580 },
+    surfaces: ['oak', 'walnut', 'white', 'black'],
+    stands: 'wall',
+    rooms: ['living_room', 'bedroom', 'any'],
+    model: 'tv-stand-wood.glb',
+  },
   {
     id: 'dining-chair',
     label: 'Wooden Dining Chair',
@@ -52,6 +122,10 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   'club-chair': 'armchair-classic.glb',
   'lounge-chair-s': 'armchair-classic.glb',
   'office-chair': 'office-chair-classic.glb',
+  'cal-king-bed': 'bed-upholstered.glb',
+  'king-bed': 'bed-upholstered.glb',
+  'queen-bed': 'bed-upholstered.glb',
+  'full-bed': 'bed-upholstered.glb',
   'coffee-table': 'coffee-table.glb',
   'side-table': 'side-table.glb',
 }
@@ -77,9 +151,26 @@ export function outlineSymbol(type: ImportedType): string {
     const d = (part.y1 - part.y0) * depth
     return `<rect x="${round(x + inset / 2)}" y="${round(y + inset / 2)}" width="${round(w - inset)}" height="${round(d - inset)}" fill="#ffffff" stroke="${LINE}" stroke-width="${inset}"/>`
   }
+  let shapes = parts.map(rect)
+  if (type.symbolShape === 'round')
+    shapes = [
+      `<ellipse cx="${width / 2}" cy="${depth / 2}" rx="${width / 2 - inset}" ry="${depth / 2 - inset}" fill="#ffffff" stroke="${LINE}" stroke-width="${inset}"/>`,
+    ]
+  if (type.symbolShape === 'bed')
+    shapes.push(
+      rect({ x0: 0.025, y0: 0.02, x1: 0.975, y1: 0.075 }),
+      rect({ x0: 0.09, y0: 0.095, x1: 0.47, y1: 0.3 }),
+      rect({ x0: 0.53, y0: 0.095, x1: 0.91, y1: 0.3 }),
+      rect({ x0: 0.025, y0: 0.34, x1: 0.975, y1: 0.97 }),
+    )
+  if (type.symbolShape === 'screen')
+    shapes = [
+      rect({ x0: 0.35, y0: 0.05, x1: 0.65, y1: 0.95 }),
+      rect({ x0: 0, y0: 0.4, x1: 1, y1: 0.6 }),
+    ]
   return [
     `<svg width="${round(width)}" height="${round(depth)}" viewBox="0 0 ${round(width)} ${round(depth)}" fill="none" xmlns="http://www.w3.org/2000/svg">`,
-    ...parts.map(rect),
+    ...shapes,
     '</svg>',
   ].join('')
 }

@@ -20,6 +20,7 @@ import { createDocumentStore } from '../store/document-store'
 import { fragmentCodec } from '../store/projects/codec'
 import { openProjects } from '../store/projects/db'
 import { createProjectsStore } from '../store/projects/project-store'
+import { type ArchivePaint, archiveScene } from './archive-scene'
 import { nativeKey } from './authoring-graph'
 import { FragmentAuthoring } from './fragment-authoring'
 import { writeFragment } from './fragment-project'
@@ -94,6 +95,31 @@ add-device --kind socket --wall w1 --along 4000 --height 300`,
 }
 const savedModel = (buffer: ArrayBuffer) =>
   new SingleThreadedFragmentsModel('saved', new Uint8Array(buffer), false)
+
+test('original timber keeps its embedded grain and selected tint in an archive', async () => {
+  const authoring = new FragmentAuthoring(createEmptyDocument())
+  const level = Object.keys(authoring.document.levels)[0]!
+  try {
+    authoring.exec(
+      'add-room --name Studio --shape rectangle --width 5m --depth 4m --material concrete-light\nadd-object --room Studio --type table-round --surface walnut --along 0.5 --across 0.5',
+      level,
+    )
+    const paints: ArchivePaint[] = []
+    for await (const part of archiveScene(authoring.document, generate)) {
+      paints.push(...part.paints.filter((paint) => paint.imported?.material.name === 'body'))
+      part.geometry.dispose()
+    }
+    expect(paints).toHaveLength(1)
+    expect(paints[0]).toMatchObject({ colour: '#8c6446', texture: undefined })
+    expect(paints[0]!.imported?.material).toMatchObject({
+      map: expect.any(String),
+      userData: { houseitTexture: 'tint' },
+    })
+    expect(Object.keys(paints[0]!.imported!.images)).not.toHaveLength(0)
+  } finally {
+    authoring.dispose()
+  }
+})
 
 test('the archive retains the live native graph and ids, with actual wall geometry and no extra history', async () => {
   const { authoring, level } = make()
