@@ -36,7 +36,16 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
 export const importedType = (id: string): ImportedType | undefined =>
   IMPORTED_TYPES.find((entry) => entry.id === id)
 
-export const modelFileOf = (id: string): string | undefined => importedType(id)?.model
+const CATALOG_MODELS: Readonly<Record<string, string>> = {
+  'sofa-3': 'sofa-three.glb',
+  'club-chair': 'armchair.glb',
+  'lounge-chair-s': 'armchair.glb',
+  'coffee-table': 'coffee-table.glb',
+  'side-table': 'side-table.glb',
+}
+
+export const modelFileOf = (id: string): string | undefined =>
+  CATALOG_MODELS[id] ?? importedType(id)?.model
 
 const LINE = '#212121'
 const round = (value: number) => Math.round(value)

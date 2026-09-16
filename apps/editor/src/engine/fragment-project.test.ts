@@ -12,7 +12,8 @@ import {
   SingleThreadedFragmentsModel,
 } from '@thatopen/fragments'
 import { IDBFactory } from 'fake-indexeddb'
-import { Color, Plane, Vector3 } from 'three'
+import { Color, DataTexture, Plane, Vector3 } from 'three'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import { IfcAPI } from 'web-ifc'
 import { createDocumentStore } from '../store/document-store'
@@ -25,6 +26,21 @@ import { writeFragment } from './fragment-project'
 
 import { generateGeometry } from './generate-geometry'
 import type { GeometryInput } from './geometry-protocol'
+
+vi.mock('./model-geometry', async (original) => ({
+  ...(await original<typeof import('./model-geometry')>()),
+  loadModel: async (file: string) => {
+    const bytes = readFileSync(new URL(`../../public/models/${file}`, import.meta.url))
+    const loader = new GLTFLoader().register(() => ({
+      name: 'node-placeholder-images',
+      loadTexture: async () => new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1),
+    }))
+    return loader.parseAsync(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+      '',
+    )
+  },
+}))
 
 vi.mock('./archive-resources', () => ({
   loadArchiveAsset: async (path: string) => {
