@@ -107,11 +107,11 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
   {
     id: 'bathtub',
     label: 'Bathtub',
-    size: { width: 1549, depth: 838, height: 550 },
+    size: { width: 1549, depth: 838, height: 657 },
     surfaces: ['white'],
     stands: 'wall',
     rooms: ['bathroom', 'any'],
-    model: 'bathtub.glb',
+    model: 'bath-built-in-detailed.glb',
   },
 ]
 
@@ -161,6 +161,10 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   'island-4': 'island-four-detailed.glb',
   'island-2-sink': 'island-two-sink-detailed.glb',
   'island-4-sink': 'island-four-sink-detailed.glb',
+  'toilet-tank': 'toilet-classic-detailed.glb',
+  'vanity-sink': 'vanity-single-detailed.glb',
+  'vanity-double': 'vanity-double-detailed.glb',
+  'bathtub-free': 'bath-freestanding-detailed.glb',
   bar: 'bar-display-detailed.glb',
   'bar-island': 'bar-serving-island-detailed.glb',
   'counter-straight': 'counter-straight-detailed.glb',
