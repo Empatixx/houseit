@@ -7,6 +7,7 @@ import bpy
 import bmesh
 import math
 import random
+import sys
 from pathlib import Path
 from mathutils import Vector, Matrix
 import numpy as np
@@ -219,6 +220,14 @@ def block(name, size, location, radius=.018, material=fabric):
     return obj
 
 
+def beam(name, start, end, width, depth, radius=.006, material=feet):
+    """Place a rail between its actual joints, including the buried ends."""
+    a, b = Vector(start), Vector(end)
+    obj = block(name, (width, depth, (b-a).length), (a+b)/2, radius, material)
+    obj.rotation_euler = (b-a).to_track_quat('Z', 'Y').to_euler()
+    return obj
+
+
 def seating(width,depth,seats,chaise=False):
     parts.clear()
     arm=(.24 if chaise else .18) if seats>1 else .16
@@ -327,20 +336,22 @@ wood.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value=.7
 
 def wooden_chair():
     parts.clear()
-    # Original solid-wood chair: tapered legs, shaped back rail and three spindles.
+    # Rear posts meet the seat before leaning back into the crown rail.
     for side in (-1,1):
         for front in (-1,1):
-            a=(side*.20,front*.205,.012)
-            b=(side*.165,front*.165,.443 if front>0 else .90)
-            obj=block('Tapered wooden leg',(.038,.038,(Vector(b)-Vector(a)).length),(Vector(a)+Vector(b))/2,.006,wood)
-            obj.rotation_euler=(Vector(b)-Vector(a)).to_track_quat('Z','Y').to_euler()
-        block('Side seat rail',(.032,.38,.075),(side*.168,0,.393),.006,wood)
-        block('Side stretcher',(.024,.36,.026),(side*.18,0,.20),.004,wood)
-    for yy in (-.165,.165):block('Front and rear seat rail',(.37,.032,.075),(0,yy,.393),.005,wood)
+            beam('Wooden leg', (side*.20,front*.205,.012),
+                 (side*.165,front*.165,.46), .038,.038,.006,wood)
+        beam('Rear back post', (side*.165,-.165,.44),
+             (side*.165,-.218,.895), .038,.038,.006,wood)
+        beam('Side seat rail', (side*.170,-.180,.393),
+             (side*.170,.180,.393), .032,.075,.006,wood)
+        beam('Side stretcher', (side*.185,-.194,.20),
+             (side*.185,.194,.20), .024,.026,.004,wood)
+    for yy in (-.171,.171):block('Front and rear seat rail',(.37,.032,.075),(0,yy,.393),.005,wood)
     block('Gently rounded solid seat',(.43,.435,.048),(0,.016,.454),.014,wood)
     for xx in (-.091,0,.091):
-        obj=block('Back spindle',(.025,.025,.35),(xx,-.189,.687),.006,wood)
-        obj.rotation_euler.x=math.radians(-4)
+        beam('Back spindle', (xx,-.17,.455), (xx,-.203,.875),
+             .025,.025,.006,wood)
     # A curved top rail, rather than a rectangular crossbar.
     vertices,faces=[],[]
     steps=24
@@ -366,18 +377,40 @@ def office_chair():
     parts.clear()
     cushion('Shaped office seat',.48,.46,.13,(0,.025,.45),seed=88)
     cushion('Padded ergonomic back',.445,.53,.14,(0,-.19,.785),angle=math.radians(-83),seed=84,back=True)
-    block('Back support',(.065,.07,.51),(0,-.255,.62),.023,feet)
+    block('Under-seat mounting plate',(.42,.37,.04),(0,.015,.395),.012,feet)
+    beam('Back support lower bracket',(0,-.10,.395),(0,-.29,.47),.065,.055,.014)
+    beam('Back support spine',(0,-.29,.45),(0,-.27,.85),.065,.06,.018)
+    beam('Backrest attachment',(0,-.27,.80),(0,-.20,.80),.07,.06,.014)
     tapered_leg('Gas lift',(0,0,.13),(0,0,.415),.031,.025)
     for i in range(5):
         a=math.tau*i/5
-        end=(.285*math.cos(a),.285*math.sin(a),.075)
-        tapered_leg('Five-star base spoke',(0,0,.16),end,.022,.028)
-        # Low-gloss twin casters, with a visible centre gap.
-        for offset in (-.020,.020):
-            bpy.ops.mesh.primitive_cylinder_add(vertices=16,radius=.032,depth=.025,location=(end[0]+offset,end[1],.033),rotation=(0,math.pi/2,0))
-            wheel=bpy.context.object;wheel.name='Caster';wheel.data.materials.append(feet);parts.append(wheel)
+        radial=Vector((math.cos(a),math.sin(a),0))
+        axle=Vector((-math.sin(a),math.cos(a),0))
+        hub=radial*.285+Vector((0,0,.105))
+        tapered_leg('Five-star base spoke',(0,0,.16),hub,.022,.028)
+        # Each twin caster has a vertical swivel, a trailing fork and a transverse axle.
+        swivel=radial*.285
+        wheel_centre=radial*.305+Vector((0,0,.033))
+        tapered_leg('Caster swivel',swivel+Vector((0,0,.065)),hub,.012,.012)
+        for side in (-1,1):
+            fork_top=swivel+axle*(side*.013)+Vector((0,0,.078))
+            fork_bottom=wheel_centre+axle*(side*.013)
+            beam('Caster fork',fork_top,fork_bottom,.012,.014,.004)
+        tapered_leg('Caster axle',wheel_centre-axle*.032,wheel_centre+axle*.032,.009,.009)
+        for offset in (-.023,.023):
+            bpy.ops.mesh.primitive_cylinder_add(vertices=24,radius=.033,depth=.020,
+                location=wheel_centre+axle*offset)
+            wheel=bpy.context.object
+            wheel.rotation_euler=axle.to_track_quat('Z','Y').to_euler()
+            wheel.name='Caster wheel'
+            wheel.data.materials.append(feet)
+            bevel=wheel.modifiers.new('Rounded tyre edge','BEVEL');bevel.width=.003;bevel.segments=3
+            bpy.ops.object.modifier_apply(modifier=bevel.name)
+            for poly in wheel.data.polygons:poly.use_smooth=True
+            parts.append(wheel)
     for side in (-1,1):
-        block('Arm support',(.025,.04,.20),(side*.272,.025,.52),.012,feet)
+        beam('Arm mounting bracket',(side*.18,.025,.395),(side*.272,.025,.44),.035,.055,.010)
+        beam('Arm support',(side*.272,.025,.43),(side*.272,.025,.638),.025,.04,.010)
         block('Soft arm pad',(.070,.285,.052),(side*.272,.025,.637),.021)
     return list(parts)
 
@@ -389,7 +422,10 @@ def main():
               ('sofa-classic-chaise',2.8,1.63,3,True),
               ('armchair-classic',.94,.84,1,False),
               ('sofa-classic-three',2.388,.95,3,False)]
+    requested = set(sys.argv[sys.argv.index('--')+1:]) if '--' in sys.argv else set()
     for file,w,d,n,chaise in variants:
+        if requested and file not in requested:
+            continue
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
         objects=(wooden_chair() if n==0 else office_chair() if n==-1 else barrel_chair() if n==1 else seating(w,d,n,chaise))
@@ -410,6 +446,9 @@ def main():
         joined['reference']='Original Houseit geometry; visual reference only, no downloaded meshes or textures'
         bpy.ops.export_scene.gltf(filepath=str(OUTPUT/(file+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_extras=True,export_materials='EXPORT')
         print(file, 'vertices',len(joined.data.vertices),'bytes',(OUTPUT/(file+'.glb')).stat().st_size,flush=True)
+
+    if requested:
+        return
 
     # A studio render of the actual exported geometry.
     # Colour is neutral in the GLB for app recolouring; use anthracite for the preview.

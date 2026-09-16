@@ -20,6 +20,9 @@ pinched edges and a fuller centre. The armchair has a curved, channelled shell.
 
 Regenerate with `node apps/editor/scripts/make-seating.mjs` (Blender 4.5 required;
 set `BLENDER_PATH` if it is not installed in the usual location).
+To rebuild only the chairs, append `dining-chair-classic office-chair-classic`.
+Their structural joints and caster orientation can be checked with
+`blender --background --python-exit-code 1 --python apps/editor/scripts/check-chair-joints.py`.
 The generator is `apps/editor/scripts/make-seating.py`. Named editable parts are
 saved to `assets/seating/*.blend`; `sofa-preview.png` is the studio preview.
 Runtime GLBs combine parts by material. Neutral embedded fabric maps preserve
