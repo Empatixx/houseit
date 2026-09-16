@@ -46,6 +46,7 @@ def opening(obj,w,depth,x,y,z,r=.04):
 
 
 def ground(height):
+    bpy.context.view_layer.update()
     points=[obj.matrix_world @ v.co for obj in s.parts for v in obj.data.vertices]
     floor=min(v.z for v in points);top=max(v.z for v in points)
     transform=Matrix.Diagonal((1,1,height/(top-floor),1)) @ Matrix.Translation((0,0,-floor))
