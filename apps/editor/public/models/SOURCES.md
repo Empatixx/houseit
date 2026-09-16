@@ -204,3 +204,11 @@ form two connected groups. Thin sewn seams are excluded from structural checks.
 
 Original catalogue footprints and SVG plan symbols are preserved. The wingback
 set height is 1100 mm including its back, replacing the former seat-only height.
+
+## Original office furniture
+
+- `desk-oak-steel.glb` → `office-desk`: softly rounded oak top, rear cable access strip, white telescoping T legs, adjustable floor pads, connected felt cable tray and under-desk hooks. Visual reference: [MITTZON](https://www.ikea.com/cz/cs/p/mittzon-psaci-stul-dyha-dub-bila-s19529124/).
+- `desk-corner-oak.glb` → `office-desk-l`: continuous rounded top with a short return, two white round uprights, connected underside rails and cable tray. The return stays on the side of the original catalogue symbol and generator. Visual reference: [BEKANT](https://www.ikea.com.tr/en/product/bekant-white-white-stained-oak-veneer-160x110-cm-corner-desk-left-19282839).
+- `filing-three-drawer.glb` → `filing-cabinet`: painted carcass, three separate drawer fronts with actual recessed finger grips, internal floors/runners, recessed floor plinth and small combination lock. Visual reference: [GALANT](https://www.ikea.com/gb/en/p/galant-file-cabinet-white-80365185/).
+
+All meshes are original Houseit Blender geometry. No external meshes or product textures are included. References were approved by the user. Editable sources and studio previews: `assets/office/`. Build with `node apps/editor/scripts/make-office.mjs`; optional model-name arguments rebuild individual models. `check-office-joints.py` verifies each model is one connected construction group and all designated supports touch the floor. Desks reuse the shared subtle neutral wood texture and recolourable `body`; metal legs remain white. The cabinet uses a recolourable painted `body`. Existing heights and detailed 2D symbols are retained. The corner desk was corrected following user feedback to the reference proportions: new defaults are 1600 × 1100 mm, and its original detailed SVG and collision footprint were adjusted to match the shorter return. Saved object dimensions are not rewritten.

@@ -142,6 +142,9 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   'lounge-chair': 'chaise-soft.glb',
   'chair-ottoman': 'wingback-with-ottoman.glb',
   'built-in-shelf': 'shelving-fitted.glb',
+  'office-desk': 'desk-oak-steel.glb',
+  'office-desk-l': 'desk-corner-oak.glb',
+  'filing-cabinet': 'filing-three-drawer.glb',
   'coffee-table': 'coffee-table.glb',
   'side-table': 'side-table.glb',
 }

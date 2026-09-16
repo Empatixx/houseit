@@ -367,7 +367,7 @@ export const CATALOG_OBJECT_TYPES = [
   {
     id: 'office-desk-l',
     label: 'Corner Office Desk',
-    size: { width: 2057, depth: 2057 },
+    size: { width: 1600, depth: 1100 },
     surfaces: ['oak', 'walnut', 'marble', 'glass', 'white', 'black', 'steel'],
     stands: 'wall',
     symbol: 'office-desk-l.svg',

@@ -187,12 +187,16 @@ test('furniture refreshes preserve existing catalogue footprints and plan symbol
     'lounge-chair',
     'chair-ottoman',
     'built-in-shelf',
+    'office-desk',
+    'office-desk-l',
+    'filing-cabinet',
   ]) {
     const original = CATALOG_OBJECT_TYPES.find((type) => type.id === id)!
     expect(objectType(id)?.size, id).toEqual(original.size)
     expect(symbolOf(id), id).toBe(original.symbol)
     expect(modelFileOf(id), id).toMatch(/\.glb$/)
   }
+  expect(objectType('office-desk-l')?.size).toEqual({ width: 1600, depth: 1100 })
   expect(modelFileOf('wardrobe')).toBe('wardrobe-classic.glb')
   expect(heightOf('twin-bed').height).toBe(1050)
 })
