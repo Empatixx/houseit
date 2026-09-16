@@ -133,6 +133,9 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   crib: 'crib-rounded.glb',
   nightstand: 'nightstand-rounded.glb',
   dresser: 'dresser-three-drawer.glb',
+  bookshelf: 'bookshelf-classic.glb',
+  credenza: 'sideboard-oak-white.glb',
+  bench: 'bench-storage-cushioned.glb',
   'coffee-table': 'coffee-table.glb',
   'side-table': 'side-table.glb',
 }

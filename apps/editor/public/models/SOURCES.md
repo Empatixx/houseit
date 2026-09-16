@@ -117,3 +117,28 @@ The `body` material remains editable. Timber retains its neutral original grain,
 painted panels take a plain tint, and beech rails, handles, mattress and sleeping
 pillows retain separate finishes. Existing object IDs, 2D symbols and plan dimensions
 are preserved. The single bed's height is 1050 mm to include the headboard.
+
+
+## Original living-room and hallway storage
+
+Three user-approved references are recorded in `docs/plans/living-reference-selection.json`.
+The meshes, UVs, timber grain and upholstery patterns are generated from our own
+Blender source; reference meshes, textures and branding are not included.
+
+| File | Catalogue type | Construction |
+| --- | --- | --- |
+| bookshelf-classic.glb | bookshelf | Six open compartments, thin shelves, recessed backing and plinth |
+| sideboard-oak-white.glb | credenza | Pale oak carcass, two full-height doors, two central drawers and eight supporting feet |
+| bench-storage-cushioned.glb | bench | Painted storage frame, wide inset drawer, two connected knobs, sewn seat pad and two loose cushions |
+
+Generate with `node apps/editor/scripts/make-living-storage.mjs`; append model names
+for a partial rebuild. The wrapper uses Blender 4.5 and supports `BLENDER_PATH`.
+Editable source parts and studio previews are saved in `assets/living-storage/`.
+Run `blender --background --python-exit-code 1 --python apps/editor/scripts/check-living-joints.py`
+to check structural contact (including cushions) and every floor support.
+
+Recolouring affects the bookcase panels, sideboard fronts and bench upholstery.
+The sideboard keeps its original pale oak grain, and the bench keeps its painted
+frame and dark knobs. Original catalogue footprints and SVG plan symbols are
+preserved. Bench height is 650 mm including the loose cushions; the seat remains
+approximately 450 mm above the floor.

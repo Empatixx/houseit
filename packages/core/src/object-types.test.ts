@@ -172,8 +172,16 @@ test('Blender furniture uses detailed plan symbols independently of its 3D model
   }
 })
 
-test('the bedroom refresh preserves existing catalogue footprints and plan symbols', () => {
-  for (const id of ['nightstand', 'dresser', 'twin-bed', 'crib']) {
+test('furniture refreshes preserve existing catalogue footprints and plan symbols', () => {
+  for (const id of [
+    'nightstand',
+    'dresser',
+    'twin-bed',
+    'crib',
+    'bookshelf',
+    'credenza',
+    'bench',
+  ]) {
     const original = CATALOG_OBJECT_TYPES.find((type) => type.id === id)!
     expect(objectType(id)?.size, id).toEqual(original.size)
     expect(symbolOf(id), id).toBe(original.symbol)
