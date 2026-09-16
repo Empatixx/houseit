@@ -350,7 +350,7 @@ export const CATALOG_OBJECT_TYPES = [
     id: 'office-chair',
     label: 'Office Chair',
     size: { width: 711, depth: 660 },
-    surfaces: ['fabric', 'grey', 'blue', 'green', 'linen', 'rust', 'white'],
+    surfaces: ['fabric', 'grey', 'blue', 'green', 'linen', 'rust', 'white', 'graphite', 'black'],
     stands: 'free',
     symbol: 'office-chair.svg',
     rooms: ['office'],

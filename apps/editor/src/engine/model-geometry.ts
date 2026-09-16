@@ -43,8 +43,9 @@ export function modelGeometry(
         id: node.uuid,
         geometry: node.geometry.clone().applyMatrix4(node.matrixWorld),
         original: node.material,
-        casts: node.castShadow,
-        receives: node.receiveShadow,
+        // glTF does not carry Three.js shadow flags; solid furniture needs contact shadows.
+        casts: true,
+        receives: true,
       })
   })
   return meshes

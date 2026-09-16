@@ -1,15 +1,35 @@
 # Furniture models
 
-## Classic upholstered seating
+## Original Blender furniture
 
-`sofa-classic-two.glb`, `sofa-classic-three.glb`, `sofa-classic-chaise.glb`
-and `armchair-classic.glb` are original Houseit geometry, created from rounded
-upholstered parts with broad low arms, separate cushions and recessed feet.
-The user's [IKEA KIVIK reference](https://www.ikea.com/cz/cs/p/kivik-3mistna-pohovka-s-lenoskou-tresund-antracit-s99482839/)
-informed the general style; these are not IKEA model files or exact product models.
+The `*-classic*.glb` files are original Houseit geometry, modelled in Blender:
+2-seat and 3-seat sofas, a chaise sofa, a curved upholstered armchair, an office
+chair and a wooden dining chair. No Sketchfab geometry, textures or materials
+are included. All textile patterns are generated from scratch.
 
-Regenerate with `node apps/editor/scripts/make-seating.mjs`. These assets need
-no textures; their `body` material takes the selected upholstery colour.
+Visual references supplied by the user:
+- [Straight sofa](https://sketchfab.com/3d-models/sofa-80edec2de8c04a4fb335a48b550a2336)
+- [Curved armchair](https://sketchfab.com/3d-models/sofa-chair-0e8e009f398249b9bc13e8ff7078530a)
+- [Wooden chair](https://sketchfab.com/3d-models/wooden-chair-75258f5b06534b0fb64e16eb842e3f64)
+- [KIVIK chaise proportions](https://www.ikea.com/cz/cs/p/kivik-3mistna-pohovka-s-lenoskou-tresund-antracit-s99482839/)
+
+These are independently constructed interpretations, not official product assets
+or exact replicas. Sofa cushions have inflated panels, compressed sewn edges,
+side boxing, perimeter piping and small tension folds. Scatter pillows have
+pinched edges and a fuller centre. The armchair has a curved, channelled shell.
+
+Regenerate with `node apps/editor/scripts/make-seating.mjs` (Blender 4.5 required;
+set `BLENDER_PATH` if it is not installed in the usual location).
+The generator is `apps/editor/scripts/make-seating.py`. Named editable parts are
+saved to `assets/seating/*.blend`; `sofa-preview.png` is the studio preview.
+Runtime GLBs combine parts by material. Neutral embedded fabric maps preserve
+recolouring through the `body` material; feet remain separate. High roughness
+and nonmetallic upholstery keep highlights subtle. The wooden chair uses the editor's
+wood finishes. Catalog dimensions control placed objects, preserving existing plans.
+
+`assets/seating/sketchfab-sources.json` records the reference candidates checked;
+none of those downloadable assets is bundled. Their licenses do not apply to
+these original meshes.
 
 ## Downloaded tables and dining chairs
 

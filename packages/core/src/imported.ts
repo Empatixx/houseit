@@ -14,6 +14,15 @@ const WOODS = ['walnut', 'oak', 'white', 'black', 'marble', 'steel'] as const
 
 export const IMPORTED_TYPES: readonly ImportedType[] = [
   {
+    id: 'dining-chair',
+    label: 'Wooden Dining Chair',
+    size: { width: 440, depth: 460, height: 940 },
+    surfaces: ['oak', 'walnut', 'white', 'black'],
+    stands: 'free',
+    rooms: ['dining', 'living_room', 'kitchen', 'any'],
+    model: 'dining-chair-classic.glb',
+  },
+  {
     id: 'wardrobe',
     label: 'Wardrobe',
     size: { width: 1200, depth: 630, height: 2000 },
@@ -42,6 +51,7 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   'sofa-l': 'sofa-classic-chaise.glb',
   'club-chair': 'armchair-classic.glb',
   'lounge-chair-s': 'armchair-classic.glb',
+  'office-chair': 'office-chair-classic.glb',
   'coffee-table': 'coffee-table.glb',
   'side-table': 'side-table.glb',
 }
