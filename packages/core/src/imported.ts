@@ -145,6 +145,9 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   'office-desk': 'desk-oak-steel.glb',
   'office-desk-l': 'desk-corner-oak.glb',
   'filing-cabinet': 'filing-three-drawer.glb',
+  refrigerator: 'fridge-freezer-classic.glb',
+  dishwasher: 'dishwasher-classic.glb',
+  stove: 'cooker-ceramic-classic.glb',
   'coffee-table': 'coffee-table.glb',
   'side-table': 'side-table.glb',
 }
