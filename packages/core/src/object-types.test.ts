@@ -92,8 +92,9 @@ test('sanitary ware is white or black and backs onto a wall', () => {
   }
 })
 
-test('appliances are steel unless told otherwise', () => {
-  for (const id of ['refrigerator', 'stove', 'dishwasher']) {
+test('the glass cooker defaults to black and other appliances to steel', () => {
+  expect(objectType('stove')?.surfaces[0]).toBe('black')
+  for (const id of ['refrigerator', 'dishwasher']) {
     expect(objectType(id)?.surfaces[0], id).toBe('steel')
   }
 })
@@ -193,6 +194,9 @@ test('furniture refreshes preserve existing catalogue footprints and plan symbol
     'refrigerator',
     'dishwasher',
     'stove',
+    'counter-straight',
+    'counter-l',
+    'kitchen-sink',
   ]) {
     const original = CATALOG_OBJECT_TYPES.find((type) => type.id === id)!
     expect(objectType(id)?.size, id).toEqual(original.size)

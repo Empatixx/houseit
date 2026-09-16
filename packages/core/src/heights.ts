@@ -78,7 +78,7 @@ const HEIGHTS: Record<string, Partial<Height>> = {
   'island-4-sink': { height: 900 },
   'counter-straight': { height: 900 },
   'counter-l': { height: 900 },
-  'kitchen-sink': { height: 900 },
+  'kitchen-sink': { height: 1263 },
   stove: { height: 900 },
   refrigerator: { height: 1800 },
   dishwasher: { height: 850 },

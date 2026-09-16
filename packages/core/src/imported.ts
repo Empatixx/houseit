@@ -148,6 +148,9 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   refrigerator: 'fridge-freezer-classic.glb',
   dishwasher: 'dishwasher-classic.glb',
   stove: 'cooker-ceramic-classic.glb',
+  'counter-straight': 'counter-straight-detailed.glb',
+  'counter-l': 'counter-corner-detailed.glb',
+  'kitchen-sink': 'counter-double-sink.glb',
   'coffee-table': 'coffee-table.glb',
   'side-table': 'side-table.glb',
 }

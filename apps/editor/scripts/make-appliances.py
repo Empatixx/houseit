@@ -17,6 +17,9 @@ glass=d.material('Restrained dark glass',(.024,.033,.038),.37,.12)
 steel=d.material('Satin hardware',(.39,.42,.44),.58,.40)
 mark=d.material('Soft grey control markings',(.32,.34,.35),.88)
 led=d.material('Muted indicator',(.25,.40,.43),.70)
+cookerenamel=d.material('Black cooker enamel',(.018,.021,.025),.52,.10)
+cookerhandle=d.material('Satin graphite cooker handle',(.12,.14,.16),.45,.40)
+display=d.material('Quiet electronic display',(.63,.70,.71),.65)
 
 
 def recess(obj,size,at,r=.009):
@@ -86,35 +89,45 @@ def dishwasher():
     return s.parts
 
 
+def label(name,text,at,size):
+    curve=bpy.data.curves.new(name,'FONT');curve.body=text;curve.align_x='CENTER';curve.align_y='CENTER';curve.size=size;curve.extrude=.0003;curve.resolution_u=4
+    obj=bpy.data.objects.new(name,curve);bpy.context.collection.objects.link(obj);obj.location=at;obj.rotation_euler=(math.pi/2,0,math.pi)
+    bpy.ops.object.select_all(action='DESELECT');obj.select_set(True);bpy.context.view_layer.objects.active=obj;bpy.ops.object.convert(target='MESH')
+    obj=bpy.context.object;obj.data.materials.append(display);s.parts.append(obj)
+
+
 def stove():
     s.parts.clear();w,depth=.762,.737
     feet(w,depth)
-    d.box('Freestanding cooker cabinet',(w,.674,.842),(0,-.0275,.461),.007,paint)
-    d.box('Lower storage drawer',(w-.012,.038,.145),(0,.322,.133),.005,paint)
+    d.box('Freestanding cooker cabinet',(w,.674,.842),(0,-.0275,.461),.007,cookerenamel)
+    d.box('Lower storage drawer',(w-.012,.038,.145),(0,.322,.133),.005,cookerenamel)
     d.box('Oven door gasket',(w-.019,.014,.560),(0,.311,.492),.004,seal)
     for x in (-.343,.343):d.box('Concealed oven door hinge',(.026,.05,.54),(x,.317,.492),.004,steel)
     # Recessed dark pane in an actual opening, not over a solid front panel.
-    b.panel('Eased oven door frame',w-.012,.558,.032,(0,.338,.492),paint,r=.008,
+    b.panel('Eased oven door frame',w-.012,.558,.032,(0,.338,.492),cookerenamel,r=.008,
             opening=(w-.132,.378,.010,-.035))
     d.box('Dark oven window',(w-.119,.018,.391),(0,.337,.457),.008,glass)
-    for x in (-.250,.250):d.box('Door pull mounting foot',(.030,.045,.028),(x,.355,.717),.008,paint)
-    d.box('Rounded oven door pull',(.555,.025,.028),(0,.381,.717),.012,paint)
-    d.box('Cooker control fascia',(w-.010,.031,.105),(0,.332,.824),.005,paint)
-    for x in (-.285,-.178,-.071,.071,.178,.285):
-        disc('Round cooker knob',x,.358,.826,.022,.024,paint)
-        d.box('Knob position mark',(.002,.006,.008),(x,.370,.839),.001,mark)
-    for x in (-.303,.303):disc('Oven status light',x,.348,.857,.003,.003,led)
+    for x in (-.250,.250):d.box('Door pull mounting foot',(.030,.045,.028),(x,.355,.717),.008,cookerenamel)
+    d.box('Rounded oven door pull',(.555,.025,.025),(0,.381,.717),.010,cookerhandle)
+    d.box('Black glass electronic oven fascia',(w-.010,.031,.105),(0,.332,.824),.005,glass)
+    label('Oven temperature display','180°',(0,.3474,.824),.023)
+    for x in (-.21,-.16,.16,.21):
+        ring('Subtle oven touch control',x,.3474,.825,.008,.0008,display,True)
+    for x in (-.21,.21):d.box('Touch control stroke',(.011,.002,.0015),(x,.3474,.825),.0005,display)
     for i in range(14):d.box('Oven vent slot',(.033,.005,.004),(-.304+i*.047,.354,.763),.001,seal)
-    d.box('Enamel cooktop rim',(w,depth,.024),(0,0,.888),.006,paint)
+    d.box('Enamel cooktop rim',(w,depth,.024),(0,0,.888),.006,cookerenamel)
     d.box('Ceramic hob glass',(w-.033,depth-.045,.006),(0,0,.900),.010,glass)
     for x,y,r in [(-.177,-.175,.100),(.177,-.175,.078),(-.177,.145,.078),(.177,.145,.100)]:
-        ring('Subtle ceramic cooking zone',x,y,.903,r,.0011)
+        ring('Subtle induction cooking zone',x,y,.903,r,.0008,mark)
+    for x in (-.19,-.065,.065,.19):
+        ring('Hob electronic touch control',x,.300,.903,.007,.0008,display)
+    d.box('Hob touch slider',(.105,.002,.0015),(0,.324,.903),.0005,display)
     return s.parts
 
 
 def main():
     requested=set(sys.argv[sys.argv.index('--')+1:]) if '--' in sys.argv else set()
     for name,build in [('fridge-freezer-classic',fridge),('dishwasher-classic',dishwasher),('cooker-ceramic-classic',stove)]:
-        if not requested or name in requested:d.export(name,build,paint)
+        if not requested or name in requested:d.export(name,build,cookerenamel if build==stove else paint)
 
 if __name__=='__main__':main()

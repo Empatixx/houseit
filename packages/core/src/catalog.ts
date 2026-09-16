@@ -625,7 +625,7 @@ export const CATALOG_OBJECT_TYPES = [
     id: 'stove',
     label: 'Stove',
     size: { width: 762, depth: 737 },
-    surfaces: ['steel', 'white', 'graphite', 'black'],
+    surfaces: ['black', 'steel', 'white', 'graphite'],
     stands: 'wall',
     abuts: true,
     symbol: 'stove.svg',
