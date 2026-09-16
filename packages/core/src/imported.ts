@@ -37,9 +37,11 @@ export const importedType = (id: string): ImportedType | undefined =>
   IMPORTED_TYPES.find((entry) => entry.id === id)
 
 const CATALOG_MODELS: Readonly<Record<string, string>> = {
-  'sofa-3': 'sofa-three.glb',
-  'club-chair': 'armchair.glb',
-  'lounge-chair-s': 'armchair.glb',
+  'sofa-2': 'sofa-classic-two.glb',
+  'sofa-3': 'sofa-classic-three.glb',
+  'sofa-l': 'sofa-classic-chaise.glb',
+  'club-chair': 'armchair-classic.glb',
+  'lounge-chair-s': 'armchair-classic.glb',
   'coffee-table': 'coffee-table.glb',
   'side-table': 'side-table.glb',
 }
