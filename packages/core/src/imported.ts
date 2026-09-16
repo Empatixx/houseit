@@ -7,7 +7,7 @@ export type ImportedType = {
   layer?: 'under' | 'floor' | 'over'
   rooms?: readonly string[]
   parts?: readonly Box[]
-  symbolShape?: 'bed' | 'round' | 'screen'
+  symbol?: string
   model: string
 }
 
@@ -31,7 +31,7 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     surfaces: UPHOLSTERY,
     stands: 'wall',
     rooms: ['bedroom'],
-    symbolShape: 'bed',
+    symbol: 'queen-bed.svg',
     model: 'bed-upholstered.glb',
   },
   {
@@ -41,7 +41,7 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     surfaces: UPHOLSTERY,
     stands: 'wall',
     rooms: ['bedroom'],
-    symbolShape: 'bed',
+    symbol: 'queen-bed.svg',
     model: 'bed-channelled.glb',
   },
   {
@@ -51,6 +51,7 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     surfaces: ['oak', 'walnut', 'white', 'black'],
     stands: 'free',
     rooms: ['dining', 'kitchen', 'living_room', 'any'],
+    symbol: 'table-rectangular.svg',
     model: 'table-rectangular.glb',
   },
   {
@@ -60,7 +61,7 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     surfaces: ['oak', 'walnut', 'white', 'black'],
     stands: 'free',
     rooms: ['dining', 'kitchen', 'living_room', 'any'],
-    symbolShape: 'round',
+    symbol: 'coffee-table.svg',
     model: 'table-round.glb',
   },
   {
@@ -71,7 +72,7 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     stands: 'free',
     layer: 'over',
     rooms: ['living_room', 'bedroom', 'any'],
-    symbolShape: 'screen',
+    symbol: 'television-flat.svg',
     model: 'television-flat.glb',
   },
   {
@@ -81,6 +82,7 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     surfaces: ['oak', 'walnut', 'white', 'black'],
     stands: 'wall',
     rooms: ['living_room', 'bedroom', 'any'],
+    symbol: 'dresser.svg',
     model: 'tv-stand-wood.glb',
   },
   {
@@ -90,6 +92,7 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     surfaces: ['oak', 'walnut', 'white', 'black'],
     stands: 'free',
     rooms: ['dining', 'living_room', 'kitchen', 'any'],
+    symbol: 'dining-chair.svg',
     model: 'dining-chair-classic.glb',
   },
   {
@@ -151,26 +154,9 @@ export function outlineSymbol(type: ImportedType): string {
     const d = (part.y1 - part.y0) * depth
     return `<rect x="${round(x + inset / 2)}" y="${round(y + inset / 2)}" width="${round(w - inset)}" height="${round(d - inset)}" fill="#ffffff" stroke="${LINE}" stroke-width="${inset}"/>`
   }
-  let shapes = parts.map(rect)
-  if (type.symbolShape === 'round')
-    shapes = [
-      `<ellipse cx="${width / 2}" cy="${depth / 2}" rx="${width / 2 - inset}" ry="${depth / 2 - inset}" fill="#ffffff" stroke="${LINE}" stroke-width="${inset}"/>`,
-    ]
-  if (type.symbolShape === 'bed')
-    shapes.push(
-      rect({ x0: 0.025, y0: 0.02, x1: 0.975, y1: 0.075 }),
-      rect({ x0: 0.09, y0: 0.095, x1: 0.47, y1: 0.3 }),
-      rect({ x0: 0.53, y0: 0.095, x1: 0.91, y1: 0.3 }),
-      rect({ x0: 0.025, y0: 0.34, x1: 0.975, y1: 0.97 }),
-    )
-  if (type.symbolShape === 'screen')
-    shapes = [
-      rect({ x0: 0.35, y0: 0.05, x1: 0.65, y1: 0.95 }),
-      rect({ x0: 0, y0: 0.4, x1: 1, y1: 0.6 }),
-    ]
   return [
     `<svg width="${round(width)}" height="${round(depth)}" viewBox="0 0 ${round(width)} ${round(depth)}" fill="none" xmlns="http://www.w3.org/2000/svg">`,
-    ...shapes,
+    ...parts.map(rect),
     '</svg>',
   ].join('')
 }

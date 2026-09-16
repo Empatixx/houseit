@@ -31,7 +31,10 @@ test('every type has a real size, and a symbol unless it is drawn instead', () =
   for (const entry of OBJECT_TYPES) {
     expect(entry.size.width, entry.id).toBeGreaterThan(0)
     expect(entry.size.depth, entry.id).toBeGreaterThan(0)
-    if (isStaircase(entry.id) || (importedType(entry.id) && !catalogued(entry.id))) {
+    if (
+      isStaircase(entry.id) ||
+      (importedType(entry.id) && !catalogued(entry.id) && !importedType(entry.id)?.symbol)
+    ) {
       expect(symbolOf(entry.id), entry.id).toBeUndefined()
       continue
     }
@@ -149,5 +152,22 @@ test('a brought model is declared at the size the catalogue places it at, so it 
       brought.size.width,
       brought.size.depth,
     ])
+  }
+})
+
+test('Blender furniture uses detailed plan symbols independently of its 3D model', () => {
+  for (const id of ['bed-upholstered', 'bed-channelled']) {
+    expect(symbolOf(id)).toBe(symbolOf('queen-bed'))
+    expect(modelFileOf(id)).toBe(`${id}.glb`)
+  }
+  for (const id of [
+    'dining-chair',
+    'table-rectangular',
+    'table-round',
+    'television-flat',
+    'tv-stand-wood',
+  ]) {
+    expect(symbolOf(id), id).toMatch(/\.svg$/)
+    expect(modelFileOf(id), id).toMatch(/\.glb$/)
   }
 })

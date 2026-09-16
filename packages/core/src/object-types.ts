@@ -49,7 +49,7 @@ const IMPORTED: readonly ObjectType[] = IMPORTED_TYPES.map((type) => ({
   stands: type.stands ?? 'free',
   ...(type.layer === undefined ? {} : { layer: type.layer }),
   ...(type.rooms === undefined ? {} : { rooms: type.rooms }),
-  symbol: '',
+  symbol: type.symbol ?? '',
 }))
 
 export const CAMERA = 'camera'

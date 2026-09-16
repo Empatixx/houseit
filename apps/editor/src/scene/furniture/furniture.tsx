@@ -63,7 +63,7 @@ export function Furniture() {
         const room = rooms.get(object.room)
         const spot = room ? standingAt(doc, level, room, object) : undefined
         const surface = surfaceOf(object.surface)
-        const symbol = drawingOf(doc, level, object) ?? symbolOf(object.type)
+        const symbol = symbolOf(object.type) ?? drawingOf(doc, level, object)
         if (!spot || !surface || !symbol) return []
         return [
           { object, spot, surface, symbol, stack: { layer: layerOf(object.type), index: order } },
