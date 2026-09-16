@@ -228,3 +228,11 @@ All three models are original Blender geometry with restrained roughness and rec
 - `counter-double-sink.glb` → `kitchen-sink`: two rounded steel bowls in actual countertop openings, drain strainers, overflow details and arched mixer tap.
 
 Original Blender geometry inspired by the references in `docs/plans/kitchen-counters-reference-selection.json`; no external meshes or textures are included. Build with `node apps/editor/scripts/make-kitchen.mjs`. Editable sources and renders are in `assets/kitchen/`. `check-kitchen-joints.py` verifies connected cabinet parts, floor plinths and raycasts through the real basin openings. Painted fronts remain recolourable; worktops and metal fixtures retain their own finishes. Original 2D symbols and footprints are unchanged. Countertops remain 900 mm high; the sink model’s total height is 1263 mm including its tap.
+
+## Original fitted kitchen assemblies
+
+The nine `kitchen-*-detailed.glb` files map to the corresponding `kitchen-*` catalogue IDs: compact/full straight and L kitchens, U kitchens, and four variants with wall cabinets. Reference: [ENHET kitchen](https://www.ikea.com/cz/cs/p/enhet-kuchyne-bila-vzor-dub-bila-s29337860/), recorded in `docs/plans/kitchen-sets-reference-selection.json`. All geometry is original Blender construction.
+
+Generate with `node apps/editor/scripts/make-kitchen-sets.mjs`; optional model-name arguments limit regeneration. Editable sources and studio previews live in `assets/kitchen-sets/`. Assemblies reuse the detailed cabinet carcasses, drawers, pulls, real sink cutouts, mixer taps, refrigerator and black electronic cooker. Blind corner closures keep inaccessible corners free of handles; upper returns extend to meet the rear wall cabinets. Painted cabinet fronts are recolourable, while appliances, mineral worktops and hardware retain their own finishes.
+
+Catalogue widths, depths and detailed SVG symbols remain unchanged. Worktops stay at 900 mm; assembly heights are 1800 mm including the refrigerator and 2150 mm for variants with wall cabinets. `check-kitchen-sets.py` verifies every part belongs to a connected construction component, every group is floor-supported or wall-mounted, eight appliance feet sit on the floor, and rays through every sink opening reach the basin floor.
