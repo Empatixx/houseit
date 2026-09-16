@@ -11,7 +11,7 @@ import { BoxGeometry, type Group, Matrix4, MeshBasicMaterial, type OrthographicC
 import { aimAt, putDown } from '../edit/draw-commands'
 import { moveOpeningTo } from '../edit/opening-commands'
 import { pick } from '../edit/pick'
-import { endPreview } from '../edit/preview'
+import { endPreview, schedulePreview } from '../edit/preview'
 import { moveWallBy, previewWallMove, previewWallResize, resizeWall } from '../edit/wall-commands'
 import { alignWallShift } from '../edit/wall-move'
 import { NativeSurface } from '../engine/fragment-display-layer'
@@ -366,7 +366,8 @@ function useCarry() {
           shift,
         }
         setHeld(live.current)
-        onward?.(live.current)
+        const next = live.current
+        if (onward) schedulePreview(() => onward(next))
       }
       publish(now)
       pending = (async () => {

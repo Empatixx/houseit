@@ -41,7 +41,7 @@ export function moveWallBy(wall: Wall, shift: Point, roomId?: string): boolean {
   })
 }
 
-function constrainedMove(wall: Wall, shift: Point, roomId?: string) {
+function constrainedMove(wall: Wall, shift: Point, roomId?: string, preview = false) {
   const { doc, level, apply } = documentStore.getState()
   const alignments = wallAlignmentShifts(doc, wall)
   if (roomId) {
@@ -51,18 +51,34 @@ function constrainedMove(wall: Wall, shift: Point, roomId?: string) {
       const args = wallMoveArgsOf(doc, level, wall, shift, roomId)
       return args ? [args.by] : []
     })
-    const edit = constrainWallEdit(doc, updateRoom, (by) => ({ ...args, by }), 0, args.by, stops)
+    const edit = constrainWallEdit(
+      doc,
+      updateRoom,
+      (by) => ({ ...args, by }),
+      0,
+      args.by,
+      stops,
+      preview,
+    )
     return { doc: edit.doc, commit: () => edit.changed && apply(updateRoom, edit.args) }
   }
   const args = wallMoveArgs(wall, shift)
   const stops = alignments.map((shift) => wallMoveArgs(wall, shift).by)
-  const edit = constrainWallEdit(doc, updateWall, (by) => ({ ...args, by }), 0, args.by, stops)
+  const edit = constrainWallEdit(
+    doc,
+    updateWall,
+    (by) => ({ ...args, by }),
+    0,
+    args.by,
+    stops,
+    preview,
+  )
   return { doc: edit.doc, commit: () => edit.changed && apply(updateWall, edit.args) }
 }
 
 export function previewWallMove(wall: Wall, shift: Point, roomId?: string): void {
   try {
-    const edit = constrainedMove(wall, shift, roomId)
+    const edit = constrainedMove(wall, shift, roomId, true)
     if (edit) previewStore.getState().show(edit.doc)
   } catch (error) {
     previewStore.getState().refuse(error instanceof Error ? error.message : String(error))
@@ -109,7 +125,7 @@ export function removeStub(wall: Wall): boolean {
   return runEdit(() => documentStore.getState().apply(removeWall, { id: wall.element ?? wall.id }))
 }
 
-function constrainedResize(wall: Wall, end: 'from' | 'to', length: number) {
+function constrainedResize(wall: Wall, end: 'from' | 'to', length: number, preview = false) {
   const { doc } = documentStore.getState()
   const element = wallElement(doc, wall.id)
   return constrainWallEdit(
@@ -118,6 +134,8 @@ function constrainedResize(wall: Wall, end: 'from' | 'to', length: number) {
     (length) => ({ id: element.id, end, length }),
     element.length,
     Math.max(10, Math.round(length)),
+    [],
+    preview,
   )
 }
 
@@ -130,7 +148,7 @@ export function resizeWall(wall: Wall, end: 'from' | 'to', length: number): bool
 
 export function previewWallResize(wall: Wall, end: 'from' | 'to', length: number): void {
   try {
-    previewStore.getState().show(constrainedResize(wall, end, length).doc)
+    previewStore.getState().show(constrainedResize(wall, end, length, true).doc)
   } catch (error) {
     previewStore.getState().refuse(error instanceof Error ? error.message : String(error))
   }

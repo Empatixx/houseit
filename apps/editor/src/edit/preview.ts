@@ -4,6 +4,19 @@ import { previewStore } from '../store/preview'
 import { documentStore } from '../store/store'
 
 let last = ''
+let frame: number | undefined
+let pending: (() => void) | undefined
+
+export function schedulePreview(draw: () => void): void {
+  pending = draw
+  if (frame !== undefined) return
+  frame = requestAnimationFrame(() => {
+    frame = undefined
+    const draw = pending
+    pending = undefined
+    draw?.()
+  })
+}
 
 export function previewCommand<C extends TypedCommand>(command: C, args: ArgsOf<C>): void {
   const key = `${command.name}:${JSON.stringify(args)}`
@@ -18,6 +31,9 @@ export function previewCommand<C extends TypedCommand>(command: C, args: ArgsOf<
 }
 
 export function endPreview(): void {
+  if (frame !== undefined) cancelAnimationFrame(frame)
+  frame = undefined
+  pending = undefined
   last = ''
   previewStore.getState().clear()
 }

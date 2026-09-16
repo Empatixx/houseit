@@ -1,5 +1,6 @@
 import type { ArgsOf, TypedCommand } from '@houseit/commands/define-command'
 import { applyCommand } from '@houseit/commands/run'
+import { previewWallCommand } from '@houseit/commands/wall-preview'
 import type { HouseDocument } from '@houseit/core/document'
 
 type Result = { value: number; doc: HouseDocument }
@@ -12,11 +13,13 @@ export function constrainWallEdit<C extends TypedCommand>(
   from: number,
   to: number,
   stops: number[] = [],
+  preview = false,
 ) {
-  const key = JSON.stringify([command.name, argsAt(from), argsAt(to), stops])
+  const key = JSON.stringify([command.name, argsAt(from), argsAt(to), stops, preview])
   const trial = (value: number): Result | undefined => {
     try {
-      return { value, doc: applyCommand(source, command, argsAt(value)) }
+      const apply = preview ? previewWallCommand : applyCommand
+      return { value, doc: apply(source, command, argsAt(value)) }
     } catch {
       return undefined
     }

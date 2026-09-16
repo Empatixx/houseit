@@ -4,8 +4,10 @@ import { sideRun } from '@houseit/geometry/sides'
 import { standingAt } from '@houseit/geometry/standing'
 import { CommandError } from './command-error'
 import { standingProblem } from './standing-check'
+import { isWallPreview } from './wall-preview'
 
 export function furnitureBefore(doc: HouseDocument, level: string) {
+  const preview = isWallPreview(doc)
   const rooms = new Map(roomsOf(doc, level).map((room) => [room.id, room]))
   return Object.values(doc.objects)
     .filter((o) => o.level === level)
@@ -15,7 +17,10 @@ export function furnitureBefore(doc: HouseDocument, level: string) {
       return {
         id: object.id,
         at: spot?.at,
-        problem: room ? standingProblem(doc, level, room, object, object, object.id) : undefined,
+        problem:
+          room && !preview
+            ? standingProblem(doc, level, room, object, object, object.id)
+            : undefined,
       }
     })
 }
@@ -25,16 +30,22 @@ export function retainFurniture(
   level: string,
   before: ReturnType<typeof furnitureBefore>,
 ) {
+  const preview = isWallPreview(doc)
   const rooms = new Map(roomsOf(doc, level).map((room) => [room.id, room]))
   for (const was of before) {
     const object = doc.objects[was.id]
     if (!object || !was.at) continue
     const room = rooms.get(object.room)
-    if (!room) throw new CommandError(`update-wall: ${was.id} would lose its room`)
+    if (!room) {
+      if (preview) continue
+      throw new CommandError(`update-wall: ${was.id} would lose its room`)
+    }
     if (object.against) {
       const run = sideRun(doc, level, room, object.against, object.againstNth)
-      if (!run || run.length === 0)
+      if (!run || run.length === 0) {
+        if (preview) continue
         throw new CommandError(`update-wall: ${was.id} would lose its supporting wall`)
+      }
       object.along =
         ((was.at.x - run.from.x) * (run.to.x - run.from.x) +
           (was.at.y - run.from.y) * (run.to.y - run.from.y)) /
@@ -49,12 +60,14 @@ export function retainFurniture(
       object.across = (was.at.y - y0) / (y1 - y0)
     }
     if (
-      object.along < 0 ||
-      object.along > 1 ||
-      (object.across !== undefined && (object.across < 0 || object.across > 1))
+      !preview &&
+      (object.along < 0 ||
+        object.along > 1 ||
+        (object.across !== undefined && (object.across < 0 || object.across > 1)))
     )
       throw new CommandError(`update-wall: ${was.id} would no longer fit its room`)
   }
+  if (preview) return
   for (const was of before) {
     const object = doc.objects[was.id]
     if (!object) continue
