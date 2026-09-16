@@ -5,6 +5,7 @@ compressed seams, inflated faces and deterministic tension folds, not bevelled c
 """
 import bpy
 import bmesh
+import importlib.util
 import math
 import random
 import sys
@@ -12,6 +13,7 @@ from pathlib import Path
 from mathutils import Vector, Matrix
 import numpy as np
 
+sys.dont_write_bytecode=True
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / 'apps/editor/public/models'
 SOURCE = ROOT / 'assets/seating'
@@ -332,6 +334,13 @@ wood = bpy.data.materials.new('wood')
 wood.use_nodes=True
 wood.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=(.72,.72,.72,1)
 wood.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value=.78
+grain_spec=importlib.util.spec_from_file_location('wood_grain',Path(__file__).with_name('wood-grain.py'))
+grain_module=importlib.util.module_from_spec(grain_spec)
+grain_spec.loader.exec_module(grain_module)
+wood_image=texture('Original fine timber grain',grain_module.wood_pixels(N))
+wood_texture=wood.node_tree.nodes.new('ShaderNodeTexImage');wood_texture.image=wood_image
+wood.node_tree.links.new(wood_texture.outputs['Color'],wood.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
+wood['houseitTexture']='tint'
 
 
 def wooden_chair():

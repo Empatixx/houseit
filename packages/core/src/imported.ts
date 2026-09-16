@@ -136,6 +136,9 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   bookshelf: 'bookshelf-classic.glb',
   credenza: 'sideboard-oak-white.glb',
   bench: 'bench-storage-cushioned.glb',
+  'console-mirror': 'console-rounded-mirror.glb',
+  'coat-stand': 'coat-stand-curved.glb',
+  'clothing-rack': 'clothing-rack-arched.glb',
   'coffee-table': 'coffee-table.glb',
   'side-table': 'side-table.glb',
 }

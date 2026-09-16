@@ -181,6 +181,9 @@ test('furniture refreshes preserve existing catalogue footprints and plan symbol
     'bookshelf',
     'credenza',
     'bench',
+    'console-mirror',
+    'coat-stand',
+    'clothing-rack',
   ]) {
     const original = CATALOG_OBJECT_TYPES.find((type) => type.id === id)!
     expect(objectType(id)?.size, id).toEqual(original.size)

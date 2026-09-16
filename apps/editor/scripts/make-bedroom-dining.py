@@ -36,16 +36,8 @@ screen=material('Dark matte screen',(.009,.013,.019),.65)
 plastic=material('TV bezel',(.027,.029,.032),.78)
 black=s.feet
 
-# Neutral original wood grain: no plank seams, baked shadows or fixed wood colour.
-rng=np.random.default_rng(109)
-gy,gx=np.mgrid[0:s.N,0:s.N]
-phase=gx/256*math.tau*22 + .65*np.sin(gy/256*math.tau*2) + .22*np.sin(gy/256*math.tau*5)
-grain=.90+.035*np.sin(phase)+.018*np.sin(phase*3)+rng.normal(0,.008,(s.N,s.N))
-pixels=np.ones((s.N,s.N,4));pixels[:,:,:3]=np.clip(grain[:,:,None],0,1)
-wood_image=s.texture('Original fine timber grain',pixels)
-wood_texture=s.wood.node_tree.nodes.new('ShaderNodeTexImage');wood_texture.image=wood_image
-s.wood.node_tree.links.new(wood_texture.outputs['Color'],s.wood.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
-s.wood['houseitTexture']='tint'
+# Shared neutral grain, preserved when the app tints the wood.
+wood_image=s.wood_image
 
 
 def recolour(objects,mat):
@@ -246,6 +238,7 @@ def render(name):
 
 
 def main():
+    requested=set(sys.argv[sys.argv.index('--')+1:]) if '--' in sys.argv else set()
     for name,build,body in [
         ('bed-upholstered',lambda:bed(False),s.fabric),
         ('bed-channelled',lambda:bed(True),s.fabric),
@@ -254,7 +247,7 @@ def main():
         ('television-flat',television,plastic),
         ('tv-stand-wood',tv_stand,s.wood),
     ]:
-        export(name,build,body)
+        if not requested or name in requested:export(name,build,body)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const mac = '/Applications/Blender.app/Contents/MacOS/Blender'
 const blender = process.env.BLENDER_PATH || (existsSync(mac) ? mac : 'blender')
-const script = fileURLToPath(new URL('./make-bedroom-dining.py', import.meta.url))
+const script = fileURLToPath(new URL('./make-hallway.py', import.meta.url))
 const models = process.argv.slice(2)
 const result = spawnSync(
   blender,

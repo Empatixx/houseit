@@ -27,8 +27,8 @@ The generator is `apps/editor/scripts/make-seating.py`. Named editable parts are
 saved to `assets/seating/*.blend`; `sofa-preview.png` is the studio preview.
 Runtime GLBs combine parts by material. Neutral embedded fabric maps preserve
 recolouring through the `body` material; feet remain separate. High roughness
-and nonmetallic upholstery keep highlights subtle. The wooden chair uses the editor's
-wood finishes. Catalog dimensions control placed objects, preserving existing plans.
+and nonmetallic upholstery keep highlights subtle. The wooden chair retains the shared neutral grain when the editor applies
+wood colours. Catalog dimensions control placed objects, preserving existing plans.
 
 `assets/seating/sketchfab-sources.json` records the reference candidates checked;
 none of those downloadable assets is bundled. Their licenses do not apply to
@@ -142,3 +142,41 @@ The sideboard keeps its original pale oak grain, and the bench keeps its painted
 frame and dark knobs. Original catalogue footprints and SVG plan symbols are
 preserved. Bench height is 650 mm including the loose cushions; the seat remains
 approximately 450 mm above the floor.
+
+
+## Original console, coat stand and clothes rack
+
+Approved visual references are recorded in `docs/plans/hallway-reference-selection.json`.
+All meshes and timber textures are generated from original Blender source.
+
+| File | Catalogue type | Construction |
+| --- | --- | --- |
+| console-rounded-mirror.glb | console-mirror | Continuous rounded timber shell, three drawers, attached pulls, splayed legs and separate wall-mounted round mirror |
+| coat-stand-curved.glb | coat-stand | Continuous curved hooks, four swept legs, connected circular brace and floor glides |
+| clothing-rack-arched.glb | clothing-rack | Two continuous arched frames, hanging bar, solid bag shelf and lower rod shelf |
+
+Generate with `node apps/editor/scripts/make-hallway.mjs`; append model names to
+rebuild selected pieces. Blender 4.5 is required; `BLENDER_PATH` is supported.
+Editable source parts and studio renders are saved in `assets/hallway/`.
+Run `blender --background --python-exit-code 1 --python apps/editor/scripts/check-hallway-joints.py`
+to verify joints and all four floor supports on each model. The console and its
+wall-mounted mirror intentionally form two separate connected groups.
+
+The console timber and both stands' powder coat use the editable `body` material.
+Mirror glass/frame and floor glides retain their own finishes. The mirror uses a
+simple silver material; it does not introduce a live reflection render pass.
+Existing catalogue footprints and SVG symbols are unchanged. Console height is
+1800 mm including the mirror; the tabletop remains approximately 850 mm high.
+
+
+## Shared subtle wood grain
+
+`apps/editor/scripts/wood-grain.py` generates a seamless, low-contrast neutral
+256 px tile from irregular elongated noise. It replaces the earlier repeated
+sine bands on the console, dining tables, TV cabinet, nightstand, dresser and
+sideboard. The original dining chair now embeds the same neutral tile and sets
+`houseitTexture: "tint"`, so choosing oak/walnut does not replace it with a floor
+plank texture. Timber remains recolourable, while the sideboard retains a fixed
+pale oak variation. Geometry and catalogue footprints are unchanged by this
+material refresh. The bedroom/dining generator also accepts individual model
+names, like the other Blender wrappers.

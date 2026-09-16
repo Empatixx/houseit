@@ -53,7 +53,7 @@ const HEIGHTS: Record<string, Partial<Height>> = {
   'office-desk': { height: 740 },
   'office-desk-l': { height: 740 },
   'filing-cabinet': { height: 1000 },
-  'console-mirror': { height: 900 },
+  'console-mirror': { height: 1800 },
   bench: { height: 650 },
   'coat-stand': { height: 1800 },
   'washer-dryer-stacked': { height: 1900 },
