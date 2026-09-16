@@ -203,7 +203,8 @@ def tv_stand():
 def export(name,build,body_material):
     bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
     objects=list(build())
-    for mat in (s.fabric,s.wood,plastic):mat.name={'body':'previous body'}.get(mat.name,mat.name)
+    for mat in bpy.data.materials:
+        if mat.name=='body':mat.name='previous body'
     body_material.name='body'
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/(name+'.blend')),compress=True)
     bpy.ops.object.select_all(action='DESELECT')
@@ -244,12 +245,17 @@ def render(name):
     scene.render.image_settings.file_format='PNG';scene.render.filepath=str(SOURCE/(name+'.png'));bpy.ops.render.render(write_still=True)
 
 
-for name,build,body in [
-    ('bed-upholstered',lambda:bed(False),s.fabric),
-    ('bed-channelled',lambda:bed(True),s.fabric),
-    ('table-rectangular',lambda:table(False),s.wood),
-    ('table-round',lambda:table(True),s.wood),
-    ('television-flat',television,plastic),
-    ('tv-stand-wood',tv_stand,s.wood),
-]:
-    export(name,build,body)
+def main():
+    for name,build,body in [
+        ('bed-upholstered',lambda:bed(False),s.fabric),
+        ('bed-channelled',lambda:bed(True),s.fabric),
+        ('table-rectangular',lambda:table(False),s.wood),
+        ('table-round',lambda:table(True),s.wood),
+        ('television-flat',television,plastic),
+        ('tv-stand-wood',tv_stand,s.wood),
+    ]:
+        export(name,build,body)
+
+
+if __name__ == "__main__":
+    main()

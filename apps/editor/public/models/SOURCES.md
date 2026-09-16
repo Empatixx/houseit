@@ -87,4 +87,33 @@ preserved. Existing catalog dimensions, footprints and 2D symbols are unchanged.
 The pre-existing `bathtub.glb` comes from the
 [Kenney Furniture Kit](https://kenney.nl/assets/furniture-kit), also CC0,
 and is rebuilt separately with `node scripts/get-models.mjs`.
-The pre-existing `wardrobe.glb` is not changed by this import.
+The old `wardrobe.glb` is retained as an unused historical asset; the catalogue now uses `wardrobe-classic.glb`.
+
+
+## Original bedroom storage, single bed and cot
+
+Five approved references are recorded in `docs/plans/bedroom-reference-selection.json`.
+They inform the design of original Houseit meshes; no downloaded geometry, textures,
+logos or branded markings are included.
+
+| File | Catalogue type | Construction |
+| --- | --- | --- |
+| nightstand-rounded.glb | nightstand | Rounded continuous timber side frames, recessed drawer pull and lower slatted shelf |
+| dresser-three-drawer.glb | dresser | Three full-width drawers, sloping recessed top pulls and inset plinth |
+| wardrobe-classic.glb | wardrobe | Two doors, three lower drawers on the viewer's right, satin dark U handles |
+| bed-single-upholstered.glb | twin-bed | Channelled upholstered headboard, full-sized soft pillows and draped duvet |
+| crib-rounded.glb | crib | Rounded painted ends, connected beech spindles and rails, mattress and tapered feet |
+
+Generate all five with `node apps/editor/scripts/make-bedroom-storage.mjs`, or append
+one or more model names to rebuild selected pieces. Blender 4.5 is required; the
+wrapper respects `BLENDER_PATH`. Editable parts and studio renders are saved in
+`assets/bedroom-storage/`. Shared geometry/material helpers are imported without
+regenerating the existing furniture.
+
+Run `blender --background --python-exit-code 1 --python apps/editor/scripts/check-bedroom-joints.py`
+to verify that all cabinet/cot construction pieces belong to one contact graph.
+
+The `body` material remains editable. Timber retains its neutral original grain,
+painted panels take a plain tint, and beech rails, handles, mattress and sleeping
+pillows retain separate finishes. Existing object IDs, 2D symbols and plan dimensions
+are preserved. The single bed's height is 1050 mm to include the headboard.

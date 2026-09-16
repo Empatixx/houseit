@@ -23,7 +23,7 @@ const HEIGHTS: Record<string, Partial<Height>> = {
   'queen-bed': { height: 1120 },
   'full-bed': { height: 1120 },
   'television-flat': { height: 746, base: 580 },
-  'twin-bed': { height: 550 },
+  'twin-bed': { height: 1050 },
   crib: { height: 900 },
   nightstand: { height: 550 },
   dresser: { height: 800 },

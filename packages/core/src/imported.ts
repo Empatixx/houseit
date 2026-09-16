@@ -102,7 +102,7 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     surfaces: WOODS,
     stands: 'wall',
     rooms: ['bedroom', 'walk-in', 'any'],
-    model: 'wardrobe.glb',
+    model: 'wardrobe-classic.glb',
   },
   {
     id: 'bathtub',
@@ -129,6 +129,10 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   'king-bed': 'bed-upholstered.glb',
   'queen-bed': 'bed-upholstered.glb',
   'full-bed': 'bed-upholstered.glb',
+  'twin-bed': 'bed-single-upholstered.glb',
+  crib: 'crib-rounded.glb',
+  nightstand: 'nightstand-rounded.glb',
+  dresser: 'dresser-three-drawer.glb',
   'coffee-table': 'coffee-table.glb',
   'side-table': 'side-table.glb',
 }
