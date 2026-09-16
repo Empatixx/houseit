@@ -161,6 +161,8 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   'island-4': 'island-four-detailed.glb',
   'island-2-sink': 'island-two-sink-detailed.glb',
   'island-4-sink': 'island-four-sink-detailed.glb',
+  bar: 'bar-display-detailed.glb',
+  'bar-island': 'bar-serving-island-detailed.glb',
   'counter-straight': 'counter-straight-detailed.glb',
   'counter-l': 'counter-corner-detailed.glb',
   'kitchen-sink': 'counter-double-sink.glb',

@@ -207,6 +207,8 @@ test('furniture refreshes preserve existing catalogue footprints and plan symbol
     'island-4',
     'island-2-sink',
     'island-4-sink',
+    'bar',
+    'bar-island',
     'counter-straight',
     'counter-l',
     'kitchen-sink',
