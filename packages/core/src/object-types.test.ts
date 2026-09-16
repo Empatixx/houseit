@@ -209,6 +209,8 @@ test('furniture refreshes preserve existing catalogue footprints and plan symbol
     'island-4-sink',
     'bar',
     'bar-island',
+    'floor-lamp',
+    'table-lamp',
     'washer-dryer',
     'washer-dryer-stacked',
     'shower-s',

@@ -161,6 +161,8 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   'island-4': 'island-four-detailed.glb',
   'island-2-sink': 'island-two-sink-detailed.glb',
   'island-4-sink': 'island-four-sink-detailed.glb',
+  'floor-lamp': 'floor-lamp-tripod.glb',
+  'table-lamp': 'table-lamp-pleated.glb',
   'washer-dryer': 'laundry-pair-detailed.glb',
   'washer-dryer-stacked': 'laundry-stack-detailed.glb',
   'shower-s': 'shower-small-detailed.glb',
