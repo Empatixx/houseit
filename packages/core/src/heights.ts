@@ -35,7 +35,7 @@ const HEIGHTS: Record<string, Partial<Height>> = {
   'shower-s': { height: 1900, glass: true },
   'shower-m': { height: 1900, glass: true },
   'shower-l': { height: 1900, glass: true },
-  'chair-ottoman': { height: 450 },
+  'chair-ottoman': { height: 1100 },
   'club-chair': { height: 800 },
   'sofa-2': { height: 850 },
   'sofa-3': { height: 850 },

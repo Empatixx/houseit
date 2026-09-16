@@ -180,3 +180,27 @@ plank texture. Timber remains recolourable, while the sideboard retains a fixed
 pale oak variation. Geometry and catalogue footprints are unchanged by this
 material refresh. The bedroom/dining generator also accepts individual model
 names, like the other Blender wrappers.
+
+
+## Original chaise, wingback and fitted shelving
+
+Approved references are in `docs/plans/lounge-reference-selection.json`. Geometry,
+textile patterns and construction are generated from original Blender source.
+
+| File | Catalogue type | Construction |
+| --- | --- | --- |
+| chaise-soft.glb | lounge-chair | Recessed feet, upholstered base, long boxed cushion and separate back cushion |
+| wingback-with-ottoman.glb | chair-ottoman | Smooth padded wings/arms, sculpted button depressions, separate sewn seat and matching ottoman |
+| shelving-fitted.glb | built-in-shelf | Fitted trim, open shelves with rear upstands, recessed-panel lower doors and connected knobs |
+
+Generate with `node apps/editor/scripts/make-lounge.mjs`; optional model names
+limit regeneration. Blender 4.5 is required; `BLENDER_PATH` is supported. Editable
+parts and previews are saved in `assets/lounge/`. Upholstery and painted shelving
+use the editable `body` material; feet and door knobs retain separate finishes.
+
+Run `blender --background --python-exit-code 1 --python apps/editor/scripts/check-lounge-joints.py`
+to verify structural contacts and floor supports. Chair and ottoman intentionally
+form two connected groups. Thin sewn seams are excluded from structural checks.
+
+Original catalogue footprints and SVG plan symbols are preserved. The wingback
+set height is 1100 mm including its back, replacing the former seat-only height.
