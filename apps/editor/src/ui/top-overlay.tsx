@@ -1,15 +1,25 @@
-import { Maximize2Icon, MinusIcon, PlusIcon, Redo2Icon, Undo2Icon } from 'lucide-react'
+import {
+  DownloadIcon,
+  Maximize2Icon,
+  MinusIcon,
+  PlusIcon,
+  Redo2Icon,
+  Undo2Icon,
+} from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ZOOM } from '../scene/zooming'
 import { useMode } from '../store/mode'
+import { projectsStore } from '../store/projects/projects'
 import { useSelection } from '../store/selection'
 import { documentStore, useDocument } from '../store/store'
 import { viewStore } from '../store/view'
 import { Compass } from './compass'
 import { usePanelShown, useRightEdge } from './edges'
 import { Minimap } from './minimap'
+import { runProjectAction } from './project-notices'
 import { useCover } from './use-cover'
 
 export function TopOverlay() {
@@ -72,6 +82,7 @@ export function TopOverlay() {
             </TooltipTrigger>
             <TooltipContent>Fit to plan</TooltipContent>
           </Tooltip>
+          <ExportButton />
           <Tooltip>
             <TooltipTrigger asChild>
               <SidebarTrigger aria-label="Toggle the panel" disabled={!shown && !picked} />
@@ -84,6 +95,43 @@ export function TopOverlay() {
       {walking ? null : <Scale />}
       {walking ? <Minimap /> : null}
     </div>
+  )
+}
+
+function ExportButton() {
+  const [busy, setBusy] = useState(false)
+  const download = async () => {
+    setBusy(true)
+    try {
+      await runProjectAction('Could not export the house', async () => {
+        const { exportHouse } = await import('../engine/house-export')
+        const bytes = await exportHouse(documentStore.getState().doc)
+        const name = projectsStore.getState().open?.name ?? 'house'
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(new Blob([bytes], { type: 'model/gltf-binary' }))
+        link.download = `${name}.glb`
+        link.click()
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000)
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          disabled={busy}
+          aria-label="Export the house as glTF"
+          onClick={() => void download()}
+        >
+          <DownloadIcon />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Export as glTF (.glb)</TooltipContent>
+    </Tooltip>
   )
 }
 

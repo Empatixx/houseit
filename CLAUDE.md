@@ -200,8 +200,12 @@ node apps/mcp/dist/cli.js 'add-object --room kitchen --type sofa-3 --against sou
 node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg get-plan --room kitchen
 ```
 
-`--project` and `--picture` are the driver's, not the plan's: which plan is being
-worked on and what to do with the picture are no part of any plan.
+`--project`, `--picture` and `--export house.glb` are the driver's, not the plan's:
+which plan is being worked on, what to do with the picture and where the model
+goes are no part of any plan. The export is the same `house-export.ts` the
+editor's download button runs — storeys of named elements carrying their IFC
+class, furniture in its own parts — so a house leaves for Blender or a viewer as
+the building it is, not as triangles.
 
 **Headless by default.** With no Chrome on the debugging port — which is the
 normal state — the CLI, the MCP server and the scripts start one headless on the

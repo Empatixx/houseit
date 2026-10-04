@@ -141,6 +141,15 @@ export function installFloorplanBridge(
     help: describeCommands,
     clear,
     save: () => projects.getState().save(),
+    exportHouse: async () => {
+      if (!projects.getState().open) throw new Error(noProject())
+      const { exportHouse } = await import('../engine/house-export')
+      const bytes = new Uint8Array(await exportHouse(store.getState().doc))
+      let text = ''
+      for (let i = 0; i < bytes.length; i += 0x8000)
+        text += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+      return btoa(text)
+    },
     ensureProject: async (name) => {
       const { refresh, list, create } = projects.getState()
       await refresh()

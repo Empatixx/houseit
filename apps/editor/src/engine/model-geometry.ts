@@ -24,10 +24,9 @@ export function loadModel(file: string) {
   return result
 }
 
-export function modelGeometry(
-  scene: Object3D,
-  size: { width: number; height: number; depth: number },
-) {
+type Size = { width: number; height: number; depth: number }
+
+export function standModel(scene: Object3D, size: Size) {
   const model = scene.clone(true)
   const box = new Box3().setFromObject(model)
   const measured = box.getSize(new Vector3())
@@ -42,6 +41,11 @@ export function modelGeometry(
   )
   stood.position.y = -size.height / 2000
   stood.updateMatrixWorld(true)
+  return stood
+}
+
+export function modelGeometry(scene: Object3D, size: Size) {
+  const stood = standModel(scene, size)
   const byMaterial = new Map<Material, { geometries: BufferGeometry[]; first: string }>()
   stood.traverseVisible((node) => {
     if (!(node instanceof Mesh) || Array.isArray(node.material)) return

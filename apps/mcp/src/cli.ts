@@ -4,6 +4,7 @@ import {
   closeEditor,
   connectToEditor,
   execOnPage,
+  houseOf,
   openProject,
   pictureOf,
   showOnPage,
@@ -19,6 +20,7 @@ const USAGE = [
   '  houseit - < script.txt                     the same from standard input',
   '  houseit --picture out.jpg get-plan         with a picture of what it answered about',
   '  houseit --project byt-praha get-plan       in that plan, made if there is none yet',
+  '  houseit --export house.glb get-plan       with the whole house as a glTF model',
   '  houseit guidelines                         how a flat or a house goes together',
 ].join('\n')
 
@@ -34,10 +36,12 @@ async function main(argv: string[]): Promise<number> {
 
   let picture: string | undefined
   let project: string | undefined
-  while (argv[0] === '--picture' || argv[0] === '--project') {
+  let model: string | undefined
+  while (argv[0] === '--picture' || argv[0] === '--project' || argv[0] === '--export') {
     const value = argv[1]
     if (!value) throw new Error(`${argv[0]} needs a value`)
     if (argv[0] === '--picture') picture = value
+    else if (argv[0] === '--export') model = value
     else project = value
     argv = argv.slice(2)
   }
@@ -54,6 +58,10 @@ async function main(argv: string[]): Promise<number> {
     if (!shown.ok) throw new Error(shown.error)
     writeFileSync(picture, await pictureOf(page))
     process.stderr.write(`picture written to ${picture}\n`)
+  }
+  if (result.ok && model) {
+    writeFileSync(model, await houseOf(page))
+    process.stderr.write(`house written to ${model}\n`)
   }
   return result.ok ? 0 : 1
 }

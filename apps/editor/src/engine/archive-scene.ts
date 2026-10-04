@@ -30,6 +30,8 @@ export type ArchivePaint = Finish & {
 export type ArchivePart = {
   id: string
   entity: string
+  category?: string
+  piece?: Piece
   geometry: BufferGeometry
   geometryKey: string
   transform: Matrix4
@@ -70,6 +72,7 @@ export async function* archiveScene(
     yield {
       id: `wall:${wall.id}`,
       entity: `elements:${elementId(wall)}`,
+      category: 'IFCWALL',
       geometry: geometryBuffer(await generate(input)),
       geometryKey: JSON.stringify(input),
       transform,
@@ -82,7 +85,7 @@ export async function* archiveScene(
   for (const storey of [...world.storeys, { level: undefined, elevation: 0, pieces: world.site }]) {
     for (const piece of storey.pieces) {
       if (piece.role === 'wall-solid' || piece.paint.opacity === 0) continue
-      const { entity } = pieceIdentity(piece, doc, storey.level)
+      const { entity, category } = pieceIdentity(piece, doc, storey.level)
       if (piece.role === 'roof-solid' && !piece.entity)
         throw new Error('Roof geometry has no authoring identity')
       const placement = piecePlacement(piece)
@@ -101,6 +104,8 @@ export async function* archiveScene(
             yield {
               id: `${id}:${index}`,
               entity,
+              category,
+              piece,
               transform,
               geometry: mesh.geometry.clone(),
               geometryKey: `${JSON.stringify(piece.body)}:${index}`,
@@ -114,6 +119,8 @@ export async function* archiveScene(
         yield {
           id,
           entity,
+          category,
+          piece,
           transform,
           geometry: geometryBuffer(await generate(input)),
           geometryKey: JSON.stringify(input),

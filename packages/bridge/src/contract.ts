@@ -35,4 +35,5 @@ export type FloorplanBridge = {
   ensureProject: (name: string) => Promise<ProjectSummary>
   show: (view: ViewRequest) => ShowResult
   clear: () => Clear
+  exportHouse: () => Promise<string>
 }

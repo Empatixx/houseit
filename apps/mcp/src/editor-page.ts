@@ -159,6 +159,10 @@ const SETTLE_MS = 400
 
 export const PICTURE_TYPE = 'image/jpeg'
 
+export async function houseOf(page: Page): Promise<Buffer> {
+  return Buffer.from(await page.evaluate(() => window.floorplan.exportHouse()), 'base64')
+}
+
 export async function pictureOf(page: Page): Promise<Buffer> {
   await page.bringToFront().catch(() => undefined)
   await waitForCanvas(page).catch(() => undefined)
