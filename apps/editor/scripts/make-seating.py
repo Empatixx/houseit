@@ -196,6 +196,10 @@ def cushion(name, w, d, h, location, angle=0, seed=1, back=False, loose=False, r
     return obj
 
 
+def rounding(radius):
+    return 1 if radius<=.0015 else 2 if radius<=.004 else 3 if radius<=.010 else 5
+
+
 def block(name, size, location, radius=.018, material=fabric):
     bpy.ops.mesh.primitive_cube_add(size=1, location=location)
     obj=bpy.context.object
@@ -204,7 +208,7 @@ def block(name, size, location, radius=.018, material=fabric):
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bevel=obj.modifiers.new('Upholstered edge rounding','BEVEL')
     bevel.width=radius
-    bevel.segments=5
+    bevel.segments=rounding(radius)
     bpy.ops.object.modifier_apply(modifier=bevel.name)
     weighted=obj.modifiers.new('Panel normals','WEIGHTED_NORMAL')
     weighted.keep_sharp=True

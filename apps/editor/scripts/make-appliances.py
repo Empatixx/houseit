@@ -44,10 +44,11 @@ def disc(name,x,y,z,r,thick,mat=paint):
 
 
 def ring(name,x,y,z,r,thickness=.0012,mat=mark,front=False):
-    curve=bpy.data.curves.new(name,'CURVE');curve.dimensions='3D';curve.bevel_depth=thickness;curve.bevel_resolution=2
-    line=curve.splines.new('POLY');line.points.add(63);line.use_cyclic_u=True
+    count=max(16,min(64,int(r*1400)))
+    curve=bpy.data.curves.new(name,'CURVE');curve.dimensions='3D';curve.bevel_depth=thickness;curve.bevel_resolution=1 if thickness<.002 else 2
+    line=curve.splines.new('POLY');line.points.add(count-1);line.use_cyclic_u=True
     for i,p in enumerate(line.points):
-        a=i*math.tau/64;p.co=(x+r*math.cos(a),y if front else y+r*math.sin(a),z+r*math.sin(a) if front else z,1)
+        a=i*math.tau/count;p.co=(x+r*math.cos(a),y if front else y+r*math.sin(a),z+r*math.sin(a) if front else z,1)
     obj=bpy.data.objects.new(name,curve);bpy.context.collection.objects.link(obj)
     bpy.ops.object.select_all(action='DESELECT');obj.select_set(True);bpy.context.view_layer.objects.active=obj
     bpy.ops.object.convert(target='MESH');obj=bpy.context.object;obj.data.materials.append(mat);s.parts.append(obj)

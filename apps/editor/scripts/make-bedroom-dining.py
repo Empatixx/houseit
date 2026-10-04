@@ -61,9 +61,10 @@ def pillow(name,w,d,h,at,angle=0,seed=1,mat=None):
 
 
 def cylinder(name,radius,depth,at,mat,vertices=64):
+    vertices=min(vertices,max(8,int(radius*1400)))
     bpy.ops.mesh.primitive_cylinder_add(vertices=vertices,radius=radius,depth=depth,location=at)
     obj=bpy.context.object;obj.name=name;obj.data.materials.append(mat)
-    bevel=obj.modifiers.new('Soft machined edge','BEVEL');bevel.width=min(.007,depth*.2);bevel.segments=3
+    bevel=obj.modifiers.new('Soft machined edge','BEVEL');bevel.width=min(.007,depth*.2);bevel.segments=min(3,s.rounding(bevel.width))
     bpy.ops.object.modifier_apply(modifier=bevel.name)
     for p in obj.data.polygons:p.use_smooth=True
     normal=obj.modifiers.new('Weighted normals','WEIGHTED_NORMAL')

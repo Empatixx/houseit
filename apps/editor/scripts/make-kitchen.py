@@ -24,7 +24,7 @@ def tag(start,key,at=(0,0,0),angle=0):
 
 
 def tube(name,points,r=.012,mat=metal):
-    curve=bpy.data.curves.new(name,'CURVE');curve.dimensions='3D';curve.bevel_depth=r;curve.bevel_resolution=3;curve.use_fill_caps=True
+    curve=bpy.data.curves.new(name,'CURVE');curve.dimensions='3D';curve.bevel_depth=r;curve.bevel_resolution=1 if r<.003 else 2 if r<.01 else 3;curve.use_fill_caps=True
     line=curve.splines.new('POLY');line.points.add(len(points)-1)
     for p,v in zip(line.points,points):p.co=(*v,1)
     obj=bpy.data.objects.new(name,curve);bpy.context.collection.objects.link(obj)
