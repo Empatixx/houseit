@@ -157,3 +157,17 @@ test('paired wooden leaves have outer jambs and no fixed meeting post', () => {
     .sort((a, b) => a - b)
   expect(jambs[1]! - jambs[0]!).toBeCloseTo(1560, 6)
 })
+
+test('a hinged door is trimmed on both faces, hung on three hinges and handled from both sides', () => {
+  const pieces = doorPieces(door, wall, 3000)
+  const architraves = pieces.filter((piece) => piece.key.includes('-architrave-'))
+  expect(architraves).toHaveLength(6)
+  expect(new Set(architraves.map((piece) => Math.sign(piece.aside)))).toEqual(new Set([1, -1]))
+  expect(architraves.every((piece) => Math.abs(piece.aside) > wall.thickness / 2)).toBe(true)
+  expect(pieces.filter((piece) => piece.key.includes('-hinge-'))).toHaveLength(3)
+  const leaf = pieces.find((piece) => piece.key === 'd1-leaf')!
+  const front = pieces.find((piece) => piece.key === 'd1-handle')!
+  const back = pieces.find((piece) => piece.key === 'd1-handle-back')!
+  expect(Math.sign(front.at - leaf.at)).toBe(-Math.sign(back.at - leaf.at))
+  expect(Math.abs(front.at - leaf.at)).toBeGreaterThan(leaf.thickness / 2)
+})

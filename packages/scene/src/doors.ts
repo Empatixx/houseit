@@ -10,7 +10,11 @@ const DOOR_PAINT = {
 
 const LEAF = 40
 const LINING = 40
-const HANDLE = { reach: 70, length: 130, thick: 26, height: 1020 }
+const HANDLE = { reach: 70, length: 130, thick: 22, height: 1020 }
+const LEVER = { reach: 58, thick: 18, stem: 22 }
+const PLATE = { width: 45, height: 180, thick: 8 }
+const ARCHITRAVE = { width: 70, proud: 12, lap: 10 }
+const HINGE = { size: 18, height: 100 }
 const QUARTER = Math.PI / 2
 
 export type StandingPiece = {
@@ -102,18 +106,72 @@ export function doorPieces(
       colour: DOOR_PAINT.leaf,
       takesFinish: true,
     },
+    ...hinges(opening.id, hinge, swing * face, height),
+    ...([1, -1] as const).flatMap((side) =>
+      lever(opening.id, stile, towards * side, swing, face + width - 60, side > 0 ? '' : '-back'),
+    ),
+  ]
+}
+
+function lever(
+  id: string,
+  stile: number,
+  out: number,
+  swing: 1 | -1,
+  pivot: number,
+  suffix: string,
+): StandingPiece[] {
+  const across = (reach: number) => stile + out * (LEAF / 2 + reach)
+  const handle = {
+    turn: QUARTER,
+    colour: DOOR_PAINT.handle,
+  }
+  return [
     {
-      key: `${opening.id}-handle`,
-      at: stile + towards * (LEAF / 2 + HANDLE.reach / 2),
-      aside: swing * (face + width - HANDLE.length / 2 - 60),
-      turn: QUARTER,
+      ...handle,
+      key: `${id}-plate${suffix}`,
+      at: across(PLATE.thick / 2),
+      aside: swing * pivot,
+      length: PLATE.width,
+      height: PLATE.height,
+      thickness: PLATE.thick,
+      base: HANDLE.height - PLATE.height / 2 + HANDLE.thick / 2,
+    },
+    {
+      ...handle,
+      key: `${id}-stem${suffix}`,
+      at: across(LEVER.reach / 2),
+      aside: swing * pivot,
+      length: LEVER.stem,
+      height: LEVER.stem,
+      thickness: LEVER.reach,
+      base: HANDLE.height,
+    },
+    {
+      ...handle,
+      key: `${id}-handle${suffix}`,
+      at: across(LEVER.reach - LEVER.thick / 2),
+      aside: swing * (pivot - HANDLE.length / 2 + LEVER.stem / 2),
       length: HANDLE.length,
       height: HANDLE.thick,
-      thickness: HANDLE.reach,
+      thickness: LEVER.thick,
       base: HANDLE.height,
-      colour: DOOR_PAINT.handle,
     },
   ]
+}
+
+function hinges(id: string, at: number, aside: number, height: number): StandingPiece[] {
+  return [150, height / 2 - HINGE.height / 2, height - 250].map((base, n) => ({
+    key: `${id}-hinge-${n + 1}`,
+    at,
+    aside,
+    turn: 0,
+    length: HINGE.size,
+    height: HINGE.height,
+    thickness: HINGE.size,
+    base,
+    colour: DOOR_PAINT.handle,
+  }))
 }
 
 function framedLeaf(opening: Opening, centre: number, outside?: -1 | 1): StandingPiece[] {
@@ -199,9 +257,38 @@ function liningOf(opening: OpeningPart, wall: Wall, centre: number): StandingPie
     base: 0,
     colour: DOOR_PAINT.lining,
   })
+  const sides = ([-1, 1] as const).filter((side) => opening.liningSide !== (side < 0 ? 'b' : 'a'))
+  const architraves = ([1, -1] as const).flatMap((face) => {
+    const aside = face * (wall.thickness / 2 + ARCHITRAVE.proud / 2)
+    const name = face > 0 ? 'front' : 'back'
+    return [
+      ...sides.map((side) => ({
+        key: `${opening.id}-architrave-${side > 0 ? 'b' : 'a'}-${name}`,
+        at: centre + side * (width / 2 + ARCHITRAVE.width / 2 - ARCHITRAVE.lap),
+        aside,
+        turn: 0,
+        length: ARCHITRAVE.width,
+        height: height + ARCHITRAVE.width - ARCHITRAVE.lap,
+        thickness: ARCHITRAVE.proud,
+        base: 0,
+        colour: DOOR_PAINT.lining,
+      })),
+      {
+        key: `${opening.id}-architrave-head-${name}`,
+        at: centre,
+        aside,
+        turn: 0,
+        length: width - 2 * ARCHITRAVE.lap,
+        height: ARCHITRAVE.width,
+        thickness: ARCHITRAVE.proud,
+        base: height - ARCHITRAVE.lap,
+        colour: DOOR_PAINT.lining,
+      },
+    ]
+  })
   return [
-    ...(opening.liningSide !== 'b' ? [jamb(-1)] : []),
-    ...(opening.liningSide !== 'a' ? [jamb(1)] : []),
+    ...sides.map(jamb),
+    ...architraves,
     {
       key: `${opening.id}-soffit`,
       at: centre,

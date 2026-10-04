@@ -10,6 +10,7 @@ import { doorPieces } from './doors'
 import { besideWall, type Dressed, paintFor } from './dressing'
 import { owned, type Piece } from './pieces'
 import { solidPieces } from './wall-pieces'
+import { windowPieces } from './windows'
 
 const PAINT = {
   wall: '#f1f0ed',
@@ -159,8 +160,40 @@ function standingWall(
     )
   })
 
+  const glazed = (opening: (typeof parts)[number]) =>
+    opening.infill === 'opaque'
+      ? { colour: opening.frame?.outside ?? '#b0b0b0' }
+      : opening.infill === 'frosted'
+        ? { colour: '#dce5e8', opacity: 0.92 }
+        : { colour: PAINT.glass, opacity: 0.45 }
+  const room = worn[outside === 1 ? 1 : 0]
+  const casements =
+    enclosure === 'glass'
+      ? []
+      : parts.flatMap((opening) =>
+          owned(
+            { kind: 'opening', id: opening.opening },
+            windowPieces(opening, wall, growA + opening.t * span, outside).map((piece) => ({
+              name: `opening-${piece.key}`,
+              body: {
+                kind: 'box' as const,
+                width: piece.length,
+                height: piece.height,
+                depth: piece.thickness,
+              },
+              at: standing(piece.at, piece.aside, wall.baseOffset + piece.base + piece.height / 2),
+              turn: angle + piece.turn,
+              paint: piece.key.endsWith('-glass')
+                ? glazed(opening)
+                : piece.takesFinish
+                  ? paintFor(room?.windows, piece.colour)
+                  : { colour: piece.colour },
+            })),
+          ),
+        )
+
   const panes = parts
-    .filter((opening) => opening.kind === 'window')
+    .filter((opening) => opening.kind === 'window' && (opening.frame || enclosure === 'glass'))
     .map((opening) => ({
       body: {
         kind: 'box' as const,
@@ -174,12 +207,7 @@ function standingWall(
         wall.baseOffset + opening.sillHeight + opening.height / 2,
       ),
       turn: angle,
-      paint:
-        opening.infill === 'opaque'
-          ? { colour: opening.frame?.outside ?? '#b0b0b0' }
-          : opening.infill === 'frosted'
-            ? { colour: '#dce5e8', opacity: 0.92 }
-            : { colour: PAINT.glass, opacity: 0.45 },
+      paint: glazed(opening),
       name: `opening-${opening.id}-pane`,
       of: { kind: 'opening' as const, id: opening.opening },
     }))
@@ -312,6 +340,7 @@ function standingWall(
   return [
     ...(enclosure === 'glass' ? glazing : solids),
     ...leaves,
+    ...casements,
     ...panes,
     ...frames,
     ...owned({ kind: 'wall', id: wall.id }, facade),
