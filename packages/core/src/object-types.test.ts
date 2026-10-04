@@ -229,6 +229,21 @@ test('furniture refreshes preserve existing catalogue footprints and plan symbol
     'kitchen-sink',
     'coffee-table',
     'side-table',
+    'rug-round',
+    'rug-rect',
+    'yoga-mat',
+    'picture-frame',
+    'treadmill',
+    'exercise-bike',
+    'weight-rack',
+    'gym-bench',
+    'pool-table',
+    'ping-pong',
+    'water-heater',
+    'hvac',
+    'bbq',
+    'sedan',
+    'suv',
   ]) {
     const original = CATALOG_OBJECT_TYPES.find((type) => type.id === id)!
     expect(objectType(id)?.size, id).toEqual(original.size)

@@ -98,7 +98,7 @@ const HEIGHTS: Record<string, Partial<Height>> = {
   railing: { height: 1000, glass: true },
   box: { height: 600 },
   'pool-table': { height: 800 },
-  'ping-pong': { height: 760 },
+  'ping-pong': { height: 915 },
   bar: { height: 1600 },
   'bar-island': { height: 1600 },
   treadmill: { height: 1400 },

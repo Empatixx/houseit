@@ -182,6 +182,21 @@ const CATALOG_MODELS: Readonly<Record<string, string>> = {
   'kitchen-sink': 'counter-double-sink.glb',
   'coffee-table': 'coffee-table-round-oak.glb',
   'side-table': 'side-table-square-oak.glb',
+  'rug-round': 'rug-round-pile.glb',
+  'rug-rect': 'rug-rect-pile.glb',
+  'yoga-mat': 'yoga-mat-grip.glb',
+  'picture-frame': 'picture-frame-deep.glb',
+  treadmill: 'treadmill-folding.glb',
+  'exercise-bike': 'exercise-bike-studio.glb',
+  'weight-rack': 'dumbbell-rack-three-tier.glb',
+  'gym-bench': 'weight-bench-flat.glb',
+  'pool-table': 'pool-table-classic.glb',
+  'ping-pong': 'table-tennis-indoor.glb',
+  'water-heater': 'water-heater-tank.glb',
+  hvac: 'air-handler-indoor.glb',
+  bbq: 'barbecue-gas-cart.glb',
+  sedan: 'car-sedan.glb',
+  suv: 'car-suv.glb',
 }
 
 export const modelFileOf = (id: string): string | undefined =>

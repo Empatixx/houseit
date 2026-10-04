@@ -61,34 +61,8 @@ that map when applying oak/walnut colours, both live and in saved archives.
 
 All six are individually available in the catalog. The standalone TV rests at
 580 mm, matching the new cabinet. Existing double-bed types use the low-headboard
-model, including its full 1120 mm height; existing dining sets and combined TV
+model at their own widths and lengths, including its full 1120 mm height; existing dining sets and combined TV
 units use the new models while retaining their plan dimensions and symbols.
-
-## Downloaded tables and dining chairs
-
-These models are by Poly Haven contributors and distributed under
-[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
-See [Poly Haven's asset license](https://polyhaven.com/license).
-
-| Local file | Original |
-| --- | --- |
-| coffee-table.glb | [Coffee Table Round 01](https://polyhaven.com/a/coffee_table_round_01) |
-| side-table.glb | [Side Table 01](https://polyhaven.com/a/side_table_01) |
-| dining-table.glb | [Dining Table](https://polyhaven.com/a/dining_table) |
-| dining-chair.glb | [Dining Chair 02](https://polyhaven.com/a/dining_chair_02) |
-
-Regenerate with `node scripts/get-furniture-models.mjs` from the repository root.
-The download manifest pins source URLs and checksums. The script embeds the 1K
-textures in GLB, orients seating toward local -Z, turns the dining table's long
-axis along Z, omits the tablecloth, and names editable materials `body`.
-No runtime connection to Poly Haven is required. Geometry, UVs and normals are
-preserved. Existing catalog dimensions, footprints and 2D symbols are unchanged.
-
-The pre-existing `bathtub.glb` comes from the
-[Kenney Furniture Kit](https://kenney.nl/assets/furniture-kit), also CC0,
-and is rebuilt separately with `node scripts/get-models.mjs`.
-The old `wardrobe.glb` is retained as an unused historical asset; the catalogue now uses `wardrobe-classic.glb`.
-
 
 ## Original bedroom storage, single bed and cot
 
@@ -275,3 +249,15 @@ Models have separate enamel panels, true door openings, deep drums with restrain
 ## Original household lighting
 
 `floor-lamp-tripod.glb` and `table-lamp-pleated.glb` were authored in Blender for Houseit. Editable sources and renders are in `assets/lighting`, generator `apps/editor/scripts/make-lighting.py`. IKEA LAUTERS and ÅRSTID were visual references only; links are in `docs/plans/lighting-reference-selection.json`. No third-party mesh, product photograph or logo is included. Shades use original neutral woven texture and editable `body` tint, fittings use restrained satin materials. Original catalog footprints, heights, placement layers and 2D symbols remain intact.
+
+## Original indoor plants
+
+`plant-ficus-detailed.glb`, `plant-monstera-detailed.glb` and `plant-jade-detailed.glb` are original Blender geometry by Houseit. Sources and renders: `assets/plants`; generator: `apps/editor/scripts/make-plants.py`. Visual references (IKEA FEJKA and SUCCULENT) are recorded in `docs/plans/plants-reference-selection.json`. No external mesh, texture, photo or logo is included. Leaves have closed curved surfaces, branches connect to the stems and soil sits inside ceramic planters. Leaf material `body` remains tintable while bark, stems, soil and ceramic retain natural colors. Original catalog footprints, heights and detailed 2D symbols are preserved.
+
+## Original decor, games room, home gym, utilities and cars
+
+`rug-round-pile.glb`, `rug-rect-pile.glb`, `yoga-mat-grip.glb`, `picture-frame-deep.glb`, `coffee-table-round-oak.glb`, `side-table-square-oak.glb`, `treadmill-folding.glb`, `exercise-bike-studio.glb`, `dumbbell-rack-three-tier.glb`, `weight-bench-flat.glb`, `pool-table-classic.glb`, `table-tennis-indoor.glb`, `water-heater-tank.glb`, `air-handler-indoor.glb`, `barbecue-gas-cart.glb`, `car-sedan.glb` and `car-suv.glb` are original Blender geometry by Houseit. Generators: `apps/editor/scripts/make-decor.py`, `make-gym.py`, `make-utility.py`, `make-cars.py` and `make-living-storage.py`; sources and renders in `assets/decor`, `assets/gym`, `assets/utility`, `assets/cars` and `assets/living-storage`. References are product types only, recorded in `docs/plans/remaining-reference-selection.json`. They replace the Poly Haven coffee and side tables and the unused Kenney bathtub and generated wardrobe, which are no longer in the tree. Every model is built at its catalogue footprint and height, and `check-assemblies.py` holds each one to a single connected assembly.
+
+## Sizes and export
+
+Each catalogue bed size has its own upholstered bed (`bed-upholstered-full`, `-queen`, `-king`, `-cal-king`), the small lounge chair is a narrower barrel chair (`armchair-compact.glb`), and plants fill their square footprints, so no model is stretched by the editor to fit. All models leave Blender through `write_glb` in `make-seating.py`: one named mesh per part under a node per component, applied transforms, a single UV set, and double-sided materials only for glass and open surfaces.

@@ -1,7 +1,8 @@
-import { CAMERA } from '@houseit/core/object-types'
+import { CAMERA, OBJECT_TYPE_IDS } from '@houseit/core/object-types'
 import { planWith } from '@houseit/geometry/test-utils'
 import { expect, test } from 'vitest'
 import { furniturePieces } from './furniture'
+import { modelled } from './models'
 
 const house = () => {
   const { doc, level } = planWith([
@@ -45,12 +46,13 @@ test('a thing with a model is built from its model, and its box is only there to
   expect(stood.length).toBeGreaterThan(1)
 })
 
-test('a thing nobody modelled is a box wearing its own plan symbol', () => {
+test('everything in the catalogue but the camera stands in the walk as a model', () => {
+  expect(OBJECT_TYPE_IDS.filter((type) => type !== CAMERA && !modelled(type))).toEqual([])
   const { doc, level } = house()
   doc.objects.o1 = { ...thing('rug-rect'), level } as never
 
   const stood = furniturePieces(doc, level)
-  expect(stood.some((piece) => piece.body.kind === 'symbol')).toBe(true)
+  expect(stood.some((piece) => piece.body.kind === 'model')).toBe(true)
 })
 
 test('a camera is a thing in the plan but it is not furniture', () => {
