@@ -157,6 +157,15 @@ export const ROOM_KINDS: RoomKind[] = [
     'chodník',
     'chodnik',
   ]),
+  kind('pond', 'Pond', 1, { outdoor: true }, [
+    'pond',
+    'rybník',
+    'rybnik',
+    'rybníček',
+    'rybnicek',
+    'jezírko',
+    'jezirko',
+  ]),
   kind('lawn', 'Lawn', 1, { outdoor: true, passage: true }, [
     'lawn',
     'greenery',

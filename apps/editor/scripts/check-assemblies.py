@@ -7,7 +7,7 @@ from mathutils.bvhtree import BVHTree
 from pathlib import Path
 
 root=Path(__file__).resolve().parents[3]
-groups=['decor','gym','utility','cars']
+groups=['decor','gym','utility','cars','garden']
 sources=[p for g in groups for p in sorted((root/'assets'/g).glob('*.blend'))]
 sources+=[root/'assets/living-storage'/f'{n}.blend' for n in ('coffee-table-round-oak','side-table-square-oak')]
 sources+=[root/'assets/bedroom-dining'/f'bed-upholstered-{n}.blend' for n in ('full','queen','king','cal-king')]

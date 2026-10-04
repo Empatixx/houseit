@@ -11,7 +11,7 @@ import type { Point } from '@houseit/geometry/outlines'
 import { containsPoint, type Room, roomsOf } from '@houseit/geometry/rooms'
 import { ceilingWells, holesIn, wellsInRoom } from '@houseit/geometry/wells'
 import { paintFor } from './dressing'
-import { type Corner, type Finish, type Piece, prism, sheet } from './pieces'
+import { type Corner, drum, type Finish, type Piece, prism, sheet } from './pieces'
 import { exposedSlabTop } from './slab-top'
 
 const BARE = '#f7f7f5'
@@ -34,6 +34,7 @@ function laidIn(floor: string | undefined): Finish {
 export function floorPieces(doc: HouseDocument, level: string): Piece[] {
   const recesses = openingRecesses(doc, level)
   return roomsOf(doc, level).flatMap((room) => {
+    if (roomKindOf(room)?.id === 'pond') return pondPieces(doc, room)
     const pierced = wellsInRoom(doc, level, room)
     const laid = sheet({
       doubleSided: false,
@@ -60,6 +61,75 @@ export function floorPieces(doc: HouseDocument, level: string): Piece[] {
       room.id ? { ...piece, of: { kind: 'room' as const, id: room.id } } : piece,
     )
   })
+}
+
+const POND = { surface: 120, depth: 900, liner: 30, spacing: 290 }
+const WATER: Finish = { colour: '#3f6d72', opacity: 0.72, roughness: 0.05 }
+const MUD: Finish = { colour: '#4a4536', roughness: 1 }
+const LINER: Finish = { colour: '#5d5a52', roughness: 0.95 }
+const STONES = ['#8a867c', '#9b978d', '#77736a', '#a8a397']
+
+function pondPieces(doc: HouseDocument, room: Room): Piece[] {
+  const outline = room.nodes.map((id) => doc.nodes[id]!)
+  const key = room.nodes.join('-')
+  const owner = room.id ? { of: { kind: 'room' as const, id: room.id } } : {}
+  const surface = (name: string, base: number, paint: Finish, doubleSided: boolean) => ({
+    ...sheet({ base, outline: corners(outline), paint, doubleSided }),
+    name: `${name}-${key}`,
+    casts: false,
+    ...owner,
+  })
+  const pieces: Piece[] = [
+    surface('pond-water', -POND.surface, WATER, true),
+    surface('pond-bed', -POND.depth, MUD, false),
+  ]
+  let stone = 0
+  outline.forEach((a, i) => {
+    const b = outline[(i + 1) % outline.length]!
+    const dx = b.x - a.x,
+      dy = b.y - a.y
+    const length = Math.hypot(dx, dy)
+    if (length < 1) return
+    let normal = { x: -dy / length, y: dx / length }
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+    if (!containsPoint(outline, mid.x + normal.x * 50, mid.y + normal.y * 50))
+      normal = { x: -normal.x, y: -normal.y }
+    pieces.push({
+      body: { kind: 'box', width: length, height: POND.depth, depth: POND.liner },
+      at: {
+        x: mid.x + (normal.x * POND.liner) / 2,
+        y: -POND.depth / 2,
+        z: -(mid.y + (normal.y * POND.liner) / 2),
+      },
+      turn: Math.atan2(dy, dx),
+      paint: LINER,
+      name: `pond-liner-${key}-${i}`,
+      casts: false,
+      ...owner,
+    })
+    const count = Math.max(1, Math.round(length / POND.spacing))
+    for (let k = 0; k < count; k += 1) {
+      const t = k / count
+      const n = stone++
+      const wobble = ((n * 7919) % 97) / 97
+      const r = 110 + wobble * 60
+      const h = 70 + (((n * 104729) % 53) / 53) * 40
+      pieces.push({
+        ...drum({
+          x: a.x + dx * t + normal.x * 20,
+          z: -(a.y + dy * t + normal.y * 20),
+          base: -40,
+          r,
+          top: r * 0.82,
+          h,
+          paint: { colour: STONES[n % STONES.length]!, roughness: 0.9 },
+        }),
+        name: `pond-stone-${key}-${n}`,
+        ...owner,
+      })
+    }
+  })
+  return pieces
 }
 
 export function ceilingPieces(doc: HouseDocument, level: string): Piece[] {

@@ -1,6 +1,6 @@
 import type { HouseObject } from '@houseit/core/document'
 import { geometryEntityKey } from '@houseit/core/entity-key'
-import { partsOf } from '@houseit/core/footprint'
+import { drawnPartsOf } from '@houseit/core/footprint'
 import { importedType, outlineSymbol } from '@houseit/core/imported'
 import { type Layer, layerOf, symbolOf } from '@houseit/core/object-types'
 import { isStaircase, stairKind, stairShape, stairSymbol } from '@houseit/core/stairs'
@@ -37,7 +37,8 @@ function drawingOf(
   object: { type: string; width: number },
 ): { key: string; svg: string } | undefined {
   const brought = importedType(object.type)
-  if (brought) return { key: `imported:${brought.id}`, svg: outlineSymbol(brought) }
+  if (brought && !brought.symbol)
+    return { key: `imported:${brought.id}`, svg: outlineSymbol(brought) }
 
   const kind = stairKind(object.type)
   if (!kind) return undefined
@@ -104,7 +105,7 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
   const spin = useFurnitureSpin(object, spot, picked)
   const profiles = useMemo(
     () =>
-      partsOf(object.type).map((part) => {
+      drawnPartsOf(object.type).map((part) => {
         const x0 = (part.x0 - 0.5) * object.width,
           x1 = (part.x1 - 0.5) * object.width
         const z0 = (part.y0 - 0.5) * object.depth,

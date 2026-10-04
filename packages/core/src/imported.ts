@@ -7,6 +7,7 @@ export type ImportedType = {
   layer?: 'under' | 'floor' | 'over'
   rooms?: readonly string[]
   parts?: readonly Box[]
+  overhangs?: boolean
   symbol?: string
   model: string
 }
@@ -22,6 +23,36 @@ const UPHOLSTERY = [
   'white',
   'graphite',
 ] as const
+
+const FOLIAGE = ['green', 'rust'] as const
+const TRUNK: readonly Box[] = [{ x0: 0.45, y0: 0.45, x1: 0.55, y1: 0.55 }]
+
+type Planting = [
+  string,
+  string,
+  number,
+  number,
+  number,
+  string,
+  readonly string[],
+  (readonly Box[])?,
+]
+
+function garden(rows: Planting[], rooms: readonly string[] = ['lawn', 'terrace', 'paving', 'any']) {
+  return rows.map(
+    ([id, label, width, depth, height, file, surfaces, parts]): ImportedType => ({
+      id,
+      label,
+      size: { width, depth, height },
+      surfaces,
+      stands: 'free',
+      rooms,
+      symbol: `${file}.svg`,
+      model: `${file}.glb`,
+      ...(parts ? { parts, overhangs: true } : {}),
+    }),
+  )
+}
 
 export const IMPORTED_TYPES: readonly ImportedType[] = [
   {
@@ -113,6 +144,39 @@ export const IMPORTED_TYPES: readonly ImportedType[] = [
     rooms: ['bathroom', 'any'],
     model: 'bath-built-in-detailed.glb',
   },
+  ...garden([
+    ['tree-deciduous', 'Deciduous Tree', 4646, 3408, 6000, 'tree-deciduous-lime', FOLIAGE, TRUNK],
+    ['tree-birch', 'Birch Tree', 3135, 3359, 7000, 'tree-birch-twin', FOLIAGE, TRUNK],
+    ['tree-spruce', 'Spruce', 3200, 3200, 7500, 'tree-spruce', ['green'], TRUNK],
+    ['shrub-round', 'Round Shrub', 1340, 1212, 1000, 'shrub-round', FOLIAGE],
+    [
+      'shrub-hydrangea',
+      'Flowering Shrub (Hydrangea)',
+      1240,
+      1489,
+      1100,
+      'shrub-hydrangea',
+      ['blue', 'linen', 'white', 'rust'],
+    ],
+    ['hedge', 'Clipped Hedge', 2000, 600, 1400, 'hedge-clipped', FOLIAGE],
+    ['grass-ornamental', 'Ornamental Grass', 1400, 1400, 1000, 'grass-ornamental', FOLIAGE],
+    [
+      'flower-bed',
+      'Raised Flower Bed',
+      2000,
+      800,
+      450,
+      'flower-bed-raised',
+      ['oak', 'walnut', 'white', 'black'],
+    ],
+  ]),
+  ...garden(
+    [
+      ['water-lilies', 'Water Lilies', 679, 630, 80, 'water-lilies', ['white', 'linen', 'rust']],
+      ['fish-koi', 'Koi', 420, 150, 100, 'fish-koi', ['rust', 'white', 'linen', 'black']],
+    ],
+    ['pond'],
+  ),
 ]
 
 export const importedType = (id: string): ImportedType | undefined =>

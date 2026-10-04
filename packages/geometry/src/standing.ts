@@ -81,7 +81,9 @@ export function piecesOf(
   thing: { type: string; width: number; depth: number },
 ): Point[][] {
   const parts = partsOf(thing.type)
-  if (parts.length === 1) return [footprintOf(spot, thing)]
+  const only = parts.length === 1 ? parts[0]! : undefined
+  if (only && only.x0 === 0 && only.y0 === 0 && only.x1 === 1 && only.y1 === 1)
+    return [footprintOf(spot, thing)]
 
   const place = (x: number, y: number) =>
     onPlan(spot, thing, { x: x * thing.width, y: y * thing.depth })
