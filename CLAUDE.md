@@ -533,8 +533,16 @@ The plan draws those parts as well as testing against them, so the corner a
 corner bench wraps round is drawn empty and something is allowed to stand in it.
 Left out, it fills its rectangle.
 
-`scripts/make-glb.mjs` writes the one that is committed, so an asset in the tree
-can be rebuilt and read rather than being a binary nobody can account for.
+Every committed model is written by a Blender script, `apps/editor/scripts/make-*.py`,
+so an asset in the tree can be rebuilt and read rather than being a binary nobody
+can account for. `write_glb` in `make-seating.py` is the one way out: each part stays
+its own named mesh under a node per component, transforms are applied, one UV set
+is kept, and a material is double-sided only where an open surface or glass needs
+it — so a model taken out of the house into Blender or an IFC tool arrives in parts,
+not as one welded lump. The editor merges the parts by material when it loads them,
+so drawing costs nothing for it. `model-files.test.ts` holds every model to that and
+to the size its catalogue row declares: the editor stretches a model to that size,
+and a model built at another size is drawn squashed.
 
 ## What must not be broken
 

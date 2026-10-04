@@ -57,7 +57,7 @@ def floor_lamp():
     for j in range(3):
         t=math.tau*j/3+math.pi/2;c=math.cos(t);ss=math.sin(t)
         verts=[]
-        for r,z,w in [(.26,0,.027),(.058,.785,.035)]:
+        for r,z,w in [(.29,0,.027),(.058,.785,.035)]:
             for xx,yy in [(-w/2,-.013),(w/2,-.013),(w/2,.013),(-w/2,.013)]:verts.append(((r+xx)*c-yy*ss,(r+xx)*ss+yy*c,z))
         leg=s.mesh('Flat ended solid ash tripod leg',verts,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)],d.timber)
         bpy.context.view_layer.objects.active=leg;mod=leg.modifiers.new('Eased timber edges','BEVEL');mod.width=.002;mod.segments=3;bpy.ops.object.modifier_apply(modifier=mod.name)

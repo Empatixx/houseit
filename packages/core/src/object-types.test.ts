@@ -209,6 +209,9 @@ test('furniture refreshes preserve existing catalogue footprints and plan symbol
     'island-4-sink',
     'bar',
     'bar-island',
+    'potted-plant',
+    'potted-plant-m',
+    'potted-plant-s',
     'floor-lamp',
     'table-lamp',
     'washer-dryer',
@@ -224,6 +227,8 @@ test('furniture refreshes preserve existing catalogue footprints and plan symbol
     'counter-straight',
     'counter-l',
     'kitchen-sink',
+    'coffee-table',
+    'side-table',
   ]) {
     const original = CATALOG_OBJECT_TYPES.find((type) => type.id === id)!
     expect(objectType(id)?.size, id).toEqual(original.size)

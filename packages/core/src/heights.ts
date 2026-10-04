@@ -49,7 +49,7 @@ const HEIGHTS: Record<string, Partial<Height>> = {
   'lounge-chair-s': { height: 800 },
   bbq: { height: 1000 },
   'outdoor-dining': { height: 740 },
-  'office-chair': { height: 900 },
+  'office-chair': { height: 1050 },
   'office-desk': { height: 740 },
   'office-desk-l': { height: 740 },
   'filing-cabinet': { height: 1000 },

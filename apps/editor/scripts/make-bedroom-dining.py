@@ -72,22 +72,23 @@ def cylinder(name,radius,depth,at,mat,vertices=64):
     return obj
 
 
-def duvet(footboard=False,fold=False):
-    # Sample a continuous draped textile surface. Side folds are geometry, not shading.
+def duvet(footboard=False,fold=False,kx=1,ky=1):
     nx,ny=64,48 if not fold else 14
-    width=2.10
-    y0=-.48 if not fold else -.56
-    y1=(.86 if footboard else 1.30) if not fold else -.26
+    width=2.10*kx
+    half=.885*kx-.015
+    y0=(-.48 if not fold else -.56)*ky
+    y1=((.86 if footboard else 1.30) if not fold else -.26)*ky
+    front_edge=.985*ky
     verts,faces=[],[]
     for j in range(ny+1):
         y=y0+(y1-y0)*j/ny
         for i in range(nx+1):
             x=-width/2+width*i/nx
-            drop=max(0,abs(x)-.845)
-            xx=math.copysign(min(abs(x),.87)+.061*(1-math.exp(-drop/.065)),x)
-            front=max(0,y-.985)
-            yy=min(y,.985)+.080*(1-math.exp(-front/.075))
-            edge=math.exp(-abs(abs(x)-.89)/.15)
+            drop=max(0,abs(x)-(half-.025))
+            xx=math.copysign(min(abs(x),half)+.061*(1-math.exp(-drop/.065)),x)
+            front=max(0,y-front_edge)
+            yy=min(y,front_edge)+.080*(1-math.exp(-front/.075))
+            edge=math.exp(-abs(abs(x)-(half+.005))/.15)
             # Fine corner tension, plus broad, low-amplitude relaxed folds on top.
             z=.659-1.05*drop-.95*front
             z+=.012*math.sin(10*y+2.2*x)*(.2+.8*edge)
@@ -113,28 +114,31 @@ def duvet(footboard=False,fold=False):
         bpy.ops.object.convert(target='MESH');s.parts.append(bpy.context.object)
 
 
-def bed(channelled=False):
+def bed(channelled=False,width=1.94,length=2.18):
     s.parts.clear()
+    kx,ky=width/1.94,length/2.18
     head=1.27 if channelled else 1.12
-    for x in (-.77,.77):
-        for y in (-.89,.89):s.tapered_leg('Bed foot',(x*1.035,y*1.025,.006),(x,y,.225),.020,.034,brass if channelled else timber)
-    box('Upholstered platform',(1.85,2.07,.235),(0,.015,.2925),.04)
-    box('Padded headboard',(1.94,.135,head-.15),(0,-1.035,(head+.15)/2),.04)
-    count=12 if channelled else 6
-    step=1.88/count
+    for x in (-.77*kx,.77*kx):
+        for y in (-.89*ky,.89*ky):s.tapered_leg('Bed foot',(x+math.copysign(.027,x),y+math.copysign(.022,y),.006),(x,y,.225),.020,.034,brass if channelled else timber)
+    box('Upholstered platform',(width-.09,2.07*ky,.235),(0,.015*ky,.2925),.04)
+    box('Padded headboard',(width,.135,head-.15),(0,-1.035*ky,(head+.15)/2),.04)
+    count=max(4,round((12 if channelled else 6)*kx))
+    step=(width-.06)/count
     for i in range(count):
-        before=len(s.parts)
-        s.cushion('Headboard padded channel',step-.005,head-.28,.065,(-.94+step*(i+.5),-.953,(head+.20)/2),angle=-math.pi/2,seed=100+i,resolution=40)
-    box('Rounded mattress',(1.77,1.99,.215),(0,.015,.513),.055,ivory)
+        s.cushion('Headboard padded channel',step-.005,head-.28,.065,(-(width-.06)/2+step*(i+.5),-1.035*ky+.082,(head+.20)/2),angle=-math.pi/2,seed=100+i,resolution=40)
+    mattress=width-.17
+    box('Rounded mattress',(mattress,1.99*ky,.215),(0,.015*ky,.513),.055,ivory)
     if channelled:
-        box('Padded footboard',(1.94,.11,.56),(0,1.08,.47),.037)
-        for i in range(12):
-            s.cushion('Footboard padded channel',step-.005,.51,.057,(-.94+step*(i+.5),1.139,.47),angle=-math.pi/2,seed=140+i,resolution=40)
+        box('Padded footboard',(width,.11,.56),(0,1.08*ky,.47),.037)
+        for i in range(count):
+            s.cushion('Footboard padded channel',step-.005,.51,.057,(-(width-.06)/2+step*(i+.5),1.08*ky+.059,.47),angle=-math.pi/2,seed=140+i,resolution=40)
+    sleeping=min(.73,(mattress-.18)/2);accent=min(.50,sleeping*.69)
     for side in (-1,1):
-        pillow('Sleeping pillow',.73,.48,.19,(side*.43,-.655,.715),angle=math.radians(-13),seed=15+side,mat=ivory)
-        pillow('Loose accent pillow',.50,.36,.14,(side*.44,-.435,.792),angle=math.radians(-54),seed=32+side)
-    duvet(channelled)
-    duvet(channelled,fold=True)
+        x=side*(sleeping/2+.065)
+        pillow('Sleeping pillow',sleeping,.48,.19,(x,-1.035*ky+.38,.715),angle=math.radians(-13),seed=15+side,mat=ivory)
+        pillow('Loose accent pillow',accent,.36,.14,(x+side*.01,-1.035*ky+.60,.792),angle=math.radians(-54),seed=32+side)
+    duvet(channelled,kx=kx,ky=ky)
+    duvet(channelled,fold=True,kx=kx,ky=ky)
     return s.parts
 
 
@@ -199,15 +203,7 @@ def export(name,build,body_material):
         if mat.name=='body':mat.name='previous body'
     body_material.name='body'
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/(name+'.blend')),compress=True)
-    bpy.ops.object.select_all(action='DESELECT')
-    for obj in objects:obj.select_set(True)
-    bpy.context.view_layer.objects.active=objects[0];bpy.ops.object.join()
-    obj=bpy.context.object;bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
-    obj.name='Houseit '+name
-    obj['author']='Houseit';obj['description']='Original mesh and fabric patterns; external models used as visual references only'
-    bpy.ops.export_scene.gltf(filepath=str(s.OUTPUT/(name+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_extras=True)
-    print(name,'vertices',len(obj.data.vertices),'bytes',(s.OUTPUT/(name+'.glb')).stat().st_size,flush=True)
-    # Studio preview shares geometry with the GLB, with only the editable tint applied.
+    s.write_glb(objects,name,{'author':'Houseit','description':'Original mesh and fabric patterns; external models used as visual references only'})
     node=body_material.node_tree.nodes.get('Principled BSDF')
     if body_material in (s.fabric,s.wood):
         tex=next(n for n in body_material.node_tree.nodes if n.type=='TEX_IMAGE' and n.image==(s.color_image if body_material==s.fabric else wood_image))
@@ -242,6 +238,10 @@ def main():
     for name,build,body in [
         ('bed-upholstered',lambda:bed(False),s.fabric),
         ('bed-channelled',lambda:bed(True),s.fabric),
+        ('bed-upholstered-full',lambda:bed(False,1.397,1.93),s.fabric),
+        ('bed-upholstered-queen',lambda:bed(False,1.549,2.057),s.fabric),
+        ('bed-upholstered-king',lambda:bed(False,1.956,2.057),s.fabric),
+        ('bed-upholstered-cal-king',lambda:bed(False,1.854,2.159),s.fabric),
         ('table-rectangular',lambda:table(False),s.wood),
         ('table-round',lambda:table(True),s.wood),
         ('television-flat',television,plastic),

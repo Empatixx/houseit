@@ -284,8 +284,9 @@ def tapered_leg(name,start,end,r1=.019,r2=.012,material=feet):
     parts.append(obj)
 
 
-def barrel_chair():
+def barrel_chair(width=.892,depth=.721):
     parts.clear()
+    kx,ky=width/.892,depth/.721
     # A continuous upholstered horseshoe shell, softly channelled on the inside.
     verts,faces=[],[]
     steps,around=120,24
@@ -301,13 +302,13 @@ def barrel_chair():
             radial=.053*math.copysign(abs(math.cos(a))**.55,math.cos(a))
             zz=(height+bottom)/2+(height-bottom)/2*math.copysign(abs(math.sin(a))**.33,math.sin(a))
             if radial<0: radial+=seam
-            verts.append(((.393+radial)*math.cos(t),-(.315+radial)*math.sin(t),zz))
+            verts.append(((.393*kx+radial)*math.cos(t),-(.315*ky+radial)*math.sin(t),zz))
     for i in range(steps):
         for j in range(around):faces.append((i*around+j,(i+1)*around+j,(i+1)*around+(j+1)%around,i*around+(j+1)%around))
     faces += [tuple(reversed(range(around))),tuple(steps*around+j for j in range(around))]
     mesh('Curved channelled upholstered shell',verts,faces)
-    block('Seat foundation',(.73,.67,.11),(0,.018,.305),.048)
-    cushion('Full rounded seat',.685,.625,.155,(0,.035,.40),seed=73)
+    block('Seat foundation',(.73*kx,.67*ky,.11),(0,.018*ky,.305),.048)
+    cushion('Full rounded seat',.685*kx,.625*ky,.155,(0,.035*ky,.40),seed=73)
     # Thin seams follow each upholstered channel, not a painted-on texture.
     for i in range(1,13):
         t=-.61+(math.pi+1.22)*i/13
@@ -315,7 +316,7 @@ def barrel_chair():
         points=[]
         for k in range(16):
             z=.345+(top-.36)*k/15
-            points.append(((.342)*math.cos(t),-(.264)*math.sin(t),z))
+            points.append(((.342*kx)*math.cos(t),-(.264*ky)*math.sin(t),z))
         curve=bpy.data.curves.new('Upholstery channel seam','CURVE');curve.dimensions='3D'
         curve.bevel_depth=.0009;curve.bevel_resolution=1
         spline=curve.splines.new('POLY');spline.points.add(len(points)-1)
@@ -325,8 +326,8 @@ def barrel_chair():
         bpy.ops.object.convert(target='MESH');parts.append(bpy.context.object)
         obj.select_set(False)
     for x in (-1,1):
-        for y in (-1,1):tapered_leg('Splayed satin leg',(x*.335,y*.285,.018),(x*.27,y*.22,.31),.012,.02)
-    cushion('Loose back pillow',.35,.37,.13,(-.10,-.14,.585),angle=math.radians(-69),seed=21,loose=True)
+        for y in (-1,1):tapered_leg('Splayed satin leg',(x*.335*kx,y*.285*ky,.018),(x*.27*kx,y*.22*ky,.31),.012,.02)
+    cushion('Loose back pillow',.35*min(1,kx),.37,.13,(-.10*kx,-.14*ky,.585),angle=math.radians(-69),seed=21,loose=True)
     return list(parts)
 
 
@@ -418,43 +419,77 @@ def office_chair():
             for poly in wheel.data.polygons:poly.use_smooth=True
             parts.append(wheel)
     for side in (-1,1):
-        beam('Arm mounting bracket',(side*.18,.025,.395),(side*.272,.025,.44),.035,.055,.010)
-        beam('Arm support',(side*.272,.025,.43),(side*.272,.025,.638),.025,.04,.010)
-        block('Soft arm pad',(.070,.285,.052),(side*.272,.025,.637),.021)
+        beam('Arm mounting bracket',(side*.18,.025,.395),(side*.31,.025,.44),.035,.055,.010)
+        beam('Arm support',(side*.31,.025,.43),(side*.31,.025,.638),.025,.04,.010)
+        block('Soft arm pad',(.070,.285,.052),(side*.31,.025,.637),.021)
     return list(parts)
+
+
+def opens(obj):
+    bm=bmesh.new();bm.from_mesh(obj.data)
+    try:return any(not e.is_manifold for e in bm.edges)
+    finally:bm.free()
+
+
+def see_through(mat):
+    if mat.blend_method=='BLEND' or mat.get('houseitGlass'):return True
+    node=mat.node_tree.nodes.get('Principled BSDF') if mat.use_nodes else None
+    return bool(node) and (node.inputs['Alpha'].default_value<1 or node.inputs['Transmission Weight'].default_value>0)
+
+
+def write_glb(objects,file,extras):
+    objects=[o for o in objects if o.name in bpy.data.objects and o.type=='MESH']
+    bpy.ops.object.select_all(action='DESELECT')
+    for obj in objects:obj.select_set(True)
+    bpy.context.view_layer.objects.active=objects[0]
+    bpy.ops.object.make_single_user(object=True,obdata=True)
+    bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
+    root=bpy.data.objects.new('Houseit '+file,None);bpy.context.collection.objects.link(root)
+    for key,value in extras.items():root[key]=value
+    components={};double=set()
+    for obj in objects:
+        layers=obj.data.uv_layers
+        keep=layers.active.name if layers.active else None
+        for layer in [l for l in layers if l.name!=keep]:layers.remove(layer)
+        if keep:layers[keep].name='UVMap'
+        mats=[m for m in obj.data.materials if m]
+        if opens(obj) and not obj.data.has_custom_normals:
+            bm=bmesh.new();bm.from_mesh(obj.data);bmesh.ops.remove_doubles(bm,verts=list(bm.verts),dist=.00001);bm.to_mesh(obj.data);bm.free()
+        if opens(obj):double.update(mats)
+        double.update(m for m in mats if see_through(m))
+        key=obj.get('component') or 'Assembly'
+        if key not in components:
+            group=bpy.data.objects.new(key,None);bpy.context.collection.objects.link(group);group.parent=root;group['component']=key
+            components[key]=group
+        obj.parent=components[key]
+    for mat in {m for o in objects for m in o.data.materials if m}:mat.use_backface_culling=mat not in double
+    bpy.ops.object.select_all(action='DESELECT')
+    for obj in [root,*components.values(),*objects]:obj.select_set(True)
+    bpy.ops.export_scene.gltf(filepath=str(OUTPUT/(file+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_extras=True,export_materials='EXPORT')
+    print(file,'parts',len(objects),'components',len(components),'double-sided',sorted(m.name for m in double),'bytes',(OUTPUT/(file+'.glb')).stat().st_size,flush=True)
 
 
 def main():
     variants=[('dining-chair-classic',.44,.46,0,False),
               ('office-chair-classic',.71,.66,-1,False),
-              ('sofa-classic-two',1.702,.95,2,False),
-              ('sofa-classic-chaise',2.8,1.63,3,True),
-              ('armchair-classic',.94,.84,1,False),
-              ('sofa-classic-three',2.388,.95,3,False)]
+              ('sofa-classic-two',1.702,.94,2,False),
+              ('sofa-classic-chaise',3.023,1.829,3,True),
+              ('armchair-classic',.94,.838,1,False),
+              ('armchair-compact',.66,.787,1,False),
+              ('sofa-classic-three',2.388,.965,3,False)]
     requested = set(sys.argv[sys.argv.index('--')+1:]) if '--' in sys.argv else set()
     for file,w,d,n,chaise in variants:
         if requested and file not in requested:
             continue
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
-        objects=(wooden_chair() if n==0 else office_chair() if n==-1 else barrel_chair() if n==1 else seating(w,d,n,chaise))
+        objects=(wooden_chair() if n==0 else office_chair() if n==-1 else barrel_chair(w,d) if n==1 else seating(w,d,n,chaise))
         fabric.name='upholstery' if n==0 else 'body'
         wood.name='body' if n==0 else 'wood'
         if n!=0: fabric.name='body'
-        # Keep separate named editable parts in the .blend, but merge by material for runtime.
         SOURCE.mkdir(parents=True,exist_ok=True)
         bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/(file+'.blend')),compress=True)
-        bpy.ops.object.select_all(action='DESELECT')
-        for obj in objects: obj.select_set(True)
-        bpy.context.view_layer.objects.active=objects[0]
-        bpy.ops.object.join()
-        joined=bpy.context.object
-        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        joined.name='Houseit sewn upholstery'
-        joined['author']='Houseit'
-        joined['reference']='Original Houseit geometry; visual reference only, no downloaded meshes or textures'
-        bpy.ops.export_scene.gltf(filepath=str(OUTPUT/(file+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_extras=True,export_materials='EXPORT')
-        print(file, 'vertices',len(joined.data.vertices),'bytes',(OUTPUT/(file+'.glb')).stat().st_size,flush=True)
+        write_glb(objects,file,{'author':'Houseit','reference':'Original Houseit geometry; visual reference only, no downloaded meshes or textures'})
 
     if requested:
         return

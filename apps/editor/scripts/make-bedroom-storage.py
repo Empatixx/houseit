@@ -205,8 +205,7 @@ def crib():
 
 def render(name):
     # Frame the whole piece, including wardrobe height and the bed's feet.
-    model=bpy.context.object
-    corners=[model.matrix_world @ Vector(corner) for corner in model.bound_box]
+    corners=[o.matrix_world @ Vector(corner) for o in bpy.context.scene.objects if o.type=='MESH' for corner in o.bound_box]
     low=Vector(tuple(min(v[i] for v in corners) for i in range(3)))
     high=Vector(tuple(max(v[i] for v in corners) for i in range(3)))
     centre=(low+high)/2

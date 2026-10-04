@@ -112,9 +112,35 @@ def bench():
     return s.parts
 
 
+def coffee_table():
+    s.parts.clear()
+    top=d.cylinder('Round solid-wood top',.457,.032,(0,0,.434),s.wood,128)
+    for uv in top.data.uv_layers.active.data:uv.uv*=1.22
+    shelf=d.cylinder('Round lower shelf',.36,.022,(0,0,.135),s.wood,128)
+    for uv in shelf.data.uv_layers.active.data:uv.uv*=1.22
+    for j in range(4):
+        a=math.pi/4+j*math.pi/2;c,sn=math.cos(a),math.sin(a)
+        s.tapered_leg('Tapered splayed table leg',(c*.36,sn*.36,.006),(c*.29,sn*.29,.420),.019,.030,s.wood)
+    return s.parts
+
+
+def side_table():
+    s.parts.clear()
+    w=.584
+    d.box('Square solid-wood top',(w,w,.028),(0,0,.536),.012,s.wood)
+    d.box('Lower slatted shelf',(w-.09,w-.09,.018),(0,0,.16),.004,s.wood)
+    for x in (-1,1):
+        for y in (-1,1):d.box('Square wooden leg',(.04,.04,.522),(x*(w/2-.035),y*(w/2-.035),.261),.006,s.wood)
+        d.box('Shelf rail',(.022,w-.11,.03),(x*(w/2-.035),0,.16),.003,s.wood)
+        d.box('Top apron',(w-.11,.02,.06),(0,x*(w/2-.035),.492),.003,s.wood)
+    return s.parts
+
+
 def main():
     requested=set(sys.argv[sys.argv.index('--')+1:]) if '--' in sys.argv else set()
     for name,build,body in [
+        ('coffee-table-round-oak',coffee_table,s.wood),
+        ('side-table-square-oak',side_table,s.wood),
         ('bookshelf-classic',bookshelf,paint),
         ('sideboard-oak-white',sideboard,paint),
         ('bench-storage-cushioned',bench,s.fabric),
