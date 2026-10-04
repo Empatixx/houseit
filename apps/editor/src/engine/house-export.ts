@@ -1,5 +1,8 @@
 import type { HouseDocument } from '@houseit/core/document'
+import { levelsOf } from '@houseit/core/levels'
 import { objectType } from '@houseit/core/object-types'
+import { ceilingLightsOn } from '@houseit/scene/fixtures'
+import { lightsOn } from '@houseit/scene/lights'
 import type { Finish, Piece } from '@houseit/scene/pieces'
 import {
   type BufferGeometry,
@@ -10,6 +13,7 @@ import {
   Mesh,
   MeshStandardMaterial,
   type Object3D,
+  PointLight,
   RepeatWrapping,
   Scene,
   SRGBColorSpace,
@@ -32,6 +36,7 @@ const WORDS: Record<string, string> = {
   IFCRAILING: 'railing',
   IFCDOOR: 'door',
   IFCWINDOW: 'window',
+  IFCLIGHTFIXTURE: 'light',
 }
 
 export async function exportHouse(doc: HouseDocument, generate?: GenerateGeometry) {
@@ -67,7 +72,7 @@ export async function houseScene(doc: HouseDocument, generate: GenerateGeometry)
   }
 
   const elementOf = (entity: string, category: string | undefined, level: string | undefined) => {
-    const key = `${level ?? 'site'}|${entity}`
+    const key = `${level ?? 'site'}|${entity}|${category ?? ''}`
     let group = elements.get(key)
     if (!group) {
       group = new Group()
@@ -105,6 +110,7 @@ export async function houseScene(doc: HouseDocument, generate: GenerateGeometry)
           opacity,
           vertexColors: paint.vertexColors ?? false,
           side: paint.doubleSided ? DoubleSide : FrontSide,
+          ...(paint.glow ? { emissive: paint.colour, emissiveIntensity: paint.glow } : {}),
         })
         if (paint.texture && !paint.texture.startsWith('houseit:')) {
           const texture = await textureOf(paint.texture)
@@ -149,8 +155,24 @@ export async function houseScene(doc: HouseDocument, generate: GenerateGeometry)
     mesh.applyMatrix4(part.transform)
     element.add(mesh)
   }
+  for (const level of levelsOf(doc)) {
+    const lit = [...lightsOn(doc, level.id), ...ceilingLightsOn(doc, level.id)]
+    if (lit.length === 0) continue
+    const lighting = new Group()
+    lighting.name = 'Lighting'
+    lighting.userData = { houseit: `lighting:${level.id}` }
+    for (const light of lit) {
+      const lamp = new PointLight(light.colour, (light.power * LUMENS) / (4 * Math.PI), 0, 2)
+      lamp.name = `Light ${light.of}`
+      lamp.position.set(light.at.x / 1000, (level.elevation + light.at.y) / 1000, light.at.z / 1000)
+      lighting.add(lamp)
+    }
+    storeyOf(level.id).add(lighting)
+  }
   return scene
 }
+
+const LUMENS = 800
 
 async function furnished(
   piece: Piece,

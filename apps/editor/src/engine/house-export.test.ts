@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { createEmptyDocument } from '@houseit/core/document'
 import { GeometryEngine } from '@thatopen/fragments'
-import { Box3, DataTexture, Mesh, type MeshStandardMaterial } from 'three'
+import { Box3, DataTexture, Mesh, type MeshStandardMaterial, PointLight } from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import { IfcAPI } from 'web-ifc'
@@ -92,6 +92,13 @@ add-object --room Studio --type sofa-3 --against north --surface grey`,
       if (node instanceof Mesh && node.material.name === 'body') body = node.material
     })
     expect(body?.color.getHexString()).not.toBe('ffffff')
+    const lights: PointLight[] = []
+    storey.traverse((node) => {
+      if (node instanceof PointLight) lights.push(node)
+    })
+    expect(lights.length).toBeGreaterThan(0)
+    expect(lights.every((light) => light.intensity > 0 && light.position.y > 2)).toBe(true)
+    expect(elements.some(([, ifc]) => ifc === 'IFCLIGHTFIXTURE')).toBe(true)
     const bounds = new Box3().setFromObject(sofa)
     expect(bounds.max.y - bounds.min.y).toBeCloseTo(0.85, 2)
   } finally {

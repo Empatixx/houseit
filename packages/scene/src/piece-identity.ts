@@ -15,6 +15,7 @@ const categories: Record<NonNullable<Piece['role']>, string> = {
   'site-surface': 'IFCGEOGRAPHICELEMENT',
   'site-marking': 'IFCSURFACEFEATURE',
   'site-railing': 'IFCRAILING',
+  'light-fixture': 'IFCLIGHTFIXTURE',
 }
 
 export function pieceIdentity(piece: Piece, doc: HouseDocument, level?: string) {
@@ -36,6 +37,8 @@ export function pieceIdentity(piece: Piece, doc: HouseDocument, level?: string) 
     piece.role === 'facade-covering' ||
     piece.of?.kind === 'opening' ||
     (piece.role === 'stair-solid' && piece.of?.kind === 'object')
+  if (piece.role === 'light-fixture')
+    return { category, entity: geometryEntityKey('IFCSLAB', owner) }
   return {
     category,
     entity: piece.entity ?? (physical ? geometryEntityKey(category, owner) : owner),

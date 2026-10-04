@@ -47,6 +47,7 @@ export type Piece = {
     | 'site-surface'
     | 'site-marking'
     | 'site-railing'
+    | 'light-fixture'
   body: Body
   at: { x: number; y: number; z: number }
   turn?: number
