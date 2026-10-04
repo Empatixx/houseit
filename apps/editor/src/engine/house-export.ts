@@ -10,7 +10,9 @@ import {
   Mesh,
   MeshStandardMaterial,
   type Object3D,
+  RepeatWrapping,
   Scene,
+  SRGBColorSpace,
   type Texture,
   TextureLoader,
 } from 'three'
@@ -108,6 +110,9 @@ export async function houseScene(doc: HouseDocument, generate: GenerateGeometry)
           const texture = await textureOf(paint.texture)
           if (texture) {
             const map = texture.clone()
+            map.wrapS = RepeatWrapping
+            map.wrapT = RepeatWrapping
+            map.colorSpace = SRGBColorSpace
             if (paint.repeat) map.repeat.set(paint.repeat.x, paint.repeat.y)
             made.map = map
           }
