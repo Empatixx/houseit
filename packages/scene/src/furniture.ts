@@ -99,7 +99,9 @@ function stood(thing: Standing, rest: number, climb: number | undefined): Piece[
     { kind: 'object', id: object.id },
     put({ x: spot.at.x, y: base, z: -spot.at.y, turn: spot.turn }, [
       ...[bounds],
-      ...built,
+      ...built.map((piece) =>
+        piece.name ? { ...piece, name: `${object.id}-${piece.name}` } : piece,
+      ),
       ...laid,
     ]),
   )
