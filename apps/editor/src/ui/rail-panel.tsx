@@ -16,9 +16,11 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
+import { visitOf } from '../scene/walk/visit'
 import { SiteControls } from '../site/site-controls'
 import { siteDialogStore } from '../site/site-dialog-store'
 import { hoverStore } from '../store/hover'
+import { modeStore } from '../store/mode'
 import {
   MEASURED,
   type Measured,
@@ -29,6 +31,8 @@ import {
 import { useShell } from '../store/shell'
 import { LAYERS, shownStore, useShown } from '../store/shown'
 import { documentStore, useDocument } from '../store/store'
+import { viewStore } from '../store/view'
+import { walkStore } from '../store/walk'
 import { KindIcon } from './avatars'
 import { GAP, RAIL_OPEN_WIDTH, RAIL_PANEL_WIDTH, RAIL_WIDTH } from './edges'
 import { EngineSettings } from './engine-settings'
@@ -151,7 +155,10 @@ function Plan() {
                   />
                 }
                 onEnter={() => reach(room.id, 'room', 'hover')}
-                onClick={() => reach(room.id, 'room', 'select')}
+                onClick={() => {
+                  reach(room.id, 'room', 'select')
+                  go({ kind: 'room', id: room.id })
+                }}
               >
                 <KindIcon id={roomKindOf(room)?.id} />
                 <span className="min-w-0 flex-1 truncate">{room.name ?? 'Unnamed room'}</span>
@@ -166,7 +173,10 @@ function Plan() {
                       <Row
                         on={picks(picked, thing.kind, thing.id)}
                         onEnter={() => reach(thing.id, thing.kind, 'hover')}
-                        onClick={() => reach(thing.id, thing.kind, 'select')}
+                        onClick={() => {
+                          reach(thing.id, thing.kind, 'select')
+                          go({ kind: thing.kind, id: thing.id, room: room.id })
+                        }}
                       >
                         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                           {thing.said}
@@ -361,6 +371,33 @@ function reach(id: string | undefined, kind: Selection['kind'], how: 'hover' | '
   if (id === undefined) return
   if (how === 'hover') hoverStore.getState().hover({ kind, id })
   else selectionStore.getState().select({ kind, id })
+}
+
+const MARGIN = 1200
+
+function go(thing: { kind: 'room' | 'object' | 'opening'; id: string | undefined; room?: string }) {
+  if (thing.id === undefined) return
+  const { doc, level } = documentStore.getState()
+  if (modeStore.getState().mode === '3d') {
+    const start = visitOf(doc, level, { ...thing, id: thing.id })
+    if (start) walkStore.getState().place(start.at, start.yaw)
+    return
+  }
+  const room = thing.kind === 'room' ? thing.id : thing.room
+  const stored = room === undefined ? undefined : doc.rooms[room]
+  const corners = (stored?.loop ?? [])
+    .flatMap((wall) => [doc.walls[wall]?.a, doc.walls[wall]?.b])
+    .map((node) => (node === undefined ? undefined : doc.nodes[node]))
+    .filter((node) => node !== undefined)
+  if (corners.length < 3) return
+  const xs = corners.map((corner) => corner.x)
+  const ys = corners.map((corner) => corner.y)
+  viewStore.getState().frame({
+    x0: Math.min(...xs) - MARGIN,
+    y0: Math.min(...ys) - MARGIN,
+    x1: Math.max(...xs) + MARGIN,
+    y1: Math.max(...ys) + MARGIN,
+  })
 }
 
 function doorSaid(variant: string | undefined, to: string | undefined): string {

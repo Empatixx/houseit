@@ -11,12 +11,15 @@ const STEPS = 9
 
 export type Start = { at: Point; yaw: number }
 
-export function startOf(doc: HouseDocument, level: string): Start | undefined {
+export type Aim = { room?: string; face?: Point }
+
+export function startOf(doc: HouseDocument, level: string, aim: Aim = {}): Start | undefined {
   const all = roomsOf(doc, level)
   const indoors = all.filter((room) => !isOutdoor(room))
   const rooms = indoors.length > 0 ? indoors : all
   if (rooms.length === 0) return undefined
-  const biggest = rooms.reduce((best, next) => (next.area > best.area ? next : best))
+  const chosen = aim.room === undefined ? undefined : all.find((room) => room.id === aim.room)
+  const biggest = chosen ?? rooms.reduce((best, next) => (next.area > best.area ? next : best))
 
   const outline = biggest.nodes.map((node) => doc.nodes[node]).filter((node) => node !== undefined)
   if (outline.length < 3) return undefined
@@ -33,7 +36,7 @@ export function startOf(doc: HouseDocument, level: string): Start | undefined {
     containsPoint(outline, at.x, at.y) && taken.every((piece) => !within(piece, at, ELBOW))
 
   const at = clear(middle) ? middle : (roomiest(outline, taken, clear) ?? middle)
-  return { at, yaw: yawTowards(at, middle) }
+  return { at, yaw: yawTowards(at, aim.face ?? middle) }
 }
 
 function roomiest(
