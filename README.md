@@ -99,42 +99,6 @@ Then say what you want — *"a 12 by 9 metre house, kitchen on the west, two bed
 along the north"* — and watch the tab. With no Chrome on the debugging port the server
 starts one headless; run `scripts/chrome.sh` first if you want to watch.
 
-### Or drive it yourself
-
-The CLI is the same registry, the same bridge and the same tab:
-
-```bash
-node apps/mcp/dist/cli.js --project my-house \
-  add-room --shape l --width 12m --depth 9m --notch-width 4m --notch-depth 3m \
-  --name house --material natural-oak
-node apps/mcp/dist/cli.js 'add-room --name kitchen --from house --side west --width 3.6m --material tile-white'
-node apps/mcp/dist/cli.js 'add-opening --room kitchen --kind door --side east'
-node apps/mcp/dist/cli.js 'add-object --room kitchen --type kitchen-l --against north --surface oak'
-node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg get-plan --room kitchen
-```
-
-A whole script can go on standard input — `node apps/mcp/dist/cli.js - < plan.txt` — and runs
-as one transaction: every line lands, or none does.
-
-## The command language
-
-Four nouns and one question. Coordinates are an output of the design, not an input: you
-name rooms and compass sides, the way you would on site.
-
-```
-add-level      --name "first floor" [--height 2.7m]
-add-room       --name kitchen --from house --side west --width 3.6m --material tile-white
-update-room    --room kitchen --side east --by 300          # move the wall between two rooms
-add-opening    --room kitchen --kind window --side north --width 1.2m
-add-object     --room kitchen --type sofa-3 --against south --surface linen
-update-object  --id f3 --against west --rotation 90
-remove-object  --id f3
-get-plan       --room kitchen
-```
-
-The full reference is in the [documentation](https://empatixx.github.io/houseit/docs), and an
-agent reads the live one through `floorplan("help")`.
-
 ## Features
 
 | Area | What it does |
@@ -157,21 +121,6 @@ bun run test                # vitest through turbo
 bun run typecheck && bun run lint && bun run depcruise && bun run knip
 bun run build               # runs every check above, then builds the editor and the CLI
 ```
-
-The repository is a Bun + Turborepo monorepo:
-
-| Package | Responsibility |
-|---|---|
-| `packages/core` | Document schema, migrations, hosts, catalogue data |
-| `packages/geometry` | Rooms derived from wall topology, dimensions, placement |
-| `packages/commands` | Typed commands, parser, validation, answers and checks |
-| `packages/scene` | Renderer-independent pieces, materials and furniture models |
-| `packages/bridge` | The contract between the browser and the CLI/MCP driver |
-| `apps/editor` | React + three.js editor, interaction tools, project storage |
-| `apps/mcp` | Node CLI and MCP server, driving Chrome over CDP |
-
-Architecture and package boundaries are in [TECHNOLOGY.md](TECHNOLOGY.md); the working
-rules for changing the code are in [CLAUDE.md](CLAUDE.md).
 
 ## Contributing
 
