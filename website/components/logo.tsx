@@ -3,17 +3,26 @@ export const BASE_PATH = '/houseit'
 export function Logo({ className = 'size-6' }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 32 32"
+      viewBox="226 205 800 800"
       fill="none"
-      strokeWidth="2.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
       className={className}
       role="img"
-      aria-label="houseit: a house with a door swinging open"
+      aria-label="houseit: a roof over a floor plan with a door swinging open"
     >
-      <path d="M5 26V14L16 5l11 9v12M5 26h22" stroke="currentColor" />
-      <path d="M16 26v-8a8 8 0 0 1 8 8" stroke="var(--color-fd-primary)" />
+      <path
+        d="M308 462 627 245 945 462"
+        stroke="var(--color-fd-primary)"
+        strokeWidth="64"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M598 968H375V540h504v170M879 765v203h-84"
+        stroke="currentColor"
+        strokeWidth="66"
+        strokeLinejoin="round"
+      />
+      <path d="M773 1001V848a153 153 0 0 0-153 153Z" fill="var(--color-fd-primary)" />
     </svg>
   )
 }
