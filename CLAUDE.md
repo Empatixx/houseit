@@ -370,10 +370,6 @@ The finish is visible from above only. Walls start at their floor, without a
 hidden downward extension overlapping the interstorey slab. Slab edges carry a
 neutral wall finish separately from the room's ceiling finish.
 
-`bun scripts/look-stairs.ts /tmp/stairs.png [height]` draws every kind at a
-storey's height on one page. A generated drawing is code, and the only way to
-know code that draws is right is to look at it.
-
 ## The tool description never changes
 
 `toolDescription()` in `apps/mcp/src/report.ts` is frozen prose and must stay that
@@ -429,7 +425,6 @@ texture is a web page renders black.
 
 `scripts/look.mjs` works in a project of its own called `look` and takes it away
 afterwards, so the plan you were working on is never touched at all.
-`scripts/reset-plan.mjs` empties whichever project is open.
 
 ## Look at one object at a time
 

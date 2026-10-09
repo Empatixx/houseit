@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/banner.png" alt="houseit — a floor plan editor driven by a coding agent" width="100%">
+<img src=".github/images/banner.png" alt="houseit — a floor plan editor driven by a coding agent" width="100%">
 
 **A floor plan editor you drive by talking to a coding agent.**
 
@@ -26,17 +26,17 @@ Everything runs locally: no account, no backend. Plans live in your browser's In
 <table>
   <tr>
     <td colspan="2" align="center">
-      <img src="docs/images/plan.jpg" alt="A furnished single-storey house drawn in the 2D plan" width="100%">
+      <img src=".github/images/plan.jpg" alt="A furnished single-storey house drawn in the 2D plan" width="100%">
       <br><b>The plan</b> — rooms derived from the walls, doors that know which way they swing, furniture placed against named walls
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
-      <img src="docs/images/walk-kitchen.jpg" alt="3D walk-through of the kitchen and living room" width="100%">
+      <img src=".github/images/walk-kitchen.jpg" alt="3D walk-through of the kitchen and living room" width="100%">
       <br><b>Walk through it</b> — the same document at eye height
     </td>
     <td width="50%" align="center">
-      <img src="docs/images/walk-bedroom.jpg" alt="3D walk-through of the bedroom" width="100%">
+      <img src=".github/images/walk-bedroom.jpg" alt="3D walk-through of the bedroom" width="100%">
       <br><b>Every room</b> — real wall heights, sills, glazing and modelled furniture
     </td>
   </tr>
