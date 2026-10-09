@@ -1,7 +1,6 @@
 # Architecture
 
-This describes the current implementation. Reliability, modularity and performance
-work is tracked in [maintenance progress](docs/maintenance/progress.md).
+This describes the current implementation.
 
 ## Data and edit flow
 
@@ -119,8 +118,6 @@ The current schema already has disciplines, wall/level hosts, devices and circui
 Electrical wall-device commands exist. This is not yet a complete MEP workflow.
 New professions must reuse command transactions, host relationships, validation and
 scene descriptions instead of creating their own document/history or renderer.
-Concrete composition points and host obligations are documented in
-[discipline extensions](docs/maintenance/discipline-extensions.md).
 
 ## Toolchain and verification
 
@@ -134,12 +131,10 @@ Concrete composition points and host obligations are documented in
 | Native engine | Installed `@thatopen/fragments`, components and GeometryEngine |
 | UI | React, R3F, Three.js, Tailwind, shadcn/ui, Sonner, react-router |
 | Unit/integration tests | Vitest, fake IndexedDB, real native archive fixtures |
-| Browser regressions | Isolated Chrome/Playwright sessions and CLI commands |
 | Agent driver | Node, MCP SDK, Playwright/CDP |
 
 `bun run build` runs the dependency checks, lint, types, tests and production builds.
-`bun run test:regression` runs actual interaction/archive scenarios; see
-[regression tests](docs/regression-tests.md). Tests run under Vitest, not Bun's
+Tests run under Vitest, not Bun's
 native test runner. The Node CLI/MCP runtime is required by the current driver.
 
 Known scaling costs include full native graph projection/validation after edits,

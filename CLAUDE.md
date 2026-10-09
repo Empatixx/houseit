@@ -498,9 +498,7 @@ it.
 
 Furniture is drawn from the reference's plan symbols: one SVG per type under
 `apps/editor/public/symbols/`, listed with its real size in
-`packages/core/src/catalog.ts`. Both come out of `scripts/import-catalog.mjs`,
-which reads the teardown in `.playwright-mcp/surfaces/` — change the mapping there, not
-the generated file. `surfaces.ts` is pure fill: the symbol's white becomes the
+`packages/core/src/catalog.ts`. `surfaces.ts` is pure fill: the symbol's white becomes the
 surface's colour, the lines stay the lines. One bed is white, linen or blue without
 there being three beds. A new finish costs a row in `surfaces.ts`; a new piece of
 furniture costs a symbol and a row in the import mapping; neither costs the other
@@ -596,25 +594,6 @@ bun run test        # vitest through turbo; `bun test` at the root is not it
 bun run typecheck && bun run lint && bun run depcruise && bun run knip
 ```
 
-## Browser regressions
-
-Run `bun run test:regression` for the 15 interaction/archive scenarios, or add `--all`
-for all 34 UI/display cases and variants. `--only <id,id>` selects cases; `--all --list`
-prints the registry. Chrome runs headless by default; `--headed` opens a visible window.
-The runner owns a dedicated browser on a free CDP port and reuses an existing editor
-or starts its own. It only shuts down processes it started. Keep cases sequential;
-headed runs also share system keyboard/mouse input. An explicit `HOUSEIT_CDP_PORT`
-must be unused; standalone proof scripts still attach to existing CDP services.
-
-Use `scripts/proof-session.mjs` for new UI regressions: one isolated browser context and
-project per case, CLI commands, read-only state, native readiness and a settled camera.
-Keep scenario-specific gestures/assertions in the script. `proof.run` saves failure
-screenshots, state and Playwright traces before cleanup. Add cases/variants to
-`scripts/regression-cases.mjs`; do not silently retry failed assertions. Successful traces
-are discarded; logs/screenshots and `report.json` go to an ignored per-run directory under
-`test-results/regression/`. Full usage and the separate MCP integration check are in
-[docs/regression-tests.md](docs/regression-tests.md). CLI/MCP metadata is unchanged.
-
 ## Building vocabulary
 
 `add-room --boundary` accepts a measured wall-centre chain as JSON, each corner
@@ -692,8 +671,7 @@ lower finished floor. Both plan and walking use the same run and end levels.
 a door. Composite windows accept `--sill`, casement and tilt-turn panels,
 opaque infill panels and `glazing: "frosted"` where the schedule calls for it.
 
-Rebuild specimens through `scripts/building-proof.mjs fixtures/building-proof/<name>.txt`.
-The fixtures are capability specimens, not the real building or acceptance data.
+The scripts in `fixtures/building-proof/` are capability specimens read by the tests.
 
 `update-room --return` adds a measured open partition or low lining with
 `{points:[{x,y},...],thickness,height}`. It starts on the room's wall centre line
@@ -744,7 +722,4 @@ white unless a colour is supplied with it.
 
 `window.floorplan.show({view: 'north', site: false})` hides site context for an
 unobstructed elevation review, without changing the model. Orthographic building
-views frame the building even when its terrain extends much farther. Actual
-scene sections can be exported with `bun scripts/takeoff-sections.ts <readback>
-<out>`; their straight cut coordinates are printed on the drawing. They are not
-an automatic claim to reproduce an architect's offset section path.
+views frame the building even when its terrain extends much farther.

@@ -1,6 +1,5 @@
 """Original chaise, wingback with ottoman and fitted shelving module.
 
-Approved references: docs/plans/lounge-reference-selection.json.
 Metres, +Y front, Z=0 floor. Original geometry and textile patterns only.
 """
 import importlib.util

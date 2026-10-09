@@ -66,7 +66,6 @@ units use the new models while retaining their plan dimensions and symbols.
 
 ## Original bedroom storage, single bed and cot
 
-Five approved references are recorded in `docs/plans/bedroom-reference-selection.json`.
 They inform the design of original Houseit meshes; no downloaded geometry, textures,
 logos or branded markings are included.
 
@@ -95,7 +94,6 @@ are preserved. The single bed's height is 1050 mm to include the headboard.
 
 ## Original living-room and hallway storage
 
-Three user-approved references are recorded in `docs/plans/living-reference-selection.json`.
 The meshes, UVs, timber grain and upholstery patterns are generated from our own
 Blender source; reference meshes, textures and branding are not included.
 
@@ -120,7 +118,6 @@ approximately 450 mm above the floor.
 
 ## Original console, coat stand and clothes rack
 
-Approved visual references are recorded in `docs/plans/hallway-reference-selection.json`.
 All meshes and timber textures are generated from original Blender source.
 
 | File | Catalogue type | Construction |
@@ -158,7 +155,7 @@ names, like the other Blender wrappers.
 
 ## Original chaise, wingback and fitted shelving
 
-Approved references are in `docs/plans/lounge-reference-selection.json`. Geometry,
+Geometry,
 textile patterns and construction are generated from original Blender source.
 
 | File | Catalogue type | Construction |
@@ -201,11 +198,11 @@ All three models are original Blender geometry with restrained roughness and rec
 - `counter-corner-detailed.glb` → `counter-l`: the same construction follows the original L footprint and return orientation.
 - `counter-double-sink.glb` → `kitchen-sink`: two rounded steel bowls in actual countertop openings, drain strainers, overflow details and arched mixer tap.
 
-Original Blender geometry inspired by the references in `docs/plans/kitchen-counters-reference-selection.json`; no external meshes or textures are included. Build with `node apps/editor/scripts/make-kitchen.mjs`. Editable sources and renders are in `assets/kitchen/`. `check-kitchen-joints.py` verifies connected cabinet parts, floor plinths and raycasts through the real basin openings. Painted fronts remain recolourable; worktops and metal fixtures retain their own finishes. Original 2D symbols and footprints are unchanged. Countertops remain 900 mm high; the sink model’s total height is 1263 mm including its tap.
+Build with `node apps/editor/scripts/make-kitchen.mjs`. Editable sources and renders are in `assets/kitchen/`. `check-kitchen-joints.py` verifies connected cabinet parts, floor plinths and raycasts through the real basin openings. Painted fronts remain recolourable; worktops and metal fixtures retain their own finishes. Original 2D symbols and footprints are unchanged. Countertops remain 900 mm high; the sink model’s total height is 1263 mm including its tap.
 
 ## Original fitted kitchen assemblies
 
-The nine `kitchen-*-detailed.glb` files map to the corresponding `kitchen-*` catalogue IDs: compact/full straight and L kitchens, U kitchens, and four variants with wall cabinets. Reference: [ENHET kitchen](https://www.ikea.com/cz/cs/p/enhet-kuchyne-bila-vzor-dub-bila-s29337860/), recorded in `docs/plans/kitchen-sets-reference-selection.json`. All geometry is original Blender construction.
+The nine `kitchen-*-detailed.glb` files map to the corresponding `kitchen-*` catalogue IDs: compact/full straight and L kitchens, U kitchens, and four variants with wall cabinets. Reference: [ENHET kitchen](https://www.ikea.All geometry is original Blender construction.
 
 Generate with `node apps/editor/scripts/make-kitchen-sets.mjs`; optional model-name arguments limit regeneration. Editable sources and studio previews live in `assets/kitchen-sets/`. Assemblies reuse the detailed cabinet carcasses, drawers, pulls, real sink cutouts, mixer taps, refrigerator and black electronic cooker. Blind corner closures keep inaccessible corners free of handles; upper returns extend to meet the rear wall cabinets. Painted cabinet fronts are recolourable, while appliances, mineral worktops and hardware retain their own finishes.
 
@@ -216,11 +213,11 @@ Catalogue widths, depths and detailed SVG symbols remain unchanged. Worktops sta
 - `island-two-detailed.glb` / `island-four-detailed.glb` → `island-2` / `island-4`: framed pale cabinets with open shelves and a thick recolourable timber worktop; two or four matching round stools.
 - `island-two-sink-detailed.glb` / `island-four-sink-detailed.glb` → `island-2-sink` / `island-4-sink`: recolourable closed cabinet fronts, mineral worktop, two actual recessed steel bowls and mixer tap; two or four fixed pale timber stools.
 
-References: [TORNVIKEN](https://www.ikea.com/cz/cs/p/tornviken-kuchynsky-ostruvek-kremova-dub-40391657/) and [DALFRED](https://www.ikea.com/gb/en/p/dalfred-bar-stool-birch-80613091/), listed in `docs/plans/kitchen-islands-reference-selection.json`. Geometry and the shared subtle wood grain are original; no manufacturer assets are included. Sources and previews: `assets/kitchen-islands/`; build with `node apps/editor/scripts/make-kitchen-islands.mjs`. `check-kitchen-islands.py` checks each stool and island is connected separately, all feet meet the floor and the sink opening reaches the basin. Existing plan symbols and catalogue footprints are retained. Worktops remain 900 mm; sink variants are 1263 mm overall including the faucet.
+References: [TORNVIKEN](https://www.ikea.com/cz/cs/p/tornviken-kuchynsky-ostruvek-kremova-dub-40391657/) and [DALFRED](https://www.ikea.Geometry and the shared subtle wood grain are original; no manufacturer assets are included. Sources and previews: `assets/kitchen-islands/`; build with `node apps/editor/scripts/make-kitchen-islands.mjs`. `check-kitchen-islands.py` checks each stool and island is connected separately, all feet meet the floor and the sink opening reaches the basin. Existing plan symbols and catalogue footprints are retained. Worktops remain 900 mm; sink variants are 1263 mm overall including the faucet.
 
 ## Original home bars
 
-`bar-display-detailed.glb` → `bar` and `bar-serving-island-detailed.glb` → `bar-island`. Original cabinets, rounded pulls, real sink opening, mixer, framed bottle display, unbranded bottles, serving island and three round stools. References: [TONSTAD display furniture](https://www.ikea.com/cz/cs/p/tonstad-skrinka-s-posuvnymi-proskl-dvirky-kremova-20488896/), [TORNVIKEN](https://www.ikea.com/cz/cs/p/tornviken-kuchynsky-ostruvek-kremova-dub-40391657/) and [DALFRED](https://www.ikea.com/gb/en/p/dalfred-bar-stool-birch-80613091/); see `docs/plans/kitchen-bars-reference-selection.json`. No external meshes, labels or textures are included. Timber uses the original subtle grain and remains recolourable; hardware, mineral counter and bottles keep their finishes.
+`bar-display-detailed.glb` → `bar` and `bar-serving-island-detailed.glb` → `bar-island`. Original cabinets, rounded pulls, real sink opening, mixer, framed bottle display, unbranded bottles, serving island and three round stools. References: [TONSTAD display furniture](https://www.ikea.com/cz/cs/p/tonstad-skrinka-s-posuvnymi-proskl-dvirky-kremova-20488896/), [TORNVIKEN](https://www.ikea.com/cz/cs/p/tornviken-kuchynsky-ostruvek-kremova-dub-40391657/) and [DALFRED](https://www.ikea.No external meshes, labels or textures are included. Timber uses the original subtle grain and remains recolourable; hardware, mineral counter and bottles keep their finishes.
 
 Build with `node apps/editor/scripts/make-kitchen-bars.mjs`; editable sources and previews are in `assets/kitchen-bars/`. `check-kitchen-bars.py` checks connected components, supported assemblies, all floor glides and the open basin. Original 2D symbols and footprints are retained. Back counter: 900 mm; serving counter: 1050 mm; overall display height: 1600 mm.
 
@@ -230,33 +227,32 @@ Build with `node apps/editor/scripts/make-kitchen-bars.mjs`; editable sources an
 - `bath-built-in-detailed.glb` / `bath-freestanding-detailed.glb` → `bathtub` / `bathtub-free`: continuous rounded ceramic shells, interior bowls, pop-up drains and overflow details; the built-in bath includes a low deck-mounted filler.
 - `toilet-classic-detailed.glb` → `toilet-tank`: curved pedestal and actual bowl, rounded seat and closed lid, separate cistern and dual-flush buttons.
 
-Visual references: [IKEA HAVBÄCK](https://www.ikea.com/cz/cs/p/havbaeck-umyv-skrinka-s-dvirky-bila-00535035/), [RAVAK Classic II](https://www.ravak.cz/p.vana-classic-ii/CC51000000), [Freedom O](https://www.ravak.com/p.freedom-o-bathtub/XC00100020) and [Elegant](https://www.ravak.cz/p.wc-kombi-elegant-rimoff-set-vcetne-sedatka-softclose/X01872), recorded in `docs/plans/bathroom-reference-selection.json`. All meshes are original Blender construction; no manufacturer assets are included. Build with `node apps/editor/scripts/make-bathroom.mjs`. Sources and previews: `assets/bathroom/`. `check-bathroom.py` checks connected construction, floor contact and rays into the ceramic basins (under the toilet lid).
+Visual references: [IKEA HAVBÄCK](https://www.ikea.com/cz/cs/p/havbaeck-umyv-skrinka-s-dvirky-bila-00535035/), [RAVAK Classic II](https://www.ravak.cz/p.vana-classic-ii/CC51000000), [Freedom O](https://www.ravak.com/p.freedom-o-bathtub/XC00100020) and [Elegant](https://www.ravak.cz/p.All meshes are original Blender construction; no manufacturer assets are included. Build with `node apps/editor/scripts/make-bathroom.mjs`. Sources and previews: `assets/bathroom/`. `check-bathroom.py` checks connected construction, floor contact and rays into the ceramic basins (under the toilet lid).
 
 Existing catalogue footprints and 2D symbols remain unchanged. Overall vanity height is 1000 mm including the mixer; the ceramic counter remains approximately 850 mm. The built-in bath is 657 mm overall including its filler, with the rim approximately 550 mm above the floor. Freestanding bath and toilet retain 580 / 780 mm overall heights. Cabinet fronts or ceramic bodies are recolourable; metal fittings, vanity bowls and the toilet seat keep their own restrained finishes.
 
 ## Original framed glass showers
 
-`shower-small-detailed.glb`, `shower-medium-detailed.glb` and `shower-large-detailed.glb` map to `shower-s`, `shower-m` and `shower-l`. Visual reference: [RAVAK BLRV2](https://www.ravak.cz/p.sprchovy-kout-blix-blrv2/1LV70100Z1), recorded in `docs/plans/showers-reference-selection.json`. Original geometry includes a sloping ceramic tray, drain, four transparent glass panes, recolourable tracks and wall jambs, glass edges and rounded pulls. The separate wall-mounted shower assembly has mounting plates, thermostatic controls, a connected overhead shower, small rubber nozzles, hand shower, holder and continuous hose. No manufacturer meshes or images are included.
+`shower-small-detailed.glb`, `shower-medium-detailed.glb` and `shower-large-detailed.glb` map to `shower-s`, `shower-m` and `shower-l`. Visual reference: [RAVAK BLRV2](https://www.ravak.cz/p.Original geometry includes a sloping ceramic tray, drain, four transparent glass panes, recolourable tracks and wall jambs, glass edges and rounded pulls. The separate wall-mounted shower assembly has mounting plates, thermostatic controls, a connected overhead shower, small rubber nozzles, hand shower, holder and continuous hose. No manufacturer meshes or images are included.
 
 Generate with `node apps/editor/scripts/make-showers.mjs`; editable sources and previews: `assets/showers/`. `check-showers.py` verifies the enclosure is one connected floor-supported assembly, the fittings form a separate wall-mounted assembly, four glass panes remain transparent and the tray is recessed. Catalogue footprints, 1900 mm height and detailed 2D symbols are unchanged. Mount the open sides against bathroom walls, with the shower fittings on the left side of the source model.
 
 ## Original laundry machines
 
-`laundry-pair-detailed.glb` → `washer-dryer`; `laundry-stack-detailed.glb` → `washer-dryer-stacked`. Original unbranded washer and dryer inspired by the controls and rounded doors of [Bosch WGG244Z9CS](https://www.bosch-home.com/cz/cs/mkt-product/WGG244Z9CS) and [WQG243D9CS](https://www.bosch-home.com/cz/cs/mkt-product/WQG243D9CS). References are recorded in `docs/plans/laundry-reference-selection.json`; no manufacturer models, labels or images are included.
-
+`laundry-pair-detailed.glb` → `washer-dryer`; `laundry-stack-detailed.glb` → `washer-dryer-stacked`. Original unbranded washer and dryer inspired by the controls and rounded doors of [Bosch WGG244Z9CS](https://www.bosch-home.com/cz/cs/mkt-product/WGG244Z9CS) and [WQG243D9CS](https://www.bosch-home.com/cz/cs/mkt-product/WQG243D9CS).
 Models have separate enamel panels, true door openings, deep drums with restrained perforation details, rounded bezels, smoked transparent windows, drawer grips, selectors, small displays, service panels and feet. The stacked arrangement includes a load-bearing platform and retaining edges. Build with `node apps/editor/scripts/make-laundry.mjs`; sources and previews: `assets/laundry/`. `check-laundry.py` verifies joined parts, supports, open drums and translucent windows. Original widths, depths, 850 / 1900 mm overall heights and detailed 2D symbols are retained. Enamel remains recolourable; glass, rubber and steel keep their own finishes.
 
 ## Original household lighting
 
-`floor-lamp-tripod.glb` and `table-lamp-pleated.glb` were authored in Blender for Houseit. Editable sources and renders are in `assets/lighting`, generator `apps/editor/scripts/make-lighting.py`. IKEA LAUTERS and ÅRSTID were visual references only; links are in `docs/plans/lighting-reference-selection.json`. No third-party mesh, product photograph or logo is included. Shades use original neutral woven texture and editable `body` tint, fittings use restrained satin materials. Original catalog footprints, heights, placement layers and 2D symbols remain intact.
+`floor-lamp-tripod.glb` and `table-lamp-pleated.glb` were authored in Blender for Houseit. Editable sources and renders are in `assets/lighting`, generator `apps/editor/scripts/make-lighting.py`.No third-party mesh, product photograph or logo is included. Shades use original neutral woven texture and editable `body` tint, fittings use restrained satin materials. Original catalog footprints, heights, placement layers and 2D symbols remain intact.
 
 ## Original indoor plants
 
-`plant-ficus-detailed.glb`, `plant-monstera-detailed.glb` and `plant-jade-detailed.glb` are original Blender geometry by Houseit. Sources and renders: `assets/plants`; generator: `apps/editor/scripts/make-plants.py`. Visual references (IKEA FEJKA and SUCCULENT) are recorded in `docs/plans/plants-reference-selection.json`. No external mesh, texture, photo or logo is included. Leaves have closed curved surfaces, branches connect to the stems and soil sits inside ceramic planters. Leaf material `body` remains tintable while bark, stems, soil and ceramic retain natural colors. Original catalog footprints, heights and detailed 2D symbols are preserved.
+`plant-ficus-detailed.glb`, `plant-monstera-detailed.glb` and `plant-jade-detailed.glb` are original Blender geometry by Houseit. Sources and renders: `assets/plants`; generator: `apps/editor/scripts/make-plants.py`.No external mesh, texture, photo or logo is included. Leaves have closed curved surfaces, branches connect to the stems and soil sits inside ceramic planters. Leaf material `body` remains tintable while bark, stems, soil and ceramic retain natural colors. Original catalog footprints, heights and detailed 2D symbols are preserved.
 
 ## Original decor, games room, home gym, utilities and cars
 
-`rug-round-pile.glb`, `rug-rect-pile.glb`, `yoga-mat-grip.glb`, `picture-frame-deep.glb`, `coffee-table-round-oak.glb`, `side-table-square-oak.glb`, `treadmill-folding.glb`, `exercise-bike-studio.glb`, `dumbbell-rack-three-tier.glb`, `weight-bench-flat.glb`, `pool-table-classic.glb`, `table-tennis-indoor.glb`, `water-heater-tank.glb`, `air-handler-indoor.glb`, `barbecue-gas-cart.glb`, `car-sedan.glb` and `car-suv.glb` are original Blender geometry by Houseit. Generators: `apps/editor/scripts/make-decor.py`, `make-gym.py`, `make-utility.py`, `make-cars.py` and `make-living-storage.py`; sources and renders in `assets/decor`, `assets/gym`, `assets/utility`, `assets/cars` and `assets/living-storage`. References are product types only, recorded in `docs/plans/remaining-reference-selection.json`. They replace the Poly Haven coffee and side tables and the unused Kenney bathtub and generated wardrobe, which are no longer in the tree. Every model is built at its catalogue footprint and height, and `check-assemblies.py` holds each one to a single connected assembly.
+`rug-round-pile.glb`, `rug-rect-pile.glb`, `yoga-mat-grip.glb`, `picture-frame-deep.glb`, `coffee-table-round-oak.glb`, `side-table-square-oak.glb`, `treadmill-folding.glb`, `exercise-bike-studio.glb`, `dumbbell-rack-three-tier.glb`, `weight-bench-flat.glb`, `pool-table-classic.glb`, `table-tennis-indoor.glb`, `water-heater-tank.glb`, `air-handler-indoor.glb`, `barbecue-gas-cart.glb`, `car-sedan.glb` and `car-suv.glb` are original Blender geometry by Houseit. Generators: `apps/editor/scripts/make-decor.py`, `make-gym.py`, `make-utility.py`, `make-cars.py` and `make-living-storage.py`; sources and renders in `assets/decor`, `assets/gym`, `assets/utility`, `assets/cars` and `assets/living-storage`.They replace the Poly Haven coffee and side tables and the unused Kenney bathtub and generated wardrobe, which are no longer in the tree. Every model is built at its catalogue footprint and height, and `check-assemblies.py` holds each one to a single connected assembly.
 
 ## Sizes and export
 
