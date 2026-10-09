@@ -1,0 +1,34 @@
+---
+title: The document model
+description: One document, two views, and a wall graph underneath.
+---
+
+## One document, two views
+
+Walls carry a height and a base offset, and the document has levels. The editor draws the same document as an orthographic 2D plan or as a 3D walk. The two views have separate drawing code and share the same document and the same geometry.
+
+## Walls are a graph
+
+Nodes and wall segments form a graph. Faces of that graph are found by traversal, and rooms are associated with those faces. A room record stores its id, level, name, an anchor, a loop of wall ids, and an optional kind and finishes. Its polygon is derived, never stored.
+
+The graph is topological, not geometric. A wall that crosses another on screen without sharing a node divides nothing. So every command that adds walls splits the walls it meets. That is what makes two rooms share one wall instead of standing side by side with a gap.
+
+After an edit, room records are matched to the new faces by their wall loops, then by their anchors, then by the walls they share. Furniture keeps a reference to its room, and commands update that reference when a thing moves into another room.
+
+## Hosts
+
+A wall-mounted device stores the wall, a distance along it, a height and a side. Wall edits preserve these hosts or refuse the edit. Furniture stores its room and its placement in that room.
+
+## Units
+
+Coordinates are integer millimetres. North is up, `+y`. Lengths become metres only where they are drawn.
+
+## Projects
+
+A plan belongs to a project. The editor opens on a home screen of project cards, and each project has its own address, `/p/<id>`. Projects live in IndexedDB. A failed save stays visible as a persistent notice with a retry button. It is never turned into a silent success.
+
+Commands work on whichever project the tab has open. Choosing the project is the driver's job: the CLI and the MCP server take `--project <name>` and create the project if it does not exist.
+
+## Transactions
+
+Every script runs inside one draft of the document. If one line throws, the draft is discarded and the document is untouched. Undo and redo work per command, and reading the plan never touches the history.

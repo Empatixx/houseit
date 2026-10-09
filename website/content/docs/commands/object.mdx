@@ -1,0 +1,45 @@
+---
+title: Object
+description: add-object, update-object, remove-object
+---
+
+## add-object
+
+Put something in a room.
+
+```bash
+add-object --room kitchen --type sofa-3 --against south --surface linen
+add-object --room living --type dining-6 --along 0.86 --across 0.74
+add-object --room hall --type stairs-u --against north --width 1m
+```
+
+| Option | Meaning |
+|---|---|
+| `--room` | Required. The room it goes in. |
+| `--type` | Required. A catalogue type: `queen-bed`, `kitchen-l`, `refrigerator`, `sofa-3`, … |
+| `--against` | The side it backs onto |
+| `--wall` | One wall of that side |
+| `--along` | Where along the wall, or across the room, from 0 to 1 |
+| `--across` | How far up the room a free-standing thing stands |
+| `--width`, `--depth` | Its size, when the type allows it |
+| `--rotation` | Turn it about its own middle, in degrees |
+| `--surface` | Its finish: `oak`, `walnut`, `marble`, `white`, `grey`, `linen`, … |
+| `--seats` | Chairs at a dining table |
+| `--level` | The storey |
+
+`help` lists every type and every surface.
+
+## update-object
+
+```bash
+update-object --id f3 --against west --rotation 90 --width 2.4m
+update-object --id f3 --surface walnut
+```
+
+Takes the same placing, size and finish options.
+
+## remove-object
+
+```bash
+remove-object --id f3
+```

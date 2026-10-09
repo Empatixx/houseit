@@ -1,0 +1,45 @@
+---
+title: Doors and windows
+description: Openings land on free wall and remember which way they swing.
+---
+
+```bash
+add-opening --room entry  --kind door --side south --width 914
+add-opening --room hall   --kind door --side south --width 1.6m --variant sliding
+add-opening --room garage --kind door --side south --variant garage
+add-opening --room pantry --kind door --side east --variant pocket
+add-opening --room kitchen --kind window --side north --width 1.2m
+```
+
+## Where it lands
+
+An opening goes in the middle of the widest stretch of the wall that is still free. One command centres a door, and a second falls beside it. `--along` overrides that with a fraction or a length.
+
+## Which way it swings
+
+A door swings into the room it was named from. That is decided when the door is placed and stored with the opening, so it survives later changes to the walls around it. `--opens-into` names the receiving room, or `outside`. `--hinge left|right` is seen from the side the door opens towards, facing the closed door.
+
+## Variants
+
+| Variant | Drawn as |
+|---|---|
+| `hinged` | A leaf and its swing. The default. |
+| `sliding` | Two lapped panels |
+| `pocket` | One panel that runs into the wall. `--slide-towards` picks the pocket. |
+| `garage` | One panel across the whole opening |
+
+A paired hinged door takes `--leaf-width` for its main leaf.
+
+## Assemblies
+
+A glazed assembly is described by its panels and its frame, in millimetres:
+
+```bash
+add-opening --room living --kind assembly --side south \
+  --panels '[{"kind":"fixed","x":0,"z":0,"width":1200,"height":2400},{"kind":"door","x":1200,"z":0,"width":900,"height":2400}]' \
+  --frame '{"depth":80,"face":"#2b2b2b","outside":"#2b2b2b","inside":"#ffffff"}'
+```
+
+## Changing and removing
+
+`update-opening --id o7 --width 1.5m --to-side west` resizes the opening and moves it to another wall. `remove-opening --id o7` takes it out. The id comes from the answer that placed it.

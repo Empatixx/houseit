@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - run: bun run boundaries
+      - run: bun run depcruise
+      - run: bun run knip
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run test
+      - run: bunx turbo build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: houseit-${{ github.sha }}
+          path: |
+            apps/editor/dist
+            apps/mcp/dist
+          retention-days: 14

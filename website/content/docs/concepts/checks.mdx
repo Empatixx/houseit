@@ -1,0 +1,33 @@
+---
+title: Checks
+description: Problems ride along in every answer.
+---
+
+The checks run after every command, and their results come back in the answer's `problems` list. The command that put the chair in the doorway is the command that says the door cannot open. An empty list is what a finished plan gets.
+
+Each problem has a `code`, a `severity` of `error` or `warning`, an optional `room`, and a `message`.
+
+| Code | What it means |
+|---|---|
+| `room.unreachable` | Nobody can walk to the room from the front door |
+| `room.no-door` | The room has no door |
+| `room.too-small` | The room is under the minimum area for its kind |
+| `room.too-narrow` | The room is under the minimum width for its kind |
+| `room.bad-ratio` | The room is too long and thin to furnish |
+| `room.opens-to-public` | A private room opens straight into a living space, for example a bedroom into the kitchen |
+| `house.no-entrance` | The house has no door to the outside |
+| `door.blocked` | Something stands where the door swings |
+| `door.clash` | Two doors swing into each other |
+| `door.no-approach` | There is no free floor in front of the door |
+| `window.missing` | A habitable room has no window |
+| `kitchen.incomplete` | A kitchen lacks a sink, a stove or a fridge |
+| `flat.wc-not-separate` | A flat with enough habitable rooms has no WC separate from the bathroom |
+| `object.misplaced` | A thing no longer stands where it can — in a wall, over another thing, or out of its room — usually after a wall moved |
+| `stairs.nowhere` | A staircase has no storey above it to climb to |
+| `stairs.well-blocked` | Something stands over or under a stairwell |
+
+The sizes come from Czech standards for dwellings (ČSN 73 4301 and decree 146/2024). `floorplan("guidelines")` explains them, along with how a 2+kk differs from a 3+1, what each size of dwelling holds, and how much floor each room needs.
+
+## Refusals
+
+Some things are not problems but refusals. A command that would put a thing inside a wall, push a window off its wall, or cut a room into several pieces does not run, and the whole script is rolled back.

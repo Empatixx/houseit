@@ -1,0 +1,46 @@
+---
+title: Level
+description: add-level, update-level, remove-level
+---
+
+## add-level
+
+Add a storey, on top of the house or below it.
+
+```bash
+add-level --name "1. patro" --height 2.7m
+add-level --name cellar --below
+```
+
+| Option | Required | Meaning |
+|---|---|---|
+| `--name` | yes | The storey's name |
+| `--height` | | Floor-to-floor height |
+| `--below` | | Build it under the lowest storey |
+
+## update-level
+
+Change a storey: its name, its height, its slab, its roofs, or its place in the stack.
+
+```bash
+update-level --level "1. patro" --name attic --height 2.4m
+update-level --level attic --storey 2
+```
+
+| Option | Meaning |
+|---|---|
+| `--level` | Which storey. The open one if left out. |
+| `--name` | A new name |
+| `--height` | Floor-to-floor height |
+| `--slab-thickness` | Thickness of the slab |
+| `--clear-height` | Clear height inside |
+| `--storey` | Its position in the stack, counted from 1. Rooms come along, because they belong to the storey. |
+| `--roofs` | JSON list of roofs: outline, finish (`membrane`, `planted`, `gravel`), depth, parapet, fall and drains |
+
+## remove-level
+
+Take an empty storey back out of the house.
+
+```bash
+remove-level --level attic
+```

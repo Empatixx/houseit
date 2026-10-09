@@ -1,0 +1,22 @@
+---
+title: Device
+description: add-device, update-device, remove-device
+---
+
+Electrical devices hang on one face of an independent wall. The device stores the wall, a distance along it, a height and a side, and follows the wall when it moves or is split at a junction.
+
+```bash
+add-device --kind socket --wall w3 --along 400 --height 300
+update-device --id d1 --along 900
+remove-device --id d1
+```
+
+| Option | Meaning |
+|---|---|
+| `--kind` | Required. `socket`, `switch`, `light` or `panel` |
+| `--wall` | Required. The wall |
+| `--along` | Required. Distance from the wall's start |
+| `--height` | Required. Height above the wall's base |
+| `--side` | `a` or `b`, the face of the wall |
+
+A panel with circuits stays until its circuits are removed. Full electrical, plumbing and HVAC workflows are not there yet; the hosts are groundwork for them.

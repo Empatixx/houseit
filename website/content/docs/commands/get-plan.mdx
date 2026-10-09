@@ -1,0 +1,21 @@
+---
+title: get-plan
+description: Read the plan back.
+---
+
+```bash
+get-plan
+get-plan --room kitchen
+get-plan --level "1. patro"
+```
+
+Answers with every room, or one of them, in the usual [answer shape](/docs/concepts/answers): what stands there and what is free.
+
+| Option | Meaning |
+|---|---|
+| `--room` | One room, found on any storey |
+| `--level` | One storey. The editor steps onto it. |
+
+`get-plan` does not change the document or the undo history. A redo stays available after it. Use it for the rooms a command did not touch: every other command already reads back what it changed.
+
+From the CLI, `--picture out.jpg` saves a picture of what it answered about, and `--export house.glb` saves the whole house as a glTF model.

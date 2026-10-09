@@ -1,0 +1,49 @@
+---
+title: Overview
+description: The words an agent has, and how they are written.
+---
+
+A command is a name and options, written the way a shell would:
+
+```bash
+add-object --room kitchen --type refrigerator --against east
+```
+
+Options take a value, except boolean flags such as `--below`. Values with spaces are quoted. JSON values are quoted as one argument. Lengths are millimetres, or a number with a unit (`3.6m`).
+
+## The nouns
+
+The dwelling is four nouns and one question:
+
+| Noun | Commands | Names it by |
+|---|---|---|
+| [Level](/docs/commands/level) | `add-level`, `update-level`, `remove-level` | `--level` |
+| [Room](/docs/commands/room) | `add-room`, `update-room`, `remove-room` | `--room` |
+| [Opening](/docs/commands/opening) | `add-opening`, `update-opening`, `remove-opening` | `--id` |
+| [Object](/docs/commands/object) | `add-object`, `update-object`, `remove-object` | `--id` |
+| [Plan](/docs/commands/get-plan) | `get-plan` | — |
+
+There is no public noun for a wall between rooms. Room commands draw walls and move them: moving the wall between two rooms is `update-room --side north --by 300`.
+
+For buildings there are more:
+
+| Noun | Commands |
+|---|---|
+| [Wall](/docs/commands/wall) | `add-wall`, `update-wall`, `remove-wall` |
+| [Stair, shaft, ramp, column](/docs/commands/building) | `add-stair`, `remove-stair`, `add-shaft`, `remove-shaft`, `add-ramp`, `remove-ramp`, `add-column`, `update-column`, `remove-column` |
+| [Site](/docs/commands/site) | `add-site`, `update-site`, `remove-site` |
+| [Device](/docs/commands/device) | `add-device`, `update-device`, `remove-device` |
+
+## Scripts
+
+Several commands separated by newlines are one transaction. Every line lands, or none does.
+
+## Help
+
+`help` returns the generated reference: every command with every option, and the current lists of room kinds, materials, finishes and catalogue types.
+
+```bash
+node apps/mcp/dist/cli.js help
+```
+
+Over MCP, the agent calls `floorplan("help")`. `floorplan("guidelines")` explains how a flat or a house goes together and which sizes the checks hold it to.

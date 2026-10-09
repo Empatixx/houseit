@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+@source "../app/**/*.tsx";
+@source "../components/**/*.tsx";
+@source "../lib/**/*.tsx";
+@source "../content/**/*.mdx";
+
+@theme {
+  --color-fd-background: hsl(36, 27%, 96%);
+  --color-fd-card: hsl(40, 24%, 98%);
+  --color-fd-primary: hsl(263, 41%, 50%);
+  --color-fd-primary-foreground: hsl(0, 0%, 100%);
+  --color-fd-ring: hsl(263, 41%, 50%);
+  --color-fd-accent: hsl(256, 100%, 94%);
+  --color-fd-accent-foreground: hsl(263, 45%, 30%);
+  --color-fd-secondary: hsl(40, 18%, 92%);
+}
+
+.dark {
+  --color-fd-background: hsl(30, 4%, 9%);
+  --color-fd-card: hsl(30, 4%, 12%);
+  --color-fd-primary: hsl(258, 70%, 74%);
+  --color-fd-primary-foreground: hsl(263, 40%, 10%);
+  --color-fd-ring: hsl(258, 70%, 74%);
+  --color-fd-accent: hsl(263, 20%, 17%);
+  --color-fd-accent-foreground: hsl(256, 100%, 90%);
+  --color-fd-secondary: hsl(30, 4%, 15%);
+}
+
+.hero-glow {
+  background:
+    radial-gradient(60rem 28rem at 50% -8rem, color-mix(in oklab, var(--color-fd-primary) 18%, transparent), transparent 70%),
+    radial-gradient(30rem 20rem at 85% 10%, color-mix(in oklab, var(--color-fd-primary) 8%, transparent), transparent 70%);
+}
+
+.dot-paper {
+  background-image: radial-gradient(color-mix(in oklab, var(--color-fd-foreground) 14%, transparent) 1px, transparent 1px);
+  background-size: 18px 18px;
+}

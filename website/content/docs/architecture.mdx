@@ -1,0 +1,60 @@
+---
+title: Architecture
+description: Packages, boundaries and the toolchain.
+---
+
+houseit is a modular monolith in a Bun workspace, orchestrated by Turborepo.
+
+## Packages
+
+```text
+core
+├── geometry
+│   ├── commands (also uses core)
+│   └── scene    (also uses core)
+└── bridge       (also uses command answer types)
+```
+
+| Location | Responsibility |
+|---|---|
+| `packages/core` | Document schemas, migrations, hosts, wall-face traversal and catalogue data |
+| `packages/geometry` | Rooms derived from the wall graph; areas, dimensions, placement, overlap and stairwells |
+| `packages/commands` | Typed commands, the argument parser, transactional execution, answers and checks |
+| `packages/scene` | Renderer-independent pieces, materials and lights, and procedural furniture models |
+| `packages/bridge` | The TypeScript contract between the browser and the CLI/MCP driver |
+| `apps/editor` | React, three.js, interaction tools, stores and project persistence |
+| `apps/mcp` | The Node CLI, the MCP server and the browser connection |
+
+## Boundaries
+
+The library packages — `core`, `geometry`, `commands` and `scene` — run inside the browser tab. They have no React, no three.js and no Node built-ins. That keeps them testable without a browser and the renderer cheap to replace.
+
+- Turborepo tags stop libraries from depending on applications, and applications from importing each other.
+- dependency-cruiser rejects cycles, Node built-ins and renderer imports in the libraries, and imports from command implementations into the answer and check layer.
+- The answer layer — survey, answer, checks and rules — is built on top of the commands, never the other way round.
+
+## A command
+
+Each command is declared once, with a Zod schema for its arguments. That declaration drives parsing, validation, typed application and the generated `help`. The editor calls commands with typed arguments. Only the terminal and the MCP tool go through the words.
+
+## The bridge
+
+The browser tab exposes `window.floorplan`. The CLI and the MCP server connect to Chrome over CDP with `playwright-core`, find the editor tab and call `exec`. If no Chrome listens on the debugging port, they launch a headless one. The server holds no document state.
+
+## Toolchain
+
+| Area | Choice |
+|---|---|
+| Package manager and scripts | Bun |
+| CLI and MCP runtime | Node.js |
+| Monorepo | Turborepo with boundary tags |
+| Language | TypeScript, `strict` and `noUncheckedIndexedAccess` |
+| Lint and format | Biome |
+| Dead code and dependencies | knip, dependency-cruiser |
+| Tests | Vitest; Playwright scripts for the running editor |
+| UI | React, Tailwind, shadcn/ui, react-router |
+| Rendering | three.js through React Three Fiber, That Open Fragments |
+| State | Zustand and Immer |
+| Persistence | IndexedDB |
+| Schemas | Zod |
+| Agent interface | `@modelcontextprotocol/sdk` over stdio |

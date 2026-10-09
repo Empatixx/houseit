@@ -1,0 +1,65 @@
+---
+title: Rooms and walls
+description: Draw the floor, then cut rooms out of rooms.
+---
+
+## The floor outline
+
+With nothing to come out of, `add-room` draws the outline of the floor itself: a rectangle, an L, a U, a T, or a walk around any outline.
+
+```bash
+add-room --name house --shape l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --material natural-oak
+```
+
+## Rooms are cut from rooms
+
+A room is made the way a builder makes it. It comes off a side of another room, out of a corner, along any outline by its corners, or along a walk of legs from a side.
+
+```bash
+add-room --name kitchen --from house --side west --width 3.6m --material tile-white
+add-room --name pantry  --from house --corner south-east --width 2m --depth 1.5m --material tile-white
+add-room --name snug    --points "0,0; 5m,0; 5m,3m; 3m,3m; 3m,5m; 0,5m" --material ash
+add-room --name nook    --from house --side north --along 0 --walk "3m s, 4m e, 3m n" --material ash
+```
+
+A cut off a stepped side can make an L-shaped room. A cut that would fall into several pieces is refused, with a hint to use `--walk`.
+
+## Sides
+
+Walls are named by the side of the room they face: `north`, `south`, `east` or `west`. A side is every wall facing that way, so an L has two north walls. `--wall w12` names one wall where `--side` would pick the longest.
+
+`--along` is a fraction of the wall, 0 at its west or south end and 1 at the other, or a length from that end: `0.3`, `2.4m`, `-1m` for a metre short of the far end.
+
+## Moving walls
+
+Moving the wall between two rooms is a room command:
+
+```bash
+update-room --room kitchen --side east --by 300
+```
+
+Connected walls follow. Doors keep their distance from the end that stayed. Rooms on both sides grow and shrink. The edit is refused where a wall would shrink to nothing, a window would be pushed off its wall, or something would end up standing in masonry.
+
+## Independent walls
+
+Walls can also exist on their own, before any room has a name:
+
+```bash
+add-wall --from '{"x":0,"y":0}' --to '{"x":6000,"y":0}' --thickness 300
+update-wall --id w1 --length 6500
+remove-wall --id w1
+```
+
+When walls close a loop, the space becomes a room. `add-room --at '{"x":2000,"y":2000}' --name kitchen --material natural-oak` names and finishes that space without drawing any walls.
+
+## Knocking through
+
+`remove-room --room pantry --into kitchen` removes the wall between two rooms. What stood in the pantry stays where it stood.
+
+## Kinds
+
+What sort of room a room is comes from `--kind`, or from its name in English or Czech. The kind decides which checks apply: a bedroom must not open into the kitchen, a living room needs a window, a kitchen needs a fridge.
+
+## Outside
+
+A terrace, a path, paving, a lawn or a pond is a room without walls. Draw the paved lot as the floor outline, cut the house out of it with `--thickness 300`, and cut the outdoor surfaces from what is left. A winter garden has glazed walls and a glazed roof.

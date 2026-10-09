@@ -1,0 +1,49 @@
+# A single-storey family house, 14 m by 10 m, front door to the south.
+
+add-room --shape rectangle --width 14m --depth 10m --name living --material natural-oak
+
+add-room --name bedroom --from living --side north --width 4.4m --material natural-oak
+add-room --name hall --from living --side north --width 1.2m --material natural-oak
+add-room --name kids --from bedroom --side east --width 4.2m --material natural-oak
+add-room --name bathroom --from bedroom --side east --width 3m --material tile-white
+add-room --name wc --from bathroom --corner south-west --width 1.4m --depth 2m --material tile-white
+add-room --name study --from living --side west --width 3.4m --material natural-oak
+add-room --name entry --from study --side south --width 2m --material tile-beige
+
+add-object --room living --type kitchen-l --against north --along 0.48 --surface oak
+add-object --room living --type refrigerator --against north --along 0.67
+add-object --room living --type dining-6 --along 0.22 --across 0.32 --surface oak
+add-object --room living --type sofa-l --against east --along 0.45 --surface grey
+add-object --room living --type rug-rect --along 0.74 --across 0.42 --surface grey
+add-object --room living --type coffee-table --along 0.74 --across 0.42 --surface walnut
+
+add-object --room bedroom --type queen-bed --against north --surface linen
+add-object --room bedroom --type nightstand --against north --along 0.2
+add-object --room bedroom --type wardrobe --against west
+add-object --room kids --type twin-bed --against north --along 0.25 --surface blue
+add-object --room kids --type office-desk --against east
+add-object --room bathroom --type bathtub --against north
+add-object --room bathroom --type vanity-sink --against east --along 0.3
+add-object --room wc --type toilet-tank --against west
+add-object --room study --type office-desk --against west --surface oak
+add-object --room study --type bookshelf --against north
+add-object --room entry --type coat-stand --against west
+
+add-opening --kind door --room entry --side south --width 1m
+add-opening --kind door --room entry --side east
+add-opening --kind door --room study --side north
+add-opening --kind door --room hall --side south --width 1.6m --variant sliding --along 0.86
+add-opening --kind door --room bedroom --side south
+add-opening --kind door --room kids --side south
+add-opening --kind door --room bathroom --side south
+add-opening --kind door --room wc --side south
+
+add-opening --kind window --room bedroom --side north --width 1.8m
+add-opening --kind window --room bedroom --side west --width 1.2m
+add-opening --kind window --room kids --side north --width 1.5m
+add-opening --kind window --room kids --side east --width 1.2m
+add-opening --kind window --room bathroom --side north --width 0.9m --sill 1.2m
+add-opening --kind window --room study --side west --width 1.5m
+add-opening --kind window --room living --side south --width 2.4m
+add-opening --kind window --room living --side south --width 1.8m
+add-opening --kind window --room living --side east --width 1.8m

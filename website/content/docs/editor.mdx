@@ -1,0 +1,67 @@
+---
+title: The editor
+description: The plan, the walk, and editing by hand.
+---
+
+## The plan
+
+![The plan of a furnished flat](/images/plan.jpg)
+
+The plan is drawn from straight above, orthographic, one storey at a time, with the storey underneath showing faintly through so an upper floor has something to line a wall up against.
+
+What is picked goes violet where it is drawn — a room's walls and floor, a thing's symbol, a door. Whatever the pointer is over goes paler violet first. A picked thing has a handle at its front to turn it.
+
+The panel down the right edge shows what is picked and lets it be changed: a room's name, kind and floor; a thing's finish, size and turn; a door's kind and width; a window's width, height and sill. Each field is one command. A value the plan refuses goes back to what the plan says, and the refusal shows as a notice.
+
+## Editing by hand is a command
+
+A drag on the plan is not a second way of changing things. It is worked out into one command and run through the same store as the CLI and the MCP bridge:
+
+| Gesture | Command |
+|---|---|
+| Drag a thing | `update-object` |
+| `R` | `update-object --rotation` |
+| `Delete` on a thing | `remove-object` |
+| Drag a door or window along its wall | `update-opening` |
+| Drag a room's wall | `update-room --side … --by …` |
+| Drag an independent wall | `update-wall` |
+| Knock through in a room's panel | `remove-room --into` |
+| Draw with the pencil | `add-wall` |
+| Click with a catalogue item armed | `add-object` or `add-opening` |
+
+So a sofa dragged into a wall snaps back with the command's own refusal. Every edit undoes. The agent's next answer tells it what was done by hand.
+
+While a wall is dragged, the editor runs the command on a copy of the plan and draws the copy. The rooms on both sides, the walls that meet it and the labels move with it as it goes.
+
+## The bar
+
+The bar along the bottom says what the next click does. **Furniture** opens a catalogue by category, with a search. **Structure** holds the doors and the window. Pick one and the next click on a room places it, with the exact `--along` the click meant. `Shift` keeps it armed. `Escape` lets go.
+
+**Draw wall** is the pencil. A click puts a corner down. The line to the next corner follows the pointer square to the last one and snaps to nearby corners and walls. A click on the last or first corner, or `Enter`, finishes. `Escape` throws it away.
+
+## Storeys
+
+The storeys are stacked at the foot of the plan's right edge, one card each, top floor at the top. A click steps onto a storey. A drag moves it in the house and takes its rooms with it. Hovering one shows its name and height and the way to rename or remove it.
+
+## The walk
+
+![The kitchen and dining room, walked through](/images/walk-living.jpg)
+
+The 3D tab shows the whole house walked through at eye height: every storey at the height it really stands at, the stairs arriving upstairs, the hole they come up through, and a slab over every room.
+
+| Key | Action |
+|---|---|
+| `W` `A` `S` `D` | Walk and sidestep |
+| Arrows | Walk and turn |
+| `Q` `E` | Down and up |
+| `Shift` | Run |
+| Drag | Look around |
+| Click | Pick a thing for the panel |
+
+A minimap shows the plan with a dot where you stand and a wedge as wide as what you see. A click on it moves you there. Nothing is dragged in 3D: it is a way of looking, not a second way of editing.
+
+The walk opens on clear floor in the biggest room, looking towards its middle.
+
+## Projects
+
+The home screen lists one card per plan. Each plan has its own address, `/p/<id>`. Plans are saved in the browser a quarter of a second after the last change. If a save fails, **Changes not saved** stays at the top right with **Retry save** until it succeeds.

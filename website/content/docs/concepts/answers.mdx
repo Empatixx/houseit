@@ -1,0 +1,43 @@
+---
+title: Answers
+description: Every command answers the same way.
+---
+
+Every command answers with the same shape, whether it changed everything or nothing:
+
+```json
+{
+  "level": "…",
+  "changed": ["f7"],
+  "rooms": [
+    {
+      "name": "kitchen", "areaM2": 15.1, "width": 4200, "depth": 3600,
+      "walls": [{ "id": "w3", "side": "north", "length": 4275 }],
+      "sides": [
+        {
+          "side": "north",
+          "walls": [{ "id": "w3", "from": 0, "to": 4275 }],
+          "length": 4275,
+          "openings": [],
+          "objects": [{ "id": "f1", "type": "kitchen-l", "from": 1462, "to": 4713 }],
+          "free": [{ "from": 0, "to": 1462 }]
+        }
+      ],
+      "openings": [{ "id": "o4", "kind": "door", "side": "south", "along": 0.5, "to": "hall" }],
+      "objects": [{ "id": "f7", "type": "sofa-3", "against": "south", "along": 0.5 }]
+    }
+  ],
+  "problems": []
+}
+```
+
+- `changed` — the ids the command created or changed.
+- `rooms` — the rooms it touched, read back in full: every wall with what opens and stands on it, and **the stretches still free**, which is what the next placing needs.
+- `problems` — everything now wrong with the plan. See [checks](/docs/concepts/checks).
+- The storeys, with `open` on the one being worked on.
+
+Over MCP the answer comes with a picture of what the command did, framed the way a click would show it. A script gets one picture, not one per line.
+
+## Asking
+
+`get-plan` is the only read. It is for the rooms a command did not touch. Reading never changes the document or the undo history.

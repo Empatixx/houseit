@@ -1,0 +1,45 @@
+---
+title: Furniture and things
+description: A thing is put in a room, never at coordinates.
+---
+
+```bash
+add-object --room living --type sofa-l --against east --surface grey
+add-object --room living --type dining-6 --along 0.86 --across 0.74
+add-object --room office --type office-desk --against west --surface walnut
+```
+
+## Placing
+
+Name a side and the thing backs onto that wall. Leave the side out and a free-standing thing goes to the middle of the room, and a thing that stands against a wall goes to the roomiest wall. `--along` says where along the wall, or across the room, from 0 to 1. `--across` says how far up a free-standing thing stands. `--rotation` turns it about its own middle.
+
+Every place is checked. The command refuses a spot where something already stands, a spot inside a wall, and a new thing that hangs out of the room it was asked for.
+
+## Ids
+
+The answer to `add-object` names the id of the thing it placed. `update-object` and `remove-object` take that `--id`. An id is one thing in the whole house, so it carries its storey with it and `--level` is never needed with one.
+
+```bash
+update-object --id f3 --against west --rotation 90 --width 2.4m
+remove-object --id f3
+```
+
+## Carried over a threshold
+
+A thing dragged into the next room is rehoused in the room it came down in. The answer carries a `note` saying so. It is not a problem, because nothing is wrong, but it is not silent either.
+
+## The catalogue
+
+The catalogue has beds, nightstands and wardrobes; kitchens in I, L and U shapes, islands, sinks, stoves and fridges; toilets, vanities, baths and showers; sofas, chairs, tables and media units; desks; washers and dryers; stairs; cars; gym equipment; trees, shrubs, hedges and flower beds. `floorplan("help")`, or `node apps/mcp/dist/cli.js help`, lists every type id.
+
+## Footprints
+
+A thing is not always the rectangle it was cut from. An L-shaped kitchen's box takes in the corner it wraps around, which is the emptiest floor in the room. So a type may declare the boxes it really fills, in fractions of its own size, and every clash is tested against those boxes.
+
+## Models
+
+Most 3D furniture is written from slabs and drums in `packages/scene/src/models`. A thing can also arrive as a `.glb` model: drop it in `apps/editor/public/models` and add a row with its id, label, real size in millimetres, finishes, whether it stands against a wall, and which rooms it belongs in. The model must be Y up, with its back at z = 0. A material named `body` takes the thing's surface.
+
+## Seen from straight above
+
+The plan is orthographic, from directly overhead. A symbol shows what you would see from up there: the top surface of a thing and whatever reaches out past it. A cupboard handle under a worktop is not drawn. A television is a thin bar, its display seen edge-on.

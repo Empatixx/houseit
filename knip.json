@@ -41,5 +41,6 @@
       "project": ["src/**/*.ts"]
     }
   },
+  "ignore": ["website/**"],
   "ignoreDependencies": ["@types/shell-quote", "tailwindcss"]
 }

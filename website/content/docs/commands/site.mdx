@@ -1,0 +1,41 @@
+---
+title: Site
+description: add-site, update-site, remove-site
+---
+
+A house stands on a parcel. The editor can pick a cadastral parcel when a project is created, or attach one in the **Site** panel.
+
+## add-site
+
+```bash
+add-site --json '{…}'
+```
+
+Attaches one normalized cadastral parcel snapshot.
+
+## update-site
+
+```bash
+update-site --x 4000 --y 3000 --rotation 12
+update-site --setback 2m
+update-site --edge 2 --edge-setback 3.5m
+update-site --surface s1 --material concrete-pavers
+```
+
+| Option | Meaning |
+|---|---|
+| `--x`, `--y`, `--rotation` | Place the house on its parcel |
+| `--setback` | Setback from every boundary |
+| `--edge`, `--edge-setback` | Setback from one boundary |
+| `--site` | JSON ground cutout, surfaces, markings and railings |
+| `--surface` with `--material` or `--colour` | Change one surface |
+
+Geometry edits respect the parcel and its setbacks.
+
+## remove-site
+
+Detaches the parcel without changing the house.
+
+## Outdoor rooms
+
+Terraces, paving, paths and lawns are rooms with `--kind terrace|paving|path|lawn`. They have open edges and no ceiling. A `winter-garden` has glazed walls and a glazed roof.

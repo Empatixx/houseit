@@ -1,0 +1,46 @@
+---
+title: Opening
+description: add-opening, update-opening, remove-opening
+---
+
+## add-opening
+
+Put a door, a window or a glazed assembly in a wall.
+
+```bash
+add-opening --room kitchen --kind door --side east --variant pocket
+add-opening --room kitchen --kind window --side north --width 1.2m --along 2.4m
+add-opening --room snug --kind window --wall w12
+add-opening --wall w4 --kind door --along 1.2m --towards right
+```
+
+| Option | Meaning |
+|---|---|
+| `--kind` | Required. `door`, `window` or `assembly` |
+| `--room` and `--side` | The side of a room to put it in |
+| `--wall` | One wall. Without `--room`, the opening goes directly on that wall. |
+| `--along` | Where along the wall. Centred on the widest free stretch when left out. |
+| `--width`, `--height`, `--sill` | Size, and the sill above the wall base |
+| `--variant` | `hinged`, `sliding`, `pocket` or `garage` |
+| `--hinge` | `left` or `right`, seen from the side it opens towards |
+| `--opens-into` | The room that receives the leaf, or `outside` |
+| `--towards` | `left` or `right`, for an opening placed directly on a wall |
+| `--slide-towards` | The pocket of a pocket door |
+| `--leaf-width` | The main leaf of a paired door |
+| `--panels`, `--frame` | JSON for an assembly |
+| `--level` | The storey |
+
+## update-opening
+
+```bash
+update-opening --id o7 --width 1.5m --to-side west
+update-opening --id o7 --variant sliding
+```
+
+Takes the same size and leaf options, plus `--to-side` or `--to-wall` to move it to another wall.
+
+## remove-opening
+
+```bash
+remove-opening --id o7
+```

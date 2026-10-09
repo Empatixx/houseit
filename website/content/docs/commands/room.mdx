@@ -1,0 +1,67 @@
+---
+title: Room
+description: add-room, update-room, remove-room
+---
+
+## add-room
+
+Draw the floor outline, cut a room out of a room, or name a space that walls already close.
+
+```bash
+add-room --name house --shape rectangle --width 10m --depth 8m --material natural-oak
+add-room --name house --shape l --width 12m --depth 9m --notch-width 4m --notch-depth 3m --material natural-oak
+add-room --name kitchen --from house --side west --width 3.6m --kind kitchen --material tile-white
+add-room --name pantry --from house --corner south-east --width 2m --depth 1.5m --material tile-white
+add-room --name snug --points "0,0; 5m,0; 5m,3m; 3m,3m; 3m,5m; 0,5m" --material ash
+add-room --name nook --from house --side north --along 0 --walk "3m s, 4m e, 3m n" --material ash
+add-room --at '{"x":2000,"y":2000}' --name office --material birch
+```
+
+| Option | Meaning |
+|---|---|
+| `--name` | Required. The room's name. |
+| `--material` | Required. The floor material. |
+| `--kind` | What the room is: `bedroom`, `kitchen`, `bathroom`, `living`, `hall`, `terrace`, … |
+| `--shape` | Floor outline: `rectangle`, `l`, `u` or `t` |
+| `--width`, `--depth` | Size of the outline, the strip or the corner box |
+| `--notch-width`, `--notch-depth` | The notch of an L |
+| `--bar-depth`, `--stem-width` | The parts of a T or U |
+| `--from` | The room to cut from |
+| `--side` | Cut a strip off this side: `north`, `south`, `east`, `west` |
+| `--corner` | Cut a box out of this corner: `north-west`, `north-east`, `south-west`, `south-east` |
+| `--points` | The corners, from the south-west corner of the floor |
+| `--walk` | Legs from a side, for example `"3m s, 4m e, 3m n"` |
+| `--along` | Where along the side a walk starts |
+| `--boundary` | JSON wall-centre corners with the thickness of each outgoing edge |
+| `--at` | JSON point inside a space closed by existing walls |
+| `--thickness` | Wall thickness |
+| `--level` | The storey |
+
+## update-room
+
+Change a room's name, kind, floor, style or finishes, its exterior, or move one of its walls.
+
+```bash
+update-room --room kitchen --name kuchyň --kind kitchen --material tile-slate
+update-room --room kitchen --side east --by 300
+update-room --room bedroom --style scandinavian
+update-room --room bedroom --walls '#e9e4da' --ceiling white
+```
+
+| Option | Meaning |
+|---|---|
+| `--room` | Required. Found on every storey. |
+| `--name`, `--kind`, `--material`, `--style` | New name, kind, floor or style |
+| `--walls`, `--ceiling`, `--doors`, `--windows` | A named finish or `#rrggbb` |
+| `--side` or `--wall`, with `--by` | Move that wall outwards by a length. Negative moves it in. |
+| `--exterior` | JSON wall layers, face colour and bands, for the outside of the house |
+| `--return` | JSON open partition or low lining that starts on this room's wall |
+| `--partition` | JSON straight partition with both ends free inside the room |
+
+## remove-room
+
+Knock a room through into the room next door, or clear the last room off a storey.
+
+```bash
+remove-room --room pantry --into kitchen
+```

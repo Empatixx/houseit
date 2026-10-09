@@ -1,0 +1,42 @@
+---
+title: Connect an agent
+description: Register the MCP server with Claude Code or Codex.
+---
+
+The MCP server exposes one tool, `floorplan`. It takes a command, or a script of commands, as a string. The agent reads the command reference by calling `floorplan("help")`, and how a dwelling goes together by calling `floorplan("guidelines")`.
+
+Build the server first:
+
+```bash
+bun run --cwd apps/mcp build
+```
+
+## Claude Code
+
+The repository has a `.mcp.json` at its root, so a Claude Code session opened in the repository picks the server up. To register it for every project:
+
+```bash
+claude mcp add houseit -- node /absolute/path/to/houseit/apps/mcp/dist/server.js
+```
+
+## Codex
+
+Add the server to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.houseit]
+command = "node"
+args = ["/absolute/path/to/houseit/apps/mcp/dist/server.js"]
+```
+
+## Talk to it
+
+Keep `bun run dev` running and say what you want:
+
+> Lay out a 3+kk flat, 12 by 9 metres, with the kitchen on the west side.
+
+The agent sends commands, and every answer comes back with a picture of what the command did. Open the editor to watch, or start `./scripts/chrome.sh` so the agent drives the window in front of you.
+
+## The tool description does not change
+
+The description of the `floorplan` tool is hand-written and independent of the command registry and the catalogue. A tool description is part of the prompt. If it changed every time a sofa was added to the catalogue, every agent would lose its prompt cache. The command reference comes from `floorplan("help")` instead, as an ordinary answer.

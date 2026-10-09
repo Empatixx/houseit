@@ -1,0 +1,58 @@
+---
+title: The CLI
+description: Run the same commands from a terminal.
+---
+
+The CLI uses the same registry, the same bridge and the same browser tab as the MCP server. Anything an agent can do, you can do from a terminal.
+
+```bash
+node apps/mcp/dist/cli.js --help
+```
+
+## Forms
+
+```text
+houseit <command> [--option value …]      one command, its words as arguments
+houseit '<script>'                        a script as written, lines and quotes and all
+houseit - < script.txt                    the same from standard input
+houseit --picture out.jpg get-plan        with a picture of what it answered about
+houseit --project byt-praha get-plan      in that plan, made if there is none yet
+houseit --export house.glb get-plan       with the whole house as a glTF model
+houseit guidelines                        how a flat or a house goes together
+```
+
+`--project`, `--picture` and `--export` belong to the driver, not to the plan. Which project is open and what to do with the picture are no part of any plan.
+
+## Scripts
+
+A script is one command per line. Lines starting with `#` are comments. The whole script runs as one transaction: if any line fails, nothing changes.
+
+```bash
+node apps/mcp/dist/cli.js - <<'PLAN'
+# a small flat
+add-room --name flat --shape rectangle --width 9m --depth 7m --material natural-oak
+add-room --name bedroom --from flat --side east --width 3.4m --kind bedroom --material white-oak
+add-opening --room bedroom --kind door --side west
+add-object --room bedroom --type queen-bed --against east
+PLAN
+```
+
+## Lengths
+
+Lengths are millimetres, or a number with a unit: `3600`, `3.6m`, `360cm`.
+
+## Plans by address
+
+A plan named in the address is drawn in place of whatever the browser had:
+
+```text
+http://localhost:5173/?plan=showcase
+```
+
+The editor fetches `public/plans/<name>.txt` — a command script, the same lines an agent sends — and runs it. To check a script without a browser:
+
+```bash
+bun scripts/run-plan.ts apps/editor/public/plans/<name>.txt
+```
+
+It stops at the first line that fails, says why, and lists every room with its size and what stands in it.

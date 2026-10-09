@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Package
+        run: |
+          tar -czf houseit-editor-${GITHUB_REF_NAME}.tar.gz -C apps/editor dist
+          tar -czf houseit-mcp-${GITHUB_REF_NAME}.tar.gz -C apps/mcp dist
+      - name: Release
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes houseit-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}

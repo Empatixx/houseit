@@ -1,0 +1,46 @@
+---
+title: Storeys and stairs
+description: Levels, the stairs between them, and the hole the stairs come up through.
+---
+
+## Storeys
+
+`add-level` builds a storey on top of the house. `--below` builds a cellar.
+
+```bash
+add-level --name "1. patro" --height 2.7m
+update-level --level "1. patro" --name attic --height 2.4m
+remove-level --level attic
+```
+
+A command that names no storey works on the one the editor has open, and the editor follows the command: `get-plan --level "1. patro"` steps upstairs, and the plan on screen steps with it. Every answer lists the storeys with `open` on one of them, so the agent always knows where it stands.
+
+A room is looked for on every storey. `--room bedroom` finds the bedroom wherever it is. `--level` is for when you want to say which.
+
+## Stairs are drawn, not stamped
+
+A staircase is the one thing in the catalogue whose size is not its own. The storey's floor-to-floor height decides how many risers a flight has, and that decides how long it is. So `--depth` on a staircase is refused, and `--width` is the clear width of the flight.
+
+```bash
+add-object --room hall --type stairs-u --against north --width 1m
+```
+
+| Type | Shape |
+|---|---|
+| `stairs-straight` | One straight flight |
+| `stairs-l-landing` | An L with a landing at the turn |
+| `stairs-l-winder` | An L that turns on winders |
+| `stairs-u` | Two flights and a half landing |
+| `stairs-spiral` | A spiral |
+
+The plan symbol, the 3D model and the well above are all built from the same list of treads. The treads of a flight are one fewer than its risers, because the floor above is the last step.
+
+## The well
+
+The hole in the floor above is not drawn or stored by anyone. It is the staircase seen from above. Over the first treads there is still a storey of headroom, so the floor above stays there. The well is the rest of the treads. An L-shaped flight cuts an L-shaped hole.
+
+The checks look both ways. A wardrobe pushed over a stairwell from upstairs and a staircase built under a wardrobe from downstairs are the same fault.
+
+## Measured stairs
+
+For a building rather than a flat, `add-stair` places measured flights with landings between two named storeys. See [building commands](/docs/commands/building).

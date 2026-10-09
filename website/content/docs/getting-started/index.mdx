@@ -1,0 +1,65 @@
+---
+title: Install and run
+description: Clone the repository, start the editor and open a plan.
+---
+
+## Requirements
+
+- [Bun](https://bun.sh) 1.3 or newer. It installs dependencies and runs the scripts.
+- [Node.js](https://nodejs.org) 22 or newer. The CLI and the MCP server run on Node.
+- Google Chrome or Chromium. The bridge drives a tab over the Chrome DevTools Protocol.
+
+## Install
+
+```bash
+git clone https://github.com/Empatixx/houseit.git
+cd houseit
+bun install
+```
+
+## Run the editor
+
+```bash
+bun run dev
+```
+
+The editor opens on [http://localhost:5173](http://localhost:5173) with a home screen of projects. Each plan lives at its own address, for example `/p/byt-praha`. Projects are stored in the browser's IndexedDB and saved a quarter of a second after the last change.
+
+## Build the CLI and the MCP server
+
+```bash
+bun run --cwd apps/mcp build
+```
+
+This bundles `apps/mcp/dist/cli.js` and `apps/mcp/dist/server.js`. Both run with `node`, not Bun: Playwright's websocket client hangs under Bun when it connects over CDP.
+
+## Chrome
+
+You do not have to start Chrome yourself. If nothing listens on the debugging port, the CLI and the MCP server start a headless Chrome on their own profile. Nothing pops up, and an agent on its own needs only `bun run dev`.
+
+To watch the agent work, start a visible Chrome with a debugging port:
+
+```bash
+./scripts/chrome.sh
+```
+
+The agent then drives the window you are looking at. It uses a separate profile, so your everyday Chrome is not touched.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `HOUSEIT_URL` | `http://localhost:5173` | Where the editor runs |
+| `HOUSEIT_CDP` | `http://127.0.0.1:9222` | The Chrome debugging endpoint |
+| `HOUSEIT_CDP_PORT` | `9222` | The port `scripts/chrome.sh` opens |
+| `HOUSEIT_CHROME_PROFILE` | `$TMPDIR/houseit-chrome` | The Chrome profile directory |
+| `HOUSEIT_HEADED` | unset | Set it to launch the fallback Chrome with a window |
+
+## Try a plan
+
+```bash
+node apps/mcp/dist/cli.js --project demo add-room --name house --shape rectangle \
+  --width 10m --depth 8m --material natural-oak
+node apps/mcp/dist/cli.js 'add-room --name kitchen --from house --side west --width 3.6m --material tile-white'
+node apps/mcp/dist/cli.js --picture /tmp/kitchen.jpg get-plan --room kitchen
+```
+
+`--project demo` opens the project called `demo`, and creates it if there is none. `--picture` saves a picture of what the command answered about.

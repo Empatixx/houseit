@@ -1,0 +1,39 @@
+---
+title: Floors and finishes
+description: Materials for floors, finishes for walls, ceilings, doors and windows.
+---
+
+## Floors
+
+Every room takes a floor material:
+
+```bash
+update-room --room kitchen --material tile-slate
+```
+
+Floors include oak, ash, beech and birch boards; white, beige, blue, slate, hexagonal, herringbone and terracotta tiles; marble, limestone, granite, soapstone and terrazzo; concrete and brick; and outdoor surfaces such as grass, gravel, pavers, asphalt and water. All of them tile seamlessly and are laid at their real size, so a 300 mm tile is 300 mm in any room and boards run on across a doorway.
+
+## Walls, ceilings, doors and windows
+
+```bash
+update-room --room bedroom --walls white --ceiling white --doors oak-light --windows black
+update-room --room bedroom --walls '#d8cbb5'
+```
+
+Each part takes a named finish or a colour of your own as `#rrggbb`.
+
+## Styles
+
+`--style` applies a coordinated set of finishes: `scandinavian`, `coastal`, `farmhouse`, `industrial`, `midcentury-modern`, `traditional`, `rustic` or `modern`.
+
+## Surfaces on furniture
+
+A symbol and a surface are separate. The symbol's white becomes the surface colour and the lines stay lines. One bed is white, linen or blue without there being three beds.
+
+```bash
+add-object --room bedroom --type queen-bed --against north --surface linen
+```
+
+## Exterior walls
+
+`--exterior` describes the layers of an outside wall and the colour of its face, optionally in bands. See [room commands](/docs/commands/room).

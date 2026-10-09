@@ -1,0 +1,54 @@
+---
+title: Introduction
+description: A floor plan editor you drive by talking to a coding agent.
+---
+
+houseit is a floor plan editor that runs in the browser. You describe a house in plain language. A coding agent — Claude Code or Codex — turns the description into commands and sends them through an MCP server to the browser tab. The plan redraws in front of you. Then you grab a wall and drag it, because some things are faster by hand.
+
+The editor and the projects run locally. There is no backend and no account. The agent has its own connection to its model provider.
+
+![A furnished flat drawn by commands](/images/plan.jpg)
+
+## How it works
+
+```text
+  you ──▶ agent (Claude Code / Codex)
+                │
+                │  one MCP tool: floorplan("add-room --name kitchen …")
+                ▼
+          MCP server ──── CDP ────▶ Chrome tab
+                                      │
+                                      ▼
+                                 window.floorplan.exec()
+                                      │
+                                      ▼
+                              document ──▶ redraw
+```
+
+The MCP server holds no document. The browser tab owns it, so what the agent reads back is what you see. The CLI uses the same bridge and the same command registry with no agent involved.
+
+## What you can build
+
+| Area | What is there |
+|---|---|
+| Rooms | Rectangles, L, U and T outlines, walks, rooms cut from rooms, independent walls |
+| Openings | Hinged, sliding, pocket and garage doors, windows, glazed assemblies |
+| Furniture | A catalogue of beds, kitchens, bathrooms, sofas, tables, stairs, cars, plants and more |
+| Storeys | Levels above and below, stairs drawn at the storey's tread count, stairwells cut above them |
+| Building | Columns, lift and service shafts, ramps, measured stair flights, roofs, facades |
+| Site | A cadastral parcel with setbacks, terraces, paths, lawns and ponds |
+| Views | A 2D plan seen from straight above and a first-person 3D walk through the whole house |
+
+## Three ideas
+
+**Everything is a command.** The agent, the terminal and the mouse use the same typed commands. A drag on the plan ends in one `update-object`. If it is refused, it is refused with the same words a script would get.
+
+**Every answer is the same shape.** A command answers with the ids it changed, the rooms it touched read back in full — each wall, what opens and stands on it, and the stretches still free — and every problem now in the plan. The agent rarely needs to ask a second question.
+
+**Plans, not coordinates.** Nobody on a site knows that the kitchen starts at x=4500. They know it is west of the living room and 3.6 m wide. Commands name rooms and compass sides.
+
+## Next
+
+- [Getting started](/docs/getting-started) — install, run the editor, connect an agent.
+- [Concepts](/docs/concepts) — how walls, rooms, storeys and answers fit together.
+- [Commands](/docs/commands) — every command and its options.

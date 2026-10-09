@@ -1,0 +1,52 @@
+---
+title: Contributing
+description: How to work on houseit and what has to pass.
+---
+
+## Checks
+
+```bash
+bun run test
+bun run typecheck
+bun run lint
+bun run depcruise
+bun run knip
+```
+
+`bun run test` runs Vitest through Turborepo. `bun test` at the root is Bun's own runner and is not it.
+
+`bun run build` runs all of the checks, then the production builds.
+
+## Drive the real commands
+
+Everything found by hand so far was found by driving the real commands and looking at what came out. A unit test does not see a doorway drawn as a white slab or a floor that renders black. So: cut the room, lay the floor, hang the door, place the thing — through the CLI — then look at the picture.
+
+```bash
+node apps/mcp/dist/cli.js --project scratch 'add-room --name room --shape rectangle --width 4m --depth 3m --material ash'
+node apps/mcp/dist/cli.js --picture /tmp/room.jpg get-plan --room room
+```
+
+If something cannot be said as a command, that is the bug to fix. A hand edit in the editor never writes to the document directly: if it needs something no command can say, the command grows.
+
+## Look at one object at a time
+
+Furniture is judged by eye, and it cannot be judged in a furnished plan. `scripts/look.mjs` builds a room barely bigger than one object in a throwaway project and saves a picture of it:
+
+```bash
+node scripts/look.mjs --type sofa-3 --surface grey --width 2.4m --out /tmp/sofa.png
+```
+
+## Rules that hold the design together
+
+Each of these is held by a test.
+
+- **The wall graph is topological.** Anything adding walls must split the walls it meets.
+- **A side cut makes one connected piece.** Otherwise it is refused.
+- **A door swings into the room it was named from**, and keeps that through later edits.
+- **Coordinates are an output, not an input.** Commands name rooms and sides; `--points` is the last resort.
+- **Reading preserves history.** `get-plan` never changes the document, and a redo stays available after it.
+- **A script is one transaction.** If one line fails, nothing changes.
+
+## Licence
+
+houseit is licensed under the Apache License 2.0. By contributing you agree that your contributions are licensed under the same terms.

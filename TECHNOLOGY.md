@@ -1,8 +1,7 @@
-# Architecture on `that-open-engine`
+# Architecture
 
-This describes the implementation on the active That Open branch. The remaining
-engine migration is tracked in [goal.md](goal.md); separate reliability, modularity
-and performance work is in [maintenance progress](docs/maintenance/progress.md).
+This describes the current implementation. Reliability, modularity and performance
+work is tracked in [maintenance progress](docs/maintenance/progress.md).
 
 ## Data and edit flow
 

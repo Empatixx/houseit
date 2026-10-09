@@ -1,0 +1,35 @@
+---
+title: Wall
+description: add-wall, update-wall, remove-wall
+---
+
+Independent walls are elements with a stable id. Junctions split them into segments, and the answer lists both. Closed loops become rooms.
+
+## add-wall
+
+```bash
+add-wall --from '{"x":0,"y":0}' --to '{"x":6000,"y":0}' --thickness 300
+```
+
+| Option | Meaning |
+|---|---|
+| `--from`, `--to` | Required. JSON centreline points in millimetres |
+| `--thickness`, `--height`, `--base` | Size and base offset |
+| `--level` | The storey |
+
+## update-wall
+
+```bash
+update-wall --id w1 --by 200
+update-wall --id w1 --length 6500 --end to
+```
+
+`--by` moves the wall perpendicular to its from-to direction, positive to the left. `--length` moves a free end and keeps the other fixed. Connected walls follow, and openings keep their distance from the fixed end. Invalid joins or openings refuse the whole edit.
+
+## remove-wall
+
+```bash
+remove-wall --id w1
+```
+
+Removes the wall and its openings, then derives the remaining rooms. A furnished room next to it needs `remove-room --into` instead, so its furniture keeps its place.

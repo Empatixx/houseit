@@ -15,3 +15,4 @@ dist/
 
 .claude/settings.local.json
 fixtures/**/debug-*.svg
+.tmp2/
