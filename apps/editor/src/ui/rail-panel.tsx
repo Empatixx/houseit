@@ -93,7 +93,7 @@ function Site() {
         <p className="font-medium">Parcel {site.parcel.number}</p>
         <p className="text-xs text-muted-foreground">{site.parcel.cadastralAreaName}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {site.parcel.areaM2.toLocaleString('cs-CZ')} m² · ČÚZK
+          {site.parcel.areaM2.toLocaleString('en-GB')} m² · ČÚZK
         </p>
       </div>
       <p className="rounded-lg bg-amber-50 p-2 text-xs leading-4 text-amber-900">

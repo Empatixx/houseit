@@ -203,7 +203,7 @@ export function ParcelPicker({ onConfirm, parcelGateway, geocoder }: Props) {
               <p className="mt-1 text-lg font-semibold">{selected.parcel.number}</p>
               <p className="text-sm">{selected.parcel.cadastralAreaName}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {selected.parcel.areaM2.toLocaleString('cs-CZ')} m² · ČÚZK
+                {selected.parcel.areaM2.toLocaleString('en-GB')} m² · ČÚZK
               </p>
               <p className="mt-3 rounded-lg bg-amber-50 p-2 text-xs leading-4 text-amber-900">
                 Indicative data. Verify boundaries and siting with a surveyor for project work.

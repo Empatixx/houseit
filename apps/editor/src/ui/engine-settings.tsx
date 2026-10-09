@@ -17,14 +17,14 @@ export function EngineSettings() {
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <Label htmlFor="native-snap">Přichytávání</Label>
+        <Label htmlFor="native-snap">Snapping</Label>
         <Switch
           id="native-snap"
           checked={settings.snap}
           onCheckedChange={(snap) => settings.configure({ snap })}
         />
       </div>
-      <Label htmlFor="native-measure">Ruční měření</Label>
+      <Label htmlFor="native-measure">Manual measurement</Label>
       <Select
         value={settings.measure}
         onValueChange={(measure) =>
@@ -35,20 +35,20 @@ export function EngineSettings() {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">Vypnuto</SelectItem>
-          <SelectItem value="length">Mezi dvěma body</SelectItem>
-          <SelectItem value="edge">Délka hrany</SelectItem>
+          <SelectItem value="none">Off</SelectItem>
+          <SelectItem value="length">Between two points</SelectItem>
+          <SelectItem value="edge">Edge length</SelectItem>
         </SelectContent>
       </Select>
       {settings.measure !== 'none' ? (
         <p className="text-xs text-muted-foreground">
-          Dvojklik určí bod měření. Escape měření ukončí.
+          Double-click places a measuring point. Escape ends the measurement.
         </p>
       ) : null}
       <Button variant="outline" size="sm" onClick={settings.clearMeasurements}>
-        Smazat ruční měření
+        Clear manual measurements
       </Button>
-      <Label htmlFor="native-view">Pohled</Label>
+      <Label htmlFor="native-view">View</Label>
       <Select
         value={settings.view}
         onValueChange={(view) => {
@@ -60,15 +60,15 @@ export function EngineSettings() {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="plan">Půdorys</SelectItem>
-          <SelectItem value="floor-cut">Řez podlažím</SelectItem>
-          <SelectItem value="section-x">Svislý řez X</SelectItem>
-          <SelectItem value="section-y">Svislý řez Y</SelectItem>
+          <SelectItem value="plan">Plan</SelectItem>
+          <SelectItem value="floor-cut">Floor cut</SelectItem>
+          <SelectItem value="section-x">Vertical section X</SelectItem>
+          <SelectItem value="section-y">Vertical section Y</SelectItem>
         </SelectContent>
       </Select>
       {settings.view === 'section-x' || settings.view === 'section-y' ? (
         <>
-          <Label htmlFor="section-offset">Posun řezu (m)</Label>
+          <Label htmlFor="section-offset">Section offset (m)</Label>
           <Input
             id="section-offset"
             type="number"
@@ -88,7 +88,7 @@ export function RoomViewSettings() {
   const height = useEngineView((state) => state.cutHeight)
   return (
     <div className="space-y-2">
-      <Label htmlFor="room-cut-height">Výška řezu nad podlažím (m)</Label>
+      <Label htmlFor="room-cut-height">Cut height above floor (m)</Label>
       <Input
         id="room-cut-height"
         type="number"
@@ -101,7 +101,7 @@ export function RoomViewSettings() {
             engineViewStore.getState().configure({ cutHeight })
         }}
       />
-      <p className="text-xs text-muted-foreground">Použije se pro pohled Řez podlažím.</p>
+      <p className="text-xs text-muted-foreground">Used by the Floor cut view.</p>
     </div>
   )
 }

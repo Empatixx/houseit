@@ -48,7 +48,7 @@ export function Site() {
         />
       ))}
       {site.surfaces
-        .filter((s) => s.name.startsWith('Stání '))
+        .filter((s) => s.name.startsWith('Parking '))
         .map((s) => (
           <Html
             key={s.id}
