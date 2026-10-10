@@ -60,10 +60,10 @@ const smoothstep = (a, b, x) => {
 
 export const rgbOf = (hex) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16))
 
-function muted(hex, amount) {
+function rich(hex, saturation, light = 1) {
   const c = rgbOf(hex)
   const grey = c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11
-  return c.map((v) => v + (grey - v) * amount)
+  return c.map((v) => (grey + (v - grey) * saturation) * light)
 }
 
 function rows(r, length, across, look) {
@@ -138,8 +138,9 @@ function board(r, look, size, height) {
     bow: flat ? between(r, -1, 1) * 1.2e-5 : 0,
     swing: between(r, 0, Math.PI * 2),
     spacing: look.spacing * between(r, 0.75, 1.3),
-    shade: 1 + between(r, -1, 1) * look.vary,
-    warm: between(r, -0.4, 1) * look.vary * 0.35,
+    shade: 1 + between(r, -1, 1) * look.vary * (r() < 0.2 ? 1.5 : 1),
+    warm: between(r, -0.3, 1) * look.warmth,
+    heart: r() < look.heart ? between(r, 0.4, 1) : 0,
     seed: Math.floor(r() * 1e6),
     knots,
   }
@@ -181,8 +182,8 @@ function sampleBoard(p, u, v, length, look, period, along) {
     (0.75 + 0.5 * perlin((u + p.ox) / along.fibre, (v + p.oy) / 2, p.seed + 23, period.fibre))
   const pores = look.pores
     ? smoothstep(
-        0.25,
-        0.75,
+        0.12,
+        0.45,
         perlin((u + p.ox) / along.pore, (v + p.oy) / 1.4, p.seed + 11, period.pore),
       ) *
       (1 - late) *
@@ -192,22 +193,29 @@ function sampleBoard(p, u, v, length, look, period, along) {
     perlin((u + p.ox) / along.fibre, (v + p.oy) / 0.9, p.seed + 13, period.fibre) * look.fibre
   const fleck = look.flecks
     ? smoothstep(
+        0.25,
         0.5,
-        0.75,
-        perlin((u + p.ox) / along.fleck, (v + p.oy) / 0.9, p.seed + 17, period.fleck),
+        perlin((u + p.ox) / along.fleck, (v + p.oy) / 1.6, p.seed + 17, period.fleck),
       ) * look.flecks
     : 0
   const streak =
     fbm((u + p.ox) / along.slow, (v + p.oy) / 70, p.seed + 19, 3, period.slow) * look.streaks
   const tone = 1 - look.rings * late - pores - fleck + fibre + streak
-  return { tone, knot }
+  const heart = p.heart
+    ? smoothstep(
+        0,
+        0.45,
+        fbm((u + p.ox) / along.slow, (v + p.oy) / 60, p.seed + 31, 2, period.slow),
+      ) * p.heart
+    : 0
+  return { tone, knot, heart }
 }
 
 export function renderWood({ length, across, width, height, look, seed, transpose = false }) {
   const r = seeded(seed)
   const plan = rows(r, length, across, look)
   const scale = width / length
-  const desired = { warp: look.warpLength, slow: 900, ring: 700, pore: 11, fibre: 30, fleck: 2.2 }
+  const desired = { warp: look.warpLength, slow: 900, ring: 700, pore: 11, fibre: 30, fleck: 5 }
   const period = {}
   const along = {}
   for (const [name, size] of Object.entries(desired)) {
@@ -215,9 +223,10 @@ export function renderWood({ length, across, width, height, look, seed, transpos
     along[name] = look.continuous ? length / period[name] : size
   }
 
-  const light = muted(look.colour, look.mute).map((v) => v * 1.04)
-  const dark = muted(look.late, look.mute)
-  const knotColour = muted(look.knot ?? look.late, look.mute).map((v) => v * 0.7)
+  const light = rich(look.colour, look.saturation, 1.03)
+  const dark = rich(look.late, look.saturation * 1.05)
+  const heartColour = rich(look.heartwood ?? look.late, look.saturation, 1.1)
+  const knotColour = rich(look.knot ?? look.late, look.saturation).map((v) => v * 0.7)
   const out = new Float32Array(width * height * 3)
   const sub = [
     [0.25, 0.25],
@@ -240,7 +249,7 @@ export function renderWood({ length, across, width, height, look, seed, transpos
         const plank =
           planks.find((each) => run < each.from + each.size) ?? planks[planks.length - 1]
         const u = run - plank.from
-        const { tone, knot } = sampleBoard(plank, u, v, plank.size, look, period, along)
+        const { tone, knot, heart } = sampleBoard(plank, u, v, plank.size, look, period, along)
         const overall = perlin((x / length) * 3, (y / across) * 2, 991, 3, 2) * look.drift
         const edge = Math.min(
           v,
@@ -249,12 +258,16 @@ export function renderWood({ length, across, width, height, look, seed, transpos
         )
         const bevel =
           1 - look.bevel * Math.exp(-edge / 0.9) - look.bevel * 0.25 * Math.exp(-edge / 3)
-        const t = Math.max(0, Math.min(1.2, tone))
-        const shade = plank.shade * bevel * (1 + overall)
+        const t = Math.max(0, Math.min(1.06, tone))
+        const middle = (v - plan.height / 2) / (plan.height / 2)
+        const sheen = 1 + look.sheen * (1 - middle * middle)
+        const shade = plank.shade * bevel * sheen * (1 + overall)
         for (let c = 0; c < 3; c++) {
           let value = dark[c] + (light[c] - dark[c]) * t
+          value += (heartColour[c] - value) * heart * 0.3
           value += (knotColour[c] - value) * knot
-          value *= shade * (1 + (c === 0 ? plank.warm : c === 2 ? -plank.warm : 0))
+          const warm = plank.warm + Math.max(0, 1 - plank.shade) * 0.6
+          value *= shade * (1 + warm * [0.35, 0.1, -0.7][c])
           if (c === 0) red += value
           else if (c === 1) green += value
           else blue += value
@@ -267,10 +280,7 @@ export function renderWood({ length, across, width, height, look, seed, transpos
     }
   }
 
-  const cool = look.cool ?? 0.035
-  const target = muted(look.colour, look.mute).map(
-    (value, c) => value * (1 - cool * [1, 0.15, 0.6][c]),
-  )
+  const target = rich(look.colour, look.saturation, look.depth)
   const mean = [0, 0, 0]
   for (let i = 0; i < out.length; i++) mean[i % 3] += out[i]
   const gain = mean.map((m, c) => target[c] / (m / (width * height)))
