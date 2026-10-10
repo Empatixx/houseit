@@ -1,5 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { renderWood } from './grain.mjs'
+import { encodeJpeg } from './jpeg.mjs'
 
 const root = (path) => fileURLToPath(new URL(`../../../${path}`, import.meta.url))
 const out = (path) => fileURLToPath(new URL(`../public/${path}`, import.meta.url))
@@ -26,6 +28,7 @@ const COVERS = literal(
   'const COVERS: Record<string, { width: number; height: number }> = ',
 )
 const SPREAD = { width: 1500, height: 1500 }
+const coverOf = (finish) => COVERS[finish.category] ?? SPREAD
 
 function seeded(text) {
   let a = 2166136261
@@ -135,140 +138,6 @@ function specks(W, H, r, { count, size, colours }) {
     })
   }
   return byColour(shapes)
-}
-
-function wood(_id, W, H, r, o) {
-  const rows = Math.max(1, Math.round(H / o.plank))
-  const ph = H / rows
-  const grain = o.grain
-  let planks = ''
-  let lines = ''
-  let joints = ''
-  const shapes = []
-  for (let row = 0; row < rows; row++) {
-    const y0 = row * ph
-    const count = o.joints === 0 ? 0 : r() < 0.35 ? 1 : 2
-    const start = r() * W
-    const cuts =
-      count === 0
-        ? [0, W]
-        : Array.from(
-            { length: count + 1 },
-            (_, i) =>
-              start + (i * W) / count + (i && i < count ? between(r, -W * 0.12, W * 0.12) : 0),
-          )
-    for (let k = 0; k < cuts.length - 1; k++) {
-      const x0 = cuts[k]
-      const x1 = cuts[k + 1]
-      const len = x1 - x0
-      const tone = vary(o.colour, r, o.vary)
-      planks += rect(x0, y0, len, ph, tone)
-      const stripes = Math.round((ph / o.gap) * 1.3)
-      const drift = {
-        a: (between(r, 0.02, 0.1) * ph * o.wave) / 2.5,
-        l: between(r, 900, 2400),
-        p: between(r, 0, 6.3),
-      }
-      const flame =
-        r() < o.flame
-          ? {
-              at: between(r, x0 + len * 0.15, x1 - len * 0.15),
-              reach: between(r, 180, 420),
-              lift: between(r, 0.3, 0.7) * ph,
-            }
-          : null
-      const steps = Math.max(4, Math.ceil(len / 45))
-      for (let band = 0; band < 2; band++) {
-        const by = between(r, y0 + ph * 0.15, y0 + ph * 0.85)
-        lines += `<path d="M${f(x0)} ${f(by)}H${f(x1)}" stroke="${r() < 0.5 ? '#ffffff' : grain}" stroke-width="${f(between(r, 0.08, 0.22) * ph)}" stroke-opacity="${Math.round(between(r, 0.02, 0.05) * 100) / 100}"/>`
-      }
-      for (let s = 0; s < stripes; s++) {
-        const base = between(r, y0 - ph * 0.15, y0 + ph * 1.15)
-        const a2 = between(r, 0.2, 1) * o.wave
-        const l2 = between(r, 150, 450)
-        const p2 = between(r, 0, Math.PI * 2)
-        const lift = flame ? flame.lift * (1 - Math.abs(base - y0 - ph * 0.6) / (ph * 1.2)) : 0
-        const points = []
-        for (let i = 0; i <= steps; i++) {
-          const x = x0 + (len * i) / steps
-          let y =
-            base +
-            drift.a * Math.sin((x / drift.l) * Math.PI * 2 + drift.p) +
-            a2 * Math.sin((x / l2) * Math.PI * 2 + p2)
-          if (flame) {
-            const d = (x - flame.at) / flame.reach
-            y -= lift * Math.exp(-d * d)
-          }
-          points.push([x, y])
-        }
-        const width = (r() < 0.15 ? between(r, 1.4, 2.6) : between(r, 0.35, 1)) * o.line
-        const alpha = Math.round(between(r, 0.2, 1) * o.contrast * 100) / 100
-        let run = []
-        const flush = () => {
-          if (run.length > 2)
-            lines += `<path d="${smooth(run)}" fill="none" stroke="${grain}" stroke-width="${f(width)}" stroke-opacity="${alpha}"/>`
-          run = []
-        }
-        for (const point of points) {
-          if (point[1] > y0 + 1 && point[1] < y0 + ph - 1) run.push(point)
-          else flush()
-        }
-        flush()
-      }
-      for (let n = 0; n < (len * ph * o.fleck) / 10000; n++) {
-        const x = between(r, x0 + 4, x1 - 14)
-        const y = between(r, y0 + 2, y0 + ph - 2)
-        const l = between(r, 2, 10)
-        shapes.push({
-          colour: grain,
-          d: `M${f(x)} ${f(y)}h${f(l)}v${f(between(r, 0.6, 1.4))}h${f(-l)}Z`,
-        })
-      }
-      if (r() < o.knots) {
-        const kx = between(r, x0 + 60, x1 - 60)
-        const ky = between(r, y0 + ph * 0.3, y0 + ph * 0.7)
-        const kr = between(r, 6, 14)
-        lines += `<ellipse cx="${f(kx)}" cy="${f(ky)}" rx="${f(kr * 1.6)}" ry="${f(kr)}" fill="${shade(grain, -0.15)}" fill-opacity=".55"/><ellipse cx="${f(kx)}" cy="${f(ky)}" rx="${f(kr * 2.8)}" ry="${f(kr * 1.6)}" fill="none" stroke="${grain}" stroke-opacity=".35" stroke-width="1.2"/>`
-      }
-      if (count > 0)
-        joints += `<path d="M${f(x0)} ${f(y0)}v${f(ph)}" stroke="${o.seam}" stroke-width="1.6" stroke-opacity=".55"/>`
-    }
-    if (o.seams !== false) {
-      joints += `<path d="M0 ${f(y0)}H${f(W)}" stroke="${o.seam}" stroke-width="1.6" stroke-opacity=".5"/><path d="M0 ${f(y0 + 1.8)}H${f(W)}" stroke="#ffffff" stroke-width="1" stroke-opacity=".18"/>`
-    }
-  }
-  return {
-    back: o.colour,
-    body: `${planks}<g fill-opacity="${o.contrast * 0.5}">${byColour(shapes)}</g>${lines}${joints}`,
-  }
-}
-
-function boards(_id, W, H, r, o) {
-  const count = Math.max(2, Math.round(W / o.board))
-  const bw = W / count
-  let body = ''
-  for (let i = 0; i < count; i++) {
-    const x = i * bw
-    body += rect(x, 0, bw, H, vary(o.colour, r, o.vary))
-    if (o.grain) {
-      for (let s = 0; s < Math.round(bw / 9); s++) {
-        const base = x + ((s + between(r, 0.2, 0.8)) / Math.round(bw / 9)) * bw
-        const points = []
-        const a = between(r, 1, 4)
-        const l = between(r, 500, 1600)
-        const p = between(r, 0, 6.3)
-        for (let y = 0; y <= H + 0.01; y += H / 24) {
-          points.push([
-            Math.max(x + 2, Math.min(x + bw - 2, base + a * Math.sin((y / l) * 6.28 + p))),
-            y,
-          ])
-        }
-        body += `<path d="${smooth(points)}" fill="none" stroke="${o.grain}" stroke-width="${f(between(r, 0.5, 1.6))}" stroke-opacity="${Math.round(between(r, 0.15, 0.5) * o.contrast * 100) / 100}"/>`
-      }
-    }
-    body += `<path d="M${f(x)} 0V${f(H)}" stroke="${o.seam}" stroke-width="5" stroke-opacity=".45"/><path d="M${f(x + 3.5)} 0V${f(H)}" stroke="#ffffff" stroke-width="2" stroke-opacity=".35"/><path d="M${f(x - 3.5)} 0V${f(H)}" stroke="#000000" stroke-width="2" stroke-opacity=".08"/>`
-  }
-  return { back: o.colour, body }
 }
 
 function grid(id, W, H, r, o) {
@@ -572,87 +441,7 @@ function terrazzo(id, W, H, r, o) {
   }
 }
 
-const WOOD = {
-  plank: 192,
-  gap: 7,
-  wave: 2.5,
-  line: 1,
-  vary: 0.05,
-  fleck: 0,
-  knots: 0,
-  flame: 0.35,
-}
-
 const LOOKS = {
-  ash: {
-    kind: wood,
-    ...WOOD,
-    colour: '#dfbd96',
-    grain: '#9a6c42',
-    seam: '#6f4f33',
-    contrast: 0.5,
-    flame: 0.5,
-    vary: 0.04,
-  },
-  birch: {
-    kind: wood,
-    ...WOOD,
-    colour: '#e2d2b9',
-    grain: '#b59a76',
-    seam: '#8e7a60',
-    contrast: 0.35,
-    gap: 9,
-    wave: 1.5,
-    fleck: 1.2,
-    flame: 0.15,
-    vary: 0.035,
-  },
-  'red-oak': {
-    kind: wood,
-    ...WOOD,
-    colour: '#d3a473',
-    grain: '#93573a',
-    seam: '#6e4429',
-    contrast: 0.5,
-    knots: 0.12,
-    flame: 0.55,
-    vary: 0.035,
-  },
-  'natural-oak': {
-    kind: wood,
-    ...WOOD,
-    colour: '#d0a87f',
-    grain: '#8a6340',
-    seam: '#654a31',
-    contrast: 0.5,
-    knots: 0.2,
-    flame: 0.5,
-    vary: 0.04,
-  },
-  beech: {
-    kind: wood,
-    ...WOOD,
-    colour: '#d3b28a',
-    grain: '#a87e57',
-    seam: '#7a5c40',
-    contrast: 0.35,
-    gap: 8,
-    wave: 1.2,
-    fleck: 3,
-    flame: 0.1,
-    vary: 0.04,
-  },
-  'white-oak': {
-    kind: wood,
-    ...WOOD,
-    colour: '#e8dac6',
-    grain: '#ad9476',
-    seam: '#8b7862',
-    contrast: 0.45,
-    knots: 0.06,
-    flame: 0.45,
-    vary: 0.035,
-  },
   'brick-beige': {
     kind: grid,
     width: 225,
@@ -908,51 +697,7 @@ const LOOKS = {
   },
 }
 
-const VENEER = {
-  kind: wood,
-  ...WOOD,
-  joints: 0,
-  seams: false,
-  plank: 230,
-  gap: 6,
-  contrast: 0.5,
-  flame: 0.5,
-  vary: 0.02,
-}
-
 const FINISH_LOOKS = {
-  'oak-dark': { ...VENEER, colour: '#6e4b31', grain: '#3c2717', seam: '#2c1c10' },
-  'oak-medium': { ...VENEER, colour: '#a97b4f', grain: '#6c4a2c', seam: '#4f361f' },
-  'oak-light': { ...VENEER, colour: '#d6b68b', grain: '#9a7550', seam: '#7a5b3e' },
-  'ash-light': { ...VENEER, colour: '#e8d6b8', grain: '#b0916a', seam: '#8e7353', contrast: 0.45 },
-  'ash-natural': { ...VENEER, colour: '#d8b98f', grain: '#9a7149', seam: '#73543a' },
-  acorn: { ...VENEER, colour: '#bf8c4f', grain: '#7e5328', seam: '#5c3c1c' },
-  walnut: { ...VENEER, colour: '#5f3f2b', grain: '#2f1d12', seam: '#24160d', contrast: 0.65 },
-  maple: {
-    ...VENEER,
-    colour: '#ead2a8',
-    grain: '#c19e72',
-    seam: '#9b7d58',
-    contrast: 0.35,
-    flame: 0.2,
-  },
-  cherry: { ...VENEER, colour: '#9c5a3a', grain: '#5e301b', seam: '#45230f' },
-  'oak-paneling': {
-    kind: boards,
-    board: 150,
-    colour: '#c69c6d',
-    grain: '#8a6440',
-    seam: '#5e4329',
-    contrast: 0.8,
-    vary: 0.05,
-  },
-  'white-wood-paneling': {
-    kind: boards,
-    board: 150,
-    colour: '#f3f1eb',
-    seam: '#bdb8ad',
-    vary: 0.01,
-  },
   'metal-steel': { kind: metal, colour: '#c3c7cb', sweep: 0.05, lines: 18 },
   'metal-zinc': { kind: metal, colour: '#9ea4a7', sweep: 0.04, lines: 14 },
   'metal-bronze': { kind: metal, colour: '#8f6b45', sweep: 0.06, lines: 16 },
@@ -971,7 +716,146 @@ const FINISH_LOOKS = {
   'brick-grey': { ...LOOKS['brick-grey'], width: 240, height: 80 },
 }
 
+const OAK = {
+  plank: 193,
+  lengths: [1200, 2200],
+  flatSawn: 0.6,
+  knots: 0.1,
+  spacing: 3.6,
+  warp: 5,
+  warpLength: 800,
+  irregular: 0.22,
+  rings: 0.36,
+  pores: 0.18,
+  fibre: 0.08,
+  streaks: 0.1,
+  flecks: 0,
+  vary: 0.04,
+  drift: 0.03,
+  bevel: 0.2,
+  mute: 0.1,
+}
+
+const TIMBER = {
+  ash: { ...OAK, late: '#a8845f', spacing: 4.4, rings: 0.42, knots: 0.04, flatSawn: 0.7 },
+  beech: {
+    ...OAK,
+    cool: 0,
+    late: '#b48f6c',
+    spacing: 2.4,
+    rings: 0.18,
+    pores: 0,
+    flecks: 0.12,
+    knots: 0,
+    flatSawn: 0.5,
+  },
+  birch: {
+    ...OAK,
+    cool: 0,
+    late: '#bba485',
+    spacing: 2.6,
+    rings: 0.14,
+    pores: 0,
+    streaks: 0.08,
+    knots: 0.03,
+    flatSawn: 0.55,
+  },
+  'natural-oak': { ...OAK, late: '#9a7550', knots: 0.08, cool: 0.03 },
+  'red-oak': { ...OAK, late: '#9b6646', rings: 0.42, pores: 0.2, knots: 0.05, cool: 0.03 },
+  'white-oak': {
+    ...OAK,
+    late: '#ab967c',
+    rings: 0.3,
+    pores: 0.14,
+    knots: 0.06,
+    mute: 0.1,
+    cool: 0.01,
+  },
+}
+
+const VENEER = {
+  ...OAK,
+  plank: 200,
+  continuous: true,
+  knots: 0,
+  bevel: 0.05,
+  drift: 0.02,
+  vary: 0.025,
+  cool: 0,
+}
+
+const FINISH_TIMBER = {
+  'oak-dark': { ...VENEER, colour: '#6e4b31', late: '#3e2817' },
+  'oak-medium': { ...VENEER, colour: '#a97b4f', late: '#6c4a2c' },
+  'oak-light': { ...VENEER, colour: '#d6b68b', late: '#9a7550' },
+  'ash-light': { ...VENEER, colour: '#e8d6b8', late: '#b0916a', spacing: 4.4, rings: 0.4 },
+  'ash-natural': { ...VENEER, colour: '#d8b98f', late: '#9a7149', spacing: 4.4, rings: 0.42 },
+  acorn: { ...VENEER, colour: '#bf8c4f', late: '#7e5328', spacing: 3, rings: 0.3, pores: 0 },
+  walnut: { ...VENEER, colour: '#5f3f2b', late: '#2f1d12', spacing: 3, rings: 0.4, pores: 0.12 },
+  maple: {
+    ...VENEER,
+    colour: '#ead2a8',
+    late: '#c19e72',
+    spacing: 2.4,
+    rings: 0.14,
+    pores: 0,
+    flatSawn: 0.4,
+  },
+  cherry: { ...VENEER, colour: '#9c5a3a', late: '#5e301b', spacing: 2.8, rings: 0.28, pores: 0 },
+  'oak-paneling': {
+    ...VENEER,
+    plank: 150,
+    bevel: 0.6,
+    vary: 0.05,
+    knots: 0.05,
+    colour: '#c69c6d',
+    late: '#8a6440',
+  },
+  'white-wood-paneling': {
+    ...VENEER,
+    plank: 150,
+    bevel: 0.45,
+    vary: 0.008,
+    colour: '#f3f1eb',
+    late: '#ddd8cd',
+    rings: 0.12,
+    pores: 0,
+    fibre: 0.02,
+    streaks: 0.02,
+    mute: 0,
+  },
+}
+
 const lookOf = (id) => FINISH_LOOKS[id] ?? LOOKS[id]
+
+function timber(look, length, across, pixels, seed, upright) {
+  const height = Math.round((pixels * across) / length)
+  const image = renderWood({
+    length,
+    across,
+    width: pixels,
+    height,
+    look,
+    seed,
+    transpose: upright,
+  })
+  return encodeJpeg(image.width, image.height, image.pixels, 86)
+}
+
+const floorTimber = (material, pixels) =>
+  timber(
+    { ...TIMBER[material.id], colour: material.colour },
+    material.unit.width,
+    material.unit.depth,
+    pixels,
+    material.id,
+    false,
+  )
+
+const finishTimber = (finish, pixels) => {
+  const cover = coverOf(finish)
+  return timber(FINISH_TIMBER[finish.id], cover.height, cover.width, pixels, finish.id, true)
+}
 
 function periodic(id, W, H, look) {
   const r = seeded(`${id}:${W}x${H}`)
@@ -997,6 +881,10 @@ function write(path, text) {
 }
 
 for (const material of FLOORS) {
+  if (TIMBER[material.id]) {
+    write(`textures/${material.texture}`, floorTimber(material, 2560))
+    continue
+  }
   const look = LOOKS[material.id]
   if (!look) throw new Error(`${material.id} has no look`)
   const { width, depth } = material.unit
@@ -1006,20 +894,19 @@ for (const material of FLOORS) {
   )
 }
 
-const coverOf = (finish) => COVERS[finish.category] ?? SPREAD
-
-function veneer(id, cover, look) {
-  if (look.kind !== wood) return periodic(id, cover.width, cover.height, look)
-  const turned = periodic(id, cover.height, cover.width, look)
-  return { defs: turned.defs, content: `<g transform="matrix(0 1 1 0 0 0)">${turned.content}</g>` }
-}
-
 for (const finish of FINISHES) {
   if (!finish.picture) continue
+  if (FINISH_TIMBER[finish.id]) {
+    write(finish.picture, finishTimber(finish, 2048))
+    continue
+  }
   const look = lookOf(finish.id)
   if (!look) throw new Error(`${finish.id} has no look`)
   const cover = coverOf(finish)
-  write(finish.picture, file(cover.width, cover.height, 1024, veneer(finish.id, cover, look)))
+  write(
+    finish.picture,
+    file(cover.width, cover.height, 1024, periodic(finish.id, cover.width, cover.height, look)),
+  )
 }
 
 const S = 0.07
@@ -1048,7 +935,14 @@ function patterned(id, drawn, width, height, matrix) {
   }
 }
 
-function worn(id, finishId, matrix, upright = false) {
+function photo(id, jpeg, width, height, matrix) {
+  return {
+    defs: `<pattern id="${id}" patternUnits="userSpaceOnUse" width="${width}" height="${height}" patternTransform="matrix(${exact(matrix)})"><image href="data:image/jpeg;base64,${jpeg.toString('base64')}" width="${width}" height="${height}" preserveAspectRatio="none"/></pattern>`,
+    fill: `url(#${id})`,
+  }
+}
+
+function worn(id, finishId, matrix) {
   const finish = FINISHES.find((each) => each.id === finishId)
   if (!finish?.picture) {
     const colour = finish?.colour ?? finishId
@@ -1058,16 +952,21 @@ function worn(id, finishId, matrix, upright = false) {
     }
   }
   const cover = coverOf(finish)
-  const look = lookOf(finishId)
-  const drawn = upright
-    ? veneer(finishId, cover, look)
-    : periodic(finishId, cover.width, cover.height, look)
-  return patterned(id, drawn, cover.width, cover.height, matrix)
+  if (FINISH_TIMBER[finishId])
+    return photo(id, finishTimber(finish, 512), cover.width, cover.height, matrix)
+  return patterned(
+    id,
+    periodic(finishId, cover.width, cover.height, lookOf(finishId)),
+    cover.width,
+    cover.height,
+    matrix,
+  )
 }
 
 function laid(id, materialId, matrix) {
   const material = FLOORS.find((each) => each.id === materialId)
   const { width, depth } = material.unit
+  if (TIMBER[materialId]) return photo(id, floorTimber(material, 1024), width, depth, matrix)
   return patterned(
     id,
     periodic(`floor-${materialId}`, width, depth, LOOKS[materialId]),
@@ -1087,8 +986,8 @@ function card(style) {
   const right = worn('wr', d.walls, RIGHT)
   const left = worn('wl', d.walls, LEFT)
   const ceiling = worn('ce', d.ceiling, FLAT(WALL + SLAB))
-  const door = worn('dr', d.doors, LEFT, true)
-  const frame = worn('wn', d.windows, RIGHT, true)
+  const door = worn('dr', d.doors, LEFT)
+  const frame = worn('wn', d.windows, RIGHT)
   const defs = [floor, right, left, ceiling, door, frame].map((each) => each.defs)
   defs.push(
     '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4dbec"/><stop offset="1" stop-color="#eaf2f5"/></linearGradient>',

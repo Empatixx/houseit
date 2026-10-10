@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="37.01" height="12.99" viewBox="0 0 37.01 12.99" fill="none">
-<rect x="0.5" y="0.5" width="36.01" height="11.99" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
-<line x1="1.29" y1="1.88" x2="35.72" y2="1.88" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round"/>
-<rect x="18.11" y="1.88" width="0.79" height="10.61" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-dasharray="2 1.5"/>
+<path d="M1.09 0.5L35.92 0.5Q36.51 0.5 36.51 1.09L36.51 10.92Q36.51 12.49 34.93 12.49L2.07 12.49Q0.5 12.49 0.5 10.92L0.5 1.09Q0.5 0.5 1.09 0.5Z" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M2.47 1.48L34.54 1.48Q35.52 1.48 35.52 2.47L35.52 10.52Q35.52 11.51 34.54 11.51L2.47 11.51Q1.48 11.51 1.48 10.52L1.48 2.47Q1.48 1.48 2.47 1.48Z" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M4.36 3.65C13.69 3.38 13.69 3.92 18.5 3.65S25.39 3.38 32.65 3.73" fill="none" stroke="#000000" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.14"/>
+<path d="M4.32 8.38C13.39 7.78 13.39 8.97 18.06 8.38S24.82 7.78 31.81 8.55" fill="none" stroke="#000000" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.14"/>
 </svg>

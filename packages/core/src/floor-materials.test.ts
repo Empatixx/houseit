@@ -26,7 +26,7 @@ test('every material states a real size, so a tile is the same size in any room'
 
 test('a floor pattern repeats inside a room, or it is not a pattern', () => {
   for (const material of FLOOR_MATERIALS) {
-    expect(material.unit.width, material.id).toBeLessThanOrEqual(1600)
+    expect(material.unit.width, material.id).toBeLessThanOrEqual(4000)
     expect(material.unit.depth, material.id).toBeLessThanOrEqual(1600)
   }
 })

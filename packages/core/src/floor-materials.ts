@@ -47,8 +47,8 @@ export const FLOOR_MATERIALS: readonly FloorMaterial[] = [
   {
     id: 'laminate',
     label: 'Laminate',
-    unit: { width: 1600, depth: 1350 },
-    texture: 'surfaces/ash.svg',
+    unit: { width: 4000, depth: 1350 },
+    texture: 'surfaces/ash.jpg',
     colour: '#dfbd96',
   },
   {

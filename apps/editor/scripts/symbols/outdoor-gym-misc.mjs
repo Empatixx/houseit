@@ -520,12 +520,8 @@ save('flower-bed-raised.svg', 2000, 800, (W, H) => {
   const rng = seeded(801)
   const t = 2.5
   const out = [
-    rect(0.5, 0.5, W - 1, H - 1),
-    rect(0.5 + t, 0.5 + t, W - 1 - 2 * t, H - 1 - 2 * t, { f: LIGHT }),
-    line(0.5, 0.5, 0.5 + t, 0.5 + t),
-    line(W - 0.5, 0.5, W - 0.5 - t, 0.5 + t),
-    line(0.5, H - 0.5, 0.5 + t, H - 0.5 - t),
-    line(W - 0.5, H - 0.5, W - 0.5 - t, H - 0.5 - t),
+    rect(0.5, 0.5, W - 1, H - 1, { rx: 3.5 }),
+    rect(0.5 + t, 0.5 + t, W - 1 - 2 * t, H - 1 - 2 * t, { f: LIGHT, w: 0.5, rx: 1.5 }),
   ]
   const rows = [H * 0.33, H * 0.67]
   for (const [k, y] of rows.entries()) {
@@ -544,7 +540,7 @@ save('flower-bed-raised.svg', 2000, 800, (W, H) => {
           const b = (p / 5) * Math.PI * 2
           out.push(circle(fx + Math.cos(b) * 0.55, fy + Math.sin(b) * 0.55, 0.45, { w: 0.25 }))
         }
-        out.push(circle(fx, fy, 0.3, { f: INK, w: 0 }))
+        out.push(circle(fx, fy, 0.3, { f: GREY, w: 0 }))
       }
     }
   }
@@ -558,12 +554,17 @@ save('outdoor-dining.svg', 2769, 2769, (W, H) => {
   const cw = units(520)
   const cd = units(560)
   const rc = tableR - units(120) + cd / 2
+  const bend = (y, k) =>
+    `M${num(-cw / 2 + 3)} ${num(y)}Q0 ${num(y + k)} ${num(cw / 2 - 3)} ${num(y)}`
+  const back = cd / 2
   const chair = [
-    rect(-cw / 2, -cd / 2, cw, cd, { rx: 2 }),
-    rect(-cw / 2 + 0.2, cd / 2 - 3.2, cw - 0.4, 3, { rx: 1.2 }),
-    rect(-cw / 2, -cd / 2 + 2, 2.2, cd - 4, { rx: 1 }),
-    rect(cw / 2 - 2.2, -cd / 2 + 2, 2.2, cd - 4, { rx: 1 }),
-    [-4, 0, 4].map((y) => line(-cw / 2 + 3, y, cw / 2 - 3, y)),
+    rect(-cw / 2 + 0.5, -cd / 2, cw - 1, cd - 1.5, { rx: 4 }),
+    [-5, -1, 3].map((y) => stroke(bend(y, 1.6))),
+    path(
+      `M${num(-cw / 2)} ${num(back - 3.2)}Q0 ${num(back + 0.5)} ${num(cw / 2)} ${num(back - 3.2)}Q${num(cw / 2 + 0.2)} ${num(back - 5.6)} ${num(cw / 2 - 1.4)} ${num(back - 5.6)}Q0 ${num(back - 2.4)} ${num(-cw / 2 + 1.4)} ${num(back - 5.6)}Q${num(-cw / 2 - 0.2)} ${num(back - 5.6)} ${num(-cw / 2)} ${num(back - 3.2)}Z`,
+    ),
+    rect(-cw / 2, -cd / 2 + 3, 2.2, cd - 8, { rx: 1.1 }),
+    rect(cw / 2 - 2.2, -cd / 2 + 3, 2.2, cd - 8, { rx: 1.1 }),
   ]
   const out = []
   for (let i = 0; i < 6; i++) {
@@ -587,20 +588,25 @@ save('outdoor-dining.svg', 2769, 2769, (W, H) => {
     const a = ((i + 0.5) / 8) * Math.PI * 2
     pts.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R])
   }
-  out.push(polygon(pts, { f: 'none', w: 0.5, d: '3 2' }))
+  const scallop = pts.map((p, i) => {
+    const q = pts[(i + 1) % 8]
+    const m = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]
+    const k = 1.05
+    return `Q${num(cx + (m[0] - cx) * k)} ${num(cy + (m[1] - cy) * k)} ${num(q[0])} ${num(q[1])}`
+  })
+  out.push(stroke(`M${num(pts[0][0])} ${num(pts[0][1])}${scallop.join('')}Z`, { d: '3 2' }))
   for (const p of pts) out.push(line(cx, cy, p[0], p[1], { d: '3 2' }))
-  out.push(circle(cx, cy, 1.6, { f: GREY }))
+  out.push(circle(cx, cy, 1.6, { f: GREY, w: 0.5 }))
   return out
 })
 
 save('yoga-mat.svg', 610, 1727, (W, H) => [
-  rect(0.5, 0.5, W - 1, H - 1, { rx: 0.8 }),
-  rect(0.5, 0.5, W - 1, 5.4, { rx: 2.2 }),
-  line(1.2, 2.2, W - 1.2, 2.2, { w: 0.25 }),
-  line(1.2, 3.9, W - 1.2, 3.9, { w: 0.25 }),
-  line(1.8, 7, 1.8, H - 1.8, { w: 0.25 }),
-  line(W - 1.8, 7, W - 1.8, H - 1.8, { w: 0.25 }),
-  line(1.8, H - 1.8, W - 1.8, H - 1.8, { w: 0.25 }),
+  rect(0.5, 0.5, W - 1, H - 1, { rx: 1.6 }),
+  rect(0.5, 0.5, W - 1, 5.6, { rx: 2.8 }),
+  stroke(
+    `M1.6 2.4Q${num(W / 2)} 2.9 ${num(W - 1.6)} 2.4M1.6 4Q${num(W / 2)} 4.5 ${num(W - 1.6)} 4`,
+  ),
+  rect(1.9, 7.4, W - 3.8, H - 9.3, { f: 'none', w: 0.5, rx: 1 }),
 ])
 
 save('railing.svg', 2311, 127, (W, H) => {
@@ -608,7 +614,7 @@ save('railing.svg', 2311, 127, (W, H) => {
   const out = [rect(0.5, H / 2 - 1.2, W - 1, 2.4, { rx: 1.2 })]
   for (let i = 0; i < posts; i++) {
     const x = 2.5 + ((W - 5) * i) / (posts - 1)
-    out.push(circle(x, H / 2, 1.9, { f: INK, w: 0 }))
+    out.push(circle(x, H / 2, 1.9, { f: GREY, w: 0.5 }))
   }
   return out
 })
@@ -635,62 +641,75 @@ save('column.svg', 305, 305, (W, H) => {
 function car(file, wMm, dMm, spec) {
   save(file, wMm, dMm, (W, H) => {
     const cx = W / 2
-    const bw = units(spec.body) / 2 - 0.5
+    const bw = units(spec.body) / 2 - 1
     const top = 0.5
     const bot = H - 0.5
-    const rr = spec.rearRound
-    const fr = spec.frontRound
-    const body = `M${num(cx - bw + rr)} ${top}L${num(cx + bw - rr)} ${top}Q${num(cx + bw)} ${top} ${num(cx + bw)} ${num(top + rr)}Q${num(cx + bw + 0.5)} ${num(H / 2)} ${num(cx + bw)} ${num(bot - fr)}Q${num(cx + bw)} ${num(bot)} ${num(cx + bw - fr)} ${num(bot)}L${num(cx - bw + fr)} ${num(bot)}Q${num(cx - bw)} ${num(bot)} ${num(cx - bw)} ${num(bot - fr)}Q${num(cx - bw - 0.5)} ${num(H / 2)} ${num(cx - bw)} ${num(top + rr)}Q${num(cx - bw)} ${top} ${num(cx - bw + rr)} ${top}Z`
-    const { rear, roofFrom, roofTo, screen, cabin, screenWide, rearWide } = spec
+    const { rr, fr, rear, roofFrom, roofTo, screen, cabin, screenWide, rearWide } = spec
+    const side = (s) => cx + s * bw
+    const body =
+      `M${num(cx)} ${top}` +
+      `C${num(cx + bw * 0.55)} ${top} ${num(side(1))} ${num(top + rr * 0.2)} ${num(side(1))} ${num(top + rr)}` +
+      `C${num(side(1) + 0.9)} ${num(H * 0.35)} ${num(side(1) + 0.9)} ${num(H * 0.65)} ${num(side(1))} ${num(bot - fr)}` +
+      `C${num(side(1))} ${num(bot - fr * 0.2)} ${num(cx + bw * 0.55)} ${bot} ${num(cx)} ${bot}` +
+      `C${num(cx - bw * 0.55)} ${bot} ${num(side(-1))} ${num(bot - fr * 0.2)} ${num(side(-1))} ${num(bot - fr)}` +
+      `C${num(side(-1) - 0.9)} ${num(H * 0.65)} ${num(side(-1) - 0.9)} ${num(H * 0.35)} ${num(side(-1))} ${num(top + rr)}` +
+      `C${num(side(-1))} ${num(top + rr * 0.2)} ${num(cx - bw * 0.55)} ${top} ${num(cx)} ${top}Z`
     const mirror = (s) => {
-      const x0 = cx + s * (bw - 0.5)
+      const x0 = side(s) - s * 0.6
       const x1 = s > 0 ? W - 0.5 : 0.5
-      const y = screen + 2
+      const y = screen + 1
       return path(
-        `M${num(x0)} ${num(y)}L${num(x1 - s * 0.8)} ${num(y + 1)}Q${num(x1)} ${num(y + 1.2)} ${num(x1)} ${num(y + 2.4)}L${num(x1)} ${num(y + 5.4)}Q${num(x1)} ${num(y + 6.6)} ${num(x1 - s * 1.2)} ${num(y + 6.4)}L${num(x0)} ${num(y + 6.6)}Z`,
+        `M${num(x0)} ${num(y)}C${num(x1 - s * 1.6)} ${num(y)} ${num(x1)} ${num(y + 0.8)} ${num(x1)} ${num(y + 3)}C${num(x1)} ${num(y + 5.4)} ${num(x1 - s * 2)} ${num(y + 6.2)} ${num(x0)} ${num(y + 6.6)}Z`,
       )
     }
     const out = [mirror(-1), mirror(1), path(body)]
-    out.push(
-      path(
-        `M${num(cx - rearWide)} ${num(rear)}Q${num(cx)} ${num(rear - 3)} ${num(cx + rearWide)} ${num(rear)}L${num(cx + cabin)} ${num(roofFrom)}L${num(cx - cabin)} ${num(roofFrom)}Z`,
-        { f: GREY },
-      ),
-    )
-    out.push(
-      path(
-        `M${num(cx - cabin)} ${num(roofTo)}L${num(cx + cabin)} ${num(roofTo)}L${num(cx + screenWide)} ${num(screen)}Q${num(cx)} ${num(screen + 5)} ${num(cx - screenWide)} ${num(screen)}Z`,
-        { f: GREY },
-      ),
-    )
     for (const s of [-1, 1]) {
-      const edge = cx + s * (bw - 1.6)
+      const edge = cx + s * (bw - 2)
       out.push(
         path(
-          `M${num(cx + s * cabin)} ${num(roofFrom)}L${num(cx + s * rearWide)} ${num(rear)}L${num(edge)} ${num(rear + 4)}L${num(edge)} ${num(screen - 3)}L${num(cx + s * screenWide)} ${num(screen)}L${num(cx + s * cabin)} ${num(roofTo)}Z`,
+          `M${num(cx + s * cabin)} ${num(roofFrom)}L${num(cx + s * rearWide)} ${num(rear)}Q${num(edge)} ${num(rear + 0.6)} ${num(edge)} ${num(rear + 5)}L${num(edge)} ${num(screen - 5)}Q${num(edge)} ${num(screen - 0.4)} ${num(cx + s * screenWide)} ${num(screen)}L${num(cx + s * cabin)} ${num(roofTo)}Z`,
           { f: GREY, w: 0.5 },
         ),
       )
-      out.push(line(cx + s * cabin, spec.pillar, edge, spec.pillar))
+      out.push(
+        stroke(`M${num(cx + s * cabin)} ${num(spec.pillar)}L${num(edge)} ${num(spec.pillar + 1)}`),
+      )
       out.push(
         stroke(
-          `M${num(cx + s * (screenWide - 6))} ${num(screen + 6)}Q${num(cx + s * (screenWide - 3))} ${num((screen + bot) / 2)} ${num(cx + s * (screenWide - 8))} ${num(bot - 4)}`,
+          `M${num(cx + s * (screenWide - 6))} ${num(screen + 7)}Q${num(cx + s * (screenWide - 3))} ${num((screen + bot) / 2)} ${num(cx + s * (screenWide - 9))} ${num(bot - 5)}`,
         ),
       )
       out.push(
         path(
-          `M${num(cx + s * (bw - 1))} ${num(bot - fr + 1)}Q${num(cx + s * (bw - 2))} ${num(bot - 2.2)} ${num(cx + s * (bw - fr * 0.9))} ${num(bot - 1.4)}L${num(cx + s * (bw - fr * 0.9 - 6))} ${num(bot - 1.6)}L${num(cx + s * (bw - fr * 0.9 - 5))} ${num(bot - 4.2)}Z`,
+          `M${num(side(s) - s * 1.3)} ${num(bot - fr * 0.75)}Q${num(side(s) - s * 1.6)} ${num(bot - 2.4)} ${num(cx + s * bw * 0.6)} ${num(bot - 1.9)}Q${num(cx + s * bw * 0.52)} ${num(bot - 3.6)} ${num(cx + s * bw * 0.62)} ${num(bot - 4.2)}Q${num(side(s) - s * 4)} ${num(bot - 4.8)} ${num(side(s) - s * 1.3)} ${num(bot - fr * 0.75)}Z`,
           { f: LIGHT, w: 0.5 },
         ),
       )
       out.push(
         path(
-          `M${num(cx + s * (bw - 1.2))} ${num(top + rr * 0.7)}Q${num(cx + s * (bw - 1.6))} ${num(top + 1.4)} ${num(cx + s * (bw - rr))} ${num(top + 1.2)}L${num(cx + s * (bw - rr - 6))} ${num(top + 1.2)}L${num(cx + s * (bw - rr - 6))} ${num(top + 3)}L${num(cx + s * (bw - 1.2))} ${num(top + 4.5)}Z`,
+          `M${num(side(s) - s * 1.2)} ${num(top + rr * 0.7)}Q${num(side(s) - s * 1.8)} ${num(top + 1.8)} ${num(cx + s * bw * 0.6)} ${num(top + 1.5)}Q${num(cx + s * bw * 0.55)} ${num(top + 3)} ${num(cx + s * bw * 0.65)} ${num(top + 3.3)}Q${num(side(s) - s * 3)} ${num(top + 3.6)} ${num(side(s) - s * 1.2)} ${num(top + rr * 0.7 + 2)}Z`,
           { f: GREY, w: 0.5 },
         ),
       )
     }
-    out.push(rect(cx - cabin, roofFrom, cabin * 2, roofTo - roofFrom, { rx: 3 }))
+    out.push(
+      path(
+        `M${num(cx - rearWide)} ${num(rear)}Q${num(cx)} ${num(rear - 4)} ${num(cx + rearWide)} ${num(rear)}L${num(cx + cabin)} ${num(roofFrom)}Q${num(cx)} ${num(roofFrom - 2.5)} ${num(cx - cabin)} ${num(roofFrom)}Z`,
+        { f: GREY },
+      ),
+    )
+    out.push(
+      path(
+        `M${num(cx - cabin)} ${num(roofTo)}Q${num(cx)} ${num(roofTo - 2.5)} ${num(cx + cabin)} ${num(roofTo)}L${num(cx + screenWide)} ${num(screen)}Q${num(cx)} ${num(screen + 6)} ${num(cx - screenWide)} ${num(screen)}Z`,
+        { f: GREY },
+      ),
+    )
+    const third = (roofTo - roofFrom) / 3
+    out.push(
+      path(
+        `M${num(cx - cabin)} ${num(roofFrom)}Q${num(cx)} ${num(roofFrom - 2.5)} ${num(cx + cabin)} ${num(roofFrom)}C${num(cx + cabin + 0.6)} ${num(roofFrom + third)} ${num(cx + cabin + 0.6)} ${num(roofTo - third)} ${num(cx + cabin)} ${num(roofTo)}Q${num(cx)} ${num(roofTo - 2.5)} ${num(cx - cabin)} ${num(roofTo)}C${num(cx - cabin - 0.6)} ${num(roofTo - third)} ${num(cx - cabin - 0.6)} ${num(roofFrom + third)} ${num(cx - cabin)} ${num(roofFrom)}Z`,
+      ),
+    )
     if (spec.rails) {
       for (const s of [-1, 1]) {
         const x = cx + s * (cabin - 3)
@@ -699,41 +718,34 @@ function car(file, wMm, dMm, spec) {
         )
       }
     }
-    if (spec.trunk)
-      out.push(
-        stroke(
-          `M${num(cx - bw + 3)} ${num(spec.trunk)}Q${num(cx)} ${num(spec.trunk - 2)} ${num(cx + bw - 3)} ${num(spec.trunk)}`,
-        ),
-      )
     return out
   })
 }
 
 car('sedan.svg', 2007, 4877, {
   body: 1820,
-  rearRound: 9,
-  frontRound: 13,
+  rr: 16,
+  fr: 20,
   rear: 36,
-  roofFrom: 56,
-  roofTo: 110,
+  roofFrom: 58,
+  roofTo: 108,
   screen: 136,
-  pillar: 86,
-  cabin: 28,
-  screenWide: 31.5,
-  rearWide: 30,
-  trunk: 4.5,
+  pillar: 84,
+  cabin: 27,
+  screenWide: 31,
+  rearWide: 29.5,
 })
 car('suv.svg', 2057, 4699, {
   body: 1900,
-  rearRound: 6,
-  frontRound: 10,
-  rear: 7,
-  roofFrom: 18,
-  roofTo: 116,
+  rr: 11,
+  fr: 16,
+  rear: 9,
+  roofFrom: 20,
+  roofTo: 114,
   screen: 138,
-  pillar: 70,
-  cabin: 30,
-  screenWide: 33,
+  pillar: 66,
+  cabin: 29.5,
+  screenWide: 32.5,
   rearWide: 31,
   rails: true,
 })
@@ -741,52 +753,47 @@ car('suv.svg', 2057, 4699, {
 save('ping-pong.svg', 1829, 2743, (W, H) => {
   const tw = units(1525)
   const x0 = (W - tw) / 2
-  const out = [
-    rect(x0, 0.5, tw, H - 1),
-    rect(x0 + 0.8, 1.3, tw - 1.6, H - 2.6, { f: 'none', w: 0.5 }),
-    line(W / 2, 1.3, W / 2, H - 1.3),
+  return [
+    rect(x0, 0.5, tw, H - 1, { rx: 2.5 }),
+    rect(x0 + 0.9, 1.4, tw - 1.8, H - 2.8, { f: 'none', w: 0.5, rx: 1.7 }),
+    line(W / 2, 1.4, W / 2, H - 1.4),
+    rect(1.6, H / 2 - 0.55, W - 3.2, 1.1, { rx: 0.55, f: LIGHT, w: 0.5 }),
+    line(2.4, H / 2, W - 2.4, H / 2, { w: 0.25, d: '0.5 0.5' }),
+    circle(1.8, H / 2, 1.3, { f: GREY, w: 0.5 }),
+    circle(W - 1.8, H / 2, 1.3, { f: GREY, w: 0.5 }),
   ]
-  out.push(rect(0.5, H / 2 - 0.4, W - 1, 0.8, { f: INK, w: 0 }))
-  out.push(rect(0.5, H / 2 - 1.4, 2.6, 2.8, { rx: 0.4, f: GREY }))
-  out.push(rect(W - 3.1, H / 2 - 1.4, 2.6, 2.8, { rx: 0.4, f: GREY }))
-  return out
 })
 
 save('pool-table.svg', 1626, 2896, (W, H) => {
   const rail = 5
-  const out = [
-    rect(0.5, 0.5, W - 1, H - 1, { rx: 2.5 }),
-    rect(0.5 + rail, 0.5 + rail, W - 1 - 2 * rail, H - 1 - 2 * rail, { f: LIGHT, w: 0.5 }),
-  ]
   const ix0 = 0.5 + rail
   const iy0 = 0.5 + rail
   const ix1 = W - 0.5 - rail
   const iy1 = H - 0.5 - rail
+  const out = [
+    rect(0.5, 0.5, W - 1, H - 1, { rx: 5.5 }),
+    rect(ix0, iy0, ix1 - ix0, iy1 - iy0, { f: LIGHT, w: 0.5, rx: 1.5 }),
+  ]
   for (const [x, y] of [
-    [ix0, iy0],
-    [ix1, iy0],
-    [ix0, iy1],
-    [ix1, iy1],
-    [ix0 - 0.6, H / 2],
-    [ix1 + 0.6, H / 2],
+    [ix0 + 0.4, iy0 + 0.4],
+    [ix1 - 0.4, iy0 + 0.4],
+    [ix0 + 0.4, iy1 - 0.4],
+    [ix1 - 0.4, iy1 - 0.4],
+    [ix0 - 0.9, H / 2],
+    [ix1 + 0.9, H / 2],
   ]) {
-    out.push(circle(x, y, 2.3, { f: INK, w: 0 }))
+    out.push(circle(x, y, 2.5, { f: GREY }), circle(x, y, 1.5, { f: 'none', w: 0.5 }))
   }
   const len = iy1 - iy0
+  const diamond = (x, y) => circle(x, y, 0.45, { f: LIGHT, w: 0.25 })
   for (let i = 1; i < 8; i++) {
     if (i === 4) continue
     const y = iy0 + (len * i) / 8
-    out.push(
-      circle(ix0 - rail / 2, y, 0.4, { f: INK, w: 0 }),
-      circle(ix1 + rail / 2, y, 0.4, { f: INK, w: 0 }),
-    )
+    out.push(diamond(ix0 - rail / 2, y), diamond(ix1 + rail / 2, y))
   }
   for (let i = 1; i < 4; i++) {
     const x = ix0 + ((ix1 - ix0) * i) / 4
-    out.push(
-      circle(x, iy0 - rail / 2, 0.4, { f: INK, w: 0 }),
-      circle(x, iy1 + rail / 2, 0.4, { f: INK, w: 0 }),
-    )
+    out.push(diamond(x, iy0 - rail / 2), diamond(x, iy1 + rail / 2))
   }
   const head = iy1 - len / 4
   out.push(line(ix0, head, ix1, head, { w: 0.25, d: '1.5 1' }))
@@ -809,10 +816,13 @@ save('bbq.svg', 1575, 762, (W, H) => {
   const shelfH = H - 6
   const lidX0 = 17
   const lidX1 = W - 17
-  out.push(rect(0.5, shelfY, lidX0 + 1, shelfH, { rx: 1 }))
-  out.push(rect(lidX1 - 1, shelfY, W - 0.5 - lidX1 + 1, shelfH, { rx: 1 }))
-  for (let x = 3.5; x < lidX0 - 1; x += 3)
-    out.push(line(x, shelfY + 1.5, x, shelfY + shelfH - 1.5, { w: 0.25 }))
+  out.push(
+    circle(6, shelfY + shelfH + 0.6, 1.2, { f: LIGHT, w: 0.5 }),
+    circle(11.5, shelfY + shelfH + 0.6, 1.2, { f: LIGHT, w: 0.5 }),
+  )
+  out.push(rect(0.5, shelfY, lidX0 + 1.5, shelfH, { rx: 2.5 }))
+  out.push(rect(lidX1 - 2, shelfY, W - 0.5 - lidX1 + 2, shelfH, { rx: 2.5 }))
+  for (let x = 4; x < lidX0 - 1; x += 3) out.push(line(x, shelfY + 2, x, shelfY + shelfH - 2))
   const bx = (lidX1 + W - 0.5) / 2
   const by = shelfY + shelfH / 2
   out.push(circle(bx, by, 6), circle(bx, by, 3.4, { f: GREY, w: 0.5 }))
@@ -828,15 +838,13 @@ save('bbq.svg', 1575, 762, (W, H) => {
     )
   }
   const lidBottom = H - 4
-  out.push(rect(lidX0, 0.5, lidX1 - lidX0, lidBottom - 0.5, { rx: 6 }))
   out.push(
-    rect(lidX0 + 2.5, 2.5, lidX1 - lidX0 - 5, lidBottom - 4.5, { rx: 4.5, f: 'none', w: 0.5 }),
+    line(lidX0 + 6, lidBottom - 1, lidX0 + 6, H - 1.6),
+    line(lidX1 - 6, lidBottom - 1, lidX1 - 6, H - 1.6),
   )
+  out.push(rect(lidX0, 0.5, lidX1 - lidX0, lidBottom - 0.5, { rx: 8 }))
+  out.push(rect(lidX0 + 2.5, 2.5, lidX1 - lidX0 - 5, lidBottom - 4.5, { rx: 6, f: 'none', w: 0.5 }))
   out.push(circle(W / 2, (lidBottom + 0.5) / 2, 1.4, { f: LIGHT, w: 0.5 }))
-  out.push(
-    line(lidX0 + 6, lidBottom, lidX0 + 6, H - 1.6),
-    line(lidX1 - 6, lidBottom, lidX1 - 6, H - 1.6),
-  )
   out.push(rect(lidX0 + 4, H - 2.4, lidX1 - lidX0 - 8, 1.9, { rx: 0.95, f: GREY }))
   return out
 })
@@ -846,95 +854,107 @@ save('exercise-bike.svg', 610, 1321, (W, H) => {
   return [
     rect(1, 1, W - 2, 3, { rx: 1.5 }),
     rect(1, H - 4, W - 2, 3, { rx: 1.5 }),
-    rect(cx - 2, 36, 4, 12.5, { rx: 2, f: LIGHT }),
-    rect(cx - 1.4, 4, 2.8, H - 8, { f: GREY, w: 0.5 }),
-    line(cx, 25, 3.5, 25, { w: 1 }),
-    line(cx, 25, W - 3.5, 25, { w: 1 }),
-    rect(1.2, 23.3, 4.6, 3.4, { rx: 0.6, f: GREY, w: 0.5 }),
-    rect(W - 5.8, 23.3, 4.6, 3.4, { rx: 0.6, f: GREY, w: 0.5 }),
+    ellipse(cx, 42.5, 2.2, 6.6, { f: LIGHT }),
+    rect(cx - 1.4, 4, 2.8, H - 8, { rx: 1.4, f: GREY, w: 0.5 }),
+    line(cx, 25, 3.8, 25, { w: 1 }),
+    line(cx, 25, W - 3.8, 25, { w: 1 }),
+    rect(1.2, 23.2, 4.6, 3.6, { rx: 1.8, f: GREY, w: 0.5 }),
+    rect(W - 5.8, 23.2, 4.6, 3.6, { rx: 1.8, f: GREY, w: 0.5 }),
     circle(cx, 25, 2.2, { f: LIGHT, w: 0.5 }),
     path(
       `M${num(cx - 5)} 11C${num(cx - 5.4)} 14 ${num(cx - 2)} 16 ${num(cx - 1.4)} 20.5Q${num(cx)} 21.5 ${num(cx + 1.4)} 20.5C${num(cx + 2)} 16 ${num(cx + 5.4)} 14 ${num(cx + 5)} 11Q${num(cx)} 8.6 ${num(cx - 5)} 11Z`,
     ),
-    stroke(
-      `M2.5 33Q3 29.5 ${num(cx - 2)} 30.5L${num(cx + 2)} 30.5Q${num(W - 3)} 29.5 ${num(W - 2.5)} 33`,
-      { w: 1.6 },
+    stroke(`M${num(cx)} 12.5L${num(cx)} 19`),
+    path(
+      `M2.3 33.5C2.3 29.8 4.5 29.6 ${num(cx)} 29.8C${num(W - 4.5)} 29.6 ${num(W - 2.3)} 29.8 ${num(W - 2.3)} 33.5L${num(W - 3.7)} 33.5C${num(W - 3.7)} 31.4 ${num(W - 5)} 31.3 ${num(cx)} 31.4C5 31.3 3.7 31.4 3.7 33.5Z`,
     ),
-    rect(1.3, 32, 2.4, 5, { rx: 1.2 }),
-    rect(W - 3.7, 32, 2.4, 5, { rx: 1.2 }),
-    rect(cx - 4, 33, 8, 4.5, { rx: 0.8 }),
-    rect(cx - 2.8, 34, 5.6, 2.5, { f: GREY, w: 0.5 }),
+    rect(1.3, 32, 2.4, 5.4, { rx: 1.2 }),
+    rect(W - 3.7, 32, 2.4, 5.4, { rx: 1.2 }),
+    rect(cx - 4, 33, 8, 4.6, { rx: 2 }),
+    rect(cx - 2.8, 34, 5.6, 2.6, { rx: 0.8, f: GREY, w: 0.5 }),
   ]
 })
 
 save('gym-bench.svg', 457, 1372, (W, H) => {
   const cx = W / 2
+  const pad = (y0, y1, taper) =>
+    `M${num(3.2 + taper)} ${num(y0 + 4)}Q${num(3.2 + taper)} ${num(y0)} ${num(cx)} ${num(y0)}Q${num(W - 3.2 - taper)} ${num(y0)} ${num(W - 3.2 - taper)} ${num(y0 + 4)}L${num(W - 3.2)} ${num(y1 - 3.5)}Q${num(W - 3.2)} ${num(y1)} ${num(cx)} ${num(y1)}Q3.2 ${num(y1)} 3.2 ${num(y1 - 3.5)}Z`
   return [
     rect(0.5, 1, W - 1, 2.6, { rx: 1.3, f: GREY }),
     rect(0.5, H - 3.6, W - 1, 2.6, { rx: 1.3, f: GREY }),
-    rect(cx - 1.5, 3, 3, H - 6, { f: LIGHT, w: 0.5 }),
-    rect(0.8, H - 9.5, 5.8, 3.4, { rx: 1.7 }),
-    rect(W - 6.6, H - 9.5, 5.8, 3.4, { rx: 1.7 }),
+    rect(cx - 1.5, 3, 3, H - 6, { rx: 1, f: LIGHT, w: 0.5 }),
     line(6.6, H - 7.8, W - 6.6, H - 7.8, { w: 1 }),
-    rect(3.2, 2.2, W - 6.4, 30, { rx: 2 }),
-    rect(4.2, 3.2, W - 8.4, 28, { rx: 1.4, f: 'none', w: 0.5 }),
-    rect(3.2, 33.2, W - 6.4, 11.6, { rx: 2 }),
-    rect(4.2, 34.2, W - 8.4, 9.6, { rx: 1.4, f: 'none', w: 0.5 }),
+    rect(0.8, H - 9.6, 5.8, 3.6, { rx: 1.8 }),
+    rect(W - 6.6, H - 9.6, 5.8, 3.6, { rx: 1.8 }),
+    path(pad(2.2, 32.2, 1.2)),
+    stroke(`M${num(cx)} 6L${num(cx)} 29`),
+    path(pad(33.4, 45, 0.4)),
+    stroke(`M6 39.2L${num(W - 6)} 39.2`),
   ]
 })
 
 save('treadmill.svg', 889, 2032, (W, H) => [
-  rect(1, 1, 2, 36, { rx: 1, f: GREY }),
-  rect(W - 3, 1, 2, 36, { rx: 1, f: GREY }),
-  rect(3, 8, W - 6, H - 8.5, { rx: 1.5 }),
-  rect(8, 15, W - 16, H - 20, { f: GREY, w: 0.5 }),
-  line(8, H - 5, W - 8, H - 5, { w: 0.5 }),
-  rect(4, 6, W - 8, 9, { rx: 2 }),
-  rect(0.5, 0.5, W - 1, 7.5, { rx: 2 }),
-  rect(W / 2 - 7, 2, 14, 4, { rx: 0.6, f: LIGHT, w: 0.5 }),
-  circle(5.5, 4.25, 1.3, { f: LIGHT, w: 0.5 }),
-  circle(W - 5.5, 4.25, 1.3, { f: LIGHT, w: 0.5 }),
+  rect(0.8, 3, 2.2, 34, { rx: 1.1, f: GREY }),
+  rect(W - 3, 3, 2.2, 34, { rx: 1.1, f: GREY }),
+  rect(3, 7, W - 6, H - 7.5, { rx: 3.5 }),
+  rect(8, 15, W - 16, H - 21, { rx: 1.5, f: GREY, w: 0.5 }),
+  stroke(`M8 ${num(H - 4.5)}Q${num(W / 2)} ${num(H - 3.4)} ${num(W - 8)} ${num(H - 4.5)}`),
+  rect(4, 5, W - 8, 10, { rx: 3.5 }),
+  path(
+    `M3 0.5L${num(W - 3)} 0.5Q${num(W - 0.5)} 0.5 ${num(W - 0.5)} 3L${num(W - 0.5)} 5.2Q${num(W / 2)} 11 0.5 5.2L0.5 3Q0.5 0.5 3 0.5Z`,
+  ),
+  rect(W / 2 - 7, 2, 14, 4, { rx: 1.4, f: LIGHT, w: 0.5 }),
+  circle(5.5, 3.6, 1.3, { f: LIGHT, w: 0.5 }),
+  circle(W - 5.5, 3.6, 1.3, { f: LIGHT, w: 0.5 }),
 ])
 
 save('weight-rack.svg', 1194, 457, (W, H) => {
-  const out = [rect(0.5, 0.5, W - 1, H - 1, { f: LIGHT, w: 0.5 })]
-  out.push(rect(0.5, 0.5, 2.2, H - 1), rect(W - 2.7, 0.5, 2.2, H - 1))
+  const out = [rect(0.5, 0.5, W - 1, H - 1, { f: LIGHT, w: 0.5, rx: 1.5 })]
+  out.push(rect(0.5, 0.5, 2.4, H - 1, { rx: 1.2 }), rect(W - 2.9, 0.5, 2.4, H - 1, { rx: 1.2 }))
   out.push(
-    rect(2.7, 3.2, W - 5.4, 1.6, { f: FINISH, w: 0.5 }),
-    rect(2.7, H - 4.8, W - 5.4, 1.6, { f: FINISH, w: 0.5 }),
+    rect(2.9, 3.2, W - 5.8, 1.6, { f: FINISH, w: 0.5, rx: 0.8 }),
+    rect(2.9, H - 4.8, W - 5.8, 1.6, { f: FINISH, w: 0.5, rx: 0.8 }),
   )
   const n = 6
   for (let i = 0; i < n; i++) {
-    const x = 2.7 + ((W - 5.4) * (i + 0.5)) / n
+    const x = 2.9 + ((W - 5.8) * (i + 0.5)) / n
     const s = 2.8 + i * 0.32
+    const h = s * 0.85 + 0.6
     out.push(rect(x - 0.5, 2, 1, H - 4, { rx: 0.5, f: GREY, w: 0.5 }))
-    out.push(rect(x - s / 2, 1.2, s, s * 0.85 + 0.6, { rx: 0.5, f: INK, w: 0 }))
-    out.push(
-      rect(x - s / 2, H - 1.2 - (s * 0.85 + 0.6), s, s * 0.85 + 0.6, { rx: 0.5, f: INK, w: 0 }),
-    )
+    for (const y of [1.2, H - 1.2 - h]) {
+      out.push(rect(x - s / 2, y, s, h, { rx: s * 0.35, f: GREY, w: 0.5 }))
+      out.push(line(x - s / 2 + 0.4, y + h / 2, x + s / 2 - 0.4, y + h / 2, { w: 0.25 }))
+    }
   }
   return out
 })
 
 save('box.svg', 635, 432, (W, H) => [
-  rect(0.5, 0.5, W - 1, H - 1),
-  line(1.3, 1.3, 1.3, H - 1.3, { w: 0.25 }),
-  line(W - 1.3, 1.3, W - 1.3, H - 1.3, { w: 0.25 }),
+  rect(0.5, 0.5, W - 1, H - 1, { rx: 0.9 }),
   rect(0.5, H / 2 - 1, W - 1, 2, { f: LIGHT, w: 0.5 }),
   line(1.3, H / 2, W - 1.3, H / 2, { w: 0.25 }),
+  line(1.4, 1.6, 1.4, H / 2 - 1, { w: 0.25 }),
+  line(1.4, H / 2 + 1, 1.4, H - 1.6, { w: 0.25 }),
+  line(W - 1.4, 1.6, W - 1.4, H / 2 - 1, { w: 0.25 }),
+  line(W - 1.4, H / 2 + 1, W - 1.4, H - 1.6, { w: 0.25 }),
 ])
 
 save('camera.svg', 700, 700, (W, H) => [
-  rect(3.5, 5, W - 7, 12, { rx: 1.6 }),
-  rect(W / 2 - 4, 7.5, 8, 7, { rx: 0.8, f: LIGHT, w: 0.5 }),
-  circle(7.6, 10, 1.8, { f: LIGHT, w: 0.5 }),
-  circle(W - 7, 9, 1.2, { f: GREY, w: 0.5 }),
-  rect(W / 2 - 5, 17, 10, 6, { f: GREY }),
-  line(W / 2 - 5, 19, W / 2 + 5, 19),
-  line(W / 2 - 5, 21, W / 2 + 5, 21),
-  rect(W / 2 - 6, 23, 12, 2.6, { rx: 0.6 }),
+  rect(3.5, 5, W - 7, 12.5, { rx: 3.5 }),
+  path(
+    `M${num(W / 2 - 4.5)} 8.5Q${num(W / 2 - 4.5)} 6.5 ${num(W / 2 - 2.5)} 6.5L${num(W / 2 + 2.5)} 6.5Q${num(W / 2 + 4.5)} 6.5 ${num(W / 2 + 4.5)} 8.5L${num(W / 2 + 4)} 13.5Q${num(W / 2)} 15 ${num(W / 2 - 4)} 13.5Z`,
+    { f: LIGHT, w: 0.5 },
+  ),
+  circle(7.8, 10.5, 2, { f: LIGHT, w: 0.5 }),
+  circle(7.8, 10.5, 0.8, { f: 'none', w: 0.5 }),
+  circle(W - 7.4, 9.5, 1.3, { f: GREY, w: 0.5 }),
+  rect(W / 2 - 5, 16.5, 10, 7, { rx: 1.2, f: GREY }),
   stroke(
-    `M${num(W / 2 - 6)} 25.6L1 ${num(H - 0.5)}M${num(W / 2 + 6)} 25.6L${num(W - 1)} ${num(H - 0.5)}`,
+    `M${num(W / 2 - 5)} 19.2L${num(W / 2 + 5)} 19.2M${num(W / 2 - 5)} 21.4L${num(W / 2 + 5)} 21.4`,
+  ),
+  rect(W / 2 - 6, 23, 12, 2.8, { rx: 1.4 }),
+  stroke(
+    `M${num(W / 2 - 5.5)} 25.9L1 ${num(H - 0.5)}M${num(W / 2 + 5.5)} 25.9L${num(W - 1)} ${num(H - 0.5)}`,
     { d: '1 1' },
   ),
 ])

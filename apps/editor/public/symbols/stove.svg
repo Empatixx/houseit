@@ -1,24 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="29.02" viewBox="0 0 30 29.02" fill="none" stroke-linejoin="round" stroke-linecap="round">
-  <rect x="0.5" y="0.5" width="29" height="26.74" rx="0.39" fill="#ffffff" stroke="#212121" stroke-width="1"/>
-  <rect x="0.5" y="0.5" width="29" height="3.15" fill="#ffffff" stroke="#212121" stroke-width="1"/>
-  <circle cx="4.83" cy="2.07" r="0.63" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="11.61" cy="2.07" r="0.63" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="18.39" cy="2.07" r="0.63" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="25.17" cy="2.07" r="0.63" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
-  <rect x="1.97" y="4.83" width="26.06" height="20.84" rx="0.31" fill="#e9e9e9" stroke="#212121" stroke-width="1"/>
-  <circle cx="8.5" cy="9.74" r="3.74" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="8.5" cy="9.74" r="1.87" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="8.5" cy="9.74" r="0.39" fill="#212121"/>
-  <circle cx="21.5" cy="9.74" r="2.95" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="21.5" cy="9.74" r="1.48" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="21.5" cy="9.74" r="0.39" fill="#212121"/>
-  <circle cx="8.5" cy="20.76" r="2.95" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="8.5" cy="20.76" r="1.48" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="8.5" cy="20.76" r="0.39" fill="#212121"/>
-  <circle cx="21.5" cy="20.76" r="3.74" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="21.5" cy="20.76" r="1.87" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="21.5" cy="20.76" r="0.39" fill="#212121"/>
-  <line x1="15" y1="5.22" x2="15" y2="25.28" stroke="#212121" stroke-width="0.5" stroke-opacity="0.4"/>
-  <line x1="2.36" y1="15.25" x2="27.64" y2="15.25" stroke="#212121" stroke-width="0.5" stroke-opacity="0.4"/>
-  <rect x="3.54" y="27.44" width="22.91" height="0.87" rx="0.31" fill="#212121"/>
+  <rect x="0.5" y="0.5" width="29" height="26.94" rx="1.38" fill="#ffffff" stroke="#212121" stroke-width="1"/>
+  <rect x="1.09" y="0.97" width="27.82" height="2.76" rx="0.98" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="5.22" cy="2.35" r="0.75" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
+  <line x1="5.22" y1="2.35" x2="5.22" y2="1.79" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="11.74" cy="2.35" r="0.75" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
+  <line x1="11.74" y1="2.35" x2="11.74" y2="1.79" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="18.26" cy="2.35" r="0.75" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
+  <line x1="18.26" y1="2.35" x2="18.26" y2="1.79" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="24.78" cy="2.35" r="0.75" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
+  <line x1="24.78" y1="2.35" x2="24.78" y2="1.79" stroke="#212121" stroke-width="0.5"/>
+  <rect x="2.05" y="4.63" width="25.91" height="21.43" rx="1.57" fill="#e9e9e9" stroke="#212121" stroke-width="1"/>
+  <circle cx="8.5" cy="10.03" r="3.94" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="8.5" cy="10.03" r="2.76" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <circle cx="8.5" cy="10.03" r="1.57" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <circle cx="21.5" cy="9.84" r="2.91" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="21.5" cy="9.84" r="2.04" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <circle cx="21.5" cy="9.84" r="1.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <circle cx="8.5" cy="20.86" r="2.91" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="8.5" cy="20.86" r="2.04" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <circle cx="8.5" cy="20.86" r="1.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <circle cx="21.5" cy="20.66" r="3.62" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="21.5" cy="20.66" r="2.54" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <circle cx="21.5" cy="20.66" r="1.45" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <rect x="4.33" y="27.52" width="21.34" height="0.94" rx="0.47" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
 </svg>

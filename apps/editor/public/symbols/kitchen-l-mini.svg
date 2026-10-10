@@ -1,36 +1,51 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="94.02" height="80" viewBox="0 0 94.02 80" fill="none" stroke-linejoin="round" stroke-linecap="round">
-  <polygon points="0.5,0.5 64.64,0.5 64.64,29.5 28.88,29.5 28.88,79.5 0.5,79.5" fill="#ffffff" stroke="#212121" stroke-width="1"/>
-  <line x1="0.5" y1="29.5" x2="28.88" y2="29.5" stroke="#212121" stroke-width="0.5"/>
-  <line x1="0.5" y1="1.37" x2="64.64" y2="1.37" stroke="#212121" stroke-width="0.5"/>
-  <line x1="1.37" y1="29.5" x2="1.37" y2="79.5" stroke="#212121" stroke-width="0.5"/>
-  <rect x="65.03" y="0.5" width="28.49" height="24" fill="#ffffff" stroke="#212121" stroke-width="1"/>
-  <line x1="66.21" y1="22.73" x2="92.33" y2="22.73" stroke="#212121" stroke-width="0.5"/>
-  <line x1="65.03" y1="0.5" x2="93.52" y2="22.73" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
-  <line x1="93.52" y1="0.5" x2="65.03" y2="22.73" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
-  <rect x="78.16" y="24.5" width="1.18" height="3.82" fill="#212121"/>
-  <rect x="32.42" y="2.47" width="29.46" height="24.67" rx="0.98" fill="#e9e9e9" stroke="#212121" stroke-width="1"/>
-  <rect x="33.6" y="5.42" width="15.71" height="20.54" rx="1.77" fill="#d6d6d6" stroke="#212121" stroke-width="1"/>
-  <circle cx="41.46" cy="15.69" r="0.87" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="41.46" cy="15.69" r="0.3" fill="#212121"/>
-  <line x1="51.87" y1="5.22" x2="51.87" y2="25.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
-  <line x1="53.44" y1="5.22" x2="53.44" y2="25.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
-  <line x1="55.02" y1="5.22" x2="55.02" y2="25.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
-  <line x1="56.59" y1="5.22" x2="56.59" y2="25.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
-  <line x1="58.17" y1="5.22" x2="58.17" y2="25.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
-  <line x1="59.74" y1="5.22" x2="59.74" y2="25.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
-  <rect x="41.06" y="3.65" width="0.79" height="7.48" rx="0.39" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="41.46" cy="3.65" r="0.87" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
-  <line x1="42.06" y1="3.04" x2="43.54" y2="2.44" stroke="#212121" stroke-width="1"/>
-  <line x1="30.06" y1="1.37" x2="30.06" y2="29.5" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
-  <rect x="4.26" y="41.38" width="20.08" height="22.83" rx="0.47" fill="#e9e9e9" stroke="#212121" stroke-width="1"/>
-  <circle cx="18.82" cy="47.29" r="3.94" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="18.82" cy="47.29" r="2.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.5"/>
-  <circle cx="19.02" cy="58.51" r="2.83" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="19.02" cy="58.51" r="1.56" stroke="#212121" stroke-width="0.5" stroke-opacity="0.5"/>
-  <circle cx="9.38" cy="47.09" r="2.83" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="9.38" cy="47.09" r="1.56" stroke="#212121" stroke-width="0.5" stroke-opacity="0.5"/>
-  <circle cx="9.77" cy="58.31" r="3.62" stroke="#212121" stroke-width="0.5"/>
-  <circle cx="9.77" cy="58.31" r="1.99" stroke="#212121" stroke-width="0.5" stroke-opacity="0.5"/>
-  <line x1="1.37" y1="40.99" x2="28.88" y2="40.99" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
-  <line x1="1.37" y1="64.61" x2="28.88" y2="64.61" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
+  <path d="M0.5 1.48 Q0.5 0.5 1.48 0.5 L63.65 0.5 Q64.64 0.5 64.64 1.48 L64.64 28.52 Q64.64 29.5 63.65 29.5 L29.86 29.5 Q28.88 29.5 28.88 30.48 L28.88 78.52 Q28.88 79.5 27.9 79.5 L1.48 79.5 Q0.5 79.5 0.5 78.52 Z" fill="#ffffff" stroke="#212121" stroke-width="1"/>
+  <line x1="1.37" y1="1.37" x2="63.77" y2="1.37" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <line x1="1.37" y1="1.37" x2="1.37" y2="78.63" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <line x1="30.06" y1="28.4" x2="63.45" y2="28.4" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <line x1="27.78" y1="30.68" x2="27.78" y2="78.32" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <line x1="1.37" y1="29.5" x2="28.88" y2="29.5" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <rect x="65.03" y="0.5" width="28.49" height="24" rx="1.57" fill="#ffffff" stroke="#212121" stroke-width="1"/>
+  <rect x="66.21" y="1.68" width="26.12" height="19.67" rx="0.98" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <line x1="65.9" y1="22.33" x2="92.65" y2="22.33" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <rect x="78.16" y="22.93" width="1.18" height="5.59" rx="0.59" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
+  <rect x="32.42" y="2.39" width="29.46" height="24.67" rx="2.36" fill="#e9e9e9" stroke="#212121" stroke-width="0.5"/>
+  <rect x="32.42" y="2.39" width="29.46" height="24.67" rx="2.36" stroke="#212121" stroke-width="1"/>
+  <rect x="33.6" y="5.46" width="15.71" height="20.34" rx="2.95" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
+  <rect x="34.47" y="6.33" width="13.97" height="18.61" rx="2.36" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <circle cx="41.46" cy="16.65" r="0.94" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="41.46" cy="16.65" r="0.57" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <circle cx="41.46" cy="16.65" r="0.21" fill="#212121"/>
+  <rect x="51.67" y="5.74" width="0.63" height="18.76" rx="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <rect x="53.33" y="5.74" width="0.63" height="18.76" rx="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <rect x="54.98" y="5.74" width="0.63" height="18.76" rx="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <rect x="56.63" y="5.74" width="0.63" height="18.76" rx="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <rect x="58.29" y="5.74" width="0.63" height="18.76" rx="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <rect x="59.94" y="5.74" width="0.63" height="18.76" rx="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <path d="M41.46 3.73 Q44.13 6.74 42.26 10.42" stroke="#212121" stroke-width="0.95"/>
+  <path d="M41.46 3.73 Q44.13 6.74 42.26 10.42" stroke="#e9e9e9" stroke-width="0.5"/>
+  <circle cx="42.26" cy="10.42" r="0.43" fill="#e9e9e9" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="41.46" cy="3.73" r="0.87" fill="#e9e9e9" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="41.46" cy="3.73" r="0.39" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <path d="M41.98 3.21 Q42.84 2.78 43.54 2.95" stroke="#212121" stroke-width="1"/>
+  <line x1="30.06" y1="1.37" x2="30.06" y2="28.4" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <rect x="4.65" y="41.38" width="20.08" height="22.83" rx="1.57" fill="#e9e9e9" stroke="#212121" stroke-width="1"/>
+  <circle cx="18.82" cy="47.29" r="4.25" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="18.82" cy="47.29" r="2.98" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <circle cx="18.82" cy="47.29" r="1.7" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <circle cx="19.34" cy="58.63" r="2.91" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="19.34" cy="58.63" r="2.04" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <circle cx="19.34" cy="58.63" r="1.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <circle cx="9.65" cy="46.97" r="2.91" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="9.65" cy="46.97" r="2.04" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <circle cx="9.65" cy="46.97" r="1.17" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <circle cx="10.56" cy="58.31" r="3.7" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="10.56" cy="58.31" r="2.59" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <circle cx="10.56" cy="58.31" r="1.48" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <circle cx="6.23" cy="51.03" r="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <circle cx="6.23" cy="52.21" r="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <circle cx="6.23" cy="53.39" r="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <circle cx="6.23" cy="54.57" r="0.31" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="1.37" y1="40.99" x2="27.78" y2="40.99" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <line x1="1.37" y1="64.61" x2="27.78" y2="64.61" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
 </svg>

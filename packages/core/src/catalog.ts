@@ -879,22 +879,22 @@ export const CATALOG_FLOOR_MATERIALS = [
   {
     id: 'ash',
     label: 'Ash',
-    unit: { width: 1600, depth: 1350 },
-    texture: 'surfaces/ash.svg',
+    unit: { width: 4000, depth: 1350 },
+    texture: 'surfaces/ash.jpg',
     colour: '#dfbd96',
   },
   {
     id: 'birch',
     label: 'Birch',
-    unit: { width: 1600, depth: 1358 },
-    texture: 'surfaces/birch.svg',
+    unit: { width: 4000, depth: 1358 },
+    texture: 'surfaces/birch.jpg',
     colour: '#e0d0b7',
   },
   {
     id: 'red-oak',
     label: 'Red oak',
-    unit: { width: 1600, depth: 1350 },
-    texture: 'surfaces/red-oak.svg',
+    unit: { width: 4000, depth: 1350 },
+    texture: 'surfaces/red-oak.jpg',
     colour: '#d2a371',
   },
   {
@@ -914,8 +914,8 @@ export const CATALOG_FLOOR_MATERIALS = [
   {
     id: 'beech',
     label: 'Beech',
-    unit: { width: 1600, depth: 1358 },
-    texture: 'surfaces/beech.svg',
+    unit: { width: 4000, depth: 1358 },
+    texture: 'surfaces/beech.jpg',
     colour: '#d1b088',
   },
   {
@@ -970,8 +970,8 @@ export const CATALOG_FLOOR_MATERIALS = [
   {
     id: 'white-oak',
     label: 'White oak',
-    unit: { width: 1600, depth: 1358 },
-    texture: 'surfaces/white-oak.svg',
+    unit: { width: 4000, depth: 1358 },
+    texture: 'surfaces/white-oak.jpg',
     colour: '#e8dac6',
   },
   {
@@ -998,8 +998,8 @@ export const CATALOG_FLOOR_MATERIALS = [
   {
     id: 'natural-oak',
     label: 'Oak',
-    unit: { width: 1600, depth: 1350 },
-    texture: 'surfaces/natural-oak.svg',
+    unit: { width: 4000, depth: 1350 },
+    texture: 'surfaces/natural-oak.jpg',
     colour: '#d0a87f',
   },
   {
@@ -1055,7 +1055,7 @@ export const CATALOG_FINISHES = [
     category: 'brick',
     picture: 'finishes/brick-beige.svg',
   },
-  { id: 'oak-dark', label: 'Dark oak', category: 'wood', picture: 'finishes/oak-dark.svg' },
+  { id: 'oak-dark', label: 'Dark oak', category: 'wood', picture: 'finishes/oak-dark.jpg' },
   {
     id: 'metal-steel',
     label: 'Stainless steel',
@@ -1068,12 +1068,12 @@ export const CATALOG_FINISHES = [
     category: 'tile',
     picture: 'finishes/tile-blue.svg',
   },
-  { id: 'ash-light', label: 'Pale ash', category: 'wood', picture: 'finishes/ash-light.svg' },
+  { id: 'ash-light', label: 'Pale ash', category: 'wood', picture: 'finishes/ash-light.jpg' },
   {
     id: 'ash-natural',
     label: 'Ash',
     category: 'wood',
-    picture: 'finishes/ash-natural.svg',
+    picture: 'finishes/ash-natural.jpg',
   },
   {
     id: 'tile-hex-mint',
@@ -1091,7 +1091,7 @@ export const CATALOG_FINISHES = [
     id: 'oak-paneling',
     label: 'Oak boarding',
     category: 'wood_paneling',
-    picture: 'finishes/oak-paneling.svg',
+    picture: 'finishes/oak-paneling.jpg',
   },
   {
     id: 'tile-beige',
@@ -1115,7 +1115,7 @@ export const CATALOG_FINISHES = [
     id: 'white-wood-paneling',
     label: 'White boarding',
     category: 'wood_paneling',
-    picture: 'finishes/white-wood-paneling.svg',
+    picture: 'finishes/white-wood-paneling.jpg',
   },
   {
     id: 'marble-beige',
@@ -1165,8 +1165,8 @@ export const CATALOG_FINISHES = [
     category: 'metal',
     picture: 'finishes/metal-gold.svg',
   },
-  { id: 'acorn', label: 'Honey pine', category: 'wood', picture: 'finishes/acorn.svg' },
-  { id: 'oak-medium', label: 'Mid oak', category: 'wood', picture: 'finishes/oak-medium.svg' },
+  { id: 'acorn', label: 'Honey pine', category: 'wood', picture: 'finishes/acorn.jpg' },
+  { id: 'oak-medium', label: 'Mid oak', category: 'wood', picture: 'finishes/oak-medium.jpg' },
   {
     id: 'calacatta',
     label: 'Calacatta marble',
@@ -1193,10 +1193,10 @@ export const CATALOG_FINISHES = [
   },
   { id: 'limestone', label: 'Limestone', category: 'stone', picture: 'finishes/limestone.svg' },
   { id: 'granite', label: 'Granite', category: 'stone', picture: 'finishes/granite.svg' },
-  { id: 'walnut', label: 'Walnut', category: 'wood', picture: 'finishes/walnut.svg' },
-  { id: 'oak-light', label: 'Light oak', category: 'wood', picture: 'finishes/oak-light.svg' },
-  { id: 'maple', label: 'Maple', category: 'wood', picture: 'finishes/maple.svg' },
-  { id: 'cherry', label: 'Cherry', category: 'wood', picture: 'finishes/cherry.svg' },
+  { id: 'walnut', label: 'Walnut', category: 'wood', picture: 'finishes/walnut.jpg' },
+  { id: 'oak-light', label: 'Light oak', category: 'wood', picture: 'finishes/oak-light.jpg' },
+  { id: 'maple', label: 'Maple', category: 'wood', picture: 'finishes/maple.jpg' },
+  { id: 'cherry', label: 'Cherry', category: 'wood', picture: 'finishes/cherry.jpg' },
   { id: 'terrazzo', label: 'Terrazzo', category: 'concrete', picture: 'finishes/terrazzo.svg' },
   { id: 'soapstone', label: 'Soapstone', category: 'stone', picture: 'finishes/soapstone.svg' },
 ] as const

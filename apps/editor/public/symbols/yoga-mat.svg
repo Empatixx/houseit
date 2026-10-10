@@ -1,9 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24.02" height="67.99" viewBox="0 0 24.02 67.99" fill="none">
-<rect x="0.5" y="0.5" width="23.02" height="66.99" rx="0.8" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
-<rect x="0.5" y="0.5" width="23.02" height="5.4" rx="2.2" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
-<line x1="1.2" y1="2.2" x2="22.82" y2="2.2" fill="#ffffff" stroke="#212121" stroke-width="0.25" stroke-linejoin="round" stroke-linecap="round"/>
-<line x1="1.2" y1="3.9" x2="22.82" y2="3.9" fill="#ffffff" stroke="#212121" stroke-width="0.25" stroke-linejoin="round" stroke-linecap="round"/>
-<line x1="1.8" y1="7" x2="1.8" y2="66.19" fill="#ffffff" stroke="#212121" stroke-width="0.25" stroke-linejoin="round" stroke-linecap="round"/>
-<line x1="22.22" y1="7" x2="22.22" y2="66.19" fill="#ffffff" stroke="#212121" stroke-width="0.25" stroke-linejoin="round" stroke-linecap="round"/>
-<line x1="1.8" y1="66.19" x2="22.22" y2="66.19" fill="#ffffff" stroke="#212121" stroke-width="0.25" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="0.5" y="0.5" width="23.02" height="66.99" rx="1.6" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="0.5" y="0.5" width="23.02" height="5.6" rx="2.8" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M1.6 2.4Q12.01 2.9 22.42 2.4M1.6 4Q12.01 4.5 22.42 4" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1.9" y="7.4" width="20.22" height="58.69" rx="1" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
 </svg>

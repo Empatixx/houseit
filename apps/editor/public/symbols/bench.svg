@@ -1,8 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="80" height="15.98" viewBox="0 0 80 15.98" fill="none">
-<rect x="0.5" y="0.5" width="79" height="14.98" rx="0.79" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
-<line x1="0.89" y1="4.25" x2="79.11" y2="4.25" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round"/>
-<line x1="0.89" y1="7.99" x2="79.11" y2="7.99" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round"/>
-<line x1="0.89" y1="11.74" x2="79.11" y2="11.74" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round"/>
-<rect x="2.86" y="0.5" width="1.97" height="14.98" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-dasharray="2 1.5"/>
-<rect x="75.17" y="0.5" width="1.97" height="14.98" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-dasharray="2 1.5"/>
+<path d="M2.47 0.5L77.53 0.5Q79.5 0.5 79.5 2.47L79.5 13.52Q79.5 15.48 77.53 15.48L2.47 15.48Q0.5 15.48 0.5 13.52L0.5 2.47Q0.5 0.5 2.47 0.5Z" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M2.27 1.25L77.73 1.25Q78.91 1.25 78.91 2.43L78.91 3.2Q78.91 4.38 77.73 4.38L2.27 4.38Q1.09 4.38 1.09 3.2L1.09 2.43Q1.09 1.25 2.27 1.25Z" fill="#ffffff" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M13 3.23C30.82 2.65 30.82 3.81 40 3.23S51 2.65 67 3.4" fill="none" stroke="#000000" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.14"/>
+<path d="M2.27 4.7L77.73 4.7Q78.91 4.7 78.91 5.88L78.91 6.65Q78.91 7.83 77.73 7.83L2.27 7.83Q1.09 7.83 1.09 6.65L1.09 5.88Q1.09 4.7 2.27 4.7Z" fill="#ffffff" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M12.9 6.67C30.79 6.09 30.79 7.24 40 6.67S51.03 6.09 67.1 6.84" fill="none" stroke="#000000" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.14"/>
+<path d="M2.27 8.15L77.73 8.15Q78.91 8.15 78.91 9.33L78.91 10.1Q78.91 11.29 77.73 11.29L2.27 11.29Q1.09 11.29 1.09 10.1L1.09 9.33Q1.09 8.15 2.27 8.15Z" fill="#ffffff" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M6.9 9.2C28.75 8.95 28.75 9.45 40 9.2S52.95 8.95 73.1 9.28" fill="none" stroke="#000000" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.14"/>
+<path d="M2.27 11.6L77.73 11.6Q78.91 11.6 78.91 12.78L78.91 13.56Q78.91 14.74 77.73 14.74L2.27 14.74Q1.09 14.74 1.09 13.56L1.09 12.78Q1.09 11.6 2.27 11.6Z" fill="#ffffff" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M11.24 13.31C30.22 12.83 30.22 13.8 40 13.31S51.57 12.83 68.76 13.46" fill="none" stroke="#000000" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.14"/>
 </svg>

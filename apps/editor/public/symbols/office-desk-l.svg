@@ -1,8 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="62.99" height="43.31" viewBox="0 0 62.99 43.31" fill="none">
-<path d="M0.5 12.31 Q0.5 0.5 12.31 0.5 L61.9 0.5 Q62.49 0.5 62.49 1.09 L62.49 22.91 Q62.49 23.5 61.9 23.5 L24.88 23.5 Q23.31 23.5 23.31 25.08 L23.31 42.22 Q23.31 42.81 22.72 42.81 L1.09 42.81 Q0.5 42.81 0.5 42.22 Z" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
-<rect x="1.48" y="24.3" width="20.84" height="17.52" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-dasharray="2 1.5"/>
-<rect x="31.81" y="3.26" width="9.45" height="6.69" rx="0.98" fill="#d6d6d6" stroke="#212121" stroke-width="0.5" stroke-linejoin="round"/>
-<rect x="24.72" y="5.22" width="23.62" height="1.18" rx="0.31" fill="#212121" stroke="#212121" stroke-width="0.5" stroke-linejoin="round"/>
-<rect x="27.68" y="13.49" width="17.72" height="5.51" rx="0.59" fill="#d6d6d6" stroke="#212121" stroke-width="0.5" stroke-linejoin="round"/>
-<ellipse cx="49.53" cy="16.25" rx="1.38" ry="2.17" fill="#d6d6d6" stroke="#212121" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M12.31 0.5L60.92 0.5Q62.49 0.5 62.49 2.07L62.49 20.75Q62.49 23.5 59.74 23.5L24.41 23.5Q23.31 23.5 23.31 24.61L23.31 40.05Q23.31 42.81 20.55 42.81L3.26 42.81Q0.5 42.81 0.5 40.05L0.5 12.31Q0.5 0.5 12.31 0.5Z" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M12.31 1.68L60.52 1.68Q61.31 1.68 61.31 2.47L61.31 20.55Q61.31 22.32 59.54 22.32L22.17 22.32Q22.13 22.32 22.13 22.36L22.13 39.85Q22.13 41.63 20.35 41.63L3.45 41.63Q1.68 41.63 1.68 39.85L1.68 12.31Q1.68 1.68 12.31 1.68Z" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<g transform="translate(3.26 40.05) rotate(-90)"><path d="M2.34 6.43C6 5.81 6 7.06 7.88 6.43S12.01 5.81 13.42 6.62" fill="none" stroke="#000000" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.14"/><path d="M1.94 13.11C6 12.64 6 13.58 8.09 13.11S12.42 12.64 14.24 13.25" fill="none" stroke="#000000" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.14"/></g>
+<path d="M3.45 24.3L20.35 24.3Q21.54 24.3 21.54 25.48L21.54 39.85Q21.54 41.04 20.35 41.04L3.45 41.04Q2.27 41.04 2.27 39.85L2.27 25.48Q2.27 24.3 3.45 24.3Z" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="2 1.5"/>
+<path d="M34.17 3.26L38.9 3.26Q41.26 3.26 41.26 5.62L41.26 7.19Q41.26 9.56 38.9 9.56L34.17 9.56Q31.81 9.56 31.81 7.19L31.81 5.62Q31.81 3.26 34.17 3.26Z" fill="#e9e9e9" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M25.28 5.15L47.8 5.15Q48.35 5.15 48.35 5.7L48.35 5.85Q48.35 6.41 47.8 6.41L25.28 6.41Q24.72 6.41 24.72 5.85L24.72 5.7Q24.72 5.15 25.28 5.15Z" fill="#212121" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M29.06 13.49L44.02 13.49Q45.39 13.49 45.39 14.87L45.39 17.63Q45.39 19 44.02 19L29.06 19Q27.68 19 27.68 17.63L27.68 14.87Q27.68 13.49 29.06 13.49Z" fill="#ffffff" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="29.06" y1="15.46" x2="44.02" y2="15.46" fill="none" stroke="#8c8c8c" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="29.06" y1="17.04" x2="44.02" y2="17.04" fill="none" stroke="#8c8c8c" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round"/>
+<ellipse cx="49.53" cy="16.25" rx="1.42" ry="2.2" fill="#ffffff" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="49.53" y1="14.28" x2="49.53" y2="15.66" fill="none" stroke="#8c8c8c" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round"/>
 </svg>

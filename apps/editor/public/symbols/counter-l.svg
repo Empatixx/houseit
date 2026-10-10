@@ -1,8 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="99.02" height="49.02" viewBox="0 0 99.02 49.02" fill="none" stroke-linejoin="round" stroke-linecap="round">
-  <polygon points="0.5,0.5 98.52,0.5 98.52,27.57 30.94,27.57 30.94,48.52 0.5,48.52" fill="#ffffff" stroke="#212121" stroke-width="1"/>
-  <line x1="0.5" y1="1.37" x2="98.52" y2="1.37" stroke="#212121" stroke-width="0.5"/>
-  <line x1="1.37" y1="1.37" x2="1.37" y2="48.52" stroke="#212121" stroke-width="0.5"/>
-  <line x1="0.5" y1="27.57" x2="30.94" y2="27.57" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
-  <line x1="54.56" y1="1.37" x2="54.56" y2="27.57" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
-  <line x1="78.19" y1="1.37" x2="78.19" y2="27.57" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
+  <path d="M0.5 1.48 Q0.5 0.5 1.48 0.5 L97.53 0.5 Q98.52 0.5 98.52 1.48 L98.52 26.59 Q98.52 27.57 97.53 27.57 L31.93 27.57 Q30.94 27.57 30.94 28.56 L30.94 47.53 Q30.94 48.52 29.96 48.52 L1.48 48.52 Q0.5 48.52 0.5 47.53 Z" fill="#ffffff" stroke="#212121" stroke-width="1"/>
+  <line x1="1.37" y1="1.37" x2="97.65" y2="1.37" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <line x1="1.37" y1="1.37" x2="1.37" y2="47.65" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <line x1="32.12" y1="26.47" x2="97.33" y2="26.47" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <line x1="29.84" y1="28.75" x2="29.84" y2="47.33" stroke="#212121" stroke-width="0.5" stroke-opacity="0.45"/>
+  <line x1="1.37" y1="27.57" x2="29.84" y2="27.57" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <line x1="54.56" y1="1.37" x2="54.56" y2="26.47" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
+  <line x1="78.19" y1="1.37" x2="78.19" y2="26.47" stroke="#212121" stroke-width="0.5" stroke-opacity="0.3"/>
 </svg>
