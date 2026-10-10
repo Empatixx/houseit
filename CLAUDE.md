@@ -491,7 +491,7 @@ it.
 
 ## Symbol and surface are separate
 
-Furniture is drawn from the reference's plan symbols: one SVG per type under
+Furniture is drawn from plan symbols: one SVG per type under
 `apps/editor/public/symbols/`, listed with its real size in
 `packages/core/src/catalog.ts`. `surfaces.ts` is pure fill: the symbol's white becomes the
 surface's colour, the lines stay the lines. One bed is white, linen or blue without

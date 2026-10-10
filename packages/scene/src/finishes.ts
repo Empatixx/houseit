@@ -2,9 +2,9 @@ import type { Surface } from '@houseit/core/surfaces'
 import type { Finish } from './pieces'
 
 const GRAINED: Record<string, { photo: string; tint: string }> = {
-  oak: { photo: 'surfaces/natural-oak.jpg', tint: '#f3e4c9' },
-  walnut: { photo: 'surfaces/red-oak.jpg', tint: '#8c6446' },
-  marble: { photo: 'surfaces/marble-white.jpg', tint: '#ffffff' },
+  oak: { photo: 'surfaces/natural-oak.svg', tint: '#f3e4c9' },
+  walnut: { photo: 'surfaces/red-oak.svg', tint: '#8c6446' },
+  marble: { photo: 'surfaces/marble-white.svg', tint: '#ffffff' },
 }
 
 export function paintOf(surface: Surface): { body: Finish; frame: Finish } {

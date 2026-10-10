@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="17.01" height="17.01" viewBox="0 0 17.01 17.01" fill="none">
+<circle cx="8.5" cy="8.5" r="8" fill="none" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-dasharray="2 1.5"/>
+<line x1="8.5" y1="8.5" x2="15.13" y2="8.5" fill="none" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<circle cx="15.13" cy="8.5" r="0.71" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<line x1="8.5" y1="8.5" x2="11.82" y2="14.24" fill="none" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<circle cx="11.82" cy="14.24" r="0.71" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<line x1="8.5" y1="8.5" x2="5.19" y2="14.24" fill="none" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<circle cx="5.19" cy="14.24" r="0.71" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<line x1="8.5" y1="8.5" x2="1.88" y2="8.5" fill="none" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<circle cx="1.88" cy="8.5" r="0.71" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<line x1="8.5" y1="8.5" x2="5.19" y2="2.77" fill="none" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<circle cx="5.19" cy="2.77" r="0.71" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<line x1="8.5" y1="8.5" x2="11.82" y2="2.77" fill="none" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<circle cx="11.82" cy="2.77" r="0.71" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+<circle cx="8.5" cy="8.5" r="1.18" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round"/>
+</svg>

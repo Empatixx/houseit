@@ -11,7 +11,7 @@ test('the prompt says what kind of room it is and what it is dressed in', () => 
       doors: 'walnut',
     }),
   ).toBe(
-    'A living room in Rustic style, oak on floor, walls and ceiling, rough and warm like a mountain cabin, with natural oak floor, oak paneling walls, walnut doors.',
+    'A living room in Rustic style, oak on floor, walls and ceiling, rough and warm like a mountain cabin, with oak floor, oak boarding walls, walnut doors.',
   )
   expect(promptFor({ name: 'kuchyň', kind: 'kitchen' })).toBe('A kitchen.')
   expect(promptFor(undefined)).toBe('A room.')

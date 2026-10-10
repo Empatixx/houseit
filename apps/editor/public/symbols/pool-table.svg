@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64.02" height="114.02" viewBox="0 0 64.02 114.02" fill="none">
+<rect x="0.5" y="0.5" width="63.02" height="113.02" rx="2.5" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="5.5" y="5.5" width="53.02" height="103.02" fill="#e9e9e9" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="5.5" cy="5.5" r="2.3" fill="#212121"/>
+<circle cx="58.52" cy="5.5" r="2.3" fill="#212121"/>
+<circle cx="5.5" cy="108.52" r="2.3" fill="#212121"/>
+<circle cx="58.52" cy="108.52" r="2.3" fill="#212121"/>
+<circle cx="4.9" cy="57.01" r="2.3" fill="#212121"/>
+<circle cx="59.12" cy="57.01" r="2.3" fill="#212121"/>
+<circle cx="3" cy="18.38" r="0.4" fill="#212121"/>
+<circle cx="61.02" cy="18.38" r="0.4" fill="#212121"/>
+<circle cx="3" cy="31.26" r="0.4" fill="#212121"/>
+<circle cx="61.02" cy="31.26" r="0.4" fill="#212121"/>
+<circle cx="3" cy="44.13" r="0.4" fill="#212121"/>
+<circle cx="61.02" cy="44.13" r="0.4" fill="#212121"/>
+<circle cx="3" cy="69.89" r="0.4" fill="#212121"/>
+<circle cx="61.02" cy="69.89" r="0.4" fill="#212121"/>
+<circle cx="3" cy="82.77" r="0.4" fill="#212121"/>
+<circle cx="61.02" cy="82.77" r="0.4" fill="#212121"/>
+<circle cx="3" cy="95.64" r="0.4" fill="#212121"/>
+<circle cx="61.02" cy="95.64" r="0.4" fill="#212121"/>
+<circle cx="18.76" cy="3" r="0.4" fill="#212121"/>
+<circle cx="18.76" cy="111.02" r="0.4" fill="#212121"/>
+<circle cx="32.01" cy="3" r="0.4" fill="#212121"/>
+<circle cx="32.01" cy="111.02" r="0.4" fill="#212121"/>
+<circle cx="45.27" cy="3" r="0.4" fill="#212121"/>
+<circle cx="45.27" cy="111.02" r="0.4" fill="#212121"/>
+<line x1="5.5" y1="82.77" x2="58.52" y2="82.77" fill="#ffffff" stroke="#212121" stroke-width="0.25" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="1.5 1"/>
+<circle cx="32.01" cy="86.77" r="1.12" fill="#ffffff" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="32.01" cy="31.26" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="30.89" cy="29.3" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="33.13" cy="29.3" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="29.77" cy="27.33" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="32.01" cy="27.33" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="34.25" cy="27.33" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="28.65" cy="25.38" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="30.89" cy="25.38" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="33.13" cy="25.38" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="35.37" cy="25.38" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="27.53" cy="23.42" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="29.77" cy="23.42" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="32.01" cy="23.42" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="34.25" cy="23.42" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="36.49" cy="23.42" r="1.12" fill="#d6d6d6" stroke="#212121" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

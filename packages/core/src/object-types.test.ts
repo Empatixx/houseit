@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
+import { CATALOG_OBJECT_TYPES } from './catalog'
 import { heightOf } from './heights'
 import { IMPORTED_TYPES, importedType, modelFileOf } from './imported'
-import { CATALOG_OBJECT_TYPES } from './catalog'
 import { layerOf, OBJECT_TYPE_IDS, OBJECT_TYPES, objectType, symbolOf } from './object-types'
 import { isStaircase, STAIR_KINDS, stairKind } from './stairs'
 import { SURFACE_IDS, surfaceOf } from './surfaces'

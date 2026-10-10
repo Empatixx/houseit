@@ -14,7 +14,7 @@ test('a finish that is a colour is worn as that colour', () => {
 test('a finish that is a picture is worn as a texture, asked for from the site root', () => {
   const worn = paintFor('brick-beige', BARE)
 
-  expect(worn.texture).toBe('/finishes/brick-beige.jpg')
+  expect(worn.texture).toBe('/finishes/brick-beige.svg')
   expect(worn.colour).toBe('#ffffff')
   expect(worn.repeat).toBeDefined()
 })

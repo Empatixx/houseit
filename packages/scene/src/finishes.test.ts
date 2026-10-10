@@ -5,7 +5,7 @@ import { lighter, PAINT, paintOf } from './finishes'
 test('a grained surface names the photo it wears and the tint under it', () => {
   const oak = paintOf(surfaceOf('oak')!)
 
-  expect(oak.body).toEqual({ colour: '#f3e4c9', texture: 'surfaces/natural-oak.jpg' })
+  expect(oak.body).toEqual({ colour: '#f3e4c9', texture: 'surfaces/natural-oak.svg' })
 })
 
 test('a surface with no grain is the colour it is drawn in and wears no photo', () => {
@@ -16,13 +16,16 @@ test('a surface with no grain is the colour it is drawn in and wears no photo', 
 })
 
 test('the texture is named, not loaded, because naming it is all a description can do', () => {
-  expect(paintOf(surfaceOf('walnut')!).body.texture).toBe('surfaces/red-oak.jpg')
+  expect(paintOf(surfaceOf('walnut')!).body.texture).toBe('surfaces/red-oak.svg')
 })
 
 test('lighter moves a colour towards white and leaves the rest of the finish alone', () => {
-  const lit = lighter({ colour: '#000000', texture: 'surfaces/marble-white.jpg', opacity: 0.4 }, 0.5)
+  const lit = lighter(
+    { colour: '#000000', texture: 'surfaces/marble-white.svg', opacity: 0.4 },
+    0.5,
+  )
 
-  expect(lit).toEqual({ colour: '#808080', texture: 'surfaces/marble-white.jpg', opacity: 0.4 })
+  expect(lit).toEqual({ colour: '#808080', texture: 'surfaces/marble-white.svg', opacity: 0.4 })
 })
 
 test('every named paint is a colour somebody can read', () => {

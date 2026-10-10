@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24.02" height="52.01" viewBox="0 0 24.02 52.01" fill="none">
+<rect x="1" y="1" width="22.02" height="3" rx="1.5" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1" y="48.01" width="22.02" height="3" rx="1.5" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="10.01" y="36" width="4" height="12.5" rx="2" fill="#e9e9e9" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="10.61" y="4" width="2.8" height="44.01" fill="#d6d6d6" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="12.01" y1="25" x2="3.5" y2="25" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="12.01" y1="25" x2="20.52" y2="25" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1.2" y="23.3" width="4.6" height="3.4" rx="0.6" fill="#d6d6d6" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="18.22" y="23.3" width="4.6" height="3.4" rx="0.6" fill="#d6d6d6" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="12.01" cy="25" r="2.2" fill="#e9e9e9" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M7.01 11C6.61 14 10.01 16 10.61 20.5Q12.01 21.5 13.41 20.5C14.01 16 17.41 14 17.01 11Q12.01 8.6 7.01 11Z" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M2.5 33Q3 29.5 10.01 30.5L14.01 30.5Q21.02 29.5 21.52 33" fill="none" stroke="#212121" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="1.3" y="32" width="2.4" height="5" rx="1.2" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="20.32" y="32" width="2.4" height="5" rx="1.2" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="8.01" y="33" width="8" height="4.5" rx="0.8" fill="#ffffff" stroke="#212121" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="9.21" y="34" width="5.6" height="2.5" fill="#d6d6d6" stroke="#212121" stroke-width="0.5" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

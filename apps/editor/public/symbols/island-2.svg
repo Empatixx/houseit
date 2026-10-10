@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="55.98" height="55" viewBox="0 0 55.98 55" fill="none" stroke-linejoin="round" stroke-linecap="round">
+  <circle cx="14.25" cy="45.75" r="8.07" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="14.25" cy="45.75" r="6.89" fill="#ffffff" stroke="#212121" stroke-width="1"/>
+  <circle cx="14.25" cy="45.75" r="5.12" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <circle cx="41.74" cy="45.75" r="8.07" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="41.74" cy="45.75" r="6.89" fill="#ffffff" stroke="#212121" stroke-width="1"/>
+  <circle cx="41.74" cy="45.75" r="5.12" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <rect x="0.5" y="0.5" width="54.98" height="40.72" rx="0.39" fill="#ffffff" stroke="#212121" stroke-width="1"/>
+  <line x1="1.68" y1="29.41" x2="54.3" y2="29.41" stroke="#212121" stroke-width="0.5" stroke-dasharray="3 2"/>
+  <line x1="1.68" y1="1.68" x2="1.68" y2="29.41" stroke="#212121" stroke-width="0.5" stroke-dasharray="3 2" stroke-opacity="0.6"/>
+  <line x1="54.3" y1="1.68" x2="54.3" y2="29.41" stroke="#212121" stroke-width="0.5" stroke-dasharray="3 2" stroke-opacity="0.6"/>
+</svg>

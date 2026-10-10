@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="97.99" height="29.02" viewBox="0 0 97.99 29.02" fill="none" stroke-linejoin="round" stroke-linecap="round">
+  <rect x="0.5" y="0.5" width="96.99" height="28.02" fill="#ffffff" stroke="#212121" stroke-width="1"/>
+  <line x1="0.5" y1="1.37" x2="97.49" y2="1.37" stroke="#212121" stroke-width="0.5"/>
+  <rect x="26.56" y="2.47" width="44.88" height="23.69" rx="0.98" fill="#e9e9e9" stroke="#212121" stroke-width="1"/>
+  <rect x="27.74" y="5.42" width="11.5" height="19.55" rx="1.77" fill="#d6d6d6" stroke="#212121" stroke-width="1"/>
+  <circle cx="33.48" cy="15.2" r="0.87" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="33.48" cy="15.2" r="0.3" fill="#212121"/>
+  <rect x="41.2" y="7.77" width="11.5" height="17.21" rx="1.77" fill="#d6d6d6" stroke="#212121" stroke-width="1"/>
+  <circle cx="46.95" cy="16.37" r="0.87" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="46.95" cy="16.37" r="0.3" fill="#212121"/>
+  <line x1="55.26" y1="5.22" x2="55.26" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="56.83" y1="5.22" x2="56.83" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="58.41" y1="5.22" x2="58.41" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="59.98" y1="5.22" x2="59.98" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="61.56" y1="5.22" x2="61.56" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="63.13" y1="5.22" x2="63.13" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="64.7" y1="5.22" x2="64.7" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="66.28" y1="5.22" x2="66.28" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="67.85" y1="5.22" x2="67.85" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <line x1="69.43" y1="5.22" x2="69.43" y2="24.19" stroke="#212121" stroke-width="0.5" stroke-opacity="0.6"/>
+  <rect x="33.09" y="3.65" width="0.79" height="7.48" rx="0.39" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="33.48" cy="3.65" r="0.87" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
+  <line x1="34.09" y1="3.04" x2="35.56" y2="2.44" stroke="#212121" stroke-width="1"/>
+  <line x1="25.37" y1="1.37" x2="25.37" y2="28.52" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
+  <line x1="72.62" y1="1.37" x2="72.62" y2="28.52" stroke="#212121" stroke-width="0.5" stroke-opacity="0.35"/>
+</svg>

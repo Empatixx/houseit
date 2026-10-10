@@ -200,7 +200,7 @@ test('the leaf sits inside the opening, its outer face flush with the jamb', () 
   expect(leaf.at - leaf.thickness / 2).toBeCloseTo(2600)
 })
 
-test('the swing is a quarter circle as wide as the door, the way the reference draws it', () => {
+test('the swing is a quarter circle as wide as the door, the way a plan draws it', () => {
   const dashes = plan([door]).filter((piece) => piece.key.startsWith('d1-arc-'))
   const line = lineWeight(wall.thickness)
   const face = wall.thickness / 2

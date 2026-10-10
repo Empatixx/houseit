@@ -1,5 +1,5 @@
-import { IMPORTED_TYPES } from './imported'
 import { CATALOG_OBJECT_TYPES } from './catalog'
+import { IMPORTED_TYPES } from './imported'
 
 export type ObjectType = {
   id: string

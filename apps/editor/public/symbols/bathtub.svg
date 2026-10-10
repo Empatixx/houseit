@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60.98" height="32.99" viewBox="0 0 60.98 32.99" fill="none" stroke-linejoin="round" stroke-linecap="round">
+  <rect x="0.5" y="0.5" width="59.98" height="31.99" fill="#ffffff" stroke="#212121" stroke-width="1"/>
+  <path d="M7.28 2.95 L47.8 2.95 A10.24 10.24 0 0 1 58.03 13.19 L58.03 19.8 A10.24 10.24 0 0 1 47.8 30.04 L7.28 30.04 A4.33 4.33 0 0 1 2.95 25.71 L2.95 7.28 A4.33 4.33 0 0 1 7.28 2.95 Z" fill="#e9e9e9" stroke="#212121" stroke-width="1"/>
+  <path d="M8.46 5.71 L47.4 5.71 A7.87 7.87 0 0 1 55.28 13.58 L55.28 19.41 A7.87 7.87 0 0 1 47.4 27.28 L8.46 27.28 A2.76 2.76 0 0 1 5.71 24.53 L5.71 8.46 A2.76 2.76 0 0 1 8.46 5.71 Z" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="8.86" cy="16.5" r="1.02" fill="#ffffff" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="8.86" cy="16.5" r="0.36" fill="#212121"/>
+  <rect x="8.46" y="1.5" width="0.79" height="3.94" rx="0.39" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
+  <circle cx="8.86" cy="1.5" r="0.79" fill="#d6d6d6" stroke="#212121" stroke-width="0.5"/>
+  <line x1="9.41" y1="0.94" x2="10.75" y2="0.39" stroke="#212121" stroke-width="1"/>
+</svg>
