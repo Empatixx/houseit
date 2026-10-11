@@ -9,6 +9,7 @@ import { House } from '../three/house'
 import { Lighting } from '../three/lighting'
 import { Shading } from '../three/shading'
 import { Sky } from '../three/sky'
+import { TourCamera } from './tour-camera'
 import { Walker } from './walker'
 
 export function WalkScene() {
@@ -31,6 +32,7 @@ export function WalkScene() {
         <Lighting />
         <Ground />
         <House picking={false} />
+        <TourCamera />
         <Walker />
         <Shading />
         <NativeToolsLayer sections={false} />

@@ -274,6 +274,18 @@ often as not; opening there put you inside the kitchen run with a wall filling
 the view, which reads as the 3D being broken rather than as standing somewhere
 silly.
 
+**A tour is shot, not walked.** `Tour` in the 3D bar goes room by room from the
+way in and holds each one in a slow push-in; `Record` films the same thing off
+the canvas as `tour.webm`. `shots.ts` chooses where to stand and where to look
+the way a photographer would: as much of the room's furnishing and windows in
+frame as possible, centred, along the longest sight line, with nothing tall
+looming within its own height of the lens and no door leaf in the foreground.
+An open leaf also hides what is behind it. A room under 6 m² may be shot from
+its doorway. Coverage is a share of the room's own furnishing, so a WC is
+judged by its toilet as a living room is by its kitchen. It moves only the
+camera. `node scripts/tour.mjs --project byt --out /tmp/tour [--video]` saves
+every shot and the film; judge a change to the scoring by those pictures.
+
 **The storey being looked at is what a command means.** A command that names no
 storey works on the one the tab has open, and the tab then follows the command:
 `get-plan --level "1. patro"` steps upstairs and everything after it is about
