@@ -1,6 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 import type { Draft } from 'immer'
 import { CommandError } from './command-error'
+import { isProgram, type ProgramOutcome, runProgram } from './program'
 import { REGISTRY } from './registry'
 import { scriptLines } from './script-lines'
 
@@ -8,7 +9,8 @@ export function applyScript(
   draft: Draft<HouseDocument>,
   source: string,
   open?: string,
-): { changed: string[]; shown: string[]; at?: string; notes?: string[] } {
+): ProgramOutcome {
+  if (isProgram(source)) return runProgram(draft, source, open)
   const changed: string[] = []
   const shown: string[] = []
   const notes: string[] = []

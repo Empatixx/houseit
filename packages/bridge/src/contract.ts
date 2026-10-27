@@ -12,7 +12,7 @@ export type PlanSnapshot = {
 }
 
 export type ExecResult =
-  | ({ ok: true; answer: Answer } & PlanSnapshot)
+  | ({ ok: true; answer: Answer; result?: unknown; logs?: string[] } & PlanSnapshot)
   | { ok: false; error: string }
 
 export type ViewRequest = {

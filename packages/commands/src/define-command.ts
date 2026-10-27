@@ -6,7 +6,14 @@ import { flagOf, type OptionSpec } from './option-spec'
 import { parseArgv } from './parse-argv'
 import { rebindAll } from './rebind'
 
-export type Touched = { changed: string[]; shown: string[]; at?: string; notes?: string[] }
+export type Touched = {
+  changed: string[]
+  shown: string[]
+  at?: string
+  notes?: string[]
+  result?: unknown
+  logs?: string[]
+}
 
 export type Change = {
   changed?: string[]

@@ -6,6 +6,7 @@ import type {
   ViewRequest,
 } from '@houseit/bridge/contract'
 import { answerFor } from '@houseit/commands/answer'
+import { programHelp } from '@houseit/commands/program'
 import { describeCommands } from '@houseit/commands/registry'
 import { levelsOf } from '@houseit/core/levels'
 import { roomsOf } from '@houseit/geometry/rooms'
@@ -132,13 +133,19 @@ export function installFloorplanBridge(
           touched.notes,
         )
         if (answer.level !== level) store.getState().setLevel(answer.level)
-        return { ok: true, answer, ...snapshot() }
+        return {
+          ok: true,
+          answer,
+          ...('result' in touched ? { result: touched.result } : {}),
+          ...(touched.logs ? { logs: touched.logs } : {}),
+          ...snapshot(),
+        }
       } catch (error) {
         return { ok: false, error: error instanceof Error ? error.message : String(error) }
       }
     },
     getPlan: snapshot,
-    help: describeCommands,
+    help: () => `${describeCommands()}\n\n${programHelp()}`,
     clear,
     save: () => projects.getState().save(),
     exportHouse: async () => {
