@@ -151,6 +151,13 @@ export function installFloorplanBridge(
     help: () => `${describeCommands()}\n\n${programHelp()}`,
     clear,
     save: () => projects.getState().save(),
+    norms: async () => {
+      if (!projects.getState().open) throw new Error(noProject())
+      const { activeTools } = await import('../engine/native-tools')
+      if (!activeTools) throw new Error('the editor has no engine running yet')
+      const { checkNorms } = await import('../engine/ids-check')
+      return checkNorms(activeTools.components, store.getState().doc)
+    },
     drawing: async (view, offset = 0) => {
       if (!projects.getState().open) throw new Error(noProject())
       modeStore.getState().setMode('2d')

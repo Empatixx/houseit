@@ -123,3 +123,20 @@ test('a brief answer keeps the rooms, their contents and the problems, and drops
     },
   ])
 })
+
+test('norms that fail ride along with what they found and how to fix them', () => {
+  const text = report(ok({}), [
+    {
+      rule: 'Obytná místnost má okno',
+      thing: { kind: 'room', id: 'r2', name: 'ložnice' },
+      pass: false,
+      found: 0,
+      instructions: 'Přidejte okno.',
+    },
+    { rule: 'Dveře', thing: { kind: 'opening', id: 'o1', name: 'o1' }, pass: true },
+  ])
+  expect(text).toContain('norms (2 checked, 1 failing)')
+  expect(text).toContain('"room":"r2"')
+  expect(text).toContain('Přidejte okno.')
+  expect(text).not.toContain('"opening":"o1"')
+})

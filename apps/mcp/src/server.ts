@@ -5,6 +5,7 @@ import {
   closeEditor,
   connectToEditor,
   execOnPage,
+  normsOf,
   PICTURE_TYPE,
   pictureOf,
   showOnPage,
@@ -40,7 +41,8 @@ server.registerTool(
 
       const page = await connectToEditor()
       const result = await execOnPage(page, command)
-      const content: Content[] = [{ type: 'text', text: report(result) }]
+      const norms = result.ok ? await normsOf(page) : undefined
+      const content: Content[] = [{ type: 'text', text: report(result, norms) }]
 
       if (result.ok) {
         const shown = await showOnPage(page, viewOf(result.answer))

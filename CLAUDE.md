@@ -739,6 +739,20 @@ It reports its endpoints, thickness and height with the room. Its occupied
 floor is subtracted without closing a new room, and both ends can be walked
 around. Use `--return` when one end meets the enclosing wall.
 
+## Norms are a standard IDS file
+
+`apps/editor/public/norms/cz-byty.ids` is buildingSMART IDS 1.0: a simplified set of Czech
+requirements for flats (habitable room area and clear height, a window, door width). It is
+checked by That Open's `IDSSpecifications` against a small check model built from the plan
+(`engine/ids-model.ts`): every room an IFCSPACE and every door an IFCDOOR, each with a property
+set (`Houseit_Space`: Kind, Habitable, NetFloorArea, ClearHeight, WindowCount;
+`Houseit_Door`: ClearWidth) linked the IFC way, IsDefinedBy and HasProperties. The model is
+loaded into the viewport's FragmentsManager for the check and disposed after it. That Open
+3.4.8 unions a specification's applicability facets where IDS requires all of them to hold,
+so `ids-check.ts` asks each facet for its entities and intersects them before running the
+requirements. Failing checks show under Issues and ride along with every CLI and MCP answer
+as `norms`; the numbers in the file are orientation values to check against the current law.
+
 ## Exterior site
 
 `update-site --site` replaces site surfaces, road/parking markings and railings

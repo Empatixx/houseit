@@ -7,6 +7,7 @@ import {
   drawingOf,
   execOnPage,
   houseOf,
+  normsOf,
   openProject,
   pictureOf,
   showOnPage,
@@ -67,7 +68,8 @@ async function main(argv: string[]): Promise<number> {
 
   const source = argv[0] === '-' ? readFileSync(0, 'utf8') : scriptOf(argv)
   const result = await execOnPage(page, source)
-  process.stdout.write(`${report(result)}\n`)
+  const norms = result.ok ? await normsOf(page) : undefined
+  process.stdout.write(`${report(result, norms)}\n`)
 
   if (result.ok && picture) {
     const shown = await showOnPage(page, viewOf(result.answer))
