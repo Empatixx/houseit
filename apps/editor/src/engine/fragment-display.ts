@@ -104,6 +104,9 @@ export class FragmentDisplay {
     this.error = error instanceof Error ? error.message : String(error)
     this.report(error)
   }
+  get staging() {
+    return this.dirty || !!this.work || this.preparing.size > 0
+  }
   get rebuilding() {
     if (this.dirty || this.work || this.preparing.size > 0) return true
     if (performance.now() - this.touchedAt > SETTLE) return false

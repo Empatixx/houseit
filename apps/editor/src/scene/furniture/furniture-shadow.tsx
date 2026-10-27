@@ -1,7 +1,9 @@
 import { drawnPartsOf } from '@houseit/core/footprint'
 import type { Layer } from '@houseit/core/object-types'
-import { useEffect, useMemo } from 'react'
-import { CanvasTexture, MeshBasicMaterial, PlaneGeometry } from 'three'
+import { useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
+import { CanvasTexture, type Mesh, MeshBasicMaterial, PlaneGeometry } from 'three'
+import { useFragmentDisplay } from '../../engine/fragment-display-layer'
 import { MM, toWorld } from '../plan-coordinates'
 
 const SPREAD = 160
@@ -67,11 +69,17 @@ export function FurnitureShadow({
       }),
     [type, size.width, size.depth],
   )
+  const display = useFragmentDisplay()
+  const mesh = useRef<Mesh>(null)
+  useFrame(() => {
+    if (mesh.current) mesh.current.visible = !display.staging
+  })
   useEffect(() => () => geometry.dispose(), [geometry])
   useEffect(() => () => material.dispose(), [material])
   if (layer === 'under') return null
   return (
     <mesh
+      ref={mesh}
       geometry={geometry}
       material={material}
       position={toWorld(at.x + LIGHT.x, at.y + LIGHT.y, height - BELOW)}
