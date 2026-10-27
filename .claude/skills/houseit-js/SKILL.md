@@ -161,6 +161,17 @@ main one; a wing as wide as the house becomes a lean-to. Coverings: `roof-tiles`
 storey's roof; `ctx.removeRoof()` takes it off. Pick the roof with the house: a gable for
 a plain house, a hip for a squat one, a shed or flat roof for a modern cube.
 
+## The facade and the look of the house
+
+`ctx.updateHouse({ style: 'classic' })` gives the whole house a roof and a facade in one go
+(`classic`, `villa`, `modern`, `scandinavian`, `rustic`, `industrial`). Refine it with
+`ctx.updateFacade({ material, side?, level?, from?, to?, colour? })`: materials
+`render-white`, `render-grey`, `larch-horizontal`, `larch-vertical`, `charred-wood`,
+`brick-red`, `brick-white`, `stone`, `cement-panels`, `concrete`. Without more it covers
+every exterior wall; `side` keeps to the walls facing that way, `from`/`to` (mm above the
+storey floor) lay a band such as a stone plinth (`from: 0, to: 450`), and `colour` tints a
+render.
+
 ## The garden
 
 The plot is a room like any other, of kind `lawn`, drawn first; the house is cut out of

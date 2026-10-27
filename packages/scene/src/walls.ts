@@ -1,4 +1,5 @@
 import type { HouseDocument, Wall } from '@houseit/core/document'
+import { facadeMaterial } from '@houseit/core/facade-materials'
 import { soffitOf } from '@houseit/core/levels'
 import { frameOffset, openingParts } from '@houseit/core/opening-parts'
 import { type Enclosure, enclosureOf, enclosuresOf } from '@houseit/geometry/enclosure'
@@ -8,7 +9,7 @@ import { wallCaps } from '@houseit/geometry/wall-caps'
 import { elementId } from '@houseit/geometry/wall-elements'
 import { doorPieces } from './doors'
 import { besideWall, type Dressed, paintFor } from './dressing'
-import { owned, type Piece } from './pieces'
+import { type Finish, owned, type Piece } from './pieces'
 import { solidPieces } from './wall-pieces'
 import { windowPieces } from './windows'
 
@@ -283,7 +284,7 @@ function standingWall(
             },
             at: standing((l + r) / 2, outside * edge, wall.baseOffset + (from + to) / 2),
             turn: angle,
-            paint: { colour: band?.colour ?? exterior.colour },
+            paint: facadePaint(band ?? exterior),
           })
         }
       }
@@ -345,4 +346,15 @@ function standingWall(
     ...frames,
     ...owned({ kind: 'wall', id: wall.id }, facade),
   ]
+}
+
+function facadePaint(coat: { colour: string; material?: string | undefined }): Finish {
+  const material = facadeMaterial(coat.material)
+  if (!material) return { colour: coat.colour }
+  return {
+    colour: material.texture === 'facade/render.svg' ? coat.colour : '#ffffff',
+    texture: material.texture,
+    repeat: { x: 1000 / material.unit.width, y: 1000 / material.unit.height },
+    roughness: 0.95,
+  }
 }
