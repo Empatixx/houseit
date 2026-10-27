@@ -603,6 +603,12 @@ every crossing, which is what makes two rooms share one wall instead of standing
 beside each other with a gap. The test that pins it asserts the two rooms' areas
 still add up to the whole floor, which is impossible unless the wall is shared.
 
+**Nothing is left narrower than 600 mm.** `narrowParts` (geometry/narrow.ts) shrinks every
+face's clear outline by 300 mm and grows it back; whatever does not come back is a strip or a
+nub nobody can stand in. A wall or room-boundary edit that leaves a new one is refused, so a
+drag stops before it, and `room.narrow-part` reports any that a cut or an older plan has. Dragging
+a room's wall into the corridor beside it had left a 7 m corridor 384 mm wide.
+
 **A cut comes off a straight side.** Two crossings do not promise a rectangle:
 cutting the north off an L-shaped floor meets the boundary exactly twice and
 leaves a shallow tail running under the notch. `sideIsStraight` in

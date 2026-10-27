@@ -89,7 +89,7 @@ test('rooms keep their names when a wall moves past an anchor', () => {
     house(),
     [
       `remove-opening --id ${openingIn(house(), 'kitchen', 'window')}`,
-      'update-room --room kitchen --side east --by -3.5m',
+      'update-room --room kitchen --side east --by -3m',
     ].join('\n'),
   )
 
@@ -101,7 +101,7 @@ test('rooms keep their names when a wall moves past an anchor', () => {
 })
 
 test('a window remains on its whole wall when an internal junction slides past it', () => {
-  const doc = runScript(house(), 'update-room --room kitchen --side east --by -3.5m')
+  const doc = runScript(house(), 'update-room --room kitchen --side east --by -3m')
 
   expect(report(doc, 'kitchen').width).toBeLessThan(report(house(), 'kitchen').width)
   for (const opening of Object.values(doc.openings)) {
@@ -251,4 +251,21 @@ test('a room boundary moved out and back removes the collapsed return', () => {
       .sort(),
   )
   expect(roomsOf(back, level(back))).toHaveLength(3)
+})
+
+test('a move that would leave a strip nobody can use is refused, and a plan with one says so', () => {
+  expect(() => runScript(house(), 'update-room --room kitchen --side east --by -3.5m')).toThrow(
+    /strip narrower than 600 mm/,
+  )
+  const kept = runScript(house(), 'update-room --room kitchen --side east --by -3m')
+  expect(askPlan(kept, 'get-plan').problems.map((it) => it.code)).not.toContain('room.narrow-part')
+})
+
+test('a strip cut off a room that nobody could use is reported', () => {
+  const doc = runScript(
+    house(),
+    'add-room --material natural-oak --name strip --from house --side east --width 500',
+  )
+  const narrow = askPlan(doc, 'get-plan').problems.find((it) => it.code === 'room.narrow-part')
+  expect(narrow?.room).toBe('strip')
 })

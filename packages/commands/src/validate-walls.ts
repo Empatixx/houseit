@@ -1,5 +1,6 @@
 import type { HouseDocument, Opening } from '@houseit/core/document'
 import { soffitOf } from '@houseit/core/levels'
+import { NARROWEST, narrowParts } from '@houseit/geometry/narrow'
 import { elementId } from '@houseit/geometry/wall-elements'
 import { wallProfile } from '@houseit/geometry/wall-profile'
 import { isDraft, original } from 'immer'
@@ -98,6 +99,10 @@ function wallFaults(doc: HouseDocument, level: string): string[] {
       faults.push(`Walls ${one.id} and ${other.id} would cross without a junction`)
     }
   }
+  for (const part of narrowParts(doc, level))
+    faults.push(
+      `this would leave ${part.room ?? 'a space'} with a strip narrower than ${NARROWEST} mm`,
+    )
   fault(() => validateWallHosts(doc, level))
   fault(() => checkPockets(doc, level, 'wall'))
   return faults
