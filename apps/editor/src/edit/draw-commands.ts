@@ -1,5 +1,5 @@
 import { drawWall } from '@houseit/commands/draw-wall'
-import { parseLength } from '@houseit/commands/length'
+import { typedLength } from '@houseit/commands/length'
 import { SNAP } from '@houseit/commands/partition'
 import { applyCommand } from '@houseit/commands/run'
 import type { Point } from '@houseit/geometry/outlines'
@@ -92,21 +92,6 @@ export function aimAt(point: Point): void {
 }
 
 const TYPING = /^[\d.,]$|^[cm]$/i
-
-export function typedLength(typed: string): number | undefined {
-  const text = typed.trim().replace(',', '.')
-  if (!/\d/.test(text)) return undefined
-  try {
-    const bare = /^\d+(\.\d+)?$/.test(text)
-    const length =
-      bare && (text.includes('.') || Number(text) < 100)
-        ? parseLength(`${text}m`)
-        : parseLength(text)
-    return length > 0 ? length : undefined
-  } catch {
-    return undefined
-  }
-}
 
 function headingOf(points: Point[], cursor: Point | null): Point {
   const last = points[points.length - 1]!

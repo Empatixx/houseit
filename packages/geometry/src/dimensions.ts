@@ -10,6 +10,7 @@ export type Dimension = {
   to: Point
   length: number
   offset: Point
+  ends?: { room: string; first: string; last: string }
 }
 
 export const STANDOFF = 300
@@ -49,6 +50,9 @@ export function roomDimensions(doc: HouseDocument, level: string, room: Room): D
       to: { x: b.x - along.x * cutB + inward.x * off, y: b.y - along.y * cutB + inward.y * off },
       length,
       offset: inward,
+      ...(room.id && before && after
+        ? { ends: { room: room.id, first: before.id, last: after.id } }
+        : {}),
     })
   }
 

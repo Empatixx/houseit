@@ -1,3 +1,4 @@
+import { typedLength } from '@houseit/commands/length'
 import type { Point } from '@houseit/geometry/outlines'
 import type { RootState } from '@react-three/fiber'
 import * as OBC from '@thatopen/components'
@@ -361,13 +362,21 @@ export class NativeTools {
         )[0] ?? null
     )
   }
-  dimension(from: Vector3, to: Vector3) {
+  dimension(from: Vector3, to: Vector3, edit?: (length: number) => void) {
     const line = new OBF.Line(from, to)
     line.units = 'm'
     line.rounding = 2
     this.automatic.add(line)
     this.measure.list.add(line)
+    const drawn = edit
+      ? [...this.measure.lines].find(
+          (it) =>
+            it.line === line || (it.line.start.equals(line.start) && it.line.end.equals(line.end)),
+        )
+      : undefined
+    const release = edit && drawn ? editable(drawn.label.three.element, edit) : undefined
     return () => {
+      release?.()
       this.automatic.delete(line)
       this.measure.list.delete(line)
     }
@@ -482,5 +491,51 @@ export class NativeTools {
     this.clips.list.clear()
     this.views.list.clear()
     this.world.renderer?.three.clippingPlanes.splice(0)
+  }
+}
+
+function editable(element: HTMLElement, edit: (length: number) => void) {
+  const idle = { pointerEvents: 'auto', cursor: 'text', outline: 'none', boxShadow: '' }
+  Object.assign(element.style, idle)
+  element.title = 'Click and type a length'
+  let shown = ''
+  const stop = (event: Event) => event.stopPropagation()
+  const open = (event: Event) => {
+    event.stopPropagation()
+    if (element.isContentEditable) return
+    shown = element.textContent ?? ''
+    element.contentEditable = 'plaintext-only'
+    Object.assign(element.style, { boxShadow: '0 0 0 1.5px #714cb6', backgroundColor: '#fff' })
+    element.focus()
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    const selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+  }
+  const close = () => {
+    element.contentEditable = 'false'
+    Object.assign(element.style, idle, { backgroundColor: 'rgba(255,255,255,0.9)' })
+    if (shown) element.textContent = shown
+    shown = ''
+  }
+  const key = (event: KeyboardEvent) => {
+    event.stopPropagation()
+    if (event.key === 'Escape') element.blur()
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    const length = typedLength(element.textContent ?? '')
+    element.blur()
+    if (length !== undefined) edit(length)
+  }
+  element.addEventListener('pointerdown', stop)
+  element.addEventListener('click', open)
+  element.addEventListener('keydown', key)
+  element.addEventListener('blur', close)
+  return () => {
+    element.removeEventListener('pointerdown', stop)
+    element.removeEventListener('click', open)
+    element.removeEventListener('keydown', key)
+    element.removeEventListener('blur', close)
   }
 }
