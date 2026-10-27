@@ -44,6 +44,25 @@ export const RoofSchema = z
       towards: z.enum(['north', 'south', 'east', 'west']),
     }),
     drains: z.array(point.extend({ diameter: mm.positive() })),
+    pitched: z
+      .object({
+        shape: z.enum(['gable', 'hip', 'shed']),
+        pitch: z.number().min(5).max(60),
+        axis: z.enum(['x', 'y']),
+        ends: z.tuple([z.enum(['hip', 'gable']), z.enum(['hip', 'gable'])]).optional(),
+        towards: z.enum(['north', 'south', 'east', 'west']).optional(),
+        eave: mm.positive(),
+        plate: mm.positive(),
+        overhang: z.object({
+          north: mm.nonnegative(),
+          south: mm.nonnegative(),
+          east: mm.nonnegative(),
+          west: mm.nonnegative(),
+        }),
+        walls: z.string().regex(/^#[0-9a-f]{6}$/i),
+        fascia: z.string().regex(/^#[0-9a-f]{6}$/i),
+      })
+      .optional(),
   })
   .superRefine((roof, ctx) => {
     const area = roof.outline.reduce((sum, a, i) => {

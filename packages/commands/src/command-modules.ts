@@ -13,6 +13,7 @@ import { addFence, removeFence, updateFence } from './fences'
 import { removeObject, removeOpening } from './remove'
 import { removeRoom } from './remove-room'
 import { removeSite } from './remove-site'
+import { addRoof, removeRoof } from './roofs'
 import { addStair, removeStair } from './stair-run'
 import { addTopic, addViewpoint, removeTopic, removeViewpoint, updateTopic } from './topics'
 import { updateObject } from './update-object'
@@ -62,6 +63,8 @@ export const COMMAND_MODULES: readonly CommandModule[] = [
       removeTopic,
       addDimension,
       removeDimension,
+      addRoof,
+      removeRoof,
       addFence,
       updateFence,
       removeFence,

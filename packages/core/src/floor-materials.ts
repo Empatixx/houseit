@@ -37,6 +37,19 @@ export const FLOOR_MATERIALS: readonly FloorMaterial[] = [
     unit: { width: Number(size), depth: Number(size) },
     texture: `building/${id}.svg`,
   })),
+  ...[
+    ['roof-tiles', 'Clay roof tiles', '#b0603f', 'tiles'],
+    ['roof-tiles-anthracite', 'Anthracite roof tiles', '#45494d', 'tiles-anthracite'],
+    ['standing-seam', 'Standing seam metal', '#5f666c', 'standing-seam'],
+    ['slate', 'Slate', '#50575e', 'slate'],
+    ['shingles', 'Wooden shingles', '#7d6149', 'shingles'],
+  ].map(([id, label, colour, file]) => ({
+    id: String(id),
+    label: String(label),
+    colour: String(colour),
+    unit: { width: 1000, depth: 1000 },
+    texture: `roof/${file}.svg`,
+  })),
   {
     id: 'ceramic-tile',
     label: 'Ceramic tile',

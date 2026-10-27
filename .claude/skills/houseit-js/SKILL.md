@@ -150,6 +150,17 @@ along one wall, `kitchen-l` into a corner of a squarer room, `kitchen-u` round a
 `queen-bed` or `king-bed`. Every catalogue type has a real size; `help add-object` lists
 them, and a thing that does not fit is refused with the reason.
 
+## The roof
+
+`ctx.addRoof({ shape: 'gable' | 'hip' | 'shed' | 'flat', pitch: 35, overhang: '500mm',
+ridge: 'east-west', covering: 'roof-tiles', walls: '#ecebe6' })` roofs the top storey over
+its whole outline. An L or T house gets a roof over each wing, its ridge running into the
+main one; a wing as wide as the house becomes a lean-to. Coverings: `roof-tiles`,
+`roof-tiles-anthracite`, `standing-seam`, `slate`, `shingles`. Gables are walled in the
+`walls` colour, the eaves carry a fascia and a gutter. Adding a roof replaces the
+storey's roof; `ctx.removeRoof()` takes it off. Pick the roof with the house: a gable for
+a plain house, a hip for a squat one, a shed or flat roof for a modern cube.
+
 ## The garden
 
 The plot is a room like any other, of kind `lawn`, drawn first; the house is cut out of
