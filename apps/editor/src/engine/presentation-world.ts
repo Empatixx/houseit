@@ -1,6 +1,7 @@
 import * as OBC from '@thatopen/components'
 import { type Camera, Scene, Vector2, type WebGLRenderer } from 'three'
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js'
+import { createPostproduction, type Postproduction } from './postproduction'
 
 export class PresentationCamera extends OBC.BaseCamera {
   enabled = true
@@ -28,6 +29,7 @@ export class PresentationScene extends OBC.BaseScene {
 export class PresentationRenderer extends OBC.BaseRenderer {
   enabled = true
   readonly labels = new CSS2DRenderer()
+  private composed: Postproduction | undefined
   constructor(
     components: OBC.Components,
     public three: WebGLRenderer,
@@ -41,12 +43,27 @@ export class PresentationRenderer extends OBC.BaseRenderer {
     three.domElement.parentElement?.appendChild(this.labels.domElement)
     this.resize()
   }
+  get postproduction(): Postproduction {
+    this.composed ??= createPostproduction(this.components, this)
+    return this.composed
+  }
+  get composing() {
+    return !!this.composed?.enabled
+  }
+  compose() {
+    const world = this.currentWorld
+    if (!world) return
+    if (this.composing) this.postproduction.update()
+    else this.three.render(world.scene.three, world.camera.three)
+  }
   getSize() {
     return this.three.getSize(new Vector2())
   }
   resize() {
     const size = this.getSize()
     this.labels.setSize(size.x, size.y)
+    const ratio = this.three.getPixelRatio()
+    this.composed?.setSize(size.x * ratio, size.y * ratio)
     this.onResize.trigger(size)
   }
   update() {
@@ -57,6 +74,8 @@ export class PresentationRenderer extends OBC.BaseRenderer {
     this.onAfterUpdate.trigger()
   }
   dispose() {
+    this.composed?.dispose()
+    this.composed = undefined
     this.labels.domElement.remove()
     this.onDisposed.trigger()
   }

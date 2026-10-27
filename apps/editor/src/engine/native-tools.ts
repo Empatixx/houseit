@@ -6,7 +6,15 @@ import * as OBC from '@thatopen/components'
 import * as OBF from '@thatopen/components-front'
 import { type RaycastResult, SnappingClass } from '@thatopen/fragments'
 import { toast } from 'sonner'
-import { Color, DoubleSide, MeshBasicMaterial, Vector2, Vector3 } from 'three'
+import {
+  ACESFilmicToneMapping,
+  Color,
+  DoubleSide,
+  MeshBasicMaterial,
+  OrthographicCamera,
+  Vector2,
+  Vector3,
+} from 'three'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
@@ -19,6 +27,7 @@ import { toolStore } from '../store/tool'
 import { clearOf, viewStore } from '../store/view'
 import type { FragmentDisplay } from './fragment-display'
 import { LineDrawing } from './line-drawing'
+import { occludeOpaqueOnly } from './postproduction'
 import { PresentationCamera, PresentationRenderer, PresentationScene } from './presentation-world'
 
 const FACADES: Partial<Record<string, [number, number, number]>> = {
@@ -78,6 +87,7 @@ export class NativeTools {
     this.world.camera = this.camera
     this.world.onCameraChanged.add((camera) => {
       get().set({ camera: camera.three as RootState['camera'] })
+      this.restyle()
       for (const model of new Set(this.fragments.list.values())) {
         const assign = model.useCamera.bind(model)
         assign(camera.three as RootState['camera'])
@@ -209,6 +219,30 @@ export class NativeTools {
         hoverer.material.dispose()
         hoverer.world = null
       })
+      this.shade(gl)
+      let pressed: { x: number; y: number } | null = null
+      const aim = (event: PointerEvent) => {
+        pressed = event.button === 0 ? { x: event.clientX, y: event.clientY } : null
+      }
+      const pick = (event: PointerEvent) => {
+        const at = pressed
+        pressed = null
+        if (!at || Math.hypot(event.clientX - at.x, event.clientY - at.y) > 4) return
+        if (engineViewStore.getState().measure !== 'none') return
+        void this.pickAtPointer()
+          .then((owner) => {
+            if (this.dead) return
+            if (owner) this.select(owner)
+            else selectionStore.getState().select(null)
+          })
+          .catch(this.fail)
+      }
+      canvas.addEventListener('pointerdown', aim)
+      canvas.addEventListener('pointerup', pick)
+      this.stops.push(() => {
+        canvas.removeEventListener('pointerdown', aim)
+        canvas.removeEventListener('pointerup', pick)
+      })
     }
     this.components.init()
     activeTools = this
@@ -257,10 +291,59 @@ export class NativeTools {
     this.measure.mode = settings.measure === 'edge' ? 'edge' : 'free'
     this.measure.snappings = settings.snap ? [SnappingClass.POINT, SnappingClass.LINE] : []
   }
+  private shade(gl: RootState['gl']) {
+    const renderer = this.world.renderer as PresentationRenderer
+    const shading = renderer.postproduction
+    shading.enabled = true
+    shading.defaultAoParameters.radius = 0.6
+    shading.defaultAoParameters.samples = 8
+    shading.smaaEnabled = true
+    shading.outlinesEnabled = true
+    shading.style = OBF.PostproductionAspect.COLOR_SHADOWS
+    shading.aoPass.updateGtaoMaterial(shading.defaultAoParameters)
+    shading.aoPass.updatePdMaterial({ samples: 4, rings: 2, radius: 4 })
+    this.restyle()
+    occludeOpaqueOnly(shading, this.world.scene.three)
+    renderer.resize()
+    const tone = gl.toneMapping
+    gl.toneMapping = ACESFilmicToneMapping
+    const outliner = this.components.get(OBF.Outliner)
+    outliner.world = this.world
+    outliner.color = new Color('#714cb6')
+    outliner.fillColor = new Color('#714cb6')
+    outliner.fillOpacity = 0.08
+    outliner.thickness = 3
+    outliner.enabled = true
+    outliner.styles.add('select')
+    this.stops.push(() => {
+      outliner.styles.clear()
+      outliner.clean()
+      outliner.enabled = false
+      outliner.world = undefined
+      shading.enabled = false
+      gl.toneMapping = tone
+    })
+  }
+  private restyle() {
+    const renderer = this.world.renderer as PresentationRenderer | null
+    if (!renderer?.composing) return
+    const shading = renderer.postproduction
+    shading.updateCamera()
+    const style =
+      this.camera.three instanceof OrthographicCamera
+        ? OBF.PostproductionAspect.COLOR
+        : OBF.PostproductionAspect.COLOR_SHADOWS
+    if (shading.style !== style) shading.style = style
+  }
+  render() {
+    ;(this.world.renderer as PresentationRenderer).compose()
+  }
   frame() {
     if (this.dead) return
-    if (!this.views.hasOpenViews && this.camera.three !== this.get().camera)
+    if (!this.views.hasOpenViews && this.camera.three !== this.get().camera) {
       this.camera.three = this.get().camera
+      this.restyle()
+    }
     if (this.displayRevision !== this.display.revision) this.request()
     if (!this.updateRequested || this.timer || this.running) return
     this.timer = setTimeout(() => {
