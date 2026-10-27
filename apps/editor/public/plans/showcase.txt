@@ -42,7 +42,7 @@ add-opening --kind window --room bedroom --side north --width 1.8m
 add-opening --kind window --room bedroom --side west --width 1.2m
 add-opening --kind window --room kids --side north --width 1.5m
 add-opening --kind window --room kids --side east --width 1.2m
-add-opening --kind window --room bathroom --side north --width 0.9m --sill 1.2m
+add-opening --kind window --room bathroom --side north --width 0.9m --sill 1.2m --height 0.9m
 add-opening --kind window --room study --side west --width 1.5m
 add-opening --kind window --room living --side south --width 2.4m
 add-opening --kind window --room living --side south --width 1.8m

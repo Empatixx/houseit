@@ -37,6 +37,7 @@ export function setWall(
 export function moveWallBy(wall: Wall, shift: Point, roomId?: string): boolean {
   return runEdit(() => {
     const edit = constrainedMove(wall, shift, roomId)
+    if (edit?.refusal) throw new Error(edit.refusal)
     edit?.commit()
   })
 }
@@ -60,7 +61,11 @@ function constrainedMove(wall: Wall, shift: Point, roomId?: string, preview = fa
       stops,
       preview,
     )
-    return { doc: edit.doc, commit: () => edit.changed && apply(updateRoom, edit.args) }
+    return {
+      doc: edit.doc,
+      refusal: edit.refusal,
+      commit: () => edit.changed && apply(updateRoom, edit.args),
+    }
   }
   const args = wallMoveArgs(wall, shift)
   const stops = alignments.map((shift) => wallMoveArgs(wall, shift).by)
@@ -73,7 +78,11 @@ function constrainedMove(wall: Wall, shift: Point, roomId?: string, preview = fa
     stops,
     preview,
   )
-  return { doc: edit.doc, commit: () => edit.changed && apply(updateWall, edit.args) }
+  return {
+    doc: edit.doc,
+    refusal: edit.refusal,
+    commit: () => edit.changed && apply(updateWall, edit.args),
+  }
 }
 
 export function previewWallMove(wall: Wall, shift: Point, roomId?: string): void {

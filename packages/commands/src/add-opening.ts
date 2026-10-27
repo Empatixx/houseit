@@ -17,7 +17,7 @@ import { checkPockets, setPocket } from './pocket-door'
 import { levelOf, SIDE_NAMES, sideNamed, whereRoom } from './resolve'
 
 import { validateWallHosts } from './validate-wall-hosts'
-import { validateWalls } from './validate-walls'
+import { openingReach, validateWalls } from './validate-walls'
 
 const DOOR_HEIGHT = 1970
 const WINDOW = { width: 1200, height: 1500, sill: 900 }
@@ -166,6 +166,11 @@ export const addOpening = defineCommand({
       swing: door || args.kind === 'assembly' ? spot.swing : 1,
     })
     checkFrame(draft, draft.openings[id]!, 'add-opening')
+    const reach = openingReach(draft, draft.openings[id]!, draft.walls[draft.openings[id]!.wall]!)
+    if (reach)
+      throw new CommandError(
+        `add-opening: it would reach ${reach.reach} mm and the wall is open to ${reach.top} mm — lower --sill or --height`,
+      )
     const beside =
       room ?? roomsOf(draft, level).find((r) => touchesWall(r, draft.walls[spot.wall]!))
     if (beside) checkDoorLeaves(draft, level, beside, draft.openings[id]!, 'add-opening')
