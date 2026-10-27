@@ -8,8 +8,9 @@ import {
 } from '@houseit/geometry/dimensions'
 import { type Room, roomsOf } from '@houseit/geometry/rooms'
 import { standingAt } from '@houseit/geometry/standing'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Shape, ShapeGeometry, Vector3 } from 'three'
+import { setDimension } from '../edit/dimension-commands'
 import { useNativeTools } from '../engine/native-tools'
 import { useSelection } from '../store/selection'
 import { useDocument, usePlanDoc } from '../store/store'
@@ -75,13 +76,17 @@ function RoomHighlight({ room, doc }: { room: Room; doc: HouseDocument }) {
 export function DimensionLine({ dimension }: { dimension: Dimension }) {
   const tools = useNativeTools()
   const { from, to } = dimension
+  const editable = dimension.ends !== undefined
+  const latest = useRef(dimension)
+  latest.current = dimension
   useEffect(() => {
     if (!tools) return
     return tools.dimension(
       new Vector3(...toWorld(from.x, from.y, ABOVE)),
       new Vector3(...toWorld(to.x, to.y, ABOVE)),
+      editable ? (length) => setDimension(latest.current, length) : undefined,
     )
-  }, [tools, from.x, from.y, to.x, to.y])
+  }, [tools, from.x, from.y, to.x, to.y, editable])
   return null
 }
 

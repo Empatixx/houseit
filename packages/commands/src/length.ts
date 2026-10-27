@@ -19,3 +19,18 @@ export function parseLength(input: string | number): number {
   const unit = UNITS[(match[2] ?? 'mm').toLowerCase()]!
   return Math.round(value * unit)
 }
+
+export function typedLength(typed: string): number | undefined {
+  const text = typed.trim().replace(',', '.')
+  if (!/\d/.test(text)) return undefined
+  try {
+    const bare = /^\d+(\.\d+)?$/.test(text)
+    const length =
+      bare && (text.includes('.') || Number(text) < 100)
+        ? parseLength(`${text}m`)
+        : parseLength(text)
+    return length > 0 ? length : undefined
+  } catch {
+    return undefined
+  }
+}

@@ -38,7 +38,9 @@ module.exports = {
         'reading and the doing in a loop, and it was that loop which let `checks` grow into ' +
         'one file that did everything.',
       severity: 'error',
-      from: { path: '^packages/commands/src/(?!survey\\.ts|answer\\.ts|checks\\.ts|rules/)' },
+      from: {
+        path: '^packages/commands/src/(?!survey\\.ts|answer\\.ts|checks\\.ts|program\\.ts|rules/)',
+      },
       to: { path: '^packages/commands/src/(survey\\.ts|answer\\.ts|checks\\.ts|rules/)' },
     },
     {

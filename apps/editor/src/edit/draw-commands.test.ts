@@ -1,10 +1,11 @@
+import { typedLength } from '@houseit/commands/length'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { drawStore } from '../store/draw'
 import { engineViewStore } from '../store/engine-view'
 import { selectionStore } from '../store/selection'
 import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
-import { aimAt, cancelDrawing, putDown, putTyped, typedLength, typeKey } from './draw-commands'
+import { aimAt, cancelDrawing, putDown, putTyped, typeKey } from './draw-commands'
 
 vi.mock('../engine/native-tools', () => ({ activeTools: null }))
 
