@@ -197,6 +197,16 @@ export const ViewpointSchema = z.object({
   hidden: z.array(z.enum(['furniture', 'openings', 'roofs', 'ceilings', 'site'])).optional(),
 })
 
+export const DRAWING_VIEWS = ['section-x', 'section-y', 'north', 'south', 'east', 'west'] as const
+
+export const DimensionSchema = z.object({
+  id,
+  view: z.enum(DRAWING_VIEWS),
+  from: Vector,
+  to: Vector,
+  offset: z.number(),
+})
+
 export const TopicSchema = z.object({
   id,
   title: z.string().min(1),
@@ -229,6 +239,7 @@ const DocumentShape = z.object({
   constraints: z.record(z.string(), ConstraintSchema).optional(),
   viewpoints: z.record(z.string(), ViewpointSchema).optional(),
   topics: z.record(z.string(), TopicSchema).optional(),
+  dimensions: z.record(z.string(), DimensionSchema).optional(),
   site: SiteSchema.optional(),
 })
 
@@ -286,6 +297,7 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   checkKeysMatchIds(doc.constraints ?? {}, 'constraints', ctx)
   checkKeysMatchIds(doc.viewpoints ?? {}, 'viewpoints', ctx)
   checkKeysMatchIds(doc.topics ?? {}, 'topics', ctx)
+  checkKeysMatchIds(doc.dimensions ?? {}, 'dimensions', ctx)
   for (const viewpoint of Object.values(doc.viewpoints ?? {}))
     checkReference(
       doc.levels,
@@ -397,6 +409,7 @@ export type Circuit = z.infer<typeof CircuitSchema>
 export type Constraint = z.infer<typeof ConstraintSchema>
 export type Viewpoint = z.infer<typeof ViewpointSchema>
 export type Topic = z.infer<typeof TopicSchema>
+export type DrawnDimension = z.infer<typeof DimensionSchema>
 export type Camera = z.infer<typeof CameraSchema>
 
 export type Subject = 'rooms' | 'objects' | 'openings' | 'elements'

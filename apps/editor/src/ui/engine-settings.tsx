@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react'
+import { Download, Ruler } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -83,6 +83,16 @@ export function EngineSettings() {
               onCheckedChange={(lines) => settings.configure({ lines })}
             />
           </div>
+          <Button
+            variant={settings.dimensioning ? 'default' : 'outline'}
+            size="sm"
+            disabled={!settings.lines}
+            aria-pressed={settings.dimensioning}
+            onClick={() => settings.configure({ dimensioning: !settings.dimensioning })}
+          >
+            <Ruler />
+            {settings.dimensioning ? 'Placing dimensions — Esc to stop' : 'Add dimensions'}
+          </Button>
           <Button
             variant="outline"
             size="sm"

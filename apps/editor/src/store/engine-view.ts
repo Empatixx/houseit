@@ -32,6 +32,7 @@ type EngineSettings = {
   cutHeight: number
   offset: number
   lines: boolean
+  dimensioning: boolean
   hidden: Hideable[]
 }
 type State = EngineSettings & {
@@ -48,6 +49,7 @@ export const engineViewStore = createStore<State>()((set) => ({
   cutHeight: 1.2,
   offset: 0,
   lines: false,
+  dimensioning: false,
   hidden: [],
   busy: true,
   error: null,

@@ -1,3 +1,4 @@
+import { addDimension } from '@houseit/commands/dimensions'
 import { typedLength } from '@houseit/commands/length'
 import type { Point } from '@houseit/geometry/outlines'
 import type { RootState } from '@react-three/fiber'
@@ -131,6 +132,7 @@ export class NativeTools {
           state.cutHeight !== before.cutHeight ||
           state.offset !== before.offset ||
           state.lines !== before.lines ||
+          state.dimensioning !== before.dimensioning ||
           state.hidden !== before.hidden
         )
           this.request()
@@ -166,6 +168,30 @@ export class NativeTools {
     canvas.addEventListener('dblclick', doubleClick, true)
     this.stops.push(() => canvas.removeEventListener('dblclick', doubleClick, true))
     this.lines = new LineDrawing(this.components, this.world)
+    const place = (event: PointerEvent) => {
+      if (!this.lines.placingDimension || event.button !== 0) return
+      event.stopPropagation()
+      this.lines.step()
+    }
+    const swallow = (event: MouseEvent) => {
+      if (this.lines.placingDimension) event.stopPropagation()
+    }
+    const stop = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && this.lines.cancel()) {
+        event.stopPropagation()
+        if (!this.lines.placingDimension)
+          engineViewStore.getState().configure({ dimensioning: false })
+      }
+    }
+    canvas.addEventListener('pointerdown', place, true)
+    canvas.addEventListener('click', swallow, true)
+    window.addEventListener('keydown', stop, true)
+    this.stops.push(() => {
+      canvas.removeEventListener('pointerdown', place, true)
+      canvas.removeEventListener('click', swallow, true)
+      window.removeEventListener('keydown', stop, true)
+      this.lines.place(undefined)
+    })
     if (!this.sections) {
       const hoverer = this.components.get(OBF.Hoverer)
       hoverer.world = this.world
@@ -439,24 +465,44 @@ export class NativeTools {
     const view = this.views.list.get('houseit-view')
     const model = this.display.model
     if (!lines || name === 'plan' || name === 'floor-cut' || !view?.open || !model) {
+      this.lines.place(undefined)
       this.lines.clear()
       this.drawn = ''
       return
     }
-    const key = `${this.lastView}:${this.display.revision}`
+    const { doc } = documentStore.getState()
+    const drawn = Object.values(doc.dimensions ?? {}).filter((it) => it.view === name)
+    const key = `${this.lastView}:${this.display.revision}:${JSON.stringify(drawn)}`
     if (!changed && key === this.drawn && this.lines.shown) {
       this.lines.hide(model)
+      this.placeDimensions()
       return
     }
     this.drawn = key
     const direction = view.camera.three.getWorldDirection(new Vector3())
     const size = model.box.getSize(new Vector3())
-    const { doc } = documentStore.getState()
     await this.lines.show(model, {
       direction,
       point: this.viewPoint,
       depth: Math.abs(size.dot(direction)) + 1,
       storeys: Object.values(doc.levels).map((level) => level.elevation / 1000),
+      drawn,
+    })
+    this.placeDimensions()
+  }
+  private placeDimensions() {
+    const { dimensioning, lines, view } = engineViewStore.getState()
+    const drawing = view !== 'plan' && view !== 'floor-cut' ? view : undefined
+    if (!dimensioning || !lines || !drawing || !this.lines.shown) {
+      this.lines.place(undefined)
+      return
+    }
+    this.lines.place((placed) => {
+      try {
+        documentStore.getState().apply(addDimension, { view: drawing, ...placed })
+      } catch (error) {
+        this.fail(error)
+      }
     })
   }
   drawing() {

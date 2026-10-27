@@ -858,3 +858,27 @@ add-viewpoint --name here --mode 3d --camera '{"projection":"perspective","posit
     authoring.dispose()
   }
 })
+
+test('a drawn dimension is a native annotation, kept by an archive', async () => {
+  const authoring = new FragmentAuthoring(createEmptyDocument())
+  const level = Object.keys(authoring.document.levels)[0]!
+  try {
+    authoring.exec(
+      `add-dimension --view east --from '{"x":0,"y":0,"z":0}' --to '{"x":0,"y":5000,"z":0}'`,
+      level,
+    )
+    const item = [...authoring.graph.items.values()].find(
+      (it) => nativeKey(it) === 'dimensions:d1',
+    )!
+    expect(item.category).toBe('HOUSEITANNOTATION')
+    const archive = await writeFragment(authoring.snapshot(), generate)
+    const loaded = new FragmentAuthoring(new Uint8Array(archive.buffer))
+    try {
+      expect(loaded.document.dimensions).toEqual(authoring.document.dimensions)
+    } finally {
+      loaded.dispose()
+    }
+  } finally {
+    authoring.dispose()
+  }
+})
