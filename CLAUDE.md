@@ -813,6 +813,14 @@ edge a chain of storey heights from the plinth with the overall height beyond it
 gets real dimensions; their on-screen numbers are CSS2D labels. A projection only sees loaded
 tiles, so the model is shown and Fragments allowed to finish loading before each projection.
 The shaded model is hidden while the drawing shows and comes back when it closes.
+Dimensions of one's own are `add-dimension --view south --from {x,y,z} --to {x,y,z} --offset`
+(mm, plan axes, up from the datum) and `remove-dimension --id`: a document collection and native
+`HOUSEITANNOTATION` items, so archives keep them; the drawing and its DXF draw them beside the
+automatic ones. By hand, Add dimensions in the engine settings hands the drawing to That Open's
+`DrawingEditor` with `LinearAnnotationsTool`: click one edge, a parallel edge, then where the line
+stands. The committed annotation is taken back off the drawing and stored through `store.apply`, so
+the hand path and the command are one record. Esc stops. Steps go on pointerdown capture and
+`activeTool` is assigned only when it changes, since reassigning it cancels a placement.
 
 `window.floorplan.show({view: 'north', site: false})` hides site context for an
 unobstructed elevation review, without changing the model. Orthographic building
