@@ -12,6 +12,7 @@ import { levelsOf } from '@houseit/core/levels'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { buildingView } from '../scene/building-view'
 import type { createDocumentStore } from '../store/document-store'
+import { engineViewStore } from '../store/engine-view'
 import { modeStore } from '../store/mode'
 import { projectsStore as theProjects } from '../store/projects/projects'
 import { selectionStore } from '../store/selection'
@@ -148,6 +149,26 @@ export function installFloorplanBridge(
     help: () => `${describeCommands()}\n\n${programHelp()}`,
     clear,
     save: () => projects.getState().save(),
+    drawing: async (view, offset = 0) => {
+      if (!projects.getState().open) throw new Error(noProject())
+      modeStore.getState().setMode('2d')
+      engineViewStore.getState().configure({ view, offset, lines: true })
+      const { activeTools } = await import('../engine/native-tools')
+      const started = performance.now()
+      for (;;) {
+        await new Promise((resolve) => setTimeout(resolve, 200))
+        const tools = activeTools
+        if (tools && !tools.status.busy && !engineViewStore.getState().busy) {
+          try {
+            return tools.drawing()
+          } catch (error) {
+            if (performance.now() - started > 20_000) throw error
+          }
+        }
+        if (performance.now() - started > 20_000)
+          throw new Error(`the ${view} drawing did not finish`)
+      }
+    },
     exportHouse: async () => {
       if (!projects.getState().open) throw new Error(noProject())
       const { exportHouse } = await import('../engine/house-export')

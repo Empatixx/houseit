@@ -1,12 +1,21 @@
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
-export type EngineView = 'plan' | 'floor-cut' | 'section-x' | 'section-y'
+export type EngineView =
+  | 'plan'
+  | 'floor-cut'
+  | 'section-x'
+  | 'section-y'
+  | 'north'
+  | 'south'
+  | 'east'
+  | 'west'
 type EngineSettings = {
   view: EngineView
   snap: boolean
   measure: 'none' | 'length' | 'edge'
   cutHeight: number
   offset: number
+  lines: boolean
 }
 type State = EngineSettings & {
   busy: boolean
@@ -21,6 +30,7 @@ export const engineViewStore = createStore<State>()((set) => ({
   measure: 'none',
   cutHeight: 1.2,
   offset: 0,
+  lines: false,
   busy: true,
   error: null,
   clear: 0,

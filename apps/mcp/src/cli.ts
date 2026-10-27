@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from 'node:fs'
+import type { DrawingView } from '@houseit/bridge/contract'
 import {
   closeEditor,
   connectToEditor,
+  drawingOf,
   execOnPage,
   houseOf,
   openProject,
@@ -13,6 +15,8 @@ import { guidelinesText, helpText, report, toolDescription } from './report'
 import { scriptOf } from './script-of'
 import { viewOf } from './view-of'
 
+const DRAWINGS: DrawingView[] = ['section-x', 'section-y', 'north', 'south', 'east', 'west']
+
 const USAGE = [
   'Usage:',
   '  houseit <command> [--option value …]      one command, its words as arguments',
@@ -21,6 +25,7 @@ const USAGE = [
   '  houseit --picture out.jpg get-plan         with a picture of what it answered about',
   '  houseit --project byt-praha get-plan       in that plan, made if there is none yet',
   '  houseit --export house.glb get-plan       with the whole house as a glTF model',
+  '  houseit --drawing north=out.dxf get-plan  with a section or elevation as a DXF line drawing',
   '  houseit guidelines                         how a flat or a house goes together',
 ].join('\n')
 
@@ -37,10 +42,21 @@ async function main(argv: string[]): Promise<number> {
   let picture: string | undefined
   let project: string | undefined
   let model: string | undefined
-  while (argv[0] === '--picture' || argv[0] === '--project' || argv[0] === '--export') {
+  const drawings: [DrawingView, string][] = []
+  while (
+    argv[0] === '--picture' ||
+    argv[0] === '--project' ||
+    argv[0] === '--export' ||
+    argv[0] === '--drawing'
+  ) {
     const value = argv[1]
     if (!value) throw new Error(`${argv[0]} needs a value`)
-    if (argv[0] === '--picture') picture = value
+    if (argv[0] === '--drawing') {
+      const [view, file] = value.split('=')
+      if (!file || !DRAWINGS.includes(view as DrawingView))
+        throw new Error(`--drawing takes <${DRAWINGS.join('|')}>=<file.dxf>`)
+      drawings.push([view as DrawingView, file])
+    } else if (argv[0] === '--picture') picture = value
     else if (argv[0] === '--export') model = value
     else project = value
     argv = argv.slice(2)
@@ -58,6 +74,10 @@ async function main(argv: string[]): Promise<number> {
     if (!shown.ok) throw new Error(shown.error)
     writeFileSync(picture, await pictureOf(page))
     process.stderr.write(`picture written to ${picture}\n`)
+  }
+  for (const [view, file] of result.ok ? drawings : []) {
+    writeFileSync(file, await drawingOf(page, view))
+    process.stderr.write(`${view} drawing written to ${file}\n`)
   }
   if (result.ok && model) {
     writeFileSync(model, await houseOf(page))

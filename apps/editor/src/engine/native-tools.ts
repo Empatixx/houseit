@@ -17,7 +17,15 @@ import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
 import { clearOf, viewStore } from '../store/view'
 import type { FragmentDisplay } from './fragment-display'
+import { LineDrawing } from './line-drawing'
 import { PresentationCamera, PresentationRenderer, PresentationScene } from './presentation-world'
+
+const FACADES: Partial<Record<string, [number, number, number]>> = {
+  north: [0, 0, 1],
+  south: [0, 0, -1],
+  east: [-1, 0, 0],
+  west: [1, 0, 0],
+}
 
 export let activeTools: NativeTools | null = null
 const toolsStore = createStore<{ tools: NativeTools | null }>(() => ({ tools: null }))
@@ -45,6 +53,9 @@ export class NativeTools {
   private pointerDown = false
   private releasedAt = 0
   private automatic = new Set<OBF.Line>()
+  private lines: LineDrawing
+  private drawn = ''
+  private viewPoint = new Vector3()
 
   constructor(
     readonly components: OBC.Components,
@@ -118,7 +129,8 @@ export class NativeTools {
         if (
           state.view !== before.view ||
           state.cutHeight !== before.cutHeight ||
-          state.offset !== before.offset
+          state.offset !== before.offset ||
+          state.lines !== before.lines
         )
           this.request()
       }),
@@ -152,6 +164,7 @@ export class NativeTools {
     })
     canvas.addEventListener('dblclick', doubleClick, true)
     this.stops.push(() => canvas.removeEventListener('dblclick', doubleClick, true))
+    this.lines = new LineDrawing(this.components, this.world)
     this.components.init()
     activeTools = this
     toolsStore.setState({ tools: this })
@@ -250,6 +263,7 @@ export class NativeTools {
     }
     const changedView = await this.openView()
     if (changed || changedView) await this.clip?.update()
+    await this.drawLines(changed || changedView)
     engineViewStore.setState({ error: null })
   }
   private highlight() {
@@ -381,6 +395,32 @@ export class NativeTools {
       this.measure.list.delete(line)
     }
   }
+  private async drawLines(changed: boolean) {
+    const { view: name, lines } = engineViewStore.getState()
+    const view = this.views.list.get('houseit-view')
+    const model = this.display.model
+    if (!lines || name === 'plan' || name === 'floor-cut' || !view?.open || !model) {
+      this.lines.clear()
+      this.drawn = ''
+      return
+    }
+    const key = `${this.lastView}:${this.display.revision}`
+    if (!changed && key === this.drawn && this.lines.shown) {
+      this.lines.hide(model)
+      return
+    }
+    this.drawn = key
+    const direction = view.camera.three.getWorldDirection(new Vector3())
+    const size = model.box.getSize(new Vector3())
+    await this.lines.show(model, {
+      direction,
+      point: this.viewPoint,
+      depth: Math.abs(size.dot(direction)) + 1,
+    })
+  }
+  drawing() {
+    return this.lines.dxf()
+  }
   private async openView() {
     if (!this.sections) return false
     const state = engineViewStore.getState(),
@@ -400,18 +440,24 @@ export class NativeTools {
     this.lastView = key
     const centre = bounds.getCenter(new Vector3())
     const floor = doc.levels[level]!.elevation / 1000
-    const normal =
-      state.view === 'section-x'
+    const facade = FACADES[state.view]
+    const normal = facade
+      ? new Vector3(...facade)
+      : state.view === 'section-x'
         ? new Vector3(-1, 0, 0)
         : state.view === 'section-y'
           ? new Vector3(0, 0, -1)
           : new Vector3(0, -1, 0)
-    const point =
-      state.view === 'section-x'
+    const point = facade
+      ? centre
+          .clone()
+          .addScaledVector(normal, -(Math.abs(bounds.getSize(new Vector3()).dot(normal)) / 2 + 0.5))
+      : state.view === 'section-x'
         ? new Vector3(centre.x + state.offset, centre.y, centre.z)
         : state.view === 'section-y'
           ? new Vector3(centre.x, centre.y, centre.z + state.offset)
           : new Vector3(centre.x, floor + state.cutHeight, centre.z)
+    this.viewPoint = point
     const view = this.views.create(normal, point, { id: 'houseit-view', world: this.world })
     view.range =
       state.view === 'floor-cut'
@@ -422,14 +468,16 @@ export class NativeTools {
       view.camera.controls.updateCameraUp()
       view.update()
     }
-    this.clip = this.clips.createFromView(view, {
-      id: 'houseit-cut',
-      link: false,
-      items: { houseit: { style: 'houseit', data: { Houseit: ['current'] } } },
-    })
+    if (!facade) {
+      this.clip = this.clips.createFromView(view, {
+        id: 'houseit-cut',
+        link: false,
+        items: { houseit: { style: 'houseit', data: { Houseit: ['current'] } } },
+      })
+      this.clip.visible = true
+    }
     this.views.open(view.id)
     view.camera.controls.mouseButtons.left = 0
-    this.clip.visible = true
     await this.frameView(view)
     await this.fragments.core.update(true)
     return true
@@ -487,6 +535,7 @@ export class NativeTools {
     for (const stop of this.stops) stop()
     await this.running
     await this.highlightWork.catch(this.fail)
+    this.lines.clear()
     this.views.close()
     this.clips.list.clear()
     this.views.list.clear()

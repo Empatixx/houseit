@@ -1,4 +1,10 @@
-import type { Clear, ExecResult, ShowResult, ViewRequest } from '@houseit/bridge/contract'
+import type {
+  Clear,
+  DrawingView,
+  ExecResult,
+  ShowResult,
+  ViewRequest,
+} from '@houseit/bridge/contract'
 import { type BrowserContext, chromium, type Page } from 'playwright-core'
 
 const DEFAULT_ENDPOINT = process.env.HOUSEIT_CDP ?? 'http://127.0.0.1:9222'
@@ -158,6 +164,10 @@ function clearOnPage(page: Page): Promise<Clear> {
 const SETTLE_MS = 400
 
 export const PICTURE_TYPE = 'image/jpeg'
+
+export async function drawingOf(page: Page, view: DrawingView): Promise<string> {
+  return page.evaluate((asked) => window.floorplan.drawing(asked), view)
+}
 
 export async function houseOf(page: Page): Promise<Buffer> {
   return Buffer.from(await page.evaluate(() => window.floorplan.exportHouse()), 'base64')
