@@ -7,7 +7,6 @@ import { MM } from '../plan-coordinates'
 import { Ground } from '../three/ground'
 import { House } from '../three/house'
 import { Lighting } from '../three/lighting'
-import { Shading } from '../three/shading'
 import { Sky } from '../three/sky'
 import { Walker } from './walker'
 
@@ -32,7 +31,6 @@ export function WalkScene() {
         <Ground />
         <House picking={false} />
         <Walker />
-        <Shading />
         <NativeToolsLayer sections={false} />
       </FragmentDisplayLayer>
     </Canvas>

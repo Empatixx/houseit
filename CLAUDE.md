@@ -279,6 +279,15 @@ display rebuild; the driver says `show({view: 'overview', hide: ['ceilings', 'si
 It is presentation only and applies to the 3D view, never the plan. Ceilings are the storey lids
 only, found by `HouseitKey` containing `:lid-`, so floors stay. In 3D That Open's `Hoverer`
 tints the item under the cursor in the editor's violet; the plan keeps its own symbol hover.
+The 3D frame is composed by That Open's `Postproduction` (`engine/postproduction.ts`) on the
+r3f WebGLRenderer, through `PresentationRenderer.compose()` at frame priority 1: GTAO ambient
+occlusion, SMAA, ACES through its output pass, and the `Outliner` drawing the selection in the
+editor's violet. A click in 3D that does not drag selects what is under it. That Open does not
+export the class, so it is borrowed once from a throwaway `PostproductionRenderer`; the scene,
+gestures and walk stay r3f's, and there is no second renderer or context. GTAO renders depth for
+every visible material, so transparent ones are hidden for that pass only, or glass casts a ghost.
+Its denoise runs at 4 samples: 16 cost a 120 Hz walk half its frame rate. Orthographic views
+compose without AO, which shades coplanar slabs unevenly there. The plan keeps r3f's own render.
 Traversal proofs must explicitly call `walkStore.setMovement('walk')` through
 the exposed store before keyboard movement; free-camera movement is not proof
 that an opening or stair can be walked. These are camera controls, not document

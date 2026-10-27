@@ -38,5 +38,13 @@ export function NativeToolsLayer({ sections = true }: { sections?: boolean }) {
     tools.current?.world.renderer?.resize(new Vector2(size.width, size.height))
   }, [size])
   useFrame(() => tools.current?.frame())
+  useFrame(
+    ({ gl, scene, camera }) => {
+      if (sections) return
+      if (tools.current) tools.current.render()
+      else gl.render(scene, camera)
+    },
+    sections ? 0 : 1,
+  )
   return null
 }
