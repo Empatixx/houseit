@@ -6,6 +6,7 @@ import { addSite } from './add-site'
 import { addColumn, removeColumn, updateColumn } from './column'
 import type { CommandModule } from './command-module'
 import { addRamp, addShaft, removeRamp, removeShaft } from './connections'
+import { addConstraint, removeConstraint } from './constraints'
 import { addDevice, removeDevice, updateDevice } from './device'
 import { removeObject, removeOpening } from './remove'
 import { removeRoom } from './remove-room'
@@ -49,6 +50,8 @@ export const COMMAND_MODULES: readonly CommandModule[] = [
       addObject,
       updateObject,
       removeObject,
+      addConstraint,
+      removeConstraint,
     ],
   },
 ]

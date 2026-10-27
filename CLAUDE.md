@@ -389,6 +389,21 @@ picture. `help` lists the signatures, generated from the schemas, so adding a co
 adds its function without touching the tool. `.claude/skills/houseit-js` teaches an
 agent to use it. The tool's name, description and input schema are unchanged.
 
+## A rule the plan keeps
+
+`add-constraint` holds the plan to a rule every later edit has to keep: `fixed` keeps a
+room's inner width or depth, `equal` keeps two rooms at the same width or depth, and
+`parallel` keeps two walls parallel. The rules live in the document (`constraints`,
+optional, so older plans and archives need no new version) and natively as
+`HOUSEITCONSTRAINT` items with a That Open `Constrains` relation to their rooms or walls,
+so an archive carries them. They are checked at the end of a transaction, beside the
+parcel check, not after each line: a program may change both rooms of an `equal` and is
+judged on the result. A refused edit names the rule and what it would have made of it;
+a wall drag stops where the rule allows, as it stops at any other limit. A rule about a
+room or wall that is gone goes with it. The room panel's lock buttons are
+`add-constraint`/`remove-constraint` through `store.apply`; every answer lists the rules
+with what they measure now.
+
 ## The tool description never changes
 
 `toolDescription()` in `apps/mcp/src/report.ts` is frozen prose and must stay that

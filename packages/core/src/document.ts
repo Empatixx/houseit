@@ -163,6 +163,20 @@ export const CircuitSchema = z.object({
   route: z.array(HostSchema).optional(),
 })
 
+const MeasureSchema = z.enum(['width', 'depth'])
+
+export const ConstraintSchema = z.discriminatedUnion('kind', [
+  z.object({
+    id,
+    kind: z.literal('fixed'),
+    room: id,
+    measure: MeasureSchema,
+    length: z.number().positive(),
+  }),
+  z.object({ id, kind: z.literal('equal'), room: id, other: id, measure: MeasureSchema }),
+  z.object({ id, kind: z.literal('parallel'), wall: id, other: id }),
+])
+
 const byId = <T extends z.ZodTypeAny>(entry: T) => z.record(z.string(), entry).default({})
 
 const DocumentShape = z.object({
@@ -176,6 +190,7 @@ const DocumentShape = z.object({
   objects: byId(ObjectSchema),
   devices: byId(DeviceSchema),
   circuits: byId(CircuitSchema),
+  constraints: z.record(z.string(), ConstraintSchema).optional(),
   site: SiteSchema.optional(),
 })
 
@@ -230,6 +245,25 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   checkKeysMatchIds(doc.objects, 'objects', ctx)
   checkKeysMatchIds(doc.devices, 'devices', ctx)
   checkKeysMatchIds(doc.circuits, 'circuits', ctx)
+  checkKeysMatchIds(doc.constraints ?? {}, 'constraints', ctx)
+  const elements = new Set(Object.values(doc.walls).map((wall) => wall.element ?? wall.id))
+  for (const constraint of Object.values(doc.constraints ?? {})) {
+    const what = `constraint ${constraint.id}`
+    const at = (field: string) => ['constraints', constraint.id, field]
+    if (constraint.kind === 'parallel') {
+      for (const field of ['wall', 'other'] as const)
+        if (!elements.has(constraint[field]))
+          ctx.addIssue({
+            code: 'custom',
+            path: at(field),
+            message: `${what} references unknown wall ${constraint[field]}`,
+          })
+      continue
+    }
+    checkReference(doc.rooms, constraint.room, at('room'), what, ctx)
+    if (constraint.kind === 'equal')
+      checkReference(doc.rooms, constraint.other, at('other'), what, ctx)
+  }
 
   for (const wall of Object.values(doc.walls)) {
     const at = (field: string) => ['walls', wall.id, field]
@@ -294,6 +328,7 @@ export type Side = z.infer<typeof SideSchema>
 export type HouseObject = z.infer<typeof ObjectSchema>
 export type Device = z.infer<typeof DeviceSchema>
 export type Circuit = z.infer<typeof CircuitSchema>
+export type Constraint = z.infer<typeof ConstraintSchema>
 export type HouseDocument = z.infer<typeof DocumentSchema>
 
 export function parseDocument(input: unknown): HouseDocument {

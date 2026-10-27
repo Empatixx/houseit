@@ -1,3 +1,4 @@
+import type { Constraint } from '@houseit/core/document'
 import { finishesFor, finishOf, isColour, type Part, STYLES, styleOf } from '@houseit/core/finishes'
 import { FLOOR_MATERIALS, floorMaterial } from '@houseit/core/floor-materials'
 import { ROOM_KINDS, roomKindOf } from '@houseit/core/room-kinds'
@@ -9,6 +10,8 @@ import {
   CameraIcon,
   DoorOpenIcon,
   LayersIcon,
+  LockIcon,
+  LockOpenIcon,
   PaletteIcon,
   PanelTopIcon,
 } from 'lucide-react'
@@ -24,7 +27,14 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { placeCamera } from '../../edit/object-commands'
 import { pick } from '../../edit/pick'
-import { layFloor, setFinish, setKind, setStyle } from '../../edit/room-commands'
+import {
+  layFloor,
+  letGo,
+  lockMeasure,
+  setFinish,
+  setKind,
+  setStyle,
+} from '../../edit/room-commands'
 import { useDocument } from '../../store/store'
 import { KindIcon } from '../avatars'
 import { RoomViewSettings } from '../engine-settings'
@@ -77,13 +87,41 @@ export function RoomPanel({ room }: { room: Room }) {
           </SelectContent>
         </Select>
       </Field>
-      <Facts
-        rows={[
-          ['Width', `${size.width} mm`],
-          ['Depth', `${size.depth} mm`],
-          ['Area', `${(room.clear / 1_000_000).toFixed(1)} m²`],
-        ]}
-      />
+      <dl className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-1 text-xs">
+        {(['width', 'depth'] as const).map((measure) => {
+          const held = Object.values(doc.constraints ?? {}).find(
+            (it): it is Extract<Constraint, { kind: 'fixed' }> =>
+              it.kind === 'fixed' && it.room === room.id && it.measure === measure,
+          )
+          return (
+            <div key={measure} className="contents">
+              <dt className="text-muted-foreground capitalize">{measure}</dt>
+              <dd className="text-foreground tabular-nums">{size[measure]} mm</dd>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                aria-pressed={held !== undefined}
+                aria-label={held ? `Let the ${measure} change` : `Fix the ${measure}`}
+                title={
+                  held
+                    ? `Fixed at ${held.length} mm — click to let it change`
+                    : `Fix the ${measure}`
+                }
+                disabled={room.id === undefined}
+                onClick={() => (held ? letGo(held.id) : lockMeasure(room, measure))}
+              >
+                {held ? (
+                  <LockIcon className="text-primary" />
+                ) : (
+                  <LockOpenIcon className="text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+          )
+        })}
+      </dl>
+      <Facts rows={[['Area', `${(room.clear / 1_000_000).toFixed(1)} m²`]]} />
       <RoomViewSettings />
       <Separator />
       <Heading>Design preference</Heading>

@@ -1,4 +1,5 @@
 import { applyScript } from '@houseit/commands/apply-script'
+import { assertConstraints } from '@houseit/commands/constraint-rules'
 import type { ArgsOf, Touched, TypedCommand } from '@houseit/commands/define-command'
 import { assertHouseFitsSite } from '@houseit/commands/site-invariant'
 import type { HouseDocument } from '@houseit/core/document'
@@ -118,6 +119,7 @@ export class FragmentAuthoring {
   private commit(doc: HouseDocument) {
     if (doc === this.projection) return
     assertHouseFitsSite(doc)
+    assertConstraints(doc)
     const requests = graphRequests(
       normalizeAuthoringDocument(doc, this.projection),
       this.graph,

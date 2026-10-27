@@ -38,6 +38,10 @@ or as a module body: `export default (ctx) => { … }`.
   or `return ctx.help('add-object')` for one. `guidelines` explains how a dwelling
   goes together — read it before laying out a home.
 
+- `ctx.addConstraint({ kind: 'fixed', room: 'kuchyň', measure: 'width' })` keeps a size
+  through later edits; `equal` (with `other`) and `parallel` (`wall`, `other`) too. Every
+  answer lists the rules with what they measure now; an edit that breaks one is refused.
+
 ## Working this way
 
 1. `help` and `guidelines` once at the start.

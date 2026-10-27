@@ -1,3 +1,4 @@
+import { addConstraint, removeConstraint } from '@houseit/commands/constraints'
 import { updateRoom } from '@houseit/commands/update-room'
 import type { Part } from '@houseit/core/finishes'
 import type { Room } from '@houseit/geometry/rooms'
@@ -28,4 +29,16 @@ export function setFinish(room: Room, part: Part, finish: string): boolean {
   if (ref === undefined) return false
   const worn: Partial<Record<Part, string>> = { [part]: finish }
   return runEdit(() => documentStore.getState().apply(updateRoom, { room: ref, ...worn }))
+}
+
+export function lockMeasure(room: Room, measure: 'width' | 'depth'): boolean {
+  if (room.id === undefined) return false
+  const id = room.id
+  return runEdit(() =>
+    documentStore.getState().apply(addConstraint, { kind: 'fixed', room: id, measure }),
+  )
+}
+
+export function letGo(constraint: string): boolean {
+  return runEdit(() => documentStore.getState().apply(removeConstraint, { id: constraint }))
 }
