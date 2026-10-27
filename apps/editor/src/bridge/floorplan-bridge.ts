@@ -151,6 +151,15 @@ export function installFloorplanBridge(
     help: () => `${describeCommands()}\n\n${programHelp()}`,
     clear,
     save: () => projects.getState().save(),
+    bcf: async () => {
+      if (!projects.getState().open) throw new Error(noProject())
+      const { exportTopics } = await import('../edit/topic-commands')
+      const bytes = new Uint8Array(await (await exportTopics()).arrayBuffer())
+      let text = ''
+      for (let i = 0; i < bytes.length; i += 0x8000)
+        text += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+      return btoa(text)
+    },
     norms: async () => {
       if (!projects.getState().open) throw new Error(noProject())
       const { activeTools } = await import('../engine/native-tools')

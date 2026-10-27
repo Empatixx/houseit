@@ -12,6 +12,7 @@ import { removeObject, removeOpening } from './remove'
 import { removeRoom } from './remove-room'
 import { removeSite } from './remove-site'
 import { addStair, removeStair } from './stair-run'
+import { addTopic, addViewpoint, removeTopic, removeViewpoint, updateTopic } from './topics'
 import { updateObject } from './update-object'
 import { updateOpening } from './update-opening'
 import { updateRoom } from './update-room'
@@ -52,6 +53,11 @@ export const COMMAND_MODULES: readonly CommandModule[] = [
       removeObject,
       addConstraint,
       removeConstraint,
+      addViewpoint,
+      removeViewpoint,
+      addTopic,
+      updateTopic,
+      removeTopic,
     ],
   },
 ]

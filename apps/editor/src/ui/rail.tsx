@@ -1,4 +1,11 @@
-import { EyeIcon, LayoutListIcon, ListChecksIcon, type LucideIcon, MapPinIcon } from 'lucide-react'
+import {
+  EyeIcon,
+  LayoutListIcon,
+  ListChecksIcon,
+  type LucideIcon,
+  MapPinIcon,
+  MessagesSquareIcon,
+} from 'lucide-react'
 import { type ReactNode, type PointerEvent as ReactPointerEvent, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -12,6 +19,7 @@ const TABS: { id: RailTab; label: string; icon: LucideIcon }[] = [
   { id: 'plan', label: 'Plan', icon: LayoutListIcon },
   { id: 'site', label: 'Site', icon: MapPinIcon },
   { id: 'issues', label: 'Issues', icon: ListChecksIcon },
+  { id: 'topics', label: 'Topics', icon: MessagesSquareIcon },
   { id: 'view', label: 'View', icon: EyeIcon },
 ]
 

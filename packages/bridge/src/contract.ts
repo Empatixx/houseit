@@ -57,4 +57,5 @@ export type FloorplanBridge = {
   exportHouse: () => Promise<string>
   drawing: (view: DrawingView, offset?: number) => Promise<string>
   norms: () => Promise<NormCheck[]>
+  bcf: () => Promise<string>
 }

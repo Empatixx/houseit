@@ -177,6 +177,42 @@ export const ConstraintSchema = z.discriminatedUnion('kind', [
   z.object({ id, kind: z.literal('parallel'), wall: id, other: id }),
 ])
 
+const Vector = z.object({ x: z.number(), y: z.number(), z: z.number() })
+
+export const CameraSchema = z.object({
+  projection: z.enum(['perspective', 'orthographic']),
+  position: Vector,
+  direction: Vector,
+  up: Vector,
+  fieldOfView: z.number().positive().optional(),
+  viewWidth: z.number().positive().optional(),
+})
+
+export const ViewpointSchema = z.object({
+  id,
+  name: z.string().min(1),
+  level: id,
+  mode: z.enum(['plan', '3d']),
+  camera: CameraSchema,
+  hidden: z.array(z.enum(['furniture', 'openings', 'roofs', 'ceilings', 'site'])).optional(),
+})
+
+export const TopicSchema = z.object({
+  id,
+  title: z.string().min(1),
+  status: z.enum(['open', 'in-progress', 'resolved', 'closed']),
+  type: z.string().optional(),
+  priority: z.string().optional(),
+  author: z.string().min(1),
+  created: z.string(),
+  description: z.string().optional(),
+  about: z.array(id),
+  viewpoint: id.optional(),
+  comments: z.array(
+    z.object({ author: z.string().min(1), date: z.string(), text: z.string().min(1) }),
+  ),
+})
+
 const byId = <T extends z.ZodTypeAny>(entry: T) => z.record(z.string(), entry).default({})
 
 const DocumentShape = z.object({
@@ -191,6 +227,8 @@ const DocumentShape = z.object({
   devices: byId(DeviceSchema),
   circuits: byId(CircuitSchema),
   constraints: z.record(z.string(), ConstraintSchema).optional(),
+  viewpoints: z.record(z.string(), ViewpointSchema).optional(),
+  topics: z.record(z.string(), TopicSchema).optional(),
   site: SiteSchema.optional(),
 })
 
@@ -246,6 +284,34 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   checkKeysMatchIds(doc.devices, 'devices', ctx)
   checkKeysMatchIds(doc.circuits, 'circuits', ctx)
   checkKeysMatchIds(doc.constraints ?? {}, 'constraints', ctx)
+  checkKeysMatchIds(doc.viewpoints ?? {}, 'viewpoints', ctx)
+  checkKeysMatchIds(doc.topics ?? {}, 'topics', ctx)
+  for (const viewpoint of Object.values(doc.viewpoints ?? {}))
+    checkReference(
+      doc.levels,
+      viewpoint.level,
+      ['viewpoints', viewpoint.id, 'level'],
+      `viewpoint ${viewpoint.id}`,
+      ctx,
+    )
+  for (const topic of Object.values(doc.topics ?? {})) {
+    if (topic.viewpoint !== undefined)
+      checkReference(
+        doc.viewpoints ?? {},
+        topic.viewpoint,
+        ['topics', topic.id, 'viewpoint'],
+        `topic ${topic.id}`,
+        ctx,
+      )
+    topic.about.forEach((thing, index) => {
+      if (!subjectOf(doc, thing))
+        ctx.addIssue({
+          code: 'custom',
+          path: ['topics', topic.id, 'about', index],
+          message: `topic ${topic.id} is about unknown ${thing}`,
+        })
+    })
+  }
   const elements = new Set(Object.values(doc.walls).map((wall) => wall.element ?? wall.id))
   for (const constraint of Object.values(doc.constraints ?? {})) {
     const what = `constraint ${constraint.id}`
@@ -329,6 +395,23 @@ export type HouseObject = z.infer<typeof ObjectSchema>
 export type Device = z.infer<typeof DeviceSchema>
 export type Circuit = z.infer<typeof CircuitSchema>
 export type Constraint = z.infer<typeof ConstraintSchema>
+export type Viewpoint = z.infer<typeof ViewpointSchema>
+export type Topic = z.infer<typeof TopicSchema>
+export type Camera = z.infer<typeof CameraSchema>
+
+export type Subject = 'rooms' | 'objects' | 'openings' | 'elements'
+
+export function subjectOf(
+  doc: Pick<HouseDocument, 'rooms' | 'objects' | 'openings' | 'walls'>,
+  id: string,
+): Subject | undefined {
+  if (doc.rooms[id]) return 'rooms'
+  if (doc.objects[id]) return 'objects'
+  if (doc.openings[id]) return 'openings'
+  return Object.values(doc.walls).some((wall) => (wall.element ?? wall.id) === id)
+    ? 'elements'
+    : undefined
+}
 export type HouseDocument = z.infer<typeof DocumentSchema>
 
 export function parseDocument(input: unknown): HouseDocument {

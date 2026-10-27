@@ -166,6 +166,10 @@ const SETTLE_MS = 400
 
 export const PICTURE_TYPE = 'image/jpeg'
 
+export async function topicsOf(page: Page): Promise<Buffer> {
+  return Buffer.from(await page.evaluate(() => window.floorplan.bcf()), 'base64')
+}
+
 export async function normsOf(page: Page): Promise<NormCheck[] | undefined> {
   return page.evaluate(() => window.floorplan.norms()).catch(() => undefined)
 }

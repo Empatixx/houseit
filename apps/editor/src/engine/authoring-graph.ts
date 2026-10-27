@@ -1,4 +1,4 @@
-import type { HouseDocument } from '@houseit/core/document'
+import { type HouseDocument, subjectOf } from '@houseit/core/document'
 import { findFaces } from '@houseit/core/faces'
 import { migrateDocument } from '@houseit/core/migrate'
 import { elementId } from '@houseit/geometry/wall-elements'
@@ -46,7 +46,11 @@ const categories = {
   devices: 'IFCDISTRIBUTIONELEMENT',
   circuits: 'IFCDISTRIBUTIONSYSTEM',
   constraints: 'HOUSEITCONSTRAINT',
+  viewpoints: 'HOUSEITVIEWPOINT',
+  topics: 'HOUSEITTOPIC',
 } as const
+
+const OPTIONAL = new Set<string>(['constraints', 'viewpoints', 'topics'])
 
 type Collection = keyof typeof categories
 const keyOf = (collection: string, id: string) => `${collection}:${id}`
@@ -151,6 +155,15 @@ function entitiesOf(doc: HouseDocument, nested = true, physical = true): Map<str
           ? [keyOf('rooms', constraint.room), keyOf('rooms', constraint.other)]
           : [keyOf('rooms', constraint.room)],
     )
+  for (const topic of Object.values(doc.topics ?? {})) {
+    const key = keyOf('topics', topic.id)
+    const about = topic.about.flatMap((id) => {
+      const subject = subjectOf(doc, id)
+      return subject ? [keyOf(subject, id)] : []
+    })
+    if (about.length) link(key, 'About', about)
+    if (topic.viewpoint) link(key, 'ShownIn', [keyOf('viewpoints', topic.viewpoint)])
+  }
   for (const circuit of Object.values(doc.circuits)) {
     const key = keyOf('circuits', circuit.id)
     link(key, 'SuppliedBy', [keyOf('devices', circuit.panel)], 'panel')
@@ -305,7 +318,7 @@ export function documentFromGraph(
   }
   for (const collection of Object.keys(categories) as Collection[]) {
     const records: Record<string, unknown> = {}
-    if (collection !== 'constraints') doc[collection] = records
+    if (!OPTIONAL.has(collection)) doc[collection] = records
     for (const [key, entity] of entities) {
       if (!key.startsWith(`${collection}:`)) continue
       const record = { ...entity.parameters }
@@ -325,7 +338,7 @@ export function documentFromGraph(
       }
       records[key.slice(collection.length + 1)] = record
     }
-    if (collection === 'constraints' && Object.keys(records).length) doc.constraints = records
+    if (OPTIONAL.has(collection) && Object.keys(records).length) doc[collection] = records
   }
   if (nested) {
     const terrain = entities.get('terrain')

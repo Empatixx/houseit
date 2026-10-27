@@ -36,10 +36,17 @@ import { walkStore } from '../store/walk'
 import { KindIcon } from './avatars'
 import { GAP, RAIL_OPEN_WIDTH, RAIL_PANEL_WIDTH, RAIL_WIDTH } from './edges'
 import { EngineSettings } from './engine-settings'
+import { Topics } from './topics-panel'
 import { useCover } from './use-cover'
 import { normLine, useNorms } from './use-norms'
 
-const TITLES = { plan: 'Plan', site: 'Site', issues: 'Issues', view: 'View' } as const
+const TITLES = {
+  plan: 'Plan',
+  site: 'Site',
+  issues: 'Issues',
+  topics: 'Topics',
+  view: 'View',
+} as const
 
 export function RailPanel() {
   const tab = useShell((state) => state.tab)
@@ -68,6 +75,7 @@ export function RailPanel() {
         {tab === 'plan' ? <Plan /> : null}
         {tab === 'site' ? <Site /> : null}
         {tab === 'issues' ? <Issues /> : null}
+        {tab === 'topics' ? <Topics /> : null}
         {tab === 'view' ? <View /> : null}
       </div>
     </aside>

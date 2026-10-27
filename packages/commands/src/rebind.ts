@@ -4,12 +4,14 @@ import { anchorInside } from '@houseit/geometry/anchor'
 import { containsPoint } from '@houseit/geometry/rooms'
 import type { Draft } from 'immer'
 import { pruneConstraints } from './constraint-rules'
+import { pruneTopics } from './topic-rules'
 
 type Record = Draft<HouseDocument>['rooms'][string]
 
 export function rebindAll(draft: Draft<HouseDocument>): void {
   for (const level of Object.keys(draft.levels)) rebind(draft, level)
   pruneConstraints(draft)
+  pruneTopics(draft)
 }
 
 export function rebind(draft: Draft<HouseDocument>, level: string): void {

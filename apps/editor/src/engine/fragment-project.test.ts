@@ -824,3 +824,37 @@ add-constraint --kind fixed --room Bath --measure width`,
     authoring.dispose()
   }
 })
+
+test('a topic and its view are native items related to what they are about, kept by an archive', async () => {
+  const authoring = new FragmentAuthoring(createEmptyDocument())
+  const level = Object.keys(authoring.document.levels)[0]!
+  try {
+    authoring.exec(
+      `add-room --name Flat --shape rectangle --width 8m --depth 5m --material natural-oak
+add-viewpoint --name here --mode 3d --camera '{"projection":"perspective","position":{"x":1,"y":2,"z":1600},"direction":{"x":0,"y":1,"z":0},"up":{"x":0,"y":0,"z":1}}'`,
+      level,
+    )
+    const flat = Object.values(authoring.document.rooms)[0]!.id
+    authoring.exec(
+      `add-topic --title "Look here" --about '["${flat}"]' --viewpoint v1 --comment hi`,
+      level,
+    )
+    const graph = authoring.graph
+    const id = (key: string) => [...graph.items].find(([, it]) => nativeKey(it) === key)![0]
+    expect(graph.items.get(id('topics:t1'))!.category).toBe('HOUSEITTOPIC')
+    expect(graph.relations.get(id('topics:t1'))!.data).toEqual({
+      About: [id(`rooms:${flat}`)],
+      ShownIn: [id('viewpoints:v1')],
+    })
+    const archive = await writeFragment(authoring.snapshot(), generate)
+    const loaded = new FragmentAuthoring(new Uint8Array(archive.buffer))
+    try {
+      expect(loaded.document.topics).toEqual(authoring.document.topics)
+      expect(loaded.document.viewpoints).toEqual(authoring.document.viewpoints)
+    } finally {
+      loaded.dispose()
+    }
+  } finally {
+    authoring.dispose()
+  }
+})
