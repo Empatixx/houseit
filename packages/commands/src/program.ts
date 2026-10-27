@@ -5,6 +5,7 @@ import { current, type Draft, isDraft } from 'immer'
 import { z } from 'zod'
 import { checkLevel } from './checks'
 import { CommandError } from './command-error'
+import { reportConstraint } from './constraint-rules'
 import type { AnyCommand, Change, TypedCommand } from './define-command'
 import { REGISTRY } from './registry'
 import { levelOf, whereRoom } from './resolve'
@@ -18,6 +19,7 @@ export type ProgramOutcome = {
   notes?: string[]
   result?: unknown
   logs?: string[]
+  brief?: boolean
 }
 
 const MARK = /^\s*#!js[^\n]*\n?/
@@ -57,6 +59,7 @@ export function runProgram(
   const notes: string[] = []
   const logs: string[] = []
   let at: string | undefined
+  let brief = false
   let level = open
 
   let seen: HouseDocument | undefined
@@ -145,6 +148,45 @@ export function runProgram(
       const at = levelOf(frozen(), given ?? level, 'ctx.problems')
       return remembered(`problems:${at}`, (doc) => checkLevel(doc, at))
     },
+    objects: (given?: string) => {
+      const at = levelOf(frozen(), given ?? level, 'ctx.objects')
+      return remembered(`objects:${at}`, (doc) =>
+        surveyLevel(doc, at).rooms.flatMap((room) =>
+          room.objects.map((object) => ({ ...object, room: room.name ?? room.id })),
+        ),
+      )
+    },
+    wall: (id: string) =>
+      remembered(`wall:${id}`, (doc) => {
+        const segments = Object.values(doc.walls).filter(
+          (wall) => wall.id === id || (wall.element ?? wall.id) === id,
+        )
+        if (segments.length === 0) throw new CommandError(`ctx.wall: there is no wall ${id}`)
+        return segments.map((wall) => {
+          const a = doc.nodes[wall.a]!
+          const b = doc.nodes[wall.b]!
+          return {
+            id: wall.id,
+            element: wall.element ?? wall.id,
+            level: wall.level,
+            from: { x: a.x, y: a.y },
+            to: { x: b.x, y: b.y },
+            length: Math.round(Math.hypot(b.x - a.x, b.y - a.y)),
+            thickness: wall.thickness,
+            height: wall.height,
+            openings: Object.values(doc.openings)
+              .filter((opening) => opening.wall === wall.id)
+              .map((opening) => opening.id),
+          }
+        })
+      }),
+    constraints: () =>
+      remembered('constraints', (doc) =>
+        Object.values(doc.constraints ?? {}).map((it) => reportConstraint(doc, it)),
+      ),
+    brief: () => {
+      brief = true
+    },
     show: (...ids: string[]) => {
       for (const id of ids) if (!shown.includes(id)) shown.push(id)
     },
@@ -187,6 +229,7 @@ export function runProgram(
     ...(notes.length === 0 ? {} : { notes }),
     ...(value === undefined ? {} : { result: plain(value) }),
     ...(logs.length === 0 ? {} : { logs }),
+    ...(brief ? { brief } : {}),
   }
 }
 
@@ -273,10 +316,18 @@ export function programHelp(): string {
     'are millimetres or strings with a unit. JSON options take plain objects and arrays.',
     'Each call returns { id, changed, shown, at?, notes? } — id is the first thing it made.',
     '',
-    'Reading, never writing: ctx.rooms(level?), ctx.room(name, level?), ctx.problems(level?),',
-    'ctx.levels(), ctx.doc() (a copy of the whole document). ctx.useLevel(name) makes',
-    'later calls work on that storey. ctx.run("add-room …") runs command lines as written.',
-    'ctx.show(...ids) adds rooms to the answer. ctx.help("add-room") gives one signature.',
+    'Reading, never writing: ctx.rooms(level?), ctx.room(name, level?), ctx.objects(level?),',
+    'ctx.wall(id), ctx.problems(level?), ctx.constraints(), ctx.levels(), ctx.doc() (a copy of',
+    'the whole document). ctx.useLevel(name) makes later calls work on that storey.',
+    'ctx.run("add-room …") runs command lines as written. ctx.show(...ids) adds rooms to the',
+    'answer; ctx.brief() shortens it to the rooms, problems and rules without every wall.',
+    'ctx.help("add-room") gives one signature.',
+    '',
+    'The plan: millimetres, x grows east and y grows north, so north is the top of every',
+    'picture. Outside walls are 300 mm and inner ones 150 mm unless a thickness is given; a',
+    "room's width and depth are inside its walls. On a side, along is where the middle of",
+    'the thing stands: a fraction from the west or south end, or a length from it.',
+    'A problem names the ids it is about (ids: [door, obstacle]) where there are any.',
     '',
     'Functions:',
     '',

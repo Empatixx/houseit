@@ -108,3 +108,28 @@ return { again: again.map((room) => room.name).sort(), after, same: ctx.problems
     same: false,
   })
 })
+
+test('a program can read things, walls and rules, and ask for a brief answer', () => {
+  const { said } = outcome(
+    runScript(createEmptyDocument(), lines),
+    `#!js
+const sofa = ctx.addObject({ room: 'house', type: 'sofa-3', against: 'north' })
+ctx.addConstraint({ kind: 'fixed', room: 'kitchen', measure: 'width' })
+ctx.brief()
+const wall = ctx.wall(ctx.room('kitchen').walls[0].id)[0]
+return {
+  things: ctx.objects().map((it) => [it.id, it.type, it.room]),
+  sofa: sofa.id,
+  wall: [wall.thickness, wall.length > 0],
+  rules: ctx.constraints().map((it) => [it.kind, it.holds]),
+}`,
+  )
+  const result = said.result as { sofa: string }
+  expect(said.result).toEqual({
+    things: [[result.sofa, 'sofa-3', 'house']],
+    sofa: result.sofa,
+    wall: [expect.any(Number), true],
+    rules: [['fixed', true]],
+  })
+  expect(said.brief).toBe(true)
+})

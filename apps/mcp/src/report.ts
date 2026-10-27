@@ -1,4 +1,5 @@
 import type { ExecResult } from '@houseit/bridge/contract'
+import type { Answer } from '@houseit/commands/answer'
 import { guidelinesText as guidelines } from '@houseit/commands/guidelines'
 import { programHelp } from '@houseit/commands/program'
 import { describeCommands } from '@houseit/commands/registry'
@@ -11,7 +12,30 @@ export function report(result: ExecResult): string {
     ...(result.logs?.length ? [`logs\n${result.logs.join('\n')}`] : []),
     ...('result' in result ? [`result\n${compactJson(result.result)}`] : []),
   ]
-  return [plan, ...said, compactJson(result.answer)].join('\n')
+  return [plan, ...said, compactJson(result.brief ? briefOf(result.answer) : result.answer)].join(
+    '\n',
+  )
+}
+
+function briefOf(answer: Answer) {
+  return {
+    level: answer.level,
+    levels: answer.levels.map(({ id, name, storey, open }) => ({ id, name, storey, open })),
+    changed: answer.changed,
+    rooms: answer.rooms.map((room) => ({
+      id: room.id,
+      name: room.name,
+      kind: room.kind,
+      areaM2: room.areaM2,
+      width: room.width,
+      depth: room.depth,
+      openings: room.openings.map((opening) => `${opening.id} ${opening.kind} ${opening.side}`),
+      objects: room.objects.map((object) => `${object.id} ${object.type}`),
+    })),
+    problems: answer.problems,
+    ...(answer.constraints ? { constraints: answer.constraints } : {}),
+    ...(answer.notes ? { notes: answer.notes } : {}),
+  }
 }
 
 export function toolDescription(): string {

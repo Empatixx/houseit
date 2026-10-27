@@ -6,7 +6,7 @@ import type { Point } from '@houseit/geometry/outlines'
 import type { Room } from '@houseit/geometry/rooms'
 import { piecesOf, standingAt } from '@houseit/geometry/standing'
 import { swingOf } from '@houseit/geometry/swing'
-import { label, type Problem, type Rule } from './rule'
+import { label, type Problem, type Rule, realOpening } from './rule'
 
 export const doors: Rule = ({ doc, level, rooms }) => {
   const problems: Problem[] = []
@@ -34,6 +34,7 @@ export const doors: Rule = ({ doc, level, rooms }) => {
         code: 'door.blocked',
         severity: 'error',
         room: into?.name,
+        ids: [realOpening(opening.id), blocked.object.id],
         message: `a door${where} cannot open: the ${label(blocked.object)} stands in its swing`,
       })
     }
@@ -43,6 +44,7 @@ export const doors: Rule = ({ doc, level, rooms }) => {
         code: 'door.clash',
         severity: 'warning',
         room: into?.name,
+        ids: [realOpening(opening.id), realOpening(other.opening.id)],
         message: `two doors${where} swing into each other`,
       })
     }

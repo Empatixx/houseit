@@ -7,7 +7,7 @@ import { boxOf } from '@houseit/geometry/boxes'
 import type { Point } from '@houseit/geometry/outlines'
 import { freeSpans, type Span } from '@houseit/geometry/spans'
 import { piecesOf, standingAt } from '@houseit/geometry/standing'
-import { label, type Problem, type Rule } from './rule'
+import { label, type Problem, type Rule, realOpening } from './rule'
 
 const SQUEEZE = 600
 const TOUCHING = 60
@@ -57,6 +57,7 @@ export const approach: Rule = ({ doc, level, rooms }) => {
         code: 'door.no-approach',
         severity: shut ? 'error' : 'warning',
         room: culprit.room.name,
+        ids: [realOpening(opening.id), culprit.object.id],
         message: shut
           ? `a door into ${culprit.room.name ?? 'a room'} cannot be got at at all: the ${label(culprit.object)} stands across the whole of it`
           : `a door into ${culprit.room.name ?? 'a room'} is a squeeze: the ${label(culprit.object)} leaves ${Math.round(widest)} mm of it clear, and ${SQUEEZE} mm is a shoulder`,

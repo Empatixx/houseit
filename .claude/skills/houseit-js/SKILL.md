@@ -31,6 +31,14 @@ or as a module body: `export default (ctx) => { … }`.
   `ctx.levels()`, `ctx.doc()` (a copy — writing to it changes nothing). A room report
   has `areaM2`, `width`, `depth`, `box`, `sides[].free` (spans still free on a side),
   `openings`, `objects`, `neighbours`.
+- More reads: `ctx.objects(level?)` (every thing with its room), `ctx.wall(id)` (segments with
+  ends, length, thickness, openings), `ctx.constraints()`. `ctx.brief()` shortens the answer to
+  rooms, their openings and things, problems and rules — use it once the plan is large.
+- The plan's conventions: millimetres, x east and y north, so north is the top of every
+  picture. Outside walls are 300 mm and inner ones 150 mm unless a thickness is given; a
+  room's width and depth are measured inside its walls. `along` on a side is where the middle
+  of the thing stands, a fraction from the west or south end or a length from it. A problem
+  carries `ids` (for a door: the door, then what is in its way) — act on those.
 - `ctx.useLevel('1. patro')` moves later calls to that storey. `ctx.run('add-room …')`
   runs command lines as written. `ctx.log(…)` comes back as `logs`, the return value
   as `result`, followed by the usual answer and a picture.

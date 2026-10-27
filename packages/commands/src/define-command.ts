@@ -13,6 +13,7 @@ export type Touched = {
   notes?: string[]
   result?: unknown
   logs?: string[]
+  brief?: boolean
 }
 
 export type Change = {

@@ -92,3 +92,34 @@ test('short things stay on one line and long things open out, and it is still JS
   expect(text).toContain('{"side":"north","length":4200}')
   expect(text.split('\n').length).toBeLessThan(15)
 })
+
+test('a brief answer keeps the rooms, their contents and the problems, and drops every wall', () => {
+  const rooms = [
+    {
+      id: 'r1',
+      name: 'kitchen',
+      areaM2: 15.1,
+      width: 3000,
+      depth: 5000,
+      openings: [{ id: 'o1', kind: 'door', side: 'south' }],
+      objects: [{ id: 'f1', type: 'stove' }],
+      sides: [{ side: 'north' }],
+    },
+  ] as unknown as RoomReport[]
+  const walls = [{ id: 'w1' }] as Answer['walls']
+  const text = report({ ...ok({ changed: ['f1'], rooms, walls }), brief: true } as ExecResult)
+  const [, ...json] = text.split('\n')
+  const answer = JSON.parse(json.join('\n'))
+  expect(answer.walls).toBeUndefined()
+  expect(answer.rooms).toEqual([
+    {
+      id: 'r1',
+      name: 'kitchen',
+      areaM2: 15.1,
+      width: 3000,
+      depth: 5000,
+      openings: ['o1 door south'],
+      objects: ['f1 stove'],
+    },
+  ])
+})

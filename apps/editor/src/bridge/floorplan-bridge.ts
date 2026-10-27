@@ -139,6 +139,7 @@ export function installFloorplanBridge(
           answer,
           ...('result' in touched ? { result: touched.result } : {}),
           ...(touched.logs ? { logs: touched.logs } : {}),
+          ...(touched.brief ? { brief: true } : {}),
           ...snapshot(),
         }
       } catch (error) {

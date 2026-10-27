@@ -81,6 +81,9 @@ test('a door that cannot open for what stands in its swing', () => {
 
   const blocked = report.problems.find((it) => it.code === 'door.blocked')
   expect(blocked?.message).toMatch(/sofa/)
+  const door = report.rooms[0]!.openings.find((it) => it.kind === 'door')!
+  const sofa = report.rooms[0]!.objects.find((it) => it.type === 'sofa-3')!
+  expect(blocked?.ids).toEqual([door.id, sofa.id])
   expect(ok(script)).toBe(false)
 })
 

@@ -205,7 +205,7 @@ test('a corner bigger than the room it is cut from is refused', () => {
       doc,
       'add-room --material natural-oak --name k --from dům --corner north-west --width 20m --depth 3m',
     ),
-  ).toThrow(/wider|deeper/)
+  ).toThrow(/whole (width|depth) of/)
 })
 
 test('the same corner cannot be taken twice: the second cut would hang in the air', () => {
