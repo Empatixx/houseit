@@ -829,6 +829,14 @@ overhang × slope so the plane carries on, with a fascia on their edges and gutt
 Coverings are floor materials with SVG textures written by `scripts/make-roof-textures.mjs`, each
 also `-90` for slopes falling east or west, so the courses always run along the eave.
 
+Facades take named materials: `material` on the exterior coat and on each band
+(`core/facade-materials.ts`, SVG textures written by `scripts/make-facade-textures.mjs`). A render
+is tinted by the coat colour; the other materials keep their own texture and lend their tone to a
+pitched roof's gables. `update-facade` dresses every exterior wall of the house, or one side, one
+storey or a band; which way a wall faces is found by probing outside its middle for a room. Later
+bands replace what they overlap. `update-house --style` is only `update-facade` and `add-roof`
+applied together from `core/house-styles.ts`, so either can refine it afterwards.
+
 Roof `baseOffset` is relative to the storey top: a negative value places the roof
 on its structural slab, replacing the ordinary floor buildup there. `facets`
 carry triangular surface vertices `{x,y,height}` above that base, with optional

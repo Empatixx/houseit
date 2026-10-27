@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { FACADE_MATERIAL_IDS } from './facade-materials'
 
 const colour = z.string().regex(/^#[0-9a-f]{6}$/i, 'use a #rrggbb colour')
 const mm = z.number().int()
@@ -14,6 +15,7 @@ export const ExteriorSchema = z
       )
       .min(1),
     colour,
+    material: z.enum(FACADE_MATERIAL_IDS as [string, ...string[]]).optional(),
     base: mm.max(0).default(0),
     bands: z
       .array(
@@ -21,6 +23,7 @@ export const ExteriorSchema = z
           from: mm,
           to: mm,
           colour,
+          material: z.enum(FACADE_MATERIAL_IDS as [string, ...string[]]).optional(),
           along: z.object({ from: mm.nonnegative(), to: mm.positive() }).optional(),
         }),
       )
@@ -45,3 +48,4 @@ export const ExteriorSchema = z
       }
     }
   })
+export type Exterior = z.infer<typeof ExteriorSchema>
