@@ -23,6 +23,8 @@ export type ViewRequest = {
   site?: boolean
 }
 
+export type DrawingView = 'section-x' | 'section-y' | 'north' | 'south' | 'east' | 'west'
+
 export type Clear = { x: number; y: number; width: number; height: number }
 
 export type ShowResult = { ok: true } | { ok: false; error: string }
@@ -36,4 +38,5 @@ export type FloorplanBridge = {
   show: (view: ViewRequest) => ShowResult
   clear: () => Clear
   exportHouse: () => Promise<string>
+  drawing: (view: DrawingView, offset?: number) => Promise<string>
 }

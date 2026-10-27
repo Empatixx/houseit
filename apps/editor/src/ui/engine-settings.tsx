@@ -1,3 +1,5 @@
+import { Download } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { activeTools } from '../engine/native-tools'
 import { type EngineView, engineViewStore, useEngineView } from '../store/engine-view'
 import { modeStore } from '../store/mode'
 
@@ -64,8 +67,33 @@ export function EngineSettings() {
           <SelectItem value="floor-cut">Floor cut</SelectItem>
           <SelectItem value="section-x">Vertical section X</SelectItem>
           <SelectItem value="section-y">Vertical section Y</SelectItem>
+          <SelectItem value="north">Elevation north</SelectItem>
+          <SelectItem value="south">Elevation south</SelectItem>
+          <SelectItem value="east">Elevation east</SelectItem>
+          <SelectItem value="west">Elevation west</SelectItem>
         </SelectContent>
       </Select>
+      {settings.view !== 'plan' && settings.view !== 'floor-cut' ? (
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="native-lines">Line drawing</Label>
+            <Switch
+              id="native-lines"
+              checked={settings.lines}
+              onCheckedChange={(lines) => settings.configure({ lines })}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!settings.lines || settings.busy}
+            onClick={() => downloadDrawing(settings.view)}
+          >
+            <Download />
+            Download DXF
+          </Button>
+        </>
+      ) : null}
       {settings.view === 'section-x' || settings.view === 'section-y' ? (
         <>
           <Label htmlFor="section-offset">Section offset (m)</Label>
@@ -84,6 +112,20 @@ export function EngineSettings() {
     </>
   )
 }
+function downloadDrawing(view: EngineView) {
+  try {
+    const dxf = activeTools?.drawing()
+    if (!dxf) return
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(new Blob([dxf], { type: 'application/dxf' }))
+    link.download = `${view}.dxf`
+    link.click()
+    URL.revokeObjectURL(link.href)
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : String(error))
+  }
+}
+
 export function RoomViewSettings() {
   const height = useEngineView((state) => state.cutHeight)
   return (

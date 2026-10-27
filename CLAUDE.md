@@ -729,6 +729,15 @@ Site finishes can also be changed individually with `update-site --surface <id>
 roof gravel and sedum have offline textures. Choosing a material resets tint to
 white unless a colour is supplied with it.
 
+Sections and elevations are also 2D line drawings, made by That Open rather than
+by Houseit: `engine/line-drawing.ts` asks a `TechnicalDrawing` to project the display
+model's own items (`addProjectionFromItems`) from the open `View`, beyond the cut for a
+section or the whole facade for an elevation, and `DxfManager` writes it out. The
+engine settings offer elevations north/south/east/west beside the sections, a Line
+drawing switch and Download DXF; the driver says `houseit --drawing north=out.dxf …`
+(`window.floorplan.drawing(view)`). Hidden lines are kept on a layer that is off.
+The shaded model is hidden while the drawing shows and comes back when it closes.
+
 `window.floorplan.show({view: 'north', site: false})` hides site context for an
 unobstructed elevation review, without changing the model. Orthographic building
 views frame the building even when its terrain extends much farther.
