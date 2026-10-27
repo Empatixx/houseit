@@ -27,6 +27,7 @@ export type ViewRequest = {
   object?: string
   dimensions?: boolean
   site?: boolean
+  hide?: ('furniture' | 'openings' | 'roofs' | 'ceilings' | 'site')[]
 }
 
 export type DrawingView = 'section-x' | 'section-y' | 'north' | 'south' | 'east' | 'west'

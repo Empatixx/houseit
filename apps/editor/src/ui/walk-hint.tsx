@@ -1,11 +1,21 @@
+import { engineViewStore, type Hideable, useEngineView } from '../store/engine-view'
 import { useWalk, walkStore } from '../store/walk'
 import { useLeftEdge, useRightEdge } from './edges'
+
+const SHOWN: [Hideable, string][] = [
+  ['furniture', 'Furniture'],
+  ['openings', 'Doors & windows'],
+  ['roofs', 'Roofs'],
+  ['ceilings', 'Ceilings'],
+  ['site', 'Site'],
+]
 
 export function WalkHint() {
   const left = useLeftEdge()
   const right = useRightEdge()
   const free = useWalk((state) => state.movement === 'free')
   const inspection = useWalk((state) => state.inspection)
+  const hidden = useEngineView((state) => state.hidden)
   return (
     <div
       style={{ left, right }}
@@ -42,6 +52,25 @@ export function WalkHint() {
           <Key>→</Key> turn
         </span>
         <span>drag to look</span>
+        <span className="flex items-center gap-1 border-l pl-3">
+          {SHOWN.map(([group, label]) => (
+            <button
+              key={group}
+              type="button"
+              aria-pressed={!hidden.includes(group)}
+              className="rounded border px-2 py-1 text-foreground aria-[pressed=false]:text-muted-foreground aria-[pressed=false]:line-through"
+              onClick={() =>
+                engineViewStore.getState().configure({
+                  hidden: hidden.includes(group)
+                    ? hidden.filter((it) => it !== group)
+                    : [...hidden, group],
+                })
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </span>
       </div>
     </div>
   )

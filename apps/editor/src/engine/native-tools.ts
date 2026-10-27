@@ -9,7 +9,7 @@ import { Color, DoubleSide, MeshBasicMaterial, Vector2, Vector3 } from 'three'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
 import { useStore } from 'zustand'
 import { createStore } from 'zustand/vanilla'
-import { engineViewStore } from '../store/engine-view'
+import { engineViewStore, HIDEABLE, type Hideable } from '../store/engine-view'
 import { previewStore } from '../store/preview'
 import { type Selection, selectionStore } from '../store/selection'
 import { shellStore } from '../store/shell'
@@ -130,7 +130,8 @@ export class NativeTools {
           state.view !== before.view ||
           state.cutHeight !== before.cutHeight ||
           state.offset !== before.offset ||
-          state.lines !== before.lines
+          state.lines !== before.lines ||
+          state.hidden !== before.hidden
         )
           this.request()
       }),
@@ -264,6 +265,7 @@ export class NativeTools {
     const changedView = await this.openView()
     if (changed || changedView) await this.clip?.update()
     await this.drawLines(changed || changedView)
+    if (!this.sections) await this.applyHidden(changed)
     engineViewStore.setState({ error: null })
   }
   private highlight() {
@@ -394,6 +396,25 @@ export class NativeTools {
       this.automatic.delete(line)
       this.measure.list.delete(line)
     }
+  }
+  private hiddenGroups = new Set<Hideable>()
+  private async applyHidden(changed: boolean) {
+    const wanted = new Set(engineViewStore.getState().hidden)
+    const hider = this.components.get(OBC.Hider)
+    const finder = this.components.get(OBC.ItemsFinder)
+    let touched = false
+    for (const group of Object.keys(HIDEABLE) as Hideable[]) {
+      const hide = wanted.has(group)
+      if (hide === this.hiddenGroups.has(group) && !(hide && changed)) continue
+      const items = await finder.getItems([{ categories: [...HIDEABLE[group]] }])
+      if (Object.keys(items).length) {
+        await hider.set(!hide, items)
+        touched = true
+      }
+      if (hide) this.hiddenGroups.add(group)
+      else this.hiddenGroups.delete(group)
+    }
+    if (touched) await this.fragments.core.update(true)
   }
   private async drawLines(changed: boolean) {
     const { view: name, lines } = engineViewStore.getState()

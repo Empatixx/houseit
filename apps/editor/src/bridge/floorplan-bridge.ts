@@ -70,6 +70,7 @@ export function installFloorplanBridge(
   }
 
   const show = (view: ViewRequest): ShowResult => {
+    if (view.hide) engineViewStore.getState().configure({ hidden: [...view.hide] })
     const selection = selectionStore.getState()
     if (view.view && view.view !== 'plan') {
       const doc = store.getState().doc
