@@ -6,7 +6,7 @@ import { engineViewStore } from '../store/engine-view'
 import { selectionStore } from '../store/selection'
 import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
-import { cancelDrawing, finishDrawing } from './draw-commands'
+import { cancelDrawing, finishDrawing, putTyped, typeKey } from './draw-commands'
 import { remove, turnBy } from './object-commands'
 import { removeOpening } from './opening-commands'
 import { knockThroughToBiggest, removeStub } from './wall-commands'
@@ -25,6 +25,18 @@ export function useEditKeys(): void {
       if (event.key === 'Escape' && engineViewStore.getState().measure !== 'none') {
         activeTools?.measure.cancelCreation()
         engineViewStore.getState().configure({ measure: 'none' })
+        return
+      }
+      if (event.key === 'Escape' && drawStore.getState().typed) {
+        drawStore.getState().type('')
+        return
+      }
+      if (!event.metaKey && !event.ctrlKey && typeKey(event.key)) {
+        event.preventDefault()
+        return
+      }
+      if (event.key === 'Enter' && putTyped()) {
+        event.preventDefault()
         return
       }
       if (event.key === 'Escape') {

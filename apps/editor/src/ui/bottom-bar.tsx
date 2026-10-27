@@ -66,7 +66,9 @@ export function BottomBar() {
         <Badge variant="secondary" className="pointer-events-auto gap-1 pr-1">
           {label}
           <span className="text-muted-foreground">
-            {armed?.kind === 'wall' ? '· click corners, Enter finishes' : '· click a room'}
+            {armed?.kind === 'wall'
+              ? '· click corners or type a length, Enter places it'
+              : '· click a room'}
           </span>
           <button
             type="button"
@@ -108,7 +110,7 @@ export function BottomBar() {
           </TooltipTrigger>
           <TooltipContent>
             Click to put corners down. Closed rooms finish automatically; click the last corner or
-            press Enter to finish an open wall, Escape to cancel
+            type a length and Enter to place a corner exactly, Enter alone finishes, Escape cancels
           </TooltipContent>
         </Tooltip>
       </div>

@@ -4,7 +4,7 @@ import { engineViewStore } from '../store/engine-view'
 import { selectionStore } from '../store/selection'
 import { documentStore } from '../store/store'
 import { toolStore } from '../store/tool'
-import { aimAt, cancelDrawing, putDown } from './draw-commands'
+import { aimAt, cancelDrawing, putDown, putTyped, typedLength, typeKey } from './draw-commands'
 
 vi.mock('../engine/native-tools', () => ({ activeTools: null }))
 
@@ -98,4 +98,42 @@ test('automatic room creation uses the active storey for preview and commit', ()
   const doc = documentStore.getState().doc
   expect(Object.values(doc.rooms).map((room) => room.level)).toEqual([upper.id])
   expect(Object.values(doc.walls).every((wall) => wall.level === upper.id)).toBe(true)
+})
+
+test('a length typed while drawing places the next corner exactly that far along the aimed axis', () => {
+  toolStore.getState().arm({ kind: 'wall' })
+  click(0, 0)
+  aimAt({ x: 1234, y: 80 })
+  for (const key of '4.2') typeKey(key)
+  expect(drawStore.getState().cursor).toEqual({ x: 4200, y: 0 })
+  expect(putTyped()).toBe(true)
+  aimAt({ x: 4150, y: -900 })
+  for (const key of '3000') typeKey(key)
+  typeKey('Backspace')
+  typeKey('0')
+  putTyped()
+  expect(drawStore.getState().points).toEqual([
+    { x: 0, y: 0 },
+    { x: 4200, y: 0 },
+    { x: 4200, y: -3000 },
+  ])
+  for (const key of '4200') typeKey(key)
+  aimAt({ x: 100, y: -3100 })
+  putTyped()
+  for (const key of '3m') typeKey(key)
+  aimAt({ x: -50, y: 0 })
+  putTyped()
+  const room = Object.values(documentStore.getState().doc.rooms)[0]
+  expect(room).toBeDefined()
+  expect(drawStore.getState().points).toEqual([])
+})
+
+test('typed lengths read as millimetres unless they are small or decimal', () => {
+  expect(typedLength('3600')).toBe(3600)
+  expect(typedLength('3,6')).toBe(3600)
+  expect(typedLength('4')).toBe(4000)
+  expect(typedLength('360cm')).toBe(3600)
+  expect(typedLength('2.4m')).toBe(2400)
+  expect(typedLength('m')).toBeUndefined()
+  expect(typedLength('')).toBeUndefined()
 })
