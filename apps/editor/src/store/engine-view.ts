@@ -9,13 +9,20 @@ export type EngineView =
   | 'south'
   | 'east'
   | 'west'
+const category = (...names: string[]) => ({
+  categories: names.map((name) => new RegExp(`^${name}$`)),
+})
+
 export const HIDEABLE = {
-  furniture: [/^IFCFURNISHINGELEMENT$/],
-  openings: [/^IFCDOOR$/, /^IFCWINDOW$/],
-  roofs: [/^IFCROOF$/],
-  ceilings: [/^IFCSLAB$/],
-  site: [/^IFCGEOGRAPHICELEMENT$/, /^IFCSURFACEFEATURE$/, /^IFCRAILING$/],
-} as const
+  furniture: category('IFCFURNISHINGELEMENT'),
+  openings: category('IFCDOOR', 'IFCWINDOW'),
+  roofs: category('IFCROOF'),
+  ceilings: {
+    ...category('IFCSLAB'),
+    attributes: { queries: [{ name: /^HouseitKey$/, value: /:lid-/ }] },
+  },
+  site: category('IFCGEOGRAPHICELEMENT', 'IFCSURFACEFEATURE', 'IFCRAILING'),
+}
 export type Hideable = keyof typeof HIDEABLE
 
 type EngineSettings = {

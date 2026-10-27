@@ -166,6 +166,24 @@ export class NativeTools {
     canvas.addEventListener('dblclick', doubleClick, true)
     this.stops.push(() => canvas.removeEventListener('dblclick', doubleClick, true))
     this.lines = new LineDrawing(this.components, this.world)
+    if (!this.sections) {
+      const hoverer = this.components.get(OBF.Hoverer)
+      hoverer.world = this.world
+      hoverer.material = new MeshBasicMaterial({
+        color: '#714cb6',
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false,
+      })
+      hoverer.fadeDuration = 120
+      hoverer.enabled = true
+      this.stops.push(() => {
+        hoverer.enabled = false
+        hoverer.clear()
+        hoverer.material.dispose()
+        hoverer.world = null
+      })
+    }
     this.components.init()
     activeTools = this
     toolsStore.setState({ tools: this })
@@ -406,7 +424,7 @@ export class NativeTools {
     for (const group of Object.keys(HIDEABLE) as Hideable[]) {
       const hide = wanted.has(group)
       if (hide === this.hiddenGroups.has(group) && !(hide && changed)) continue
-      const items = await finder.getItems([{ categories: [...HIDEABLE[group]] }])
+      const items = await finder.getItems([HIDEABLE[group]])
       if (Object.keys(items).length) {
         await hider.set(!hide, items)
         touched = true
