@@ -1,5 +1,6 @@
 import { approach } from './approach'
 import { doors } from './doors'
+import { furnishing } from './furnishing'
 import { kitchens } from './kitchens'
 import type { RuleModule } from './module'
 import { privacy } from './privacy'
@@ -26,6 +27,7 @@ export const RULE_MODULES: readonly RuleModule[] = [
       standing,
       stairs,
       wc,
+      furnishing,
     ],
   },
 ]

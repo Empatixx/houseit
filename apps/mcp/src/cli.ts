@@ -68,10 +68,19 @@ async function main(argv: string[]): Promise<number> {
     argv = argv.slice(2)
   }
 
+  const source = argv[0] === '-' ? readFileSync(0, 'utf8') : scriptOf(argv)
+  if (source.trim() === 'help') {
+    process.stdout.write(`${helpText()}\n`)
+    return 0
+  }
+  if (source.trim() === 'guidelines') {
+    process.stdout.write(`${guidelinesText()}\n`)
+    return 0
+  }
+
   const page = await connectToEditor()
   if (project !== undefined) await openProject(page, project)
 
-  const source = argv[0] === '-' ? readFileSync(0, 'utf8') : scriptOf(argv)
   const result = await execOnPage(page, source)
   const norms = result.ok ? await normsOf(page) : undefined
   process.stdout.write(`${report(result, norms)}\n`)

@@ -31,7 +31,7 @@ test('a house nobody can get into, and a room nobody can get to', () => {
   expect(
     codes(
       `${script}\nadd-opening --kind door --room house --side south\nadd-opening --kind door --room bedroom --side east`,
-    ),
+    ).filter((code) => code !== 'room.unfurnished'),
   ).toEqual([])
 })
 

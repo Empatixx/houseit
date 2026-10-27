@@ -102,7 +102,8 @@ export function standingProblem(
       return stood !== undefined && clashesAny(boxes, piecesOf(stood, other).map(boxOf))
     })
   if (inTheWay) {
-    return `it would stand in the ${objectType(inTheWay.type)?.label.toLowerCase() ?? inTheWay.type}`
+    const where = inTheWay.against ? ` against the ${inTheWay.against} side` : ''
+    return `it would stand in the ${objectType(inTheWay.type)?.label.toLowerCase() ?? inTheWay.type} ${inTheWay.id}${where}`
   }
   return undefined
 }

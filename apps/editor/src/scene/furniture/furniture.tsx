@@ -27,7 +27,7 @@ import { MM, toWorld } from '../plan-coordinates'
 import { FurnitureGhost } from './furniture-ghost'
 import { FurnitureShadow } from './furniture-shadow'
 import { symbolHeight } from './stacking'
-import { Dial, Turner } from './turning'
+import { Dial, FacingArrow, Turner } from './turning'
 import { useFurnitureDrag } from './use-furniture-drag'
 import { useFurnitureSpin } from './use-furniture-spin'
 import { PICKED_HATCH, pickedSurface, useSymbol } from './use-symbol'
@@ -260,6 +260,9 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
             </mesh>
           ) : null}
           {spin.open ? null : <Turner at={grip} height={ABOVE} />}
+          {spin.open || isStaircase(object.type) ? null : (
+            <FacingArrow at={at} turn={turn} depth={object.depth} height={ABOVE} />
+          )}
           <mesh
             position={toWorld(grip.x, grip.y, ABOVE)}
             rotation={[-Math.PI / 2, 0, 0]}

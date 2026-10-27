@@ -17,6 +17,7 @@ import {
 } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
+import { rotationFacing } from './facing'
 import { length } from './length-schema'
 import { freeWidth, placeAgainst, type Spot } from './place-object'
 import { SIDE_NAMES, sideNamed, thingById } from './resolve'
@@ -34,6 +35,7 @@ export const updateObject = defineCommand({
     width: length().optional(),
     depth: length().optional(),
     rotation: z.coerce.number().int().min(-359).max(359).optional(),
+    facing: z.string().min(1).optional(),
     surface: z.enum(SURFACE_IDS as [string, ...string[]]).optional(),
     seats: z.coerce.number().int().positive().optional(),
   }),
@@ -48,11 +50,12 @@ export const updateObject = defineCommand({
       args.width !== undefined ||
       args.depth !== undefined ||
       args.rotation !== undefined ||
+      args.facing !== undefined ||
       args.surface !== undefined ||
       args.seats !== undefined
     if (!moving && !changing) {
       throw new CommandError(
-        'update-object: say what to change — --against, --wall, --along, --across, --width, --depth, --rotation, --surface or --seats',
+        'update-object: say what to change — --against, --wall, --along, --across, --width, --depth, --rotation, --facing, --surface or --seats',
       )
     }
     if (aimed && args.across !== undefined) {
@@ -77,15 +80,6 @@ export const updateObject = defineCommand({
       )
     }
 
-    const shape = {
-      ...found,
-      width: flight?.size.width ?? args.width ?? found.width,
-      depth: flight?.size.depth ?? args.depth ?? found.depth,
-      ...(args.rotation === undefined
-        ? {}
-        : { rotation: args.rotation === 0 ? undefined : args.rotation }),
-    }
-
     const at = aimed
       ? sideNamed(draft, level, room, { side: args.against, wall: args.wall }, 'update-object')
       : undefined
@@ -93,6 +87,38 @@ export const updateObject = defineCommand({
       args.across === undefined
         ? undefined
         : fractionAcross(draft, room, args.across, 'update-object')
+
+    const width = flight?.size.width ?? args.width ?? found.width
+    const depth = flight?.size.depth ?? args.depth ?? found.depth
+    const turned =
+      args.facing === undefined
+        ? args.rotation
+        : rotationFacing(
+            draft,
+            level,
+            room,
+            {
+              ...((moving
+                ? spotsFor(
+                    draft,
+                    level,
+                    room,
+                    { ...found, width, depth },
+                    { at, along: args.along, across },
+                  )[0]
+                : undefined) ?? standsAt(found)),
+              width,
+              depth,
+            },
+            args.facing,
+            'update-object',
+          )
+    const shape = {
+      ...found,
+      width,
+      depth,
+      ...(turned === undefined ? {} : { rotation: turned === 0 ? undefined : turned }),
+    }
     const spots = moving
       ? spotsFor(draft, level, room, shape, { at, along: args.along, across })
       : [standsAt(found)]
