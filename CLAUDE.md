@@ -272,7 +272,9 @@ The 3D bar can hide furniture, doors and windows, roofs, ceilings (storey slabs,
 a flat-roofed house like a doll's house) and the site. It is That Open's `ItemsFinder` finding
 the display's items by IFC category and `Hider` switching them off, re-applied after every
 display rebuild; the driver says `show({view: 'overview', hide: ['ceilings', 'site']})`.
-It is presentation only and applies to the 3D view, never the plan.
+It is presentation only and applies to the 3D view, never the plan. Ceilings are the storey lids
+only, found by `HouseitKey` containing `:lid-`, so floors stay. In 3D That Open's `Hoverer`
+tints the item under the cursor in the editor's violet; the plan keeps its own symbol hover.
 Traversal proofs must explicitly call `walkStore.setMovement('walk')` through
 the exposed store before keyboard movement; free-camera movement is not proof
 that an opening or stair can be walked. These are camera controls, not document
