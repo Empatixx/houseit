@@ -2,12 +2,14 @@ import type { HouseDocument } from '@houseit/core/document'
 import { roomsOf } from '@houseit/geometry/rooms'
 import { sideRun } from '@houseit/geometry/sides'
 import { standingAt } from '@houseit/geometry/standing'
+import { current, freeze, isDraft } from 'immer'
 import { CommandError } from './command-error'
 import { standingProblem } from './standing-check'
 import { isWallPreview } from './wall-preview'
 
-export function furnitureBefore(doc: HouseDocument, level: string) {
-  const preview = isWallPreview(doc)
+export function furnitureBefore(draft: HouseDocument, level: string) {
+  const preview = isWallPreview(draft)
+  const doc = isDraft(draft) ? freeze(current(draft), true) : draft
   const rooms = new Map(roomsOf(doc, level).map((room) => [room.id, room]))
   return Object.values(doc.objects)
     .filter((o) => o.level === level)
