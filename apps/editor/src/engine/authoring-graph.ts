@@ -49,9 +49,10 @@ const categories = {
   viewpoints: 'HOUSEITVIEWPOINT',
   topics: 'HOUSEITTOPIC',
   dimensions: 'HOUSEITANNOTATION',
+  fences: 'HOUSEITFENCE',
 } as const
 
-const OPTIONAL = new Set<string>(['constraints', 'viewpoints', 'topics', 'dimensions'])
+const OPTIONAL = new Set<string>(['constraints', 'viewpoints', 'topics', 'dimensions', 'fences'])
 
 type Collection = keyof typeof categories
 const keyOf = (collection: string, id: string) => `${collection}:${id}`

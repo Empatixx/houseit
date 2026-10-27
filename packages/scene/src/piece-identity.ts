@@ -15,6 +15,7 @@ const categories: Record<NonNullable<Piece['role']>, string> = {
   'site-surface': 'IFCGEOGRAPHICELEMENT',
   'site-marking': 'IFCSURFACEFEATURE',
   'site-railing': 'IFCRAILING',
+  'site-fence': 'IFCRAILING',
   'light-fixture': 'IFCLIGHTFIXTURE',
 }
 

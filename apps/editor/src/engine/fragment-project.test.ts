@@ -882,3 +882,27 @@ test('a drawn dimension is a native annotation, kept by an archive', async () =>
     authoring.dispose()
   }
 })
+
+test('a fence is a native record whose geometry an archive keeps', async () => {
+  const authoring = new FragmentAuthoring(createEmptyDocument())
+  const level = Object.keys(authoring.document.levels)[0]!
+  try {
+    authoring.exec(
+      `add-room --name dům --shape rectangle --width 10m --depth 8m --material natural-oak
+add-opening --kind door --room dům --side north
+add-fence --kind boards --around 5m`,
+      level,
+    )
+    const categories = [...authoring.graph.items.values()].map((it) => it.category)
+    expect(categories).toContain('HOUSEITFENCE')
+    const archive = await writeFragment(authoring.snapshot(), generate)
+    const loaded = new FragmentAuthoring(new Uint8Array(archive.buffer))
+    try {
+      expect(loaded.document.fences).toEqual(authoring.document.fences)
+    } finally {
+      loaded.dispose()
+    }
+  } finally {
+    authoring.dispose()
+  }
+}, 30000)

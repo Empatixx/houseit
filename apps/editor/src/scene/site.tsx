@@ -1,4 +1,6 @@
+import type { HouseDocument } from '@houseit/core/document'
 import { nestedEntityKey } from '@houseit/core/entity-key'
+import { fenceStretches } from '@houseit/core/fences'
 import { floorMaterial } from '@houseit/core/floor-materials'
 import { Html, Line } from '@react-three/drei'
 import { Matrix4 } from 'three'
@@ -10,7 +12,40 @@ export function Site() {
   const doc = usePlanDoc()
   const level = useDocument((s) => s.level)
   const site = doc.site
-  if (!site || doc.levels[level]?.elevation !== 0) return null
+  if (doc.levels[level]?.elevation !== 0) return null
+  return (
+    <>
+      <Fences doc={doc} />
+      {site ? <Terrain site={site} /> : null}
+    </>
+  )
+}
+
+function Fences({ doc }: { doc: HouseDocument }) {
+  const fences = Object.values(doc.fences ?? {})
+  return (
+    <>
+      {fences.map((fence) =>
+        fenceStretches(fence).map((stretch) => (
+          <Line
+            key={`${fence.id}:${Math.round(stretch.from.x)},${Math.round(stretch.from.y)}`}
+            points={[
+              [stretch.from.x * MM, 0.03, -stretch.from.y * MM],
+              [stretch.to.x * MM, 0.03, -stretch.to.y * MM],
+            ]}
+            color={stretch.gate ? '#8a8f96' : '#3b3f45'}
+            lineWidth={stretch.gate ? 1.5 : 3}
+            dashed={stretch.gate}
+            dashSize={0.15}
+            gapSize={0.1}
+          />
+        )),
+      )}
+    </>
+  )
+}
+
+function Terrain({ site }: { site: NonNullable<HouseDocument['site']> }) {
   return (
     <>
       {site.surfaces.map((s) => (
