@@ -817,6 +817,18 @@ node. This limits a colour region horizontally without splitting the wall or
 its rooms. A band ending at a wall endpoint also covers the coat's corner return.
 An exterior `base` may extend its plinth below the finished floor datum.
 
+`add-roof --shape gable|hip|shed|flat` writes ordinary roof records for the top storey: the
+storey outline (rooms grown to the outer wall face, `geometry/storey-outline.ts`) is split into
+rectangles (`core/roof-shapes.ts`, largest first), each a roof whose facets are the solid wedge
+from the wall tops to the slopes, so validation, sections, DXF and archives need nothing new. A
+wing narrower than the main body is a cross gable reaching half its width plus the overhang into
+the main roof, its inner end a gable; a wider one is a lean-to. The optional `pitched` record is
+what the wedge does not say: the wedge is painted in the gable colour (that is the gable wall),
+and thin covering plates in the same planes run past the walls by the overhang, eaves lowered by
+overhang × slope so the plane carries on, with a fascia on their edges and gutters on the eaves.
+Coverings are floor materials with SVG textures written by `scripts/make-roof-textures.mjs`, each
+also `-90` for slopes falling east or west, so the courses always run along the eave.
+
 Roof `baseOffset` is relative to the storey top: a negative value places the roof
 on its structural slab, replacing the ordinary floor buildup there. `facets`
 carry triangular surface vertices `{x,y,height}` above that base, with optional
