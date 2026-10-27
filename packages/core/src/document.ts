@@ -3,6 +3,7 @@ import { closes } from './closes'
 import { ColumnSchema } from './column'
 import { RampSchema, ShaftSchema } from './connections'
 import { ExteriorSchema } from './exterior'
+import { FenceSchema } from './fences'
 import { FINISH_IDS, isColour, STYLE_IDS } from './finishes'
 import { HostSchema } from './host'
 import { FrameSchema, PanelsSchema } from './opening-assembly'
@@ -240,6 +241,7 @@ const DocumentShape = z.object({
   viewpoints: z.record(z.string(), ViewpointSchema).optional(),
   topics: z.record(z.string(), TopicSchema).optional(),
   dimensions: z.record(z.string(), DimensionSchema).optional(),
+  fences: z.record(z.string(), FenceSchema).optional(),
   site: SiteSchema.optional(),
 })
 
@@ -298,6 +300,7 @@ export const DocumentSchema = DocumentShape.superRefine((doc, ctx) => {
   checkKeysMatchIds(doc.viewpoints ?? {}, 'viewpoints', ctx)
   checkKeysMatchIds(doc.topics ?? {}, 'topics', ctx)
   checkKeysMatchIds(doc.dimensions ?? {}, 'dimensions', ctx)
+  checkKeysMatchIds(doc.fences ?? {}, 'fences', ctx)
   for (const viewpoint of Object.values(doc.viewpoints ?? {}))
     checkReference(
       doc.levels,

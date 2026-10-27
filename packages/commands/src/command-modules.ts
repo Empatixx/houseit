@@ -9,6 +9,7 @@ import { addRamp, addShaft, removeRamp, removeShaft } from './connections'
 import { addConstraint, removeConstraint } from './constraints'
 import { addDevice, removeDevice, updateDevice } from './device'
 import { addDimension, removeDimension } from './dimensions'
+import { addFence, removeFence, updateFence } from './fences'
 import { removeObject, removeOpening } from './remove'
 import { removeRoom } from './remove-room'
 import { removeSite } from './remove-site'
@@ -61,6 +62,9 @@ export const COMMAND_MODULES: readonly CommandModule[] = [
       removeTopic,
       addDimension,
       removeDimension,
+      addFence,
+      updateFence,
+      removeFence,
     ],
   },
 ]

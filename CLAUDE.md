@@ -850,6 +850,16 @@ stands. The committed annotation is taken back off the drawing and stored throug
 the hand path and the command are one record. Esc stops. Steps go on pointerdown capture and
 `activeTool` is assigned only when it changes, since reassigning it cancels a placement.
 
+Fences are an optional collection (`fences`, `core/fences.ts`), native `HOUSEITFENCE` records
+independent of `site`. `add-fence` runs round the cadastral parcel, a rectangle off the house box
+or along points, its gate by default opposite the front door (an exterior door found from the wall
+graph, not the survey). In 3D they are `site-fence` pieces (IFCRAILING, hidden with Site): boards,
+slats, mesh, bars, gabion or wall, every gate a dark metal gate whatever the fence. The plan draws
+the line with dashed gates and frames it. Trees and shrubs are not a second collection: they are
+the catalogue's GLB things in a lawn room. A lawn room's `grass` floor is the contextual lawn's own
+seeded turf exported once to `textures/lawn.jpg` at its 6 m tile, so a plot drawn as a room is the
+same grass as the land round it, not a flat green plate.
+
 `window.floorplan.show({view: 'north', site: false})` hides site context for an
 unobstructed elevation review, without changing the model. Orthographic building
 views frame the building even when its terrain extends much farther.

@@ -150,6 +150,28 @@ along one wall, `kitchen-l` into a corner of a squarer room, `kitchen-u` round a
 `queen-bed` or `king-bed`. Every catalogue type has a real size; `help add-object` lists
 them, and a thing that does not fit is refused with the reason.
 
+## The garden
+
+The plot is a room like any other, of kind `lawn`, drawn first; the house is cut out of
+it, and trees stand in it as things from the catalogue:
+
+```js
+#!js
+ctx.addRoom({ name: 'zahrada', shape: 'rectangle', width: '26m', depth: '22m', material: 'grass', kind: 'lawn' })
+ctx.addRoom({ name: 'dům', from: 'zahrada', corner: 'north-west', width: '11m', depth: '8m', material: 'natural-oak', thickness: 300 })
+ctx.addObject({ room: 'zahrada', type: 'tree-deciduous', along: 0.2, across: 0.25 })
+ctx.addObject({ room: 'zahrada', type: 'tree-spruce', along: 0.9, across: 0.85 })
+ctx.addObject({ room: 'zahrada', type: 'hedge', against: 'north', width: 8000 })
+ctx.addFence({ kind: 'slats', around: 'parcel' })   // or around: '6m', or points
+return ctx.problems()
+```
+
+Garden things: `tree-deciduous`, `tree-birch`, `tree-spruce`, `shrub-round`,
+`shrub-hydrangea`, `hedge`, `grass-ornamental`; in a pond `water-lilies`, `fish-koi`.
+Fences: `boards`, `slats`, `mesh`, `bars`, `gabion`, `wall`; a fence's gate lands opposite
+the front door, or `gates: [{ at, width, kind }]` places them. Every answer carries
+`fences` with their length.
+
 ## Working this way
 
 1. `help` and `guidelines` once at the start.

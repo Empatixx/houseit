@@ -99,6 +99,7 @@ function planBox(doc: HouseDocument, level: string): ViewBox | undefined {
       ...(doc.site?.surfaces
         .filter((s) => s.name.startsWith('Parking '))
         .flatMap((s) => s.outline) ?? []),
+      ...Object.values(doc.fences ?? {}).flatMap((fence) => fence.points),
     )
   if (points.length === 0) return undefined
 

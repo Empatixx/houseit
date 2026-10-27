@@ -20,8 +20,8 @@ export const FLOOR_MATERIALS: readonly FloorMaterial[] = [
   {
     id: 'grass',
     label: 'Lawn',
-    unit: { width: 1600, depth: 1600 },
-    texture: 'grass.png',
+    unit: { width: 6000, depth: 6000 },
+    texture: 'lawn.jpg',
     colour: '#6f9a4a',
   },
   ...[

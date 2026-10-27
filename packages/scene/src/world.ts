@@ -1,5 +1,6 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { levelsOf } from '@houseit/core/levels'
+import { fencePiecesOf } from './fences'
 import { type Light, lightsOn } from './lights'
 import type { Piece } from './pieces'
 import { piecesForModules } from './scene-module'
@@ -45,7 +46,7 @@ export function storeyOf(doc: HouseDocument, level: string): Piece[] {
 export function worldOf(doc: HouseDocument): World {
   return {
     bounds: reachOf(doc),
-    site: sitePieces(doc),
+    site: [...sitePieces(doc), ...fencePiecesOf(doc)],
     storeys: levelsOf(doc).map((storey) => ({
       level: storey.id,
       elevation: storey.elevation,

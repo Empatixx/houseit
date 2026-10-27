@@ -8,6 +8,7 @@ import { applyScript } from './apply-script'
 import { checkStorey, type Problem } from './checks'
 import { assertConstraints, type ConstraintReport, reportConstraint } from './constraint-rules'
 import type { Touched } from './define-command'
+import { type FenceReport, fenceReport } from './fences'
 import { roomOfOpening } from './openings'
 import { assertHouseFitsSite } from './site-invariant'
 import { type RoomReport, surveyRoom } from './survey'
@@ -88,6 +89,7 @@ function surveyWalls(doc: HouseDocument, level: string): WallReport[] {
 
 export type Answer = {
   site?: HouseDocument['site']
+  fences?: FenceReport[]
   parcelSite?: HouseDocument['parcelSite']
   level: string
   levels: StoreyReport[]
@@ -147,9 +149,11 @@ export function answerFor(
   const extent = planExtent(doc, level)
   const levelRooms = roomsAt(level)
   const unassigned = levelRooms.filter((room) => room.id === undefined)
+  const fences = fenceReport(doc)
   return {
     level,
     ...(doc.site ? { site: doc.site } : {}),
+    ...(fences ? { fences } : {}),
     ...(doc.parcelSite ? { parcelSite: doc.parcelSite } : {}),
     levels: levelsOf(doc).map((storey, index) => ({
       id: storey.id,
