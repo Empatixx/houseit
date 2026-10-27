@@ -25,6 +25,7 @@ import { dragged } from '../drag'
 import { usePlain } from '../plain'
 import { MM, toWorld } from '../plan-coordinates'
 import { FurnitureGhost } from './furniture-ghost'
+import { FurnitureShadow } from './furniture-shadow'
 import { symbolHeight } from './stacking'
 import { Dial, Turner } from './turning'
 import { useFurnitureDrag } from './use-furniture-drag'
@@ -168,6 +169,14 @@ function Glyph({ object, spot, surface, symbol, stack }: GlyphProps) {
       {drag.live ? (
         <FurnitureGhost object={object} spot={spot} at={at} texture={plain} stack={stack} />
       ) : null}
+      <FurnitureShadow
+        type={object.type}
+        size={object}
+        at={at}
+        turn={turn}
+        height={symbolHeight(stack)}
+        layer={stack.layer}
+      />
       <NativeSurface
         surface={{
           id: `object:${object.id}`,
