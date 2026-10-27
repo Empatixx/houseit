@@ -132,7 +132,10 @@ async function encode(
               attributes: Object.fromEntries(
                 Object.entries(geometry.attributes).map(([name, attribute]) => [
                   name,
-                  { itemSize: attribute.itemSize, array: Array.from(attribute.array) },
+                  {
+                    itemSize: attribute.itemSize,
+                    float32: base64(Float32Array.from(attribute.array)),
+                  },
                 ]),
               ),
               index: Array.from(geometry.index!.array),
@@ -186,6 +189,14 @@ function nativePaint(paint: ArchivePaint) {
     renderedFaces: paint.doubleSided ? 1 : 0,
     stroke: 0,
   }
+}
+
+function base64(values: Float32Array): string {
+  const bytes = new Uint8Array(values.buffer, values.byteOffset, values.byteLength)
+  let text = ''
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    text += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  return btoa(text)
 }
 
 const bases = new WeakMap<

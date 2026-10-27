@@ -31,7 +31,8 @@ The wall authoring model on `that-open-engine`:
   Metadata contains the authoring schema marker, geometry ownership manifest and appearance/assets.
   Native RGBA uses sRGB bytes (0–255); the installed native MaterialManager converts sRGB to linear.
   Raw native materials do not store textures/UVs: preserve those and source normals/vertex colours
-  in archive appearance metadata. The standalone archive proof intentionally uses native colours.
+  in archive appearance metadata. Those attribute arrays are stored as little-endian float32 in base64
+  (`{itemSize, float32}`), never as JSON numbers, which made a small house's archive 70 MB. The standalone archive proof intentionally uses native colours.
   Imported GLB geometry can lack UVs; preserve its original material/texture definitions. Schema 4 stores columns, roofs, ramps, shafts, measured stairs and terrain parts as independent native items, with ordered HasParts collections, ContainedIn, ConnectsTo and MappedTo relations. Level/project parameters no longer duplicate those records. HouseDocument reconstructs their nested command projection from native relations. Roof IDs survive reorder/rename and are supplied in readback; legacy JSON replacements match an unambiguous prior roof or allocate a new ID. Schemas 1/2/3 upgrade without changing existing native IDs. Physical floor/slab, facade, opening-product and catalogue-stair children have PartOf/HasGeometry relations. Keep IFCSPACE and IFCOPENINGELEMENT free of newly archived physical samples: native section helpers omit IFCSPACE. Legacy schema-3 samples move to physical children on their next save. Archives load directly into authoring
   without rebuilding entities from a HouseDocument; schema-one metadata is upgraded on load. CLI/MCP waits for native persistence before
   returning success. Keep MCP tool title, description and schema stable. The React presentation adapter supplies the established
