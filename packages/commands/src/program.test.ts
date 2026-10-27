@@ -90,3 +90,21 @@ test('help names every command as a function with its options', () => {
   expect(signatureOf('addRoom')).toBe(signatureOf('add-room'))
   expect(programHelp()).toContain('ctx.updateWall(')
 })
+
+test('reads are remembered until the next write and handed out as copies', () => {
+  const { said } = outcome(
+    runScript(createEmptyDocument(), lines),
+    `#!js
+const first = ctx.rooms()
+first[0].name = 'scribbled'
+const again = ctx.rooms()
+ctx.updateRoom({ room: 'kitchen', name: 'cook' })
+const after = ctx.rooms().map((room) => room.name).sort()
+return { again: again.map((room) => room.name).sort(), after, same: ctx.problems() === ctx.problems() }`,
+  )
+  expect(said.result).toEqual({
+    again: ['house', 'kitchen'],
+    after: ['cook', 'house'],
+    same: false,
+  })
+})

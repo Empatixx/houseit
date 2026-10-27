@@ -59,7 +59,23 @@ export function runProgram(
   let at: string | undefined
   let level = open
 
+  let seen: HouseDocument | undefined
+  const reads = new Map<string, unknown>()
+  const frozen = () => {
+    if (!seen) {
+      seen = current(draft) as HouseDocument
+      reads.clear()
+    }
+    return seen
+  }
+  const remembered = <T>(key: string, read: (doc: HouseDocument) => T): T => {
+    const doc = frozen()
+    if (!reads.has(key)) reads.set(key, read(doc))
+    return structuredClone(reads.get(key) as T)
+  }
+
   const record = (said: Change | undefined) => {
+    seen = undefined
     for (const id of said?.changed ?? []) if (!changed.includes(id)) changed.push(id)
     for (const id of said?.shown ?? []) if (!shown.includes(id)) shown.push(id)
     if (said?.at !== undefined) at = said.at
@@ -83,7 +99,7 @@ export function runProgram(
     return record(command.apply(draft, (args ?? {}) as never, level))
   }
 
-  const snapshot = () => structuredClone(current(draft)) as HouseDocument
+  const snapshot = () => structuredClone(frozen())
   const levelId = (given?: string) => levelOf(draft, given ?? level, 'ctx')
 
   const ctx: Record<string, unknown> = {
@@ -103,7 +119,7 @@ export function runProgram(
     },
     doc: snapshot,
     levels: () =>
-      levelsOf(snapshot()).map((storey, index) => ({
+      levelsOf(frozen()).map((storey, index) => ({
         id: storey.id,
         name: storey.name,
         storey: index + 1,
@@ -117,17 +133,17 @@ export function runProgram(
       return level
     },
     rooms: (given?: string) => {
-      const doc = snapshot()
-      return surveyLevel(doc, levelOf(doc, given ?? level, 'ctx.rooms')).rooms
+      const at = levelOf(frozen(), given ?? level, 'ctx.rooms')
+      return remembered(`rooms:${at}`, (doc) => surveyLevel(doc, at).rooms)
     },
-    room: (name: string, given?: string) => {
-      const doc = snapshot()
-      const found = whereRoom(doc, given, name, 'ctx.room')
-      return surveyRoom(doc, found.level, found.room, roomsOf(doc, found.level))
-    },
+    room: (name: string, given?: string) =>
+      remembered(`room:${given ?? ''}:${name}`, (doc) => {
+        const found = whereRoom(doc, given, name, 'ctx.room')
+        return surveyRoom(doc, found.level, found.room, roomsOf(doc, found.level))
+      }),
     problems: (given?: string) => {
-      const doc = snapshot()
-      return checkLevel(doc, levelOf(doc, given ?? level, 'ctx.problems'))
+      const at = levelOf(frozen(), given ?? level, 'ctx.problems')
+      return remembered(`problems:${at}`, (doc) => checkLevel(doc, at))
     },
     show: (...ids: string[]) => {
       for (const id of ids) if (!shown.includes(id)) shown.push(id)
