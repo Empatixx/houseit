@@ -9,12 +9,15 @@ import { pointOnPlan, pointUnder } from '../drag'
 
 type Carried = { from: Point; shift: Point }
 
+const SNAP_WAIT = 60
+
 export function useFurnitureDrag(object: HouseObject, spot: Spot) {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null
   const camera = useThree((state) => state.camera)
   const canvas = useThree((state) => state.gl.domElement)
   const held = useRef<Carried | null>(null)
   const [shift, setShift] = useState<Point>({ x: 0, y: 0 })
+  const [live, setLive] = useState(false)
   const release = useRef<(() => void) | null>(null)
   useEffect(() => () => release.current?.(), [])
 
@@ -25,6 +28,7 @@ export function useFurnitureDrag(object: HouseObject, spot: Spot) {
     event.stopPropagation()
     ;(event.target as Element).setPointerCapture(event.pointerId)
     held.current = { from, shift: { x: 0, y: 0 } }
+    setLive(true)
     if (controls) controls.enabled = false
 
     let sequence = 0
@@ -54,7 +58,8 @@ export function useFurnitureDrag(object: HouseObject, spot: Spot) {
     }
     const done = async (native: PointerEvent) => {
       forget()
-      await pending
+      setLive(false)
+      await Promise.race([pending, new Promise((resolve) => setTimeout(resolve, SNAP_WAIT))])
       const carried = held.current
       held.current = null
       setShift({ x: 0, y: 0 })
@@ -73,5 +78,5 @@ export function useFurnitureDrag(object: HouseObject, spot: Spot) {
     window.addEventListener('pointercancel', done)
   }
 
-  return { shift, live: held.current !== null, down }
+  return { shift, live, down }
 }

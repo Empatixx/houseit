@@ -55,7 +55,10 @@ The wall authoring model on `that-open-engine`:
   Outside a gesture, the canvas keeps its previous frame while the display rebuilds after a
   document change (surfaces dirty, staging, tile styling, or the Fragments models still busy
   within 600 ms of the change), for at most 400 ms, so an edit never shows white floors or
-  missing walls in between. During a gesture only tile styling holds a frame. FragmentAuthoring
+  missing walls in between. During a gesture, and for 800 ms after one,
+  nothing holds a frame: the preview already shows the result, and holding froze the drag's last
+  frame (with the carried thing's ghost) on screen. Drop shadows are hidden while the display stages
+  surfaces, so a shadow never stands alone where its native piece has not yet been drawn. FragmentAuthoring
   parses its native base once; `graph` replays requests onto a clone of those items. View/clip collections own their disposal. Keep UI gestures
   and layout stable when replacing engine internals. Floor coverings and structural slabs carry
   explicit scene roles; keep their existing well/recess/exposed-top derivation. The shared tile

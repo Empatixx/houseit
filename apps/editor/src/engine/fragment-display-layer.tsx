@@ -18,6 +18,8 @@ import { FragmentDisplay } from './fragment-display'
 import { useGeometryEngine } from './provider'
 
 const HOLD = 400
+const GESTURE_HOLD = 0
+const AFTER_GESTURE = 800
 
 const Context = createContext<{ display: FragmentDisplay } | null>(null)
 type Events = Pick<
@@ -66,11 +68,15 @@ export function FragmentDisplayLayer({ children }: { children: ReactNode }) {
     const gl = get().gl
     const render = gl.render
     let held = 0
+    let gestured = Number.NEGATIVE_INFINITY
     gl.render = (scene, camera) => {
+      const now = performance.now()
       const gesture = instance.pointerDown || instance.gestures.size > 0
+      if (gesture) gestured = now
       if (gesture ? instance.styling : instance.rebuilding) {
-        held ||= performance.now()
-        if (performance.now() - held < HOLD) return
+        held ||= now
+        const limit = now - gestured < AFTER_GESTURE ? GESTURE_HOLD : HOLD
+        if (now - held < limit) return
       } else held = 0
       render.call(gl, scene, camera)
     }
