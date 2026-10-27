@@ -40,11 +40,13 @@ export function cutCorner(
   const y1 = Math.max(...points.map((point) => point.y))
 
   if (size.width >= x1 - x0) {
-    throw new CommandError(`add-room: wider than ${room.name}, which is ${x1 - x0} mm across`)
+    throw new CommandError(
+      `add-room: a corner ${size.width} mm wide would take the whole width of ${room.name}, ${x1 - x0} mm between its wall centres — make it narrower, or cut a strip off a --side`,
+    )
   }
   if (size.depth >= y1 - y0) {
     throw new CommandError(
-      `add-room: deeper than ${room.name}, which is ${y1 - y0} mm front to back`,
+      `add-room: a corner ${size.depth} mm deep would take the whole depth of ${room.name}, ${y1 - y0} mm between its wall centres — make it shallower, or cut a strip off a --side`,
     )
   }
   const notch = size.notch ?? { width: 0, depth: 0 }

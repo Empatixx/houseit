@@ -7,8 +7,11 @@ export type Problem = {
   code: string
   severity: 'error' | 'warning'
   room?: string
+  ids?: string[]
   message: string
 }
+
+export const realOpening = (id: string) => id.replace(/-(?:leaf|panel)-[^-]+$/, '')
 
 export type Storey = {
   doc: HouseDocument
