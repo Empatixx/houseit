@@ -370,6 +370,20 @@ The finish is visible from above only. Walls start at their floor, without a
 hidden downward extension overlapping the interstorey slab. Slab edges carry a
 neutral wall finish separately from the room's ceiling finish.
 
+## A program is the same commands, in JavaScript
+
+A script whose first line is `#!js`, or that is written as `export default (ctx) => …`,
+is a program (`packages/commands/src/program.ts`). It runs inside the same single
+Immer draft as command lines, so it is still one transaction and one undo step.
+Every registered command is `ctx.<camelName>(args)`, validated by the command's own
+zod schema through `apply` — the same typed path the editor uses, never a text line
+rebuilt and parsed. Reads (`ctx.rooms`, `ctx.room`, `ctx.problems`, `ctx.doc`) return
+copies; a program cannot write to the document behind the commands' back. The return
+value and `ctx.log` come back as `result` and `logs` ahead of the usual answer and
+picture. `help` lists the signatures, generated from the schemas, so adding a command
+adds its function without touching the tool. `.claude/skills/houseit-js` teaches an
+agent to use it. The tool's name, description and input schema are unchanged.
+
 ## The tool description never changes
 
 `toolDescription()` in `apps/mcp/src/report.ts` is frozen prose and must stay that

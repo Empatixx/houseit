@@ -1,12 +1,17 @@
 import type { ExecResult } from '@houseit/bridge/contract'
 import { guidelinesText as guidelines } from '@houseit/commands/guidelines'
+import { programHelp } from '@houseit/commands/program'
 import { describeCommands } from '@houseit/commands/registry'
 
 export function report(result: ExecResult): string {
   if (!result.ok) return result.error
 
   const plan = result.project?.name ?? 'the plan'
-  return `${plan}\n${compactJson(result.answer)}`
+  const said = [
+    ...(result.logs?.length ? [`logs\n${result.logs.join('\n')}`] : []),
+    ...('result' in result ? [`result\n${compactJson(result.result)}`] : []),
+  ]
+  return [plan, ...said, compactJson(result.answer)].join('\n')
 }
 
 export function toolDescription(): string {
@@ -42,7 +47,7 @@ export function toolDescription(): string {
   ].join('\n')
 }
 
-export const helpText = describeCommands
+export const helpText = () => `${describeCommands()}\n\n${programHelp()}`
 
 export const guidelinesText = guidelines
 
