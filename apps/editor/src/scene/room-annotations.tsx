@@ -58,13 +58,17 @@ function Annotation({
         className="pointer-events-none select-none text-center leading-tight"
         style={{ overflowWrap: 'anywhere' }}
       >
-        <div ref={full} className="font-medium text-neutral-900">
+        <div ref={full} className="font-semibold text-neutral-800 uppercase tracking-[0.06em]">
           {name}
         </div>
-        <div ref={short} className="font-medium text-neutral-900" style={{ display: 'none' }}>
+        <div
+          ref={short}
+          className="font-semibold text-neutral-800 uppercase tracking-[0.06em]"
+          style={{ display: 'none' }}
+        >
           {/^\d{3}\b/.exec(name)?.[0] ?? name}
         </div>
-        <div ref={measure} className="text-neutral-500">
+        <div ref={measure} className="mt-0.5 text-[0.85em] text-neutral-600 tabular-nums">
           {(area / 1e6).toFixed(1)} m²
         </div>
       </div>

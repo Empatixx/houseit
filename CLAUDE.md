@@ -523,6 +523,12 @@ per-object nudge that keeps two things from flickering against each other.
 A box whose face is exactly flush with a wall's face does not render at all. Inset
 it.
 
+Furniture standing on the floor casts a soft drop shadow in the plan, the light from the
+upper left: a presentation plane under the symbol (`furniture-shadow.tsx`), blurred from the
+same `drawnPartsOf` boxes the clashes use, so an L kitchen throws an L. It is not native
+geometry and takes no clicks or snaps; rugs and other `under` things cast none. Room names
+are set in capitals with a little tracking, the area beneath in tabular figures.
+
 ## Symbol and surface are separate
 
 Furniture is drawn from plan symbols: one SVG per type under
