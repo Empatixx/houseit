@@ -6,6 +6,7 @@ import { elementId, wallElement } from '@houseit/geometry/wall-elements'
 import { produce } from 'immer'
 import { applyScript } from './apply-script'
 import { checkStorey, type Problem } from './checks'
+import { assertConstraints, type ConstraintReport, reportConstraint } from './constraint-rules'
 import type { Touched } from './define-command'
 import { roomOfOpening } from './openings'
 import { assertHouseFitsSite } from './site-invariant'
@@ -97,6 +98,7 @@ export type Answer = {
   rooms: RoomReport[]
   unassigned?: RoomReport[]
   problems: Problem[]
+  constraints?: ConstraintReport[]
   notes?: string[]
 }
 
@@ -181,6 +183,9 @@ export function answerFor(
       rooms: levelRooms,
       reports: levelRooms.map((room) => reportFor(room, level)),
     }),
+    ...(doc.constraints && Object.keys(doc.constraints).length
+      ? { constraints: Object.values(doc.constraints).map((it) => reportConstraint(doc, it)) }
+      : {}),
     ...(notes === undefined || notes.length === 0 ? {} : { notes }),
   }
 }
@@ -218,6 +223,7 @@ export function askPlan(doc: HouseDocument, source: string, open?: string): Answ
   const next = produce(doc, (draft) => {
     touched = applyScript(draft, source, open)
     assertHouseFitsSite(draft)
+    assertConstraints(draft)
   })
   return answerFor(
     next,

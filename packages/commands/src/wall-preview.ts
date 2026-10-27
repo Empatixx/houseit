@@ -1,5 +1,6 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { produce } from 'immer'
+import { assertConstraints } from './constraint-rules'
 import type { ArgsOf, TypedCommand } from './define-command'
 import { assertHouseFitsSite } from './site-invariant'
 
@@ -17,6 +18,7 @@ export function previewWallCommand<C extends TypedCommand>(
     try {
       command.apply(draft, args)
       assertHouseFitsSite(draft)
+      assertConstraints(draft)
     } finally {
       previews.delete(draft)
     }

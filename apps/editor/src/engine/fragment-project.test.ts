@@ -791,3 +791,36 @@ test('cadastral outdoor demo archives its parcel, open edges and glazed garden t
     authoring.dispose()
   }
 }, 30000)
+
+test('a constraint is a native item constraining its rooms, and an archive keeps it', async () => {
+  const authoring = new FragmentAuthoring(createEmptyDocument())
+  const level = Object.keys(authoring.document.levels)[0]!
+  try {
+    authoring.exec(
+      `add-room --name Flat --shape rectangle --width 8m --depth 5m --material natural-oak
+add-room --name Bath --from Flat --side west --width 2.5m --material tile-white
+add-constraint --kind fixed --room Bath --measure width`,
+      level,
+    )
+    const graph = authoring.graph
+    const [id, item] = [...graph.items].find(([, it]) => it.category === 'HOUSEITCONSTRAINT')!
+    const bath = Object.values(authoring.document.rooms).find((room) => room.name === 'Bath')!
+    const target = [...graph.items].find(([, it]) => nativeKey(it) === `rooms:${bath.id}`)![0]
+    expect(nativeKey(item)).toBe('constraints:k1')
+    expect(graph.relations.get(id)!.data.Constrains).toEqual([target])
+    expect(() => authoring.exec('update-room --room Bath --side east --by 300', level)).toThrow(
+      /fixed/,
+    )
+    const archive = await writeFragment(authoring.snapshot(), generate)
+    const loaded = new FragmentAuthoring(new Uint8Array(archive.buffer))
+    try {
+      expect(loaded.document.constraints).toEqual(authoring.document.constraints)
+      authoring.undo()
+      expect(authoring.document.constraints).toBeUndefined()
+    } finally {
+      loaded.dispose()
+    }
+  } finally {
+    authoring.dispose()
+  }
+})

@@ -1,6 +1,7 @@
 import type { HouseDocument } from '@houseit/core/document'
 import { produce } from 'immer'
 import { applyScript } from './apply-script'
+import { assertConstraints } from './constraint-rules'
 import type { ArgsOf, TypedCommand } from './define-command'
 import { assertHouseFitsSite } from './site-invariant'
 
@@ -8,6 +9,7 @@ export function runScript(doc: HouseDocument, source: string, open?: string): Ho
   return produce(doc, (draft) => {
     applyScript(draft, source, open)
     assertHouseFitsSite(draft)
+    assertConstraints(draft)
   })
 }
 
@@ -19,5 +21,6 @@ export function applyCommand<C extends TypedCommand>(
   return produce(doc, (draft) => {
     command.apply(draft, args)
     assertHouseFitsSite(draft)
+    assertConstraints(draft)
   })
 }
