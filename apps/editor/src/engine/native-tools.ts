@@ -412,10 +412,12 @@ export class NativeTools {
     this.drawn = key
     const direction = view.camera.three.getWorldDirection(new Vector3())
     const size = model.box.getSize(new Vector3())
+    const { doc } = documentStore.getState()
     await this.lines.show(model, {
       direction,
       point: this.viewPoint,
       depth: Math.abs(size.dot(direction)) + 1,
+      storeys: Object.values(doc.levels).map((level) => level.elevation / 1000),
     })
   }
   drawing() {
