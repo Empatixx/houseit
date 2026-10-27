@@ -88,7 +88,7 @@ test('a structural column keeps its grid position and blocks placement and walki
 test('an assembly is one product, with a door only in its door panel', () => {
   const doc = runScript(
     createEmptyDocument(),
-    `${measured}\nadd-opening --room Cafe --kind assembly --side south --width 2000 --height 2800 --frame '{"depth":74,"face":60,"outside":"#383e42","inside":"#ffffff"}' --panels '[{"kind":"door","x":0,"z":0,"width":1000,"height":2100},{"kind":"fixed","x":0,"z":2100,"width":1000,"height":700},{"kind":"fixed","x":1000,"z":0,"width":1000,"height":2800}]'`,
+    `${measured}\nadd-opening --room Cafe --kind assembly --side south --width 2000 --height 2500 --frame '{"depth":74,"face":60,"outside":"#383e42","inside":"#ffffff"}' --panels '[{"kind":"door","x":0,"z":0,"width":1000,"height":2100},{"kind":"fixed","x":0,"z":2100,"width":1000,"height":400},{"kind":"fixed","x":1000,"z":0,"width":1000,"height":2500}]'`,
   )
   const parent = Object.values(doc.openings)[0]!
   expect(Object.keys(doc.openings)).toHaveLength(1)

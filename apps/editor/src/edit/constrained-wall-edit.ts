@@ -3,7 +3,7 @@ import { applyCommand } from '@houseit/commands/run'
 import { previewWallCommand } from '@houseit/commands/wall-preview'
 import type { HouseDocument } from '@houseit/core/document'
 
-type Result = { value: number; doc: HouseDocument }
+type Result = { value: number; doc: HouseDocument; refusal?: string }
 let cached: { source: HouseDocument; key: string; result: Result } | undefined
 
 export function constrainWallEdit<C extends TypedCommand>(
@@ -16,11 +16,13 @@ export function constrainWallEdit<C extends TypedCommand>(
   preview = false,
 ) {
   const key = JSON.stringify([command.name, argsAt(from), argsAt(to), stops, preview])
+  let refusal: string | undefined
   const trial = (value: number): Result | undefined => {
     try {
       const apply = preview ? previewWallCommand : applyCommand
       return { value, doc: apply(source, command, argsAt(value)) }
-    } catch {
+    } catch (error) {
+      refusal ??= error instanceof Error ? error.message : String(error)
       return undefined
     }
   }
@@ -51,6 +53,7 @@ export function constrainWallEdit<C extends TypedCommand>(
         } else high = middle
       }
     }
+    if (result.value === from && from !== to && refusal) result = { ...result, refusal }
     cached = { source, key, result }
   }
   return { ...result, args: argsAt(result.value), changed: result.value !== from }

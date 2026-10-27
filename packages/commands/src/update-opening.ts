@@ -19,7 +19,7 @@ import { checkPockets, pocketDirection, setPocket } from './pocket-door'
 import { SIDE_NAMES, sideNamed } from './resolve'
 
 import { validateWallHosts } from './validate-wall-hosts'
-import { validateWalls } from './validate-walls'
+import { openingReach, validateWalls } from './validate-walls'
 
 export const updateOpening = defineCommand({
   name: 'update-opening',
@@ -224,6 +224,11 @@ export const updateOpening = defineCommand({
     if (args.frame !== undefined) target.frame = args.frame
     OpeningSchema.parse(target)
     checkFrame(draft, target, 'update-opening')
+    const reach = openingReach(draft, target, draft.walls[target.wall]!)
+    if (reach)
+      throw new CommandError(
+        `update-opening: it would reach ${reach.reach} mm and the wall is open to ${reach.top} mm — lower --sill or --height`,
+      )
     setPocket(draft, target, slideTowards, 'update-opening')
     checkDoorLeaves(draft, level, room, target, 'update-opening')
     checkPockets(draft, level, 'update-opening')

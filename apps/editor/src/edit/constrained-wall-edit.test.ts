@@ -5,6 +5,7 @@ import { updateWall } from '@houseit/commands/wall'
 import { beforeEach, expect, test } from 'vitest'
 import { previewStore } from '../store/preview'
 import { documentStore } from '../store/store'
+import { constrainWallEdit } from './constrained-wall-edit'
 import { endPreview } from './preview'
 import { moveWallBy, previewWallMove, previewWallResize, resizeWall } from './wall-commands'
 
@@ -255,3 +256,18 @@ test('a long pointer jump cannot move a partition through another room or record
 function splitWallFixture() {
   return readFileSync('../../fixtures/that-open/split-wall-alignment.txt', 'utf8')
 }
+
+test('a wall edit that cannot move at all carries the reason instead of failing silently', () => {
+  const { doc, wall } = house()
+  const edit = constrainWallEdit(doc, updateWall, (by) => ({ id: 'w-missing', by }), 0, 400)
+  expect(edit.changed).toBe(false)
+  expect(edit.refusal).toMatch(/w-missing/)
+  const moved = constrainWallEdit(
+    doc,
+    updateWall,
+    (by) => ({ id: wall.element ?? wall.id, by }),
+    0,
+    400,
+  )
+  expect(moved.refusal).toBeUndefined()
+})
