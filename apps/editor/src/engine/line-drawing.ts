@@ -1,11 +1,15 @@
 import * as OBC from '@thatopen/components'
 import type { FragmentsModel } from '@thatopen/fragments'
-import { LineBasicMaterial, type Vector3 } from 'three'
+import { Box3, LineBasicMaterial, LineSegments, Vector3 } from 'three'
+import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js'
 
 const INK = '#1f1d1c'
 const HIDDEN = '#b9b3aa'
 
-export type Projection = { direction: Vector3; point: Vector3; depth: number }
+const GAP = 0.7
+const LOADING = 3000
+
+export type Projection = { direction: Vector3; point: Vector3; depth: number; storeys: number[] }
 
 export class LineDrawing {
   private drawing: OBC.TechnicalDrawing | undefined
@@ -35,15 +39,26 @@ export class LineDrawing {
     drawing.three.position.copy(projection.point).addScaledVector(projection.direction, 0.01)
     drawing.three.updateMatrixWorld(true)
     drawing.far = projection.depth
-    await drawing.addProjectionFromItems(ids, { layers: { visible: 'visible', hidden: 'hidden' } })
-    drawing.layers.setVisibility('hidden', false)
+    model.object.visible = true
+    await this.loaded(model)
     if (request !== this.work) {
       drawing.dispose()
       visible.dispose()
       hidden.dispose()
       return
     }
+    await drawing.addProjectionFromItems(ids, { layers: { visible: 'visible', hidden: 'hidden' } })
+    drawing.layers.setVisibility('hidden', false)
+    this.dimension(drawing, projection)
+    if (request !== this.work) {
+      this.annotations.clear([drawing])
+      drawing.dispose()
+      visible.dispose()
+      hidden.dispose()
+      return
+    }
     this.release()
+    this.hidden = undefined
     this.drawing = drawing
     this.materials = [visible, hidden]
     this.hide(model)
@@ -69,7 +84,78 @@ export class LineDrawing {
       .exporter.export([{ drawing: this.drawing, viewports: [{}] }])
   }
 
+  private async loaded(model: FragmentsModel) {
+    const fragments = this.components.get(OBC.FragmentsManager)
+    const started = performance.now()
+    do {
+      await fragments.core.update(true)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    } while (model.isBusy && performance.now() - started < LOADING)
+  }
+
+  private get annotations() {
+    return this.components.get(OBC.TechnicalDrawings).use(OBC.LinearAnnotations)
+  }
+
+  private dimension(drawing: OBC.TechnicalDrawing, projection: Projection) {
+    const box = new Box3()
+    for (const child of drawing.three.children)
+      if (child instanceof LineSegments && child.visible) {
+        child.geometry.computeBoundingBox()
+        box.union(child.geometry.boundingBox!)
+      }
+    if (box.isEmpty()) return
+    const height = (world: number) =>
+      drawing.three.worldToLocal(projection.point.clone().setY(world)).z
+    const up = Math.sign(height(1) - height(0)) || 1
+    const bottom = up > 0 ? box.min.z : box.max.z
+    const top = up > 0 ? box.max.z : box.min.z
+    const right = box.max.x
+    const add = (a: Vector3, b: Vector3, outward: Vector3, gap: number) => {
+      const along = b.clone().sub(a)
+      const across = new Vector3(-along.z, 0, along.x).normalize()
+      const offset = gap * (across.dot(outward) < 0 ? -1 : 1)
+      this.annotations.add(drawing, { pointA: a, pointB: b, offset, style: 'default' })
+      const label = document.createElement('div')
+      label.textContent = along.length().toFixed(2)
+      Object.assign(label.style, {
+        font: '500 11px/16px ui-sans-serif, system-ui, sans-serif',
+        color: INK,
+        background: 'rgba(255,255,255,0.92)',
+        padding: '0 4px',
+        borderRadius: '4px',
+        fontVariantNumeric: 'tabular-nums',
+        pointerEvents: 'none',
+      })
+      const mark = new CSS2DObject(label)
+      mark.position.copy(a).add(b).multiplyScalar(0.5).addScaledVector(across, offset)
+      drawing.three.add(mark)
+    }
+    const down = new Vector3(0, 0, -up)
+    const outside = new Vector3(1, 0, 0)
+    add(new Vector3(box.min.x, 0, bottom), new Vector3(box.max.x, 0, bottom), down, GAP)
+    const levels = [...new Set([bottom, ...projection.storeys.map(height), top])]
+      .filter((z) => (z - bottom) * up >= -0.001 && (top - z) * up >= -0.001)
+      .sort((a, b) => (a - b) * up)
+    if (levels.length > 2)
+      for (let i = 0; i + 1 < levels.length; i++)
+        add(new Vector3(right, 0, levels[i]!), new Vector3(right, 0, levels[i + 1]!), outside, GAP)
+    add(
+      new Vector3(right, 0, bottom),
+      new Vector3(right, 0, top),
+      outside,
+      levels.length > 2 ? 2 * GAP : GAP,
+    )
+  }
+
   private release() {
+    if (this.drawing) {
+      this.annotations.clear([this.drawing])
+      for (const mark of this.drawing.three.children.filter((it) => it instanceof CSS2DObject)) {
+        mark.element.remove()
+        mark.removeFromParent()
+      }
+    }
     this.drawing?.dispose()
     for (const material of this.materials) material.dispose()
     this.drawing = undefined

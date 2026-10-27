@@ -756,6 +756,10 @@ section or the whole facade for an elevation, and `DxfManager` writes it out. Th
 engine settings offer elevations north/south/east/west beside the sections, a Line
 drawing switch and Download DXF; the driver says `houseit --drawing north=out.dxf …`
 (`window.floorplan.drawing(view)`). Hidden lines are kept on a layer that is off.
+Each drawing carries That Open `LinearAnnotations`: the overall length below, and on the outside
+edge a chain of storey heights from the plinth with the overall height beyond it, so the DXF
+gets real dimensions; their on-screen numbers are CSS2D labels. A projection only sees loaded
+tiles, so the model is shown and Fragments allowed to finish loading before each projection.
 The shaded model is hidden while the drawing shows and comes back when it closes.
 
 `window.floorplan.show({view: 'north', site: false})` hides site context for an
