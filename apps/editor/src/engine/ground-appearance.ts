@@ -158,7 +158,7 @@ function groundImage() {
   return canvas
 }
 export function groundAsset() {
-  encoded ??= groundImage().toDataURL('image/png')
+  encoded ??= groundImage().toDataURL('image/jpeg', 0.86)
   return encoded
 }
 export function groundTexture() {
