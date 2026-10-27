@@ -1,4 +1,5 @@
 import { drawWall } from '@houseit/commands/draw-wall'
+import { parseLength } from '@houseit/commands/length'
 import { SNAP } from '@houseit/commands/partition'
 import { applyCommand } from '@houseit/commands/run'
 import type { Point } from '@houseit/geometry/outlines'
@@ -60,6 +61,10 @@ function aligned(point: Point, axes: Axis[], drawn: Point[]): { point: Point; gu
 
 export function aimAt(point: Point): void {
   if (engineViewStore.getState().measure !== 'none') return
+  if (drawStore.getState().typed) {
+    aimTyped(point)
+    return
+  }
   const sequence = ++aimSequence
   const { points } = drawStore.getState()
   const last = points[points.length - 1]
@@ -84,6 +89,78 @@ export function aimAt(point: Point): void {
   }
   apply(null)
   void (activeTools?.snapPoint(square) ?? Promise.resolve(null)).then(apply)
+}
+
+const TYPING = /^[\d.,]$|^[cm]$/i
+
+export function typedLength(typed: string): number | undefined {
+  const text = typed.trim().replace(',', '.')
+  if (!/\d/.test(text)) return undefined
+  try {
+    const bare = /^\d+(\.\d+)?$/.test(text)
+    const length =
+      bare && (text.includes('.') || Number(text) < 100)
+        ? parseLength(`${text}m`)
+        : parseLength(text)
+    return length > 0 ? length : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function headingOf(points: Point[], cursor: Point | null): Point {
+  const last = points[points.length - 1]!
+  if (!cursor) return { x: 1, y: 0 }
+  const dx = cursor.x - last.x
+  const dy = cursor.y - last.y
+  if (dx === 0 && dy === 0) return { x: 1, y: 0 }
+  return Math.abs(dx) >= Math.abs(dy) ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) }
+}
+
+function typedCorner(toward?: Point): Point | undefined {
+  const { points, cursor, typed } = drawStore.getState()
+  const length = typedLength(typed)
+  if (points.length === 0 || length === undefined) return undefined
+  const last = points[points.length - 1]!
+  const heading = headingOf(points, toward ?? cursor)
+  return { x: last.x + heading.x * length, y: last.y + heading.y * length }
+}
+
+export function typeKey(key: string): boolean {
+  const state = drawStore.getState()
+  if (state.points.length === 0) return false
+  if (key === 'Backspace') {
+    if (!state.typed) return false
+    state.type(state.typed.slice(0, -1))
+  } else if (TYPING.test(key)) {
+    state.type(state.typed + key)
+  } else {
+    return false
+  }
+  aimTyped()
+  return true
+}
+
+function aimTyped(toward?: Point) {
+  const corner = typedCorner(toward)
+  if (!corner) return
+  aimSequence++
+  drawStore.getState().aim(corner)
+  const args = drawArgs([...drawStore.getState().points, corner])
+  if (args) previewCommand(drawWall, args)
+}
+
+export function putTyped(): boolean {
+  const corner = typedCorner()
+  if (!corner) return false
+  aimSequence++
+  const { points } = drawStore.getState()
+  const first = points[0]!
+  drawStore.getState().put(corner)
+  drawStore.getState().aim(corner)
+  const near = Math.hypot(corner.x - first.x, corner.y - first.y) <= SNAP
+  if ((points.length >= 2 && near) || closesRoom([...points, corner])) finishDrawing()
+  return true
 }
 
 export function putDown(point: Point): void {

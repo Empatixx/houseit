@@ -15,6 +15,7 @@ export function Drawing() {
   const points = useDraw((state) => state.points)
   const cursor = useDraw((state) => state.cursor)
   const guides = useDraw((state) => state.guides)
+  const typed = useDraw((state) => state.typed)
   const corners = cursor && (points.length > 0 || guides.length > 0) ? [...points, cursor] : points
   if (corners.length === 0) return null
 
@@ -57,6 +58,7 @@ export function Drawing() {
         const length = Math.hypot(to.x - from.x, to.y - from.y)
         if (length < 1) return null
         const middle = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }
+        const live = offset === keyed.length - 2 && cursor !== null
         return (
           <group key={key}>
             <DrawingWall
@@ -72,17 +74,42 @@ export function Drawing() {
               zIndexRange={[8, 5]}
               style={{ pointerEvents: 'none' }}
             >
-              <div
-                className="pointer-events-none select-none whitespace-nowrap rounded bg-white/90 px-1 text-[11px] font-medium leading-4"
-                style={{ color: EMPHASIS.picked.line }}
-              >
-                {metres(length)}
-              </div>
+              {live ? (
+                <LengthEntry typed={typed} length={length} />
+              ) : (
+                <div
+                  className="pointer-events-none select-none whitespace-nowrap rounded bg-white/90 px-1 text-[11px] font-medium leading-4"
+                  style={{ color: EMPHASIS.picked.line }}
+                >
+                  {metres(length)}
+                </div>
+              )}
             </Html>
           </group>
         )
       })}
     </>
+  )
+}
+
+function LengthEntry({ typed, length }: { typed: string; length: number }) {
+  return (
+    <div
+      className="pointer-events-none flex select-none items-center gap-1.5 whitespace-nowrap rounded-md border bg-white/95 py-0.5 pr-1 pl-1.5 font-medium text-[12px] tabular-nums leading-5 shadow-sm"
+      style={{ borderColor: EMPHASIS.picked.line, color: EMPHASIS.picked.line }}
+    >
+      {typed ? (
+        <span>
+          {typed}
+          <span className="ml-px inline-block h-3 w-px translate-y-0.5 animate-pulse bg-current" />
+        </span>
+      ) : (
+        <span>{metres(length)}</span>
+      )}
+      <kbd className="rounded bg-[#e8e0ff] px-1 font-sans text-[10px] leading-4">
+        {typed ? '↵' : 'type'}
+      </kbd>
+    </div>
   )
 }
 
