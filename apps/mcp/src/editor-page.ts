@@ -2,6 +2,7 @@ import type {
   Clear,
   DrawingView,
   ExecResult,
+  NormCheck,
   ShowResult,
   ViewRequest,
 } from '@houseit/bridge/contract'
@@ -164,6 +165,10 @@ function clearOnPage(page: Page): Promise<Clear> {
 const SETTLE_MS = 400
 
 export const PICTURE_TYPE = 'image/jpeg'
+
+export async function normsOf(page: Page): Promise<NormCheck[] | undefined> {
+  return page.evaluate(() => window.floorplan.norms()).catch(() => undefined)
+}
 
 export async function drawingOf(page: Page, view: DrawingView): Promise<string> {
   return page.evaluate((asked) => window.floorplan.drawing(asked), view)

@@ -37,6 +37,7 @@ import { KindIcon } from './avatars'
 import { GAP, RAIL_OPEN_WIDTH, RAIL_PANEL_WIDTH, RAIL_WIDTH } from './edges'
 import { EngineSettings } from './engine-settings'
 import { useCover } from './use-cover'
+import { normLine, useNorms } from './use-norms'
 
 const TITLES = { plan: 'Plan', site: 'Site', issues: 'Issues', view: 'View' } as const
 
@@ -203,8 +204,9 @@ function Issues() {
   const problems = checkLevel(doc, level)
   const rooms = surveyLevel(doc, level).rooms
   const idOf = (name: string | undefined) => rooms.find((room) => room.name === name)?.id
+  const norms = useNorms()?.filter((check) => !check.pass) ?? []
 
-  if (problems.length === 0) {
+  if (problems.length === 0 && norms.length === 0) {
     return <Empty>Nothing to fix on this storey.</Empty>
   }
 
@@ -236,7 +238,43 @@ function Issues() {
           )
         })}
       </ul>
-      <p className="mt-auto pt-2 text-xs text-muted-foreground">{count(problems)}</p>
+      {norms.length ? (
+        <>
+          <p className="pt-3 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+            Norms (IDS)
+          </p>
+          <ul className="-mx-1.5 flex flex-col">
+            {norms.map((check) => {
+              const body = (
+                <>
+                  <Severity of={{ code: 'ids', severity: 'warning', message: '' }} />
+                  <span className="min-w-0 flex-1 text-xs leading-5">{normLine(check)}</span>
+                </>
+              )
+              const id = check.thing.kind === 'room' ? check.thing.id : undefined
+              return (
+                <li key={`${check.identifier ?? check.rule}-${check.thing.id}`}>
+                  {id === undefined ? (
+                    <div className="flex items-start gap-2 py-1.5 pr-1.5 pl-6">{body}</div>
+                  ) : (
+                    <Row
+                      on={false}
+                      onEnter={() => hoverStore.getState().hover({ kind: 'room', id })}
+                      onClick={() => selectionStore.getState().select({ kind: 'room', id })}
+                    >
+                      {body}
+                    </Row>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      ) : null}
+      <p className="mt-auto pt-2 text-xs text-muted-foreground">
+        {count(problems)}
+        {norms.length ? ` · ${norms.length} against norms` : ''}
+      </p>
     </>
   )
 }

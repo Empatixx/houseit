@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ids:ids xmlns:ids="http://standards.buildingsmart.org/IDS" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://standards.buildingsmart.org/IDS http://standards.buildingsmart.org/IDS/1.0/ids.xsd">
+  <ids:info>
+    <ids:title>Houseit – byty (zjednodušené požadavky)</ids:title>
+    <ids:description>Zjednodušený výběr požadavků na byty podle ČSN 73 4301 a vyhlášky č. 268/2009 Sb. Hodnoty jsou orientační; před použitím je ověřte proti platnému znění. Vlastnosti Houseit_Space a Houseit_Door plní Houseit z modelu.</ids:description>
+    <ids:version>1</ids:version>
+  </ids:info>
+  <ids:specifications>
+    <ids:specification name="Obytná místnost má alespoň 8 m²" ifcVersion="IFC4" identifier="CZ-OBYT-PLOCHA" description="Podlahová plocha obytné místnosti nejméně 8 m²." instructions="Zvětšete místnost nebo ji označte jako neobytnou.">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity>
+          <ids:name><ids:simpleValue>IFCSPACE</ids:simpleValue></ids:name>
+        </ids:entity>
+        <ids:property>
+          <ids:propertySet><ids:simpleValue>Houseit_Space</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>Habitable</ids:simpleValue></ids:baseName>
+          <ids:value><ids:simpleValue>true</ids:simpleValue></ids:value>
+        </ids:property>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property cardinality="required">
+          <ids:propertySet><ids:simpleValue>Houseit_Space</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>NetFloorArea</ids:simpleValue></ids:baseName>
+          <ids:value>
+            <xs:restriction base="xs:double"><xs:minInclusive value="8"/></xs:restriction>
+          </ids:value>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="Světlá výška obytné místnosti alespoň 2,6 m" ifcVersion="IFC4" identifier="CZ-OBYT-VYSKA" description="Světlá výška obytné místnosti nejméně 2600 mm." instructions="Zvyšte konstrukční výšku podlaží nebo snižte skladbu podlahy.">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity>
+          <ids:name><ids:simpleValue>IFCSPACE</ids:simpleValue></ids:name>
+        </ids:entity>
+        <ids:property>
+          <ids:propertySet><ids:simpleValue>Houseit_Space</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>Habitable</ids:simpleValue></ids:baseName>
+          <ids:value><ids:simpleValue>true</ids:simpleValue></ids:value>
+        </ids:property>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property cardinality="required">
+          <ids:propertySet><ids:simpleValue>Houseit_Space</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>ClearHeight</ids:simpleValue></ids:baseName>
+          <ids:value>
+            <xs:restriction base="xs:double"><xs:minInclusive value="2.6"/></xs:restriction>
+          </ids:value>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="Obytná místnost má okno" ifcVersion="IFC4" identifier="CZ-OBYT-OKNO" description="Obytná místnost je přímo osvětlena denním světlem oknem." instructions="Přidejte do místnosti okno na vnější stěnu.">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity>
+          <ids:name><ids:simpleValue>IFCSPACE</ids:simpleValue></ids:name>
+        </ids:entity>
+        <ids:property>
+          <ids:propertySet><ids:simpleValue>Houseit_Space</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>Habitable</ids:simpleValue></ids:baseName>
+          <ids:value><ids:simpleValue>true</ids:simpleValue></ids:value>
+        </ids:property>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property cardinality="required">
+          <ids:propertySet><ids:simpleValue>Houseit_Space</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>WindowCount</ids:simpleValue></ids:baseName>
+          <ids:value>
+            <xs:restriction base="xs:integer"><xs:minInclusive value="1"/></xs:restriction>
+          </ids:value>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="Dveře mají šířku alespoň 600 mm" ifcVersion="IFC4" identifier="CZ-DVERE-SIRKA" description="Šířka dveří v bytě nejméně 600 mm." instructions="Rozšiřte dveře.">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity>
+          <ids:name><ids:simpleValue>IFCDOOR</ids:simpleValue></ids:name>
+        </ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property cardinality="required">
+          <ids:propertySet><ids:simpleValue>Houseit_Door</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>ClearWidth</ids:simpleValue></ids:baseName>
+          <ids:value>
+            <xs:restriction base="xs:double"><xs:minInclusive value="600"/></xs:restriction>
+          </ids:value>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+  </ids:specifications>
+</ids:ids>

@@ -32,6 +32,16 @@ export type ViewRequest = {
 
 export type DrawingView = 'section-x' | 'section-y' | 'north' | 'south' | 'east' | 'west'
 
+export type NormCheck = {
+  rule: string
+  identifier?: string
+  instructions?: string
+  thing: { kind: 'room' | 'opening'; id: string; name: string }
+  pass: boolean
+  found?: unknown
+  required?: unknown
+}
+
 export type Clear = { x: number; y: number; width: number; height: number }
 
 export type ShowResult = { ok: true } | { ok: false; error: string }
@@ -46,4 +56,5 @@ export type FloorplanBridge = {
   clear: () => Clear
   exportHouse: () => Promise<string>
   drawing: (view: DrawingView, offset?: number) => Promise<string>
+  norms: () => Promise<NormCheck[]>
 }

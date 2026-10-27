@@ -1,16 +1,31 @@
-import type { ExecResult } from '@houseit/bridge/contract'
+import type { ExecResult, NormCheck } from '@houseit/bridge/contract'
 import type { Answer } from '@houseit/commands/answer'
 import { guidelinesText as guidelines } from '@houseit/commands/guidelines'
 import { programHelp } from '@houseit/commands/program'
 import { describeCommands } from '@houseit/commands/registry'
 
-export function report(result: ExecResult): string {
+export function report(result: ExecResult, norms?: NormCheck[]): string {
   if (!result.ok) return result.error
+  const failing = norms?.filter((check) => !check.pass) ?? []
+  const normsSaid = norms
+    ? [
+        `norms (${norms.length} checked, ${failing.length} failing)\n${compactJson(
+          failing.map((check) => ({
+            rule: check.rule,
+            [check.thing.kind]: check.thing.id,
+            name: check.thing.name,
+            found: check.found,
+            ...(check.instructions ? { fix: check.instructions } : {}),
+          })),
+        )}`,
+      ]
+    : []
 
   const plan = result.project?.name ?? 'the plan'
   const said = [
     ...(result.logs?.length ? [`logs\n${result.logs.join('\n')}`] : []),
     ...('result' in result ? [`result\n${compactJson(result.result)}`] : []),
+    ...normsSaid,
   ]
   return [plan, ...said, compactJson(result.brief ? briefOf(result.answer) : result.answer)].join(
     '\n',
