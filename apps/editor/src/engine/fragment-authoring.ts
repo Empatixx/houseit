@@ -35,6 +35,7 @@ export class FragmentAuthoring {
   private nextId = 1
   private projection: HouseDocument
   private base: Uint8Array
+  private baseItems: NativeGraph['items'] | undefined
 
   constructor(source: DocumentSource) {
     this.base = source instanceof Uint8Array ? readArchive(source) : initialModel(source)
@@ -62,8 +63,8 @@ export class FragmentAuthoring {
   }
 
   get graph(): NativeGraph {
-    const base = EditUtils.getModelFromBuffer(this.base, true)
-    const items = nativeItems(base)
+    this.baseItems ??= nativeItems(EditUtils.getModelFromBuffer(this.base, true))
+    const items = structuredClone(this.baseItems)
     EditUtils.applyChangesToRawData(this.model.getRequests().requests, items, 'ITEM')
     return structuredClone({ items, relations: this.model.getRelations() })
   }

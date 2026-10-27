@@ -50,7 +50,12 @@ The wall authoring model on `that-open-engine`:
   and its parent may both occur in Highlighter selection: compare domain owners, not raw
   alias count. Display tiles stay in ALL_VISIBLE mode so thumbnails can use a separate camera
   without silently dropping walls outside the live camera. Canvas readiness includes native
-  surface updates; CLI pictures and project thumbnails wait for completion. View/clip collections own their disposal. Keep UI gestures
+  surface updates; CLI pictures and project thumbnails wait for completion.
+  Outside a gesture, the canvas keeps its previous frame while the display rebuilds after a
+  document change (surfaces dirty, staging, tile styling, or the Fragments models still busy
+  within 600 ms of the change), for at most 400 ms, so an edit never shows white floors or
+  missing walls in between. During a gesture only tile styling holds a frame. FragmentAuthoring
+  parses its native base once; `graph` replays requests onto a clone of those items. View/clip collections own their disposal. Keep UI gestures
   and layout stable when replacing engine internals. Floor coverings and structural slabs carry
   explicit scene roles; keep their existing well/recess/exposed-top derivation. The shared tile
   adapter restores metric flat UVs and separate cap/edge finishes. Distinct opaque neutral native

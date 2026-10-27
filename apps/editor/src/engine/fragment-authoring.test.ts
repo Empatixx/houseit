@@ -352,3 +352,26 @@ test('version-five native project metadata loads with terrain retained', () => {
     authoring.dispose()
   }
 })
+
+test('the native base is read once, and the graph still follows every edit, undo and redo', () => {
+  const { authoring, level } = make()
+  try {
+    authoring.exec(fixture, level)
+    const first = authoring.graph
+    for (const item of first.items.values()) item.category = 'SCRIBBLED'
+    expect([...authoring.graph.items.values()].some((it) => it.category === 'SCRIBBLED')).toBe(
+      false,
+    )
+    const built = authoring.graph
+    authoring.exec('update-room --room Obyvak --side east --by 300', level)
+    const moved = authoring.graph
+    expect(moved).not.toEqual(built)
+    authoring.undo()
+    expect(authoring.graph).toEqual(built)
+    authoring.redo()
+    expect(authoring.graph).toEqual(moved)
+    expect(documentFromGraph(authoring.graph)).toEqual(authoring.document)
+  } finally {
+    authoring.dispose()
+  }
+})

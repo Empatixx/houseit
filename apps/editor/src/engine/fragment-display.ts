@@ -32,6 +32,8 @@ const materialId = (surface: DisplaySurface) =>
   surface.receives === false ? (surface.casts ? 4 : 3) : surface.casts ? 0 : 2
 const identity = { position: [0, 0, 0], xDirection: [1, 0, 0], yDirection: [0, 1, 0] }
 
+const SETTLE = 600
+
 export class FragmentDisplay {
   readonly components = new OBC.Components()
   readonly fragments = this.components.get(OBC.FragmentsManager)
@@ -44,6 +46,7 @@ export class FragmentDisplay {
   revision = 0
   toolsDisposal: Promise<void> | undefined
   readonly gestures = new Set<string>()
+  private touchedAt = Number.NEGATIVE_INFINITY
   readonly transient = new Set<number>()
   private transparentMaterials = new Map<string, number>()
   private representations = new Map<string, { id: number; geometry: BufferGeometry }>()
@@ -101,6 +104,17 @@ export class FragmentDisplay {
     this.error = error instanceof Error ? error.message : String(error)
     this.report(error)
   }
+  get rebuilding() {
+    if (this.dirty || this.work || this.preparing.size > 0) return true
+    if (performance.now() - this.touchedAt > SETTLE) return false
+    for (const model of this.fragments.list.values())
+      if ((model.modelId === this.id || model.parentModelId === this.id) && model.isBusy)
+        return true
+    return false
+  }
+  get styling() {
+    return this.preparing.size > 0
+  }
   get busy() {
     return this.dirty || !!this.work || this.preparing.size > 0 || (this.compact && !this.preview)
   }
@@ -152,11 +166,15 @@ export class FragmentDisplay {
       return
     }
     this.surfaces.set(surface.id, surface)
-    this.dirty = true
+    this.touch()
   }
   remove(id: string) {
     this.surfaces.delete(id)
+    this.touch()
+  }
+  private touch() {
     this.dirty = true
+    this.touchedAt = performance.now()
   }
   frame(preview = false) {
     if (this.preview && !preview) this.compactAfter = performance.now() + 250
