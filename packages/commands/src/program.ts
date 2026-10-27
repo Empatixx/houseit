@@ -92,6 +92,20 @@ export function runProgram(
     }
   }
 
+  const whole = (change: () => Change | undefined) => {
+    const before = frozen()
+    try {
+      return record(change())
+    } catch (error) {
+      const target = draft as unknown as Record<string, unknown>
+      const kept = before as unknown as Record<string, unknown>
+      for (const key of Object.keys(target)) if (!(key in kept)) delete target[key]
+      for (const key of Object.keys(kept)) target[key] = kept[key]
+      seen = undefined
+      throw error
+    }
+  }
+
   const call = (command: AnyCommand, args: unknown) => {
     if (args !== undefined && (typeof args !== 'object' || args === null || Array.isArray(args))) {
       throw new CommandError(`${command.name}: takes one object of options`)
@@ -99,27 +113,28 @@ export function runProgram(
     if (!typed(command)) {
       throw new CommandError(`${command.name}: has no typed form, use ctx.run`)
     }
-    return record(command.apply(draft, (args ?? {}) as never, level))
+    return whole(() => command.apply(draft, (args ?? {}) as never, level))
   }
 
   const snapshot = () => structuredClone(frozen())
   const levelId = (given?: string) => levelOf(draft, given ?? level, 'ctx')
 
   const ctx: Record<string, unknown> = {
-    run: (lines: string) => {
-      const said: Change = { changed: [], shown: [], notes: [] }
-      for (const [name, ...argv] of scriptLines(lines)) {
-        if (!name) continue
-        const command = REGISTRY.get(name)
-        if (!command) throw new CommandError(`Unknown command "${name}"`)
-        const one = command.execute(draft, argv, level)
-        said.changed!.push(...(one?.changed ?? []))
-        said.shown!.push(...(one?.shown ?? []))
-        said.notes!.push(...(one?.notes ?? []))
-        if (one?.at !== undefined) said.at = one.at
-      }
-      return record(said)
-    },
+    run: (lines: string) =>
+      whole(() => {
+        const said: Change = { changed: [], shown: [], notes: [] }
+        for (const [name, ...argv] of scriptLines(lines)) {
+          if (!name) continue
+          const command = REGISTRY.get(name)
+          if (!command) throw new CommandError(`Unknown command "${name}"`)
+          const one = command.execute(draft, argv, level)
+          said.changed!.push(...(one?.changed ?? []))
+          said.shown!.push(...(one?.shown ?? []))
+          said.notes!.push(...(one?.notes ?? []))
+          if (one?.at !== undefined) said.at = one.at
+        }
+        return said
+      }),
     doc: snapshot,
     levels: () =>
       levelsOf(frozen()).map((storey, index) => ({

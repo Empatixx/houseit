@@ -1,4 +1,4 @@
-import { layerOf, OBJECT_TYPE_IDS, objectType } from '@houseit/core/object-types'
+import { layerOf, OBJECT_TYPE_IDS, OBJECT_TYPES, objectType } from '@houseit/core/object-types'
 import { stairKind, stairShape } from '@houseit/core/stairs'
 import { SURFACE_IDS } from '@houseit/core/surfaces'
 import { sideRun } from '@houseit/geometry/sides'
@@ -7,6 +7,7 @@ import { allocateId } from './allocate-id'
 import { along, alongSide, fractionAcross, fractionOf, windowOf } from './along-schema'
 import { CommandError } from './command-error'
 import { defineCommand } from './define-command'
+import { rotationFacing } from './facing'
 import { length } from './length-schema'
 import { freeWidth, placeAgainst, placeFree, placeSomewhereAgainst } from './place-object'
 import { SIDE_NAMES, sideNamed, whereRoom } from './resolve'
@@ -14,7 +15,7 @@ import { canStand, standingProblem, takenBy } from './standing-check'
 
 export const addObject = defineCommand({
   name: 'add-object',
-  summary: `Put something in a room (${OBJECT_TYPE_IDS.join(', ')}), in a finish (${SURFACE_IDS.join(', ')})`,
+  summary: `Put something in a room (type width×depth mm, against a wall or free: ${OBJECT_TYPES.map((type) => `${type.id} ${type.size.width}×${type.size.depth}${type.stands === 'wall' ? '' : ' free'}`).join(', ')}), in a finish (${SURFACE_IDS.join(', ')}). Against a side, --along is where its middle stands: a fraction from the west or south end, or a length in mm. Standing free, --along and --across are fractions of the room's width (west to east) and depth (south to north)`,
   args: z.object({
     room: z.string().min(1),
     type: z.enum(OBJECT_TYPE_IDS as [string, ...string[]]),
@@ -27,6 +28,7 @@ export const addObject = defineCommand({
     surface: z.enum(SURFACE_IDS as [string, ...string[]]).optional(),
     seats: z.coerce.number().int().positive().optional(),
     rotation: z.coerce.number().int().min(-359).max(359).optional(),
+    facing: z.string().min(1).optional(),
     level: z.string().optional(),
   }),
   run: (draft, args) => {
@@ -54,7 +56,26 @@ export const addObject = defineCommand({
 
     const width = flight?.size.width ?? args.width ?? type.size.width
     const depth = flight?.size.depth ?? args.depth ?? type.size.depth
-    const rotation = args.rotation
+    const rotation =
+      args.facing === undefined
+        ? args.rotation
+        : rotationFacing(
+            draft,
+            level,
+            room,
+            {
+              ...(at ? { against: at.side } : {}),
+              ...(at?.nth !== undefined ? { againstNth: at.nth } : {}),
+              along: args.along && 'fraction' in args.along ? args.along.fraction : 0.5,
+              ...(args.across === undefined
+                ? {}
+                : { across: fractionAcross(draft, room, args.across, 'add-object') }),
+              width: args.width ?? type.size.width,
+              depth: args.depth ?? type.size.depth,
+            },
+            args.facing,
+            'add-object',
+          )
 
     const shape = { type: type.id, width, depth, rotation }
     const taken = takenBy(shape)

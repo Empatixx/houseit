@@ -50,6 +50,106 @@ or as a module body: `export default (ctx) => { … }`.
   through later edits; `equal` (with `other`) and `parallel` (`wall`, `other`) too. Every
   answer lists the rules with what they measure now; an edit that breaks one is refused.
 
+## A home, start to finish
+
+Build in this order, one program per step, and look at the picture between steps:
+
+1. The outline at the size the brief and `guidelines` call for.
+2. Rooms cut out of it: wet rooms together, habitable rooms on the facade. What is
+   left of the outline keeps its name: `ctx.updateRoom({ room: 'dům', name: 'chodba',
+   kind: 'hall' })` turns it into the hall rather than cutting a hall as well.
+3. Doors (`opensInto` where the default side is wrong), then windows.
+4. Stairs, then the next storey (below).
+5. Furniture, room by room (below), until `ctx.problems()` is empty.
+
+Give rooms a `kind` when the name does not say it (`pokoj` could be anything):
+the checks ask a bedroom for a bed and a living room for seating by kind.
+
+## Storeys and stairs
+
+```js
+#!js
+// ground floor: the flight stands in the hall. A straight flight is about 900 x 4200,
+// so lay it along a long wall (rotation 90 turns it to run along the side).
+ctx.addObject({ room: 'chodba', type: 'stairs-straight', against: 'south', rotation: 90 })
+ctx.addLevel({ name: '1. patro' }) // takes the height of the storey below; set 3 m on the ground floor first
+ctx.useLevel('1. patro')
+ctx.addRoom({ name: 'patro', shape: 'rectangle', width: '10m', depth: '8m', material: 'natural-oak' })
+// the flight cuts its well in the floor above: read it, and draw the upper hall round it
+const well = ctx.room('patro').wells[0].box
+const m = 1000
+ctx.addRoom({ name: 'chodba patro', from: 'patro', kind: 'hall', material: 'natural-oak',
+  points: `${well.x0 - m},${well.y0 - m}; ${well.x1 + m},${well.y0 - m}; ${well.x1 + m},${well.y1 + m}; ${well.x0 - m},${well.y1 + m}` })
+return ctx.problems()
+```
+
+A house starts with `ctx.updateLevel({ height: '3m' })`: the default 2.8 m storey leaves
+2.55 m clear, under the 2.6 m a habitable room needs. `guidelines` lists every flight's
+footprint at 2.8 and 3 m; size the hall to it before cutting the rooms round it. The
+upper outline lands on the ground floor's footprint when it has the same size.
+Clip the hall's points to the outline when the well is near a facade. `stairs-u` and
+`stairs-l-landing` fit a squarer hall. A room name is looked for on every storey;
+`useLevel` only decides where new rooms go.
+
+## Furnishing
+
+`guidelines` lists what every kind of room holds, the clear floor each thing needs in
+front of or beside it, and how each room is laid out (the kitchen run first). The checks
+hold the plan to it: `room.unfurnished` names what a room still lacks,
+`object.no-room-to-use` names what blocks a wardrobe's doors or a bed's side,
+`object.faces-wall` a sofa or screen turned to the wall, `door.onto-stairs` a door with no
+landing before a flight,
+`kitchen.incomplete` / `kitchen.fridge-far` the run, `flat.table-short` the seats and
+`flat.no-washer` the washing machine. A room with only a bed in it is not finished.
+
+Every thing in an answer says what it `faces`: `"north, towards the media unit f9 2300
+mm ahead"`, or `"south, towards the wall 0 mm ahead"` for a sofa put in backwards. Every
+door says what is `ahead` on each side, `["in obývák: open floor for 5 m or more", "in
+chodba: the straight staircase f2 0 mm ahead"]`. Read both after placing a thing:
+seating and screens face each other across the room, a desk may face the wall, and
+nothing a door opens onto should be closer than a landing. The picture after one thing
+is placed selects it, with an arrow off its front edge.
+
+Place things on the free stretches the report gives, not by guessing fractions:
+
+```js
+#!js
+// stretches of wall still free in a room, longest first, optionally avoiding some sides
+const stretches = (name, avoid = []) =>
+  ctx.room(name).sides
+    .filter((side) => !avoid.includes(side.side))
+    .flatMap((side) => side.free.map((span) => ({ side: side.side, from: span.from, to: span.to, length: span.to - span.from })))
+    .sort((a, b) => b.length - a.length)
+const put = (room, type, run, extra = {}) =>
+  ctx.addObject({ room, type, against: run.side, along: Math.round((run.from + run.to) / 2), ...extra })
+
+// a kitchen: the fridge at one end of the longest door-free wall, the run fitted to the rest
+const wall = stretches('kuchyň')[0]
+ctx.addObject({ room: 'kuchyň', type: 'refrigerator', against: wall.side, along: wall.from + 400 })
+const rest = stretches('kuchyň').find((run) => run.side === wall.side)
+put('kuchyň', 'kitchen-i', rest, { width: Math.min(rest.length - 50, 4200) })
+
+// a bedroom: bed head on a wall without the window, wardrobe on another, nightstands
+const windowed = ctx.room('ložnice').sides
+  .filter((side) => side.openings.some((o) => o.kind === 'window'))
+  .map((side) => side.side)
+const head = stretches('ložnice', windowed)[0]
+const bed = put('ložnice', 'queen-bed', head)
+put('ložnice', 'wardrobe', stretches('ložnice', [head.side])[0])
+return ctx.problems().filter((p) => p.room === 'ložnice' || p.room === 'kuchyň')
+```
+
+Against a side, `along` is where the thing's middle stands: a fraction from the west or
+south end, or a whole number of millimetres, the same scale as `free`. A thing standing
+free (no `against`) takes `along` and `across` as fractions of the room's width, west to
+east, and depth, south to north. `help` lists every type with its width × depth, so check
+that it fits the stretch before you place it. Read `sides` again after each placement, since things take their stretch.
+Size a thing to its room. A kitchen run takes `width` to fill its wall (`kitchen-i`
+along one wall, `kitchen-l` into a corner of a squarer room, `kitchen-u` round a room
+2.4 m across or more); a child's room a `twin-bed`, a master bedroom a
+`queen-bed` or `king-bed`. Every catalogue type has a real size; `help add-object` lists
+them, and a thing that does not fit is refused with the reason.
+
 ## Working this way
 
 1. `help` and `guidelines` once at the start.
@@ -58,3 +158,7 @@ or as a module body: `export default (ctx) => { … }`.
 3. Look at the picture after each call. Fix with another program using the ids you got.
 4. A thrown error discards the whole program, not part of it: decide with reads
    (`ctx.room(…).sides`, `ctx.problems()`) before you call, rather than undoing after.
+   A call whose error you catch leaves nothing of itself behind, so trying a few spots
+   in a `try` is safe, but reading `free` first is cheaper.
+5. Done means every room furnished for living in and `ctx.problems()` empty on every
+   storey: `ctx.levels()` then `ctx.problems(level)` for each.

@@ -8,6 +8,8 @@ import { piecesOf, standingAt } from '@houseit/geometry/standing'
 import { swingOf } from '@houseit/geometry/swing'
 import { label, type Problem, type Rule, realOpening } from './rule'
 
+const HAND = 100
+
 export const doors: Rule = ({ doc, level, rooms }) => {
   const problems: Problem[] = []
   const byId = new Map(rooms.filter((room) => room.id).map((room) => [room.id!, room] as const))
@@ -28,14 +30,22 @@ export const doors: Rule = ({ doc, level, rooms }) => {
   for (const { opening, box } of swings) {
     const into = roomOfSwing(doc, rooms, box)
     const where = into?.name ? ` in ${into.name}` : ''
-    const blocked = standing.find((thing) => clashesAny([box], thing.boxes))
+    const reach = {
+      x0: box.x0 - HAND,
+      y0: box.y0 - HAND,
+      x1: box.x1 + HAND,
+      y1: box.y1 + HAND,
+    }
+    const blocked = standing.find(
+      (thing) => (!into || thing.room.id === into.id) && clashesAny([reach], thing.boxes, 0),
+    )
     if (blocked) {
       problems.push({
         code: 'door.blocked',
         severity: 'error',
         room: into?.name,
         ids: [realOpening(opening.id), blocked.object.id],
-        message: `a door${where} cannot open: the ${label(blocked.object)} stands in its swing`,
+        message: `a door${where} cannot open fully: the ${label(blocked.object)} stands in its swing or within a hand of it`,
       })
     }
     const other = swings.find((it) => it.opening.id !== opening.id && clashes(box, it.box))

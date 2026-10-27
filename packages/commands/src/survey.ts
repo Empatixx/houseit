@@ -1,11 +1,12 @@
 import type { HouseDocument, HouseObject, Opening, Side, Wall } from '@houseit/core/document'
 import { PARTS, type Part } from '@houseit/core/finishes'
+import { COMPASS, frontOf, lookAhead, obstaclesOn, said } from '@houseit/geometry/ahead'
 import { boundaryWallsOf } from '@houseit/geometry/boundary'
 import { interiorSize, objectClearances, planExtent } from '@houseit/geometry/dimensions'
 import { type Enclosure, enclosureOf, enclosuresOf } from '@houseit/geometry/enclosure'
 import { openingRecesses } from '@houseit/geometry/opening-recesses'
 import type { Point } from '@houseit/geometry/outlines'
-import { type Room, roomsOf } from '@houseit/geometry/rooms'
+import { containsPoint, type Room, roomsOf } from '@houseit/geometry/rooms'
 import {
   runOfWall,
   SIDE_NAMES,
@@ -17,7 +18,7 @@ import {
   wallsOnSide,
 } from '@houseit/geometry/sides'
 import { freeSpans } from '@houseit/geometry/spans'
-import { footprintOf, standingAt } from '@houseit/geometry/standing'
+import { footprintOf, type Spot, standingAt } from '@houseit/geometry/standing'
 import { wellsInRoom } from '@houseit/geometry/wells'
 import { hasDoor, opensIntoOf } from './opening-direction'
 import { handOf } from './opening-hinge'
@@ -51,6 +52,7 @@ export type OpeningReport = {
   opensInto?: string
   sill?: number
   to?: string
+  ahead?: string[]
 }
 
 export type ObjectReport = {
@@ -67,6 +69,7 @@ export type ObjectReport = {
   surface: string
   at?: Point
   clear?: Record<string, number>
+  faces?: string
 }
 
 export type Span = { from: number; to: number }
@@ -184,7 +187,11 @@ export function surveyRoom(
           }
         : {}),
       ...(opening.kind === 'door' || opening.panels?.some((p) => p.kind === 'door')
-        ? { variant: opening.variant, to: across ? (across.name ?? '(unnamed)') : 'outside' }
+        ? {
+            variant: opening.variant,
+            to: across ? (across.name ?? '(unnamed)') : 'outside',
+            ahead: doorAhead(doc, level, rooms, room, opening, across),
+          }
         : { sill: opening.sillHeight }),
     })
   }
@@ -358,6 +365,43 @@ export function objectsIn(doc: HouseDocument, level: string, room: Room): HouseO
     .sort((one, other) => order(one.id) - order(other.id))
 }
 
+function facing(doc: HouseDocument, level: string, spot: Spot, object: HouseObject) {
+  const { from, direction } = frontOf(spot, object)
+  const seen = lookAhead(doc, from, direction, obstaclesOn(doc, level, roomsOf(doc, level)), [
+    object.id,
+  ])
+  return `${COMPASS(direction)}, towards ${said(seen)}`
+}
+
+function doorAhead(
+  doc: HouseDocument,
+  level: string,
+  rooms: Room[],
+  room: Room,
+  opening: Opening,
+  across: Room | undefined,
+): string[] {
+  const wall = doc.walls[opening.wall]
+  const a = wall && doc.nodes[wall.a]
+  const b = wall && doc.nodes[wall.b]
+  if (!wall || !a || !b) return []
+  const length = Math.hypot(b.x - a.x, b.y - a.y) || 1
+  const centre = { x: a.x + (b.x - a.x) * opening.t, y: a.y + (b.y - a.y) * opening.t }
+  const normal = { x: -(b.y - a.y) / length, y: (b.x - a.x) / length }
+  const obstacles = obstaclesOn(doc, level, rooms)
+  return [1, -1].map((sign) => {
+    const direction = { x: normal.x * sign, y: normal.y * sign }
+    const from = {
+      x: centre.x + (direction.x * wall.thickness) / 2,
+      y: centre.y + (direction.y * wall.thickness) / 2,
+    }
+    const probe = { x: from.x + direction.x * 50, y: from.y + direction.y * 50 }
+    const here = room.nodes.map((id) => doc.nodes[id]).filter((node) => node !== undefined)
+    const into = containsPoint(here, probe.x, probe.y) ? room.name : (across?.name ?? 'outside')
+    return `in ${into ?? 'the room'}: ${said(lookAhead(doc, from, direction, obstacles, [wall.id]))}`
+  })
+}
+
 export function surveyObject(
   doc: HouseDocument,
   level: string,
@@ -392,6 +436,7 @@ export function surveyObject(
           clear: Object.fromEntries(
             objectClearances(doc, level, room, spot, object).map((it) => [it.side, it.length]),
           ),
+          faces: facing(doc, level, spot, object),
         }
       : {}),
   }

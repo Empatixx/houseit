@@ -133,3 +133,16 @@ return {
   })
   expect(said.brief).toBe(true)
 })
+
+test('a call that throws inside a program leaves nothing of itself behind', () => {
+  const doc = runScript(
+    createEmptyDocument(),
+    `#!js
+ctx.addRoom({ name: 'byt', shape: 'rectangle', width: '6m', depth: '4m', material: 'natural-oak' })
+try {
+  ctx.run('add-room --name koupelna --from byt --corner north-west --width 2m --depth 2m --material tile-white\\nadd-room --name nic --from nikde --side west --width 1m --material tile-white')
+} catch {}
+return ctx.rooms().map((room) => room.name)`,
+  )
+  expect(Object.values(doc.rooms).map((room) => room.name)).toEqual(['byt'])
+})

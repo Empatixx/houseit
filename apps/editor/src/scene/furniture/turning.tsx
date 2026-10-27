@@ -122,3 +122,33 @@ export function Dial({ centre, height, base, turn, radius }: DialProps) {
     </>
   )
 }
+
+const NOSE = 90
+const TIP = 330
+const SPREAD = 240
+
+export function FacingArrow({
+  at,
+  turn,
+  depth,
+  height,
+}: {
+  at: Point
+  turn: number
+  depth: number
+  height: number
+}) {
+  const base = facing(at, turn, depth / 2 + NOSE)
+  const tip = facing(at, turn, depth / 2 + TIP)
+  const side = { x: Math.cos(turn) * SPREAD, y: Math.sin(turn) * SPREAD }
+  const point = (p: Point) => toWorld(p.x, p.y, height)
+  const left = { x: base.x + side.x, y: base.y + side.y }
+  const right = { x: base.x - side.x, y: base.y - side.y }
+  return (
+    <Line
+      points={[point(left), point(tip), point(right), point(left)]}
+      color={INK}
+      lineWidth={3.5}
+    />
+  )
+}

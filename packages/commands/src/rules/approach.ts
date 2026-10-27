@@ -2,6 +2,8 @@ import { STANDARD } from '@houseit/core/dispositions'
 import type { Opening, Wall } from '@houseit/core/document'
 import { layerOf } from '@houseit/core/object-types'
 import { openingsIn } from '@houseit/core/opening-parts'
+import { isStaircase } from '@houseit/core/stairs'
+import { lookAhead, obstaclesOn } from '@houseit/geometry/ahead'
 import type { Box } from '@houseit/geometry/boxes'
 import { boxOf } from '@houseit/geometry/boxes'
 import type { Point } from '@houseit/geometry/outlines'
@@ -10,6 +12,7 @@ import { piecesOf, standingAt } from '@houseit/geometry/standing'
 import { label, type Problem, type Rule, realOpening } from './rule'
 
 const SQUEEZE = 600
+const LANDING = 1000
 const TOUCHING = 60
 
 export const approach: Rule = ({ doc, level, rooms }) => {
@@ -29,6 +32,25 @@ export const approach: Rule = ({ doc, level, rooms }) => {
     if (!wall || wall.level !== level) continue
     const doorway = doorwayOf(doc.nodes[wall.a], doc.nodes[wall.b], wall, opening)
     if (!doorway) continue
+
+    const obstacles = obstaclesOn(doc, level, rooms)
+    for (const sign of [1, -1]) {
+      const direction = { x: doorway.across.x * sign, y: doorway.across.y * sign }
+      const from = {
+        x: doorway.centre.x + direction.x * doorway.face,
+        y: doorway.centre.y + direction.y * doorway.face,
+      }
+      const seen = lookAhead(doc, from, direction, obstacles, [wall.id])
+      const stair = seen?.id ? doc.objects[seen.id] : undefined
+      if (!stair || !isStaircase(stair.type) || seen!.distance >= LANDING) continue
+      problems.push({
+        code: 'door.onto-stairs',
+        severity: 'warning',
+        room: byId.get(stair.room)?.name,
+        ids: [realOpening(opening.id), stair.id],
+        message: `a door opens straight onto the ${label(stair)} ${seen!.distance} mm away: leave a landing of ${LANDING} mm between a door and a flight`,
+      })
+    }
 
     const swings = opening.variant === 'hinged'
     const sides: (-1 | 1)[] = swings ? [-opening.swing as -1 | 1] : [1, -1]

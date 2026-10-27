@@ -549,6 +549,25 @@ same `drawnPartsOf` boxes the clashes use, so an L kitchen throws an L. It is no
 geometry and takes no clicks or snaps; rugs and other `under` things cast none. Room names
 are set in capitals with a little tracking, the area beneath in tabular figures.
 
+## A furnished room is the finished room
+
+`core/furnishing.ts` is the one table of what each room kind holds (`ROOM_NEEDS`) and the
+clear floor a thing needs to be used (`USE_SPACE`: in front of a wardrobe, a run, a fridge;
+beside a bed, both sides of a double). `rules/furnishing.ts` checks it (`room.unfurnished`,
+`object.no-room-to-use`, and once per house `flat.table-short`, `flat.no-washer`), and
+`guidelines` prints the same table, so the text and the check cannot drift apart. The
+kitchen rule covers every room holding a run, a kitchenette included, and wants the fridge
+at the run. A door's swing clears furniture by a hand (100 mm) with no slack: a leaf that
+brushes the bed foot was let through by the box tolerance. Things that do not fill their
+rectangle (an L run) are not given a front strip; their working space is inside the box.
+
+What a thing faces is said in words, because an agent cannot see that a sofa is turned to
+the wall in a forty-pixel symbol: every object report carries `faces` (compass and the first
+thing, wall, window or door ahead of its front edge, `geometry/ahead.ts`) and every door
+`ahead` for both sides. The same look drives `object.faces-wall` and `door.onto-stairs`. In
+the plan a selected thing shows an arrow off its front, so the picture after one placement
+shows its direction too.
+
 ## Symbol and surface are separate
 
 Furniture is drawn from plan symbols: one SVG per type under
