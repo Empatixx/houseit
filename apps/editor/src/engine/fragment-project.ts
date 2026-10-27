@@ -35,11 +35,7 @@ async function encode(
   generate: GenerateGeometry,
   loadAsset: ArchiveAssetLoader,
 ): Promise<FragmentArchive> {
-  const base = EditUtils.getModelFromBuffer(snapshot.base, true)
-  const items = nativeItems(base)
-  const relations = new Map<number, RawRelationData>()
-  for (let i = 0; i < base.relationsLength(); i++)
-    relations.set(base.relationsItems(i)!, EditUtils.getRelationData(base.relations(i)!))
+  const { items, relations } = structuredClone(parsed(snapshot.base))
   EditUtils.applyChangesToRawData(snapshot.requests, items, 'ITEM')
   EditUtils.applyChangesToRawData(snapshot.requests, relations, 'RELATION')
   const ids = new Map([...items].map(([id, item]) => [nativeKey(item), id]))
@@ -176,8 +172,8 @@ async function encode(
   })
   requests.push({ type: Edit.UPDATE_MAX_LOCAL_ID, localId: next })
   const empty = EditUtils.getModelFromBuffer(EditUtils.newModel({ raw: true }), true)
-  const archive = EditUtils.edit(empty, requests, { raw: false, delta: false }).model
-  return { format: 'houseit-fragments', version: 1, buffer: new Uint8Array(archive).slice().buffer }
+  const archive = EditUtils.edit(empty, requests, { raw: true, delta: false }).model
+  return { format: 'houseit-fragments', version: 1, buffer: await deflated(archive) }
 }
 
 function nativePaint(paint: ArchivePaint) {
@@ -190,4 +186,26 @@ function nativePaint(paint: ArchivePaint) {
     renderedFaces: paint.doubleSided ? 1 : 0,
     stroke: 0,
   }
+}
+
+const bases = new WeakMap<
+  Uint8Array,
+  { items: ReturnType<typeof nativeItems>; relations: Map<number, RawRelationData> }
+>()
+
+function parsed(buffer: Uint8Array) {
+  const known = bases.get(buffer)
+  if (known) return known
+  const base = EditUtils.getModelFromBuffer(buffer, true)
+  const relations = new Map<number, RawRelationData>()
+  for (let i = 0; i < base.relationsLength(); i++)
+    relations.set(base.relationsItems(i)!, EditUtils.getRelationData(base.relations(i)!))
+  const read = { items: nativeItems(base), relations }
+  bases.set(buffer, read)
+  return read
+}
+
+async function deflated(bytes: Uint8Array): Promise<ArrayBuffer> {
+  const stream = new Blob([bytes.slice()]).stream().pipeThrough(new CompressionStream('deflate'))
+  return new Response(stream).arrayBuffer()
 }

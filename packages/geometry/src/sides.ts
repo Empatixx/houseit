@@ -1,5 +1,5 @@
-import type { HouseDocument, Side } from '@houseit/core/document'
-import { boundaryWallsOf, wallBetween } from './boundary'
+import type { HouseDocument, Side, Wall } from '@houseit/core/document'
+import { boundaryWallsOf, wallLookup } from './boundary'
 import type { Point } from './outlines'
 import type { Room } from './rooms'
 
@@ -18,11 +18,12 @@ export function wallsFacing(doc: HouseDocument, level: string, room: Room, side:
   const count = room.nodes.length
   const times = new Map<string, number>()
   const found: SideWall[] = []
+  const between = wallLookup(doc, level)
 
   for (let i = 0; i < count; i += 1) {
     const aId = room.nodes[i]!
     const bId = room.nodes[(i + 1) % count]!
-    const wall = wallBetween(doc, level, aId, bId)
+    const wall = between(aId, bId)
     if (!wall) continue
     times.set(wall.id, (times.get(wall.id) ?? 0) + 1)
     const a = doc.nodes[aId]
@@ -87,8 +88,9 @@ function runOf(
   const longest = walls.reduce((best, next) => (lengthOf(next) > lengthOf(best) ? next : best))
   const step = low ? 1 : -1
 
-  const near = crossingHalf(doc, level, room, first.wall, end)
-  const beyond = crossingHalf(doc, level, room, last.wall, far)
+  const boundary = boundaryWallsOf(doc, level, room)
+  const near = crossingHalf(doc, boundary, first.wall, end)
+  const beyond = crossingHalf(doc, boundary, last.wall, far)
   const way = { x: Math.sign(far.x - end.x), y: Math.sign(far.y - end.y) }
   const from = { x: end.x + way.x * near, y: end.y + way.y * near }
   const to = { x: far.x - way.x * beyond, y: far.y - way.y * beyond }
@@ -171,14 +173,8 @@ export function runOfWall(
   return undefined
 }
 
-function crossingHalf(
-  doc: HouseDocument,
-  level: string,
-  room: Room,
-  wall: string,
-  corner: Point,
-): number {
-  const thickest = boundaryWallsOf(doc, level, room)
+function crossingHalf(doc: HouseDocument, boundary: Wall[], wall: string, corner: Point): number {
+  const thickest = boundary
     .filter((other) => other.id !== wall)
     .filter((other) =>
       [doc.nodes[other.a], doc.nodes[other.b]].some(
