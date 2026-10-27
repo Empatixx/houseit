@@ -753,6 +753,21 @@ so `ids-check.ts` asks each facet for its entities and intersects them before ru
 requirements. Failing checks show under Issues and ride along with every CLI and MCP answer
 as `norms`; the numbers in the file are orientation values to check against the current law.
 
+## Topics and views travel as BCF
+
+A remark is pinned to the plan with `add-topic` (title, status, author, what it is `--about`,
+comments added with `update-topic`), and a view is saved with `add-viewpoint`, or made with the
+topic from `--camera`. Cameras are stored in plan millimetres, x east, y north, z up, with the
+mode (plan or 3d) and what was hidden. They are document collections and native items
+(`HOUSEITTOPIC` About rooms, walls, openings or things, ShownIn its `HOUSEITVIEWPOINT`), so
+archives keep them; a topic outlives what it was about and only loses the pointer.
+`engine/bcf.ts` writes and reads `.bcfzip` with That Open's `BCFTopics` and `Viewpoints`.
+That Open keeps viewpoint cameras in three.js axes and converts on export, so cameras are
+handed over as three.js metres; it reads the up vector back as zero, which import replaces
+with vertical. Selection uses IFC GUIDs derived from native keys (`core/ifc-guid.ts`), so
+nothing extra is stored. The Topics tab pins to the selection and the current view, replies,
+changes status and goes back to the view; the driver exports with `--bcf topics.bcfzip`.
+
 ## Exterior site
 
 `update-site --site` replaces site surfaces, road/parking markings and railings

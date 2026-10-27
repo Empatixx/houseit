@@ -99,6 +99,15 @@ export type Answer = {
   unassigned?: RoomReport[]
   problems: Problem[]
   constraints?: ConstraintReport[]
+  topics?: {
+    id: string
+    title: string
+    status: string
+    about: string[]
+    comments: number
+    viewpoint?: string
+  }[]
+  viewpoints?: { id: string; name: string; mode: string }[]
   notes?: string[]
 }
 
@@ -185,6 +194,27 @@ export function answerFor(
     }),
     ...(doc.constraints && Object.keys(doc.constraints).length
       ? { constraints: Object.values(doc.constraints).map((it) => reportConstraint(doc, it)) }
+      : {}),
+    ...(doc.topics
+      ? {
+          topics: Object.values(doc.topics).map((topic) => ({
+            id: topic.id,
+            title: topic.title,
+            status: topic.status,
+            about: topic.about,
+            comments: topic.comments.length,
+            ...(topic.viewpoint ? { viewpoint: topic.viewpoint } : {}),
+          })),
+        }
+      : {}),
+    ...(doc.viewpoints
+      ? {
+          viewpoints: Object.values(doc.viewpoints).map(({ id, name, mode }) => ({
+            id,
+            name,
+            mode,
+          })),
+        }
       : {}),
     ...(notes === undefined || notes.length === 0 ? {} : { notes }),
   }

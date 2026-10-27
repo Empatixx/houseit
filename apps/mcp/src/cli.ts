@@ -11,6 +11,7 @@ import {
   openProject,
   pictureOf,
   showOnPage,
+  topicsOf,
 } from './editor-page'
 import { guidelinesText, helpText, report, toolDescription } from './report'
 import { scriptOf } from './script-of'
@@ -27,6 +28,7 @@ const USAGE = [
   '  houseit --project byt-praha get-plan       in that plan, made if there is none yet',
   '  houseit --export house.glb get-plan       with the whole house as a glTF model',
   '  houseit --drawing north=out.dxf get-plan  with a section or elevation as a DXF line drawing',
+  '  houseit --bcf topics.bcfzip get-plan     with the topics and their views as BCF',
   '  houseit guidelines                         how a flat or a house goes together',
 ].join('\n')
 
@@ -43,16 +45,19 @@ async function main(argv: string[]): Promise<number> {
   let picture: string | undefined
   let project: string | undefined
   let model: string | undefined
+  let topics: string | undefined
   const drawings: [DrawingView, string][] = []
   while (
     argv[0] === '--picture' ||
     argv[0] === '--project' ||
     argv[0] === '--export' ||
-    argv[0] === '--drawing'
+    argv[0] === '--drawing' ||
+    argv[0] === '--bcf'
   ) {
     const value = argv[1]
     if (!value) throw new Error(`${argv[0]} needs a value`)
-    if (argv[0] === '--drawing') {
+    if (argv[0] === '--bcf') topics = value
+    else if (argv[0] === '--drawing') {
       const [view, file] = value.split('=')
       if (!file || !DRAWINGS.includes(view as DrawingView))
         throw new Error(`--drawing takes <${DRAWINGS.join('|')}>=<file.dxf>`)
@@ -80,6 +85,10 @@ async function main(argv: string[]): Promise<number> {
   for (const [view, file] of result.ok ? drawings : []) {
     writeFileSync(file, await drawingOf(page, view))
     process.stderr.write(`${view} drawing written to ${file}\n`)
+  }
+  if (result.ok && topics) {
+    writeFileSync(topics, await topicsOf(page))
+    process.stderr.write(`topics written to ${topics}\n`)
   }
   if (result.ok && model) {
     writeFileSync(model, await houseOf(page))
