@@ -17,6 +17,8 @@ import type { DisplaySurface } from './display-surface'
 import { FragmentDisplay } from './fragment-display'
 import { useGeometryEngine } from './provider'
 
+const HOLD = 400
+
 const Context = createContext<{ display: FragmentDisplay } | null>(null)
 type Events = Pick<
   ThreeElements['group'],
@@ -61,8 +63,20 @@ export function FragmentDisplayLayer({ children }: { children: ReactNode }) {
     window.addEventListener('pointercancel', up, true)
     handlers.set(instance, new Map())
     setDisplay(instance)
+    const gl = get().gl
+    const render = gl.render
+    let held = 0
+    gl.render = (scene, camera) => {
+      const gesture = instance.pointerDown || instance.gestures.size > 0
+      if (gesture ? instance.styling : instance.rebuilding) {
+        held ||= performance.now()
+        if (performance.now() - held < HOLD) return
+      } else held = 0
+      render.call(gl, scene, camera)
+    }
     return () => {
       alive = false
+      gl.render = render
       canvas.removeEventListener('pointerdown', down, true)
       window.removeEventListener('pointerup', up, true)
       window.removeEventListener('pointercancel', up, true)
