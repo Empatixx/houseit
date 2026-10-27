@@ -9,6 +9,15 @@ export type EngineView =
   | 'south'
   | 'east'
   | 'west'
+export const HIDEABLE = {
+  furniture: [/^IFCFURNISHINGELEMENT$/],
+  openings: [/^IFCDOOR$/, /^IFCWINDOW$/],
+  roofs: [/^IFCROOF$/],
+  ceilings: [/^IFCSLAB$/],
+  site: [/^IFCGEOGRAPHICELEMENT$/, /^IFCSURFACEFEATURE$/, /^IFCRAILING$/],
+} as const
+export type Hideable = keyof typeof HIDEABLE
+
 type EngineSettings = {
   view: EngineView
   snap: boolean
@@ -16,6 +25,7 @@ type EngineSettings = {
   cutHeight: number
   offset: number
   lines: boolean
+  hidden: Hideable[]
 }
 type State = EngineSettings & {
   busy: boolean
@@ -31,6 +41,7 @@ export const engineViewStore = createStore<State>()((set) => ({
   cutHeight: 1.2,
   offset: 0,
   lines: false,
+  hidden: [],
   busy: true,
   error: null,
   clear: 0,

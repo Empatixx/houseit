@@ -268,6 +268,11 @@ slabs and unsupported space do not stop it. The storey cards show their names
 and elevations; choosing one starts the camera on that storey's floor. The
 small plan in 3D shows the selected storey, not every storey superimposed.
 `Walk with collisions` remains available for testing passages and stairs.
+The 3D bar can hide furniture, doors and windows, roofs, ceilings (storey slabs, which opens
+a flat-roofed house like a doll's house) and the site. It is That Open's `ItemsFinder` finding
+the display's items by IFC category and `Hider` switching them off, re-applied after every
+display rebuild; the driver says `show({view: 'overview', hide: ['ceilings', 'site']})`.
+It is presentation only and applies to the 3D view, never the plan.
 Traversal proofs must explicitly call `walkStore.setMovement('walk')` through
 the exposed store before keyboard movement; free-camera movement is not proof
 that an opening or stair can be walked. These are camera controls, not document
